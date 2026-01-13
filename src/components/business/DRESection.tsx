@@ -32,25 +32,63 @@ export const DRESection = ({ transactions }: Props) => {
       .reduce((s, t) => s + t.amount, 0);
 
   // Categorias baseadas em palavras-chave comuns
-  const taxes = filterByKeywords(["imposto", "taxa", "tributo", "das", "simples", "darf"]);
-  const cogs = filterByKeywords(["fornecedor", "mercadoria", "estoque", "compra", "produção", "matéria"]);
-  const personnel = filterByKeywords(["salário", "folha", "sócio", "prolabore", "fgts", "inss", "benefício"]);
-  
+  const taxes = filterByKeywords([
+    "imposto",
+    "taxa",
+    "tributo",
+    "das",
+    "simples",
+    "darf",
+  ]);
+  const cogs = filterByKeywords([
+    "fornecedor",
+    "mercadoria",
+    "estoque",
+    "compra",
+    "produção",
+    "matéria",
+  ]);
+  const personnel = filterByKeywords([
+    "salário",
+    "folha",
+    "sócio",
+    "prolabore",
+    "fgts",
+    "inss",
+    "benefício",
+  ]);
+
   // Operacional = Tudo que não foi capturado acima
   // Para evitar contagem dupla, filtramos explicitamente o que JÁ foi somado
   const calculatedExpenseIds = new Set(
     transactions
-      .filter(t => t.type === "expense")
-      .filter(t => {
-         const cat = t.category.toLowerCase();
-         const allKeywords = [
-            "imposto", "taxa", "tributo", "das", "simples", "darf",
-            "fornecedor", "mercadoria", "estoque", "compra", "produção", "matéria",
-            "salário", "folha", "sócio", "prolabore", "fgts", "inss", "benefício"
-         ];
-         return allKeywords.some(k => cat.includes(k));
+      .filter((t) => t.type === "expense")
+      .filter((t) => {
+        const cat = t.category.toLowerCase();
+        const allKeywords = [
+          "imposto",
+          "taxa",
+          "tributo",
+          "das",
+          "simples",
+          "darf",
+          "fornecedor",
+          "mercadoria",
+          "estoque",
+          "compra",
+          "produção",
+          "matéria",
+          "salário",
+          "folha",
+          "sócio",
+          "prolabore",
+          "fgts",
+          "inss",
+          "benefício",
+        ];
+        return allKeywords.some((k) => cat.includes(k));
       })
-      .map(t => t.id)
+      .map((t) => t.id)
   );
 
   const operational = transactions
@@ -230,7 +268,15 @@ export const DRESection = ({ transactions }: Props) => {
 };
 
 // Internal Badge helper since it might not be exported from types
-const Badge = ({ children, variant, className }: any) => (
+const Badge = ({
+  children,
+  variant,
+  className,
+}: {
+  children: React.ReactNode;
+  variant?: string;
+  className?: string;
+}) => (
   <span
     className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${
       variant === "outline"

@@ -92,24 +92,24 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
       });
 
   return (
-    <Card className="shadow-card border-0 overflow-hidden min-h-[300px]">
+    <Card className="glass-card border-none rounded-[2rem] overflow-hidden min-h-[300px] group transition-all duration-500 hover:shadow-premium">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between gap-2 text-lg">
+        <CardTitle className="flex items-center justify-between gap-2 text-lg font-black tracking-tight text-white">
           <div className="flex items-center gap-2">
-            <Brain className="text-primary" size={20} />
+            <Brain className="text-primary glow-text" size={22} />
             Previsão Inteligente
           </div>
           {loading && (
-            <Loader2 className="animate-spin text-muted-foreground" size={16} />
+            <Loader2 className="animate-spin text-indigo-400" size={16} />
           )}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {predictions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center bg-muted/30 rounded-2xl border border-dashed">
-            <TrendingUp size={32} className="text-muted-foreground/50 mb-2" />
-            <p className="text-muted-foreground text-sm max-w-[200px]">
-              Insira transações para ativar as previsões de IA
+          <div className="flex flex-col items-center justify-center py-10 text-center bg-white/5 rounded-[2rem] border border-dashed border-white/10">
+            <TrendingUp size={40} className="text-slate-600 mb-3" />
+            <p className="text-slate-500 text-sm font-bold max-w-[200px]">
+              Insira transações para ativar o motor de previsão IA.
             </p>
           </div>
         ) : (
@@ -117,17 +117,17 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
             {predictions.map((p) => (
               <div
                 key={p.category}
-                className="group p-4 rounded-2xl hover:bg-muted/50 transition-colors border border-border/30 shadow-sm"
+                className="group p-5 rounded-[2rem] bg-white/5 hover:bg-white/10 transition-all border border-white/5 shadow-premium"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-5">
                     <div
-                      className={`p-3 rounded-xl ${
+                      className={`p-4 rounded-2xl shadow-lg ${
                         p.trend === "up"
-                          ? "bg-danger/10 text-danger"
+                          ? "bg-danger/20 text-danger"
                           : p.trend === "down"
-                          ? "bg-success/10 text-success"
-                          : "bg-info/10 text-info"
+                          ? "bg-success/20 text-success"
+                          : "bg-info/20 text-info"
                       }`}
                     >
                       {p.trend === "up" ? (
@@ -139,35 +139,35 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
                       )}
                     </div>
                     <div>
-                      <span className="text-lg font-bold">{p.category}</span>
-                      <p className="text-xs text-muted-foreground uppercase font-black tracking-widest">
-                        Gasto Previsto
+                      <span className="text-xl font-black text-white tracking-tight">{p.category}</span>
+                      <p className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] mt-0.5">
+                        Estimativa
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-xl font-black text-foreground">
+                    <span className="text-2xl font-black text-white glow-text">
                       {formatCurrency(p.predictedAmount)}
                     </span>
                     <p
-                      className={`text-xs font-black uppercase tracking-widest ${
+                      className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${
                         p.trend === "up"
                           ? "text-danger"
                           : p.trend === "down"
                           ? "text-success"
-                          : "text-info"
+                          : "text-indigo-400"
                       }`}
                     >
                       {p.trend === "up"
-                        ? "Deve Subir"
+                        ? "Alta Prevista"
                         : p.trend === "down"
-                        ? "Deve Baixar"
-                        : "Fica Igual"}
+                        ? "Baixa Prevista"
+                        : "Estável"}
                     </p>
                   </div>
                 </div>
                 {p.reason && (
-                  <p className="mt-3 text-sm text-muted-foreground italic leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity">
+                  <p className="mt-4 text-sm text-slate-400 font-bold leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity">
                     {p.reason}
                   </p>
                 )}

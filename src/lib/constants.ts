@@ -111,4 +111,5 @@ export const initialTransactionFormData = {
   notes: "",
   recurring: false,
   scope: "personal" as const,
+  classification: "necessity" as const,
 };

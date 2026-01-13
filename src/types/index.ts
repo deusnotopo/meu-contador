@@ -10,6 +10,7 @@ export interface Transaction {
   notes: string;
   recurring: boolean;
   scope: "personal" | "business";
+  classification?: "necessity" | "want" | "investment" | "debt";
 }
 
 export interface TransactionFormData {
@@ -22,6 +23,7 @@ export interface TransactionFormData {
   notes: string;
   recurring: boolean;
   scope: "personal" | "business";
+  classification?: "necessity" | "want" | "investment" | "debt";
 }
 
 // ============= Budget Types =============
@@ -138,6 +140,8 @@ export interface UserProfile {
     sector: string;
     cnpj?: string;
   };
+  isPro?: boolean;
+  subscriptionPlan?: "free" | "pro";
 }
 
 export interface OnboardingBudget {
@@ -178,4 +182,25 @@ export interface OnboardingData {
   };
   completed: boolean;
   completedAt?: string;
+}
+
+// ============= Investment Types =============
+export interface Investment {
+  id: number;
+  name: string;
+  ticker: string;
+  type: "stock" | "fii" | "crypto" | "fixed_income" | "etf";
+  amount: number; // Quantity
+  averagePrice: number;
+  currentPrice: number;
+  sector: string;
+  lastUpdate: string;
+}
+
+export interface InvestmentPortfolio {
+  totalValue: number;
+  totalInvested: number;
+  profit: number;
+  profitPercentage: number;
+  assets: Investment[];
 }

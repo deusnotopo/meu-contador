@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { showError, showSuccess } from "@/lib/toast";
-import { Loader2, Lock, Mail, Sparkles, Wallet } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowRight, Sparkles, ExternalLink } from "lucide-react";
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 
 export const LoginForm = () => {
   const { login, register, loginWithGoogle } = useAuth();
@@ -13,6 +13,7 @@ export const LoginForm = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [domainError, setDomainError] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,145 +37,175 @@ export const LoginForm = () => {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setDomainError(false);
     try {
       await loginWithGoogle();
       showSuccess(`Conectado com Google!`);
     } catch (e: any) {
-      showError(e.message || "Erro ao conectar com Google.");
+      console.error("Google Login Error:", e);
+      if (e.code === 'auth/unauthorized-domain' || e.message?.includes('domain is not authorized')) {
+        setDomainError(true);
+        showError("Domínio não autorizado no Firebase.");
+      } else {
+        showError(e.message || "Erro ao conectar com Google.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-purple-500/10">
-      <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in-95 duration-500">
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-4 gradient-primary rounded-3xl shadow-elevated mb-4">
-            <Wallet className="text-primary-foreground" size={40} />
-          </div>
-          <h1 className="text-4xl font-black tracking-tight">Meu Contador</h1>
-          <p className="text-muted-foreground font-medium">
-            {isRegistering
-              ? "Crie sua conta profissional"
-              : "Sua jornada financeira começa aqui."}
-          </p>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#020617] text-white p-6 relative overflow-hidden">
+      {/* Premium Background Ambiance */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/10 rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Main Content Container */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-[440px] z-10 space-y-8"
+      >
+        {/* Logo Section - Clean & Integrated */}
+        <div className="flex flex-col items-center space-y-4">
+           <motion.div
+             whileHover={{ scale: 1.05 }}
+             transition={{ type: "spring", stiffness: 300 }}
+             className="relative p-2"
+           >
+              {/* Soft glow behind logo */}
+              <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full" />
+              <img 
+                src="/icon.png" 
+                className="w-32 h-32 relative z-10 object-contain drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]" 
+                alt="Logo Meu Contador" 
+              />
+           </motion.div>
+           <div className="text-center">
+              <h1 className="text-4xl font-black tracking-tight bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
+                Meu Contador
+              </h1>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                 <div className="h-[1px] w-4 bg-indigo-500/50" />
+                 <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-indigo-400/80">Inteligência Financeira</span>
+                 <div className="h-[1px] w-4 bg-indigo-500/50" />
+              </div>
+           </div>
         </div>
 
-        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-card/80 backdrop-blur-xl">
-          <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-base font-bold ml-1">
-                    E-mail
-                  </Label>
-                  <div className="relative">
-                    <Mail
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-                      size={20}
-                    />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl border-2 focus:border-primary transition-all text-lg"
-                    />
-                  </div>
-                </div>
+        {/* Login Card */}
+        <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
+          {/* Subtle border highlight */}
+          <div className="absolute inset-0 border border-indigo-500/10 rounded-[2.5rem] pointer-events-none group-hover:border-indigo-500/20 transition-colors" />
 
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="password"
-                    className="text-base font-bold ml-1"
-                  >
-                    Senha
-                  </Label>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+               <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-400 ml-1 uppercase tracking-wider">Email</Label>
                   <div className="relative">
-                    <Lock
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-                      size={20}
-                    />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl border-2 focus:border-primary transition-all text-lg"
-                    />
+                     <Mail className="absolute left-4 top-3.5 text-slate-500" size={18} />
+                     <Input 
+                       value={email}
+                       onChange={(e) => setEmail(e.target.value)}
+                       className="h-12 pl-11 bg-white/5 border-white/10 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 transition-all text-white placeholder:text-slate-600 font-medium"
+                       placeholder="seu@parceiro.com"
+                     />
                   </div>
-                </div>
-              </div>
+               </div>
 
+               <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-400 ml-1 uppercase tracking-wider">Senha</Label>
+                  <div className="relative">
+                     <Lock className="absolute left-4 top-3.5 text-slate-500" size={18} />
+                     <Input 
+                       type="password"
+                       value={password}
+                       onChange={(e) => setPassword(e.target.value)}
+                       className="h-12 pl-11 bg-white/5 border-white/10 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 transition-all text-white placeholder:text-slate-600 font-medium"
+                       placeholder="••••••••"
+                     />
+                  </div>
+               </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              disabled={loading}
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98]"
+            >
+               {loading ? <Loader2 className="animate-spin" /> : (
+                 <span className="flex items-center gap-2">
+                   {isRegistering ? "Criar Minha Conta" : "Entrar no Painel"} <ArrowRight size={18} />
+                 </span>
+               )}
+            </Button>
+
+            <div className="relative flex items-center gap-4 py-2">
+               <div className="h-[1px] flex-1 bg-white/5" />
+               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Ou</span>
+               <div className="h-[1px] flex-1 bg-white/5" />
+            </div>
+
+            <div className="space-y-3">
               <Button
-                type="submit"
+                type="button"
+                variant="outline"
+                onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full h-14 rounded-2xl text-lg font-black gradient-primary shadow-elevated border-0 mt-4"
+                className="w-full h-12 bg-white text-black hover:bg-slate-100 border-none font-bold rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-transform"
               >
-                {loading ? (
-                  <Loader2 className="animate-spin" />
-                ) : isRegistering ? (
-                  "Criar Conta"
-                ) : (
-                  "Entrar no App"
-                )}
+                 <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+                 Continuar com Google
               </Button>
 
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsRegistering(!isRegistering)}
-                  className="text-sm font-bold text-primary hover:underline"
+              {domainError && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2"
                 >
-                  {isRegistering
-                    ? "Já tenho uma conta. Entrar."
-                    : "Não tenho conta? Cadastre-se agora."}
-                </button>
-              </div>
+                   <p className="text-[11px] text-amber-200 leading-tight">
+                     Domínio <strong>meu-contador-one.vercel.app</strong> precisa ser autorizado no Console do Firebase para o login Google funcionar.
+                   </p>
+                   <a 
+                     href="https://console.firebase.google.com/" 
+                     target="_blank" 
+                     rel="noreferrer"
+                     className="text-[10px] flex items-center gap-1 text-amber-400 font-bold hover:underline"
+                   >
+                     Abrir Console Firebase <ExternalLink size={10} />
+                   </a>
+                </motion.div>
+              )}
+            </div>
+          </form>
 
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground font-bold">
-                    Ou continue com
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="h-14 rounded-2xl font-bold border-2 hover:bg-muted/50 gap-3"
-                >
-                  <img
-                    src="https://www.google.com/favicon.ico"
-                    className="w-5 h-5"
-                    alt="Google"
-                  />
-                  Google
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-2 text-primary">
-            <Sparkles size={18} />
-            <span className="text-xs font-black uppercase tracking-widest">
-              IA Financeira Ativada
-            </span>
+          <div className="mt-8 text-center pt-4 border-t border-white/5">
+             <button
+               type="button"
+               onClick={() => setIsRegistering(!isRegistering)}
+               className="text-sm text-slate-400 hover:text-white transition-colors"
+             >
+               {isRegistering ? "Já tem acesso? " : "Novo por aqui? "}
+               <span className="text-indigo-400 font-bold hover:underline">
+                 {isRegistering ? "Fazer Login" : "Começar Agora"}
+               </span>
+             </button>
           </div>
         </div>
-      </div>
+
+        {/* Footer Info */}
+        <div className="flex items-center justify-center gap-6 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700">
+           <div className="flex items-center gap-2">
+              <Sparkles size={14} className="text-indigo-400" />
+              <span className="text-[9px] font-bold uppercase tracking-widest">IA Financeira</span>
+           </div>
+           <div className="flex items-center gap-2">
+              <Lock size={12} className="text-slate-400" />
+              <span className="text-[9px] font-bold uppercase tracking-widest">Segurança Bancária</span>
+           </div>
+        </div>
+      </motion.div>
     </div>
   );
 };

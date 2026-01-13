@@ -1,24 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { isOnboardingComplete, resetOnboarding } from "@/lib/onboarding";
+import { isOnboardingComplete } from "@/lib/onboarding";
 import { ToastProvider } from "@/lib/toast";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Building2,
-  Cloud,
-  LayoutDashboard,
-  Loader2,
-  Menu,
-  Settings,
-  Sparkles,
-  User,
-  Wallet,
-  X,
-  Crown,
-} from "lucide-react";
-import { Suspense, lazy, useState } from "react";
+import { Crown, Loader2, Settings } from "lucide-react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import { LoginForm } from "./components/auth/LoginForm";
 import { SettingsSection } from "./components/settings/SettingsSection";
+import { PremiumPlans } from "./components/subscription/PremiumPlans";
 import { CardSkeleton } from "./components/ui/skeleton";
 import { useAuth } from "./context/AuthContext";
 
@@ -43,9 +31,9 @@ const OnboardingWizard = lazy(() =>
     default: m.OnboardingWizard,
   }))
 );
-const PremiumPlans = lazy(() =>
-  import("./components/subscription/PremiumPlans").then((m) => ({
-    default: m.PremiumPlans,
+const EducationSection = lazy(() =>
+  import("./components/education/EducationSection").then((m) => ({
+    default: m.EducationSection,
   }))
 );
 
@@ -61,213 +49,207 @@ const LoadingFallback = () => (
   </div>
 );
 
+// Simple Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("App Crash:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-6 text-center">
+          <div className="bg-red-500/10 p-6 rounded-3xl border border-red-500/20 mb-6">
+            <h1 className="text-2xl font-black text-red-400 mb-2">
+              Ops! Algo deu errado.
+            </h1>
+            <p className="text-slate-400 text-sm">
+              Ocorreu um erro inesperado ao carregar o painel.
+            </p>
+          </div>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl"
+          >
+            Recarregar Aplicativo
+          </Button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const App = () => {
   const { user, loading: authLoading, isSyncing } = useAuth();
   const [mainTab, setMainTab] = useState<
-    "overview" | "personal" | "business" | "settings"
+    "overview" | "personal" | "business" | "education" | "settings"
   >("overview");
   const [showMainApp, setShowMainApp] = useState(() => isOnboardingComplete());
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
+
+  // Watch for sync completion to skip onboarding for returning users
+  useEffect(() => {
+    if (user && !showMainApp && isOnboardingComplete()) {
+      setShowMainApp(true);
+    }
+
+    if (!isSyncing && user && !showMainApp && isOnboardingComplete()) {
+      setShowMainApp(true);
+    }
+  }, [isSyncing, user, showMainApp]);
 
   const handleOnboardingComplete = () => {
     setShowMainApp(true);
   };
 
-  const handleResetOnboarding = () => {
-    resetOnboarding();
-    setShowMainApp(false);
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={48} />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <LoginForm />;
-  }
-
-  if (!showMainApp) {
-    return (
-      <Suspense
-        fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="animate-spin text-primary" size={48} />
-          </div>
-        }
-      >
-        <OnboardingWizard onComplete={handleOnboardingComplete} />
-      </Suspense>
-    );
-  }
-
   return (
-    <>
-      <ToastProvider />
-      <div className="min-h-screen gradient-background pb-20 selection:bg-primary/20">
-        {/* Top Navigation */}
-        <div className="sticky top-0 z-50 glass-panel border-b border-white/20">
-          <div className="max-w-7xl mx-auto px-4 lg:px-6">
-            <div className="flex items-center justify-between py-4">
-              {/* Logo Section */}
-              <div className="flex items-center gap-4">
-                <div className="p-3 gradient-primary rounded-2xl shadow-elevated relative">
-                  <Wallet className="text-primary-foreground" size={28} />
-                  {isSyncing && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-card shadow-sm"
-                    >
-                      <Cloud className="text-white animate-pulse" size={10} />
-                    </motion.div>
-                  )}
-                </div>
-                <div className="hidden sm:block">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-black bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent glow-text">
-                      Meu Contador
-                    </h1>
+    <ErrorBoundary>
+      <div className="min-h-screen mesh-gradient selection:bg-indigo-500/30 selection:text-white">
+        <ToastProvider />
+
+        {authLoading ? (
+          <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-indigo-500/5 animate-pulse blur-3xl" />
+            <Loader2
+              className="animate-spin text-indigo-500 relative z-10"
+              size={48}
+            />
+          </div>
+        ) : !user ? (
+          <LoginForm />
+        ) : !showMainApp && !isOnboardingComplete() ? (
+          <Suspense
+            fallback={
+              <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="animate-spin text-indigo-500" size={48} />
+              </div>
+            }
+          >
+            <OnboardingWizard onComplete={handleOnboardingComplete} />
+          </Suspense>
+        ) : (
+          /* Main Immersive App Shell */
+          <div className="relative min-h-screen">
+            {/* Floating Premium Navigation */}
+            <header className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-5xl">
+              <nav className="glass-premium rounded-[2rem] px-6 py-3 flex items-center justify-between group border-white/20">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full" />
+                    <img
+                      src="/icon.png"
+                      className="w-10 h-10 relative z-10 floating"
+                      alt="Logo"
+                    />
                     {isSyncing && (
-                      <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200 animate-pulse">
-                        SYNC
-                      </span>
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#02040a]"
+                      />
                     )}
                   </div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                    Gestor Financeiro Inteligente
-                  </p>
+                  <div className="hidden sm:block">
+                    <Button
+                      onClick={() => setShowPremium(true)}
+                      className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white border-0 shadow-lg hover:shadow-amber-500/20 transition-all duration-300 rounded-xl h-10 px-4 group"
+                    >
+                      <Crown className="mr-2 h-4 w-4 fill-white/20 group-hover:scale-110 transition-transform" />
+                      <span className="font-extrabold tracking-wide">
+                        Seja PRO
+                      </span>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              
-               <div className="flex-1 flex justify-center md:hidden">
-                 {/* Mobile Spacer */}
-               </div>
 
-              {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center gap-4">
-                <Tabs
-                  value={mainTab}
-                  onValueChange={(v) => setMainTab(v as any)}
-                  className="bg-muted/50 p-1 rounded-2xl"
-                >
-                  <TabsList className="bg-transparent gap-1">
-                    <TabsTrigger
-                      value="overview"
-                      className="data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-xl px-6 py-2.5 gap-2 font-bold text-base"
+                {/* Cyber Navigation Tabs */}
+                <div className="flex bg-black/20 p-1 rounded-2xl border border-white/5 mx-4">
+                  {[
+                    { id: "overview", label: "Resumo" },
+                    { id: "personal", label: "Pessoal" },
+                    { id: "business", label: "Negócio" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setMainTab(tab.id as typeof mainTab)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        mainTab === tab.id
+                          ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                          : "text-slate-400 hover:text-white"
+                      }`}
                     >
-                      <LayoutDashboard size={18} />
-                      Visão Geral
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="personal"
-                      className="data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-xl px-6 py-2.5 gap-2 font-bold text-base"
-                    >
-                      <User size={18} />
-                      Minha Vida
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="business"
-                      className="data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-xl px-6 py-2.5 gap-2 font-bold text-base"
-                    >
-                      <Building2 size={18} />
-                      Meu Negócio
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="settings"
-                      className="data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-xl px-6 py-2.5 gap-2 font-bold text-base"
-                    >
-                      <Settings size={18} />
-                      Ajustes
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                
-                <Button 
-                  onClick={() => setShowPremium(true)}
-                  className="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white border-0 shadow-lg shadow-orange-500/20 rounded-xl font-black gap-2 animate-in fade-in zoom-in duration-500"
-                >
-                  <Crown size={18} fill="currentColor" />
-                  Seja PRO
-                </Button>
-              </div>
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setMainTab("settings")}
-                  className={`hidden sm:flex rounded-full ${
-                    mainTab === "settings"
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground"
-                  }`}
-                  title="Configurações"
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMainTab("settings")}
+                    className={`w-10 h-10 rounded-xl transition-all ${
+                      mainTab === "settings"
+                        ? "bg-indigo-500 text-white"
+                        : "text-slate-400 hover:text-white bg-white/5"
+                    }`}
+                  >
+                    <Settings size={20} />
+                  </Button>
+                </div>
+              </nav>
+            </header>
+
+            <main className="pt-32 pb-12 px-4 max-w-7xl mx-auto w-full">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mainTab}
+                  initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 1.02, y: -10 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Settings size={22} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="md:hidden text-foreground"
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                >
-                  {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                </Button>
-              </div>
-            </div>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <div className="relative">
+                      {mainTab === "overview" && <GlobalDashboard />}
+                      {mainTab === "personal" && <PersonalFinance />}
+                      {mainTab === "business" && <BusinessFinance />}
+                      {mainTab === "education" && <EducationSection />}
+                      {mainTab === "settings" && <SettingsSection />}
+                    </div>
+                  </Suspense>
+                </motion.div>
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showPremium && (
+                  <Suspense fallback={null}>
+                    <PremiumPlans
+                      onClose={() => setShowPremium(false)}
+                      userEmail={user?.email}
+                    />
+                  </Suspense>
+                )}
+              </AnimatePresence>
+            </main>
           </div>
-        </div>
-
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 lg:px-6 py-8 md:py-12">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={mainTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Suspense fallback={<LoadingFallback />}>
-                {mainTab === "overview" && <GlobalDashboard />}
-                {mainTab === "personal" && <PersonalFinance />}
-                {mainTab === "business" && <BusinessFinance />}
-                {mainTab === "settings" && <SettingsSection />}
-              </Suspense>
-            </motion.div>
-          </AnimatePresence>
-
-          <AnimatePresence>
-            {showPremium && (
-              <Suspense fallback={null}>
-                <PremiumPlans onClose={() => setShowPremium(false)} />
-              </Suspense>
-            )}
-          </AnimatePresence>
-        </main>
-
-        <footer className="py-12 border-t border-border mt-20 bg-card/10 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-6 text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 text-primary">
-              <Sparkles size={20} />
-              <span className="font-bold tracking-widest uppercase text-xs">
-                Apoiado por Inteligência Artificial
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground font-medium">
-              &copy; 2026 Meu Contador. Simplicidade financeira para todas as
-              idades.
-            </p>
-          </div>
-        </footer>
+        )}
       </div>
-    </>
+    </ErrorBoundary>
   );
 };
 

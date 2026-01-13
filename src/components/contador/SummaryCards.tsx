@@ -63,21 +63,24 @@ export const SummaryCards = ({
       {cards.map((card, i) => (
         <Card
           key={i}
-          className={`shadow-card border-0 overflow-hidden relative group transition-transform hover:scale-[1.02] ${
-            card.gradient.includes("gradient") ? card.gradient : "bg-card"
+          className={`glass-card border-none group transition-all duration-500 hover:-translate-y-2 rounded-[2rem] overflow-hidden ${
+            card.gradient.includes("gradient") ? "bg-gradient-to-br from-indigo-600/20 to-purple-600/20" : ""
           }`}
         >
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-4">
+          {card.gradient.includes("gradient") && (
+            <div className="absolute -inset-4 bg-indigo-500/10 blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+          )}
+          <CardContent className="p-7 relative z-10">
+            <div className="flex items-start justify-between mb-6">
               <div
-                className={`p-3 rounded-2xl ${
+                className={`p-4 rounded-2xl ${
                   card.gradient.includes("gradient")
-                    ? "bg-white/20"
-                    : card.gradient
+                    ? "bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30"
+                    : "bg-white/5"
                 }`}
               >
                 <card.icon
-                  size={28}
+                  size={24}
                   className={
                     card.gradient.includes("gradient")
                       ? "text-white"
@@ -86,30 +89,30 @@ export const SummaryCards = ({
                 />
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p
-                className={`text-sm font-bold uppercase tracking-widest ${
+                className={`text-xs font-black uppercase tracking-[0.15em] ${
                   card.gradient.includes("gradient")
-                    ? "text-white/80"
-                    : "text-muted-foreground"
+                    ? "text-indigo-200"
+                    : "text-slate-500"
                 }`}
               >
                 {card.title}
               </p>
               <h3
-                className={`text-3xl font-black ${
+                className={`text-2xl md:text-3xl font-black tracking-tighter ${
                   card.gradient.includes("gradient")
-                    ? "text-white"
+                    ? "text-white glow-text"
                     : card.textColor
                 }`}
               >
                 {card.isCount ? card.value : formatCurrency(card.value)}
               </h3>
               <p
-                className={`text-xs font-medium ${
+                className={`text-xs font-bold ${
                   card.gradient.includes("gradient")
-                    ? "text-white/60"
-                    : "text-muted-foreground/70"
+                    ? "text-indigo-200/60"
+                    : "text-slate-500/70"
                 }`}
               >
                 {card.subtitle}

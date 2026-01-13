@@ -1,8 +1,9 @@
 import type { Transaction } from "@/types";
+import { calculateFinancialHealth, getClassification } from "./financial-health";
 
-// MISTRAL API CONFIGURATION
-const MISTRAL_API_KEY = import.meta.env.VITE_MISTRAL_API_KEY;
-const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
+// HYBRID ARCHITECTURE: Calls our Vercel Serverless Function instead of the AI API directly
+// This protects our API Key and ensures better performance across the Vercel ecosystem
+const AI_PROXY_URL = "/api/ai-proxy";
 
 export interface AIInsights {
   score: number;
@@ -18,9 +19,19 @@ export interface AIInsights {
 export const getFinancialInsights = async (
   transactions: Transaction[]
 ): Promise<AIInsights> => {
-  if (!MISTRAL_API_KEY) {
-    throw new Error("Chave de API do Mistral não configurada");
-  }
+  // Calculate totals for the health check
+  const totals = transactions.reduce(
+    (acc, t) => {
+      if (t.type === "income") acc.income += t.amount;
+      else acc.expense += t.amount;
+      return acc;
+    },
+    { income: 0, expense: 0, balance: 0 }
+  );
+  totals.balance = totals.income - totals.expense;
+
+  // Calculate strict financial health metrics
+  const healthMetrics = calculateFinancialHealth(transactions, totals);
 
   // Resumo das transações para economizar tokens
   const summary = transactions
@@ -30,26 +41,39 @@ export const getFinancialInsights = async (
       category: t.category,
       date: t.date,
       desc: t.description,
+      classification: getClassification(t),
     }))
     .slice(-50); // Últimas 50 transações
 
   const systemPrompt = `
     Você é um consultor financeiro especialista. Analise os dados fornecidos e retorne EXATAMENTE o JSON solicitado.
+    
+    DADOS PRE-CALCULADOS RIGOROSOS (Use estes números como base factual):
+    - Score de Saúde: ${Math.round(healthMetrics.score)} / 100
+    - Taxa de Poupança: ${healthMetrics.savingsRate.toFixed(1)}% (Meta: >20%)
+    - Cobertura de Liquidez: ${healthMetrics.expenseCoverage.toFixed(1)} meses
+    - Regra 50-30-20:
+      - Necessidades: ${healthMetrics.rule503020.necessity.percentage.toFixed(1)}% (Meta: 50%)
+      - Desejos: ${healthMetrics.rule503020.want.percentage.toFixed(1)}% (Meta: 30%)
+      - Investimentos/Dívidas: ${(healthMetrics.rule503020.investment.percentage + healthMetrics.rule503020.debt.percentage).toFixed(1)}% (Meta: 20%)
+
+    Sua tarefa é explicar o PORQUÊ desse score e dar dicas baseadas nele.
+    Não re-calcule o score. Confie nos dados acima.
     Não inclua markdown, explicações ou texto extra. Apenas o JSON cru.
   `;
 
   const userPrompt = `
-    Analise as seguintes transações recentes de um usuário e forneça:
-    1. Um score de saúde financeira de 0 a 100.
-    2. 3 dicas personalizadas e pragmáticas.
+    Analise as transações e os métricas acima.
+    1. O Score já é ${Math.round(healthMetrics.score)}. Use esse valor.
+    2. Dê 3 dicas práticas para melhorar, focando onde o usuário está desviando da regra 50-30-20 (ex: se Desejos > 30%, mande cortar gastos supérfluos).
     3. Previsões de gastos para as principais categorias no próximo mês.
 
-    Transações:
+    Transações Recentes (para contexto):
     ${JSON.stringify(summary)}
 
     Responda APENAS em formato JSON puro, seguindo exatamente esta estrutura:
     {
-      "score": number,
+      "score": number, // Deve ser igual ou muito próximo de ${Math.round(healthMetrics.score)}
       "tips": ["string", "string", "string"],
       "predictions": [
         {
@@ -63,28 +87,24 @@ export const getFinancialInsights = async (
   `;
 
   try {
-    const response = await fetch(MISTRAL_API_URL, {
+    const response = await fetch(AI_PROXY_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${MISTRAL_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "mistral-tiny", // or mistral-small, mistral-medium depending on tier
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
         temperature: 0.3,
-        response_format: { type: "json_object" } // Garante JSON válido
       }),
     });
 
     if (!response.ok) {
-        // Fallback or detailed error logging
         const errorText = await response.text();
-        console.error("Mistral API Error:", errorText);
-        throw new Error(`Falha na API: ${response.status}`);
+        console.error("AI Proxy Error:", errorText);
+        throw new Error(`Falha no Proxy: ${response.status}`);
     }
 
     const data = await response.json();
@@ -95,15 +115,13 @@ export const getFinancialInsights = async (
     try {
         content = JSON.parse(contentString);
     } catch (parseError) {
-        // Try to clean markdown code blocks if present despite instructions
         const cleanContent = contentString.replace(/```json|```/g, "").trim();
         content = JSON.parse(cleanContent);
     }
 
     return content as AIInsights;
   } catch (error) {
-    console.error("Erro ao buscar insights da IA:", error);
-    // Return safe fallback data instead of crashing
+    console.error("Erro ao buscar insights da IA via Proxy:", error);
     return {
         score: 75,
         tips: ["Verifique sua conexão com a Internet.", "Tente novamente mais tarde.", "Controle seus gastos fixos."],

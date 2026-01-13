@@ -15,6 +15,7 @@ import {
   paymentMethods,
   personalCategories,
 } from "@/lib/constants";
+import { getDefaultClassification } from "@/lib/financial-health";
 import type { Transaction, TransactionFormData } from "@/types";
 import { Edit2, PlusCircle, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -96,7 +97,11 @@ export const TransactionForm = ({
             <Select
               value={formData.category}
               onValueChange={(value) =>
-                setFormData({ ...formData, category: value })
+                setFormData({
+                  ...formData,
+                  category: value,
+                  classification: getDefaultClassification(value),
+                })
               }
             >
               <SelectTrigger>
@@ -173,7 +178,35 @@ export const TransactionForm = ({
             </Select>
           </div>
 
-          <div className="md:col-span-2 space-y-2">
+          {scope === "personal" && (
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">
+                Classificação (50-30-20)
+              </Label>
+              <Select
+                value={formData.classification}
+                onValueChange={(value: FinancialClassification) =>
+                  setFormData({ ...formData, classification: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="necessity">Necessidade (50%)</SelectItem>
+                  <SelectItem value="want">Desejo (30%)</SelectItem>
+                  <SelectItem value="investment">Investimento (20%)</SelectItem>
+                  <SelectItem value="debt">Dívida / Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div
+            className={`${
+              scope === "personal" ? "md:col-span-1" : "md:col-span-2"
+            } space-y-2`}
+          >
             <Label className="text-sm font-semibold">Observações</Label>
             <Input
               type="text"

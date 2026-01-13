@@ -172,54 +172,67 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-br from-primary/5 via-background to-purple-500/5 overflow-auto">
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[#030712] overflow-auto">
+      <div className="hero-glow" />
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
         {/* Header */}
-        <div className="w-full max-w-2xl mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 gradient-primary rounded-xl">
-                <Wallet className="text-primary-foreground" size={20} />
+        <div className="w-full max-w-2xl mb-10">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 gradient-premium rounded-2xl shadow-premium">
+                <Crown className="text-white fill-white" size={24} />
               </div>
-              <span className="font-bold text-lg">Meu Contador</span>
+              <div>
+                <span className="font-black text-2xl tracking-tighter text-white glow-text">Meu Contador</span>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sua Jornada Premium</p>
+              </div>
             </div>
-            <span className="text-sm text-muted-foreground">
-              Passo {currentStep + 1} de {STEPS.length}
-            </span>
+            <div className="text-right">
+              <span className="text-xs font-black text-indigo-400 uppercase tracking-widest block">Progresso</span>
+              <span className="text-lg font-black text-white">
+                {currentStep + 1} / {STEPS.length}
+              </span>
+            </div>
           </div>
-          <Progress value={progress} className="h-2" />
+          
+          <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-8">
+            <div 
+                className="h-full gradient-premium transition-all duration-500 rounded-full"
+                style={{ width: `${progress}%` }}
+            />
+          </div>
 
-          {/* Step indicators */}
+          {/* Premium Step indicators */}
           <div className="flex justify-between mt-4">
             {STEPS.map((step, i) => {
               const Icon = step.icon;
               const isActive = i === currentStep;
               const isComplete = i < currentStep;
               return (
-                <div key={step.id} className="flex flex-col items-center gap-1">
+                <div key={step.id} className="flex flex-col items-center gap-2 group">
                   <div
                     className={`
-                    w-10 h-10 rounded-full flex items-center justify-center transition-all
-                    ${isComplete ? "bg-success text-success-foreground" : ""}
+                    w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500
+                    ${isComplete ? "bg-success/20 text-success border border-success/30" : ""}
                     ${
                       isActive
-                        ? "bg-primary text-primary-foreground scale-110"
+                        ? "gradient-premium text-white scale-110 shadow-premium"
                         : ""
                     }
                     ${
                       !isActive && !isComplete
-                        ? "bg-muted text-muted-foreground"
+                        ? "bg-white/5 text-slate-600 border border-white/5"
                         : ""
                     }
                   `}
                   >
-                    {isComplete ? <Check size={18} /> : <Icon size={18} />}
+                    {isComplete ? <Check size={20} className="font-black" /> : <Icon size={20} />}
                   </div>
                   <span
-                    className={`text-xs hidden sm:block ${
+                    className={`text-[10px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity ${
                       isActive
-                        ? "font-semibold text-primary"
-                        : "text-muted-foreground"
+                        ? "text-primary"
+                        : "text-slate-600"
                     }`}
                   >
                     {step.title}
@@ -231,36 +244,36 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
         </div>
 
         {/* Content */}
-        <Card className="w-full max-w-2xl shadow-elevated border-0">
-          <CardContent className="p-6 md:p-8">
+        <Card className="w-full max-w-2xl glass-panel border-none shadow-premium rounded-[3rem] overflow-hidden">
+          <CardContent className="p-10 md:p-14">
             <div className="animate-fade-in">{renderStep()}</div>
           </CardContent>
         </Card>
 
         {/* Navigation */}
-        <div className="w-full max-w-2xl flex justify-between mt-6">
+        <div className="w-full max-w-2xl flex justify-between mt-10">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={prevStep}
             disabled={currentStep === 0}
-            className="gap-2"
+            className="gap-3 h-16 px-10 rounded-2xl font-black text-slate-400 hover:text-white hover:bg-white/5 border border-white/5"
           >
-            <ArrowLeft size={18} />
-            Voltar
+            <ArrowLeft size={20} />
+            VOLTAR
           </Button>
           <Button
             onClick={nextStep}
-            className="gap-2 gradient-primary border-0"
+            className="gap-3 h-16 px-12 rounded-2xl font-black bg-white text-indigo-950 hover:bg-indigo-50 shadow-premium border-0"
           >
             {currentStep === STEPS.length - 1 ? (
               <>
-                Concluir
-                <Check size={18} />
+                CONCLUIR E LIBERAR
+                <Check size={20} />
               </>
             ) : (
               <>
-                Próximo
-                <ArrowRight size={18} />
+                PRÓXIMO PASSO
+                <ArrowRight size={20} />
               </>
             )}
           </Button>

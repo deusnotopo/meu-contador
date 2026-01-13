@@ -22,13 +22,20 @@ import { TransactionFilters } from "@/components/contador/TransactionFilters";
 import { TransactionForm } from "@/components/contador/TransactionForm";
 import { TransactionList } from "@/components/contador/TransactionList";
 import { BudgetsSection } from "@/components/personal/BudgetsSection";
+import { EmergencyFundCard } from "@/components/personal/EmergencyFundCard";
 import { FinancialHealthCard } from "@/components/personal/FinancialHealthCard";
+import { GlobalAlerts } from "@/components/personal/GlobalAlerts";
 import { GoalsSection } from "@/components/personal/GoalsSection";
 import { PredictionsCard } from "@/components/personal/PredictionsCard";
 import { RemindersSection } from "@/components/personal/RemindersSection";
+import { useAuth } from "@/context/AuthContext";
+import { exportFullMonthlyReport } from "@/lib/pdf-export";
 import { exportTransactions, importTransactions } from "@/lib/storage";
+import { FileText } from "lucide-react";
 
 export const PersonalFinance = () => {
+  const { isPro } = useAuth();
+  const [showPremium, setShowPremium] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] =
@@ -109,52 +116,64 @@ export const PersonalFinance = () => {
   ).length;
 
   return (
-    <div className="space-y-6">
-      {/* Header with Tabs */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="text-primary" size={24} />
-            Finanças Pessoais
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Gerencie suas finanças de forma inteligente
-          </p>
-        </div>
+    <div className="space-y-8 animate-fade-in">
+      {/* Premium Header */}
+      <div className="glass-panel p-8 rounded-[2.5rem] border-none">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+          <div className="space-y-2">
+            <h2 className="text-4xl font-black text-white flex items-center gap-3 tracking-tighter">
+              <Sparkles className="text-primary glow-text" size={32} />
+              Gestão <span className="text-primary">Master</span>
+            </h2>
+            <p className="text-lg text-slate-400 font-bold max-w-md">
+              Acompanhe seu fluxo de caixa pessoal com precisão matemática.
+            </p>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImport}
-            accept=".json"
-            className="hidden"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            className="hidden md:flex gap-2"
-          >
-            <Download size={16} />
-            Exportar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            className="hidden md:flex gap-2"
-          >
-            <Upload size={16} />
-            Importar
-          </Button>
-          <Button
-            onClick={handleNewTransaction}
-            className="gradient-primary border-0 font-semibold"
-          >
-            <PlusCircle size={18} className="mr-2" />
-            Nova Transação
-          </Button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImport}
+              accept=".json"
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportTransactionsToCSV(transactions)}
+              className="hidden lg:flex gap-2 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 rounded-xl"
+            >
+              <FileSpreadsheet size={16} />
+              EXCEL
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="hidden md:flex gap-2 border-slate-700/50 text-slate-400 hover:bg-white/5 rounded-xl"
+            >
+              <Download size={16} />
+              JSON
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="hidden md:flex gap-2 border-slate-700/50 text-slate-400 hover:bg-white/5 rounded-xl"
+            >
+              <Upload size={16} />
+              IMPORTAR
+            </Button>
+            <Button
+              onClick={handleNewTransaction}
+              size="lg"
+              className="bg-white text-black hover:bg-slate-100 font-black rounded-2xl px-6 h-12 shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 transition-all"
+            >
+              <PlusCircle size={18} className="mr-2" />
+              NOVA TRANSAÇÃO
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -219,12 +238,31 @@ export const PersonalFinance = () => {
       {/* Tab Content */}
       {activeTab === "dashboard" && (
         <div className="space-y-6">
+          <GlobalAlerts />
+
           <SummaryCards
             income={totals.income}
             expense={totals.expense}
             balance={totals.balance}
             transactionCount={filteredTransactions.length}
           />
+
+          <div className="flex justify-end px-2">
+            <Button
+              variant="outline"
+              className="gap-2 border-primary/30 hover:border-primary text-primary font-bold rounded-xl"
+              onClick={() => {
+                const month = new Date().toLocaleDateString("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                });
+                exportFullMonthlyReport(month, transactions, totals);
+              }}
+            >
+              <FileText size={16} />
+              Gerar Relatório PRO (PDF)
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
@@ -247,6 +285,7 @@ export const PersonalFinance = () => {
                 transactions={transactions}
                 totals={totals}
               />
+              <EmergencyFundCard transactions={transactions} />
               <PredictionsCard transactions={transactions} />
             </div>
           </div>

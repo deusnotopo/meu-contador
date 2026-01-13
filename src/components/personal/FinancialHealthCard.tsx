@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { AIInsights } from "@/lib/ai";
 import { getFinancialInsights } from "@/lib/ai";
+import { calculateFinancialHealth } from "@/lib/financial-health";
 import type { Transaction } from "@/types";
 import { Activity, Loader2, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -39,25 +40,14 @@ export const FinancialHealthCard = ({
   }, [transactions]);
 
   // --- Professional Financial Algorithms ---
-
-  // 1. Savings Rate (Target: 20%+)
-  const savingsRate = totals.income > 0 ? (totals.balance / totals.income) * 100 : 0;
-  const savingsScore = Math.min(100, Math.max(0, (savingsRate / 20) * 100));
-
-  // 2. Liquidity / Solvency Check (Target: Income > Expenses * 1.1 buffer)
-  const expenseCoverage = totals.expense > 0 ? totals.income / totals.expense : 2;
-  const liquidityScore = Math.min(100, Math.max(0, (expenseCoverage - 0.8) * 100)); // <0.8 is danger, 1.0 is break-even, >1.8 is perfect
-
-  // 3. Weighted Score Calculation
-  // 40% Savings Rate, 60% Liquidity/Control
-  const calculatedScore = (savingsScore * 0.4) + (liquidityScore * 0.6);
+  const { score, rule503020, savingsRate, expenseCoverage } = calculateFinancialHealth(transactions, totals);
   
-  const score = insights?.score ?? Math.round(calculatedScore);
+  const displayScore = insights?.score ?? Math.round(score);
 
   const getScoreColor = () => {
-    if (score >= 80) return "text-success"; // Excellent
-    if (score >= 60) return "text-info";    // Good (Healthy)
-    if (score >= 40) return "text-warning"; // Warning (Paycheck to Paycheck)
+    if (displayScore >= 80) return "text-success"; // Excellent
+    if (displayScore >= 60) return "text-info";    // Good (Healthy)
+    if (displayScore >= 40) return "text-warning"; // Warning (Paycheck to Paycheck)
     return "text-danger";                   // Critical (Debt Risk)
   };
 
@@ -72,61 +62,93 @@ export const FinancialHealthCard = ({
     ].filter(Boolean) as string[]);
 
   return (
-    <Card className="shadow-card border-0 overflow-hidden relative min-h-[300px]">
-      <div
-        className={`absolute top-0 left-0 w-1 h-full ${
-          score >= 80 ? "bg-success" : score >= 50 ? "bg-info" : "bg-danger"
-        }`}
-      />
+    <Card className="glass-card border-none rounded-[2rem] overflow-hidden min-h-[300px] group transition-all duration-500 hover:shadow-premium">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between gap-2 text-lg">
+        <CardTitle className="flex items-center justify-between gap-2 text-lg font-black tracking-tight text-white">
           <div className="flex items-center gap-2">
             <Activity className="text-primary" size={20} />
             Saúde Financeira
           </div>
           {loading && (
-            <Loader2 className="animate-spin text-muted-foreground" size={16} />
+            <Loader2 className="animate-spin text-indigo-400" size={16} />
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-col items-center justify-center py-6 bg-muted/30 rounded-3xl border border-border/50">
-          <span className={`text-7xl font-black ${getScoreColor()}`}>
-            {Math.round(score)}
+      <CardContent className="space-y-6">
+        <div className="flex flex-col items-center justify-center py-8 bg-white/5 rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-t from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <span className={`text-8xl font-black tracking-tighter glow-text ${getScoreColor()}`}>
+            {Math.round(displayScore)}
           </span>
-          <span className="text-muted-foreground text-sm font-bold uppercase tracking-widest mt-2">
-            Saúde Geral
+          <span className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-3">
+            Índice de Performance
           </span>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm font-bold">
-            <span className="text-muted-foreground uppercase tracking-widest">
-              Seu Progresso
-            </span>
-            <span className={getScoreColor()}>{Math.round(score)} / 100</span>
+        <div className="space-y-5 px-1">
+          <div className="flex items-center gap-2 text-sm font-black text-indigo-200 uppercase tracking-widest">
+            <Activity size={18} className="text-indigo-400" />
+            Meta 50-30-20
           </div>
-          <Progress value={score} className="h-3 rounded-full" />
+          
+          <div className="space-y-4">
+            {/* Necessity: 50% */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-slate-500 uppercase tracking-wider font-black">Necessidades (50%)</span>
+                <span className="text-white">{rule503020.necessity.percentage.toFixed(0)}%</span>
+              </div>
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                    className={`h-full rounded-full transition-all duration-1000 ${rule503020.necessity.percentage > 55 ? "bg-danger" : "bg-primary glow-text"}`}
+                    style={{ width: `${Math.min(100, rule503020.necessity.percentage)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Wants: 30% */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-slate-500 uppercase tracking-wider font-black">Desejos (30%)</span>
+                <span className="text-white">{rule503020.want.percentage.toFixed(0)}%</span>
+              </div>
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                    className={`h-full rounded-full transition-all duration-1000 ${rule503020.want.percentage > 35 ? "bg-warning" : "bg-info"}`}
+                    style={{ width: `${Math.min(100, rule503020.want.percentage)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Investment: 20% */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-slate-500 uppercase tracking-wider font-black">Investimento (20%)</span>
+                <span className="text-white">{(rule503020.investment.percentage + rule503020.debt.percentage).toFixed(0)}%</span>
+              </div>
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                    className={`h-full rounded-full transition-all duration-1000 ${rule503020.investment.percentage >= 15 ? "bg-success" : "bg-slate-700"}`}
+                    style={{ width: `${Math.min(100, rule503020.investment.percentage + rule503020.debt.percentage)}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {(showDetails || tips.length > 0 || transactions.length < 5) && (
-          <div className="space-y-3 pt-4">
-            <div className="flex items-center gap-2 text-lg font-bold text-foreground">
-              <Sparkles size={20} className="text-primary" />
-              Dicas do Contador IA
+          <div className="space-y-4 pt-4 border-t border-white/5">
+            <div className="flex items-center gap-2 text-xl font-black text-white tracking-tight">
+              <Sparkles size={22} className="text-amber-400" />
+              Insights do Consultor
             </div>
-            {transactions.length < 5 && (
-               <p className="text-sm text-muted-foreground italic">
-                 Adicione pelo menos 5 transações para receber dicas personalizadas da IA.
-               </p>
-            )}
             <div className="space-y-3">
               {tips.map((tip, i) => (
                 <div
                   key={i}
-                  className="flex gap-3 text-base font-medium text-foreground bg-muted p-4 rounded-2xl border border-border/50 shadow-sm"
+                  className="flex gap-4 text-base font-bold text-slate-300 bg-white/5 p-5 rounded-2xl border border-white/5 shadow-sm group hover:bg-white/10 transition-colors"
                 >
-                  <div className="mt-1.5 min-w-[8px] h-2 bg-primary rounded-full" />
+                  <div className="mt-1.5 min-w-[10px] h-2.5 bg-primary rounded-full shadow-lg shadow-primary/20" />
                   {tip}
                 </div>
               ))}

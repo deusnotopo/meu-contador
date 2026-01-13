@@ -9,7 +9,7 @@ import type {
 import { auth } from "./firebase";
 import { loadFromCloud, syncToCloud } from "./firestore-sync";
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   TRANSACTIONS: "meu_contador_transactions",
   BUDGETS: "meu_contador_budgets",
   GOALS: "meu_contador_goals",
@@ -21,7 +21,7 @@ const STORAGE_KEYS = {
 };
 
 // Helper to push to cloud if user exists
-const pushToCloud = (key: string, data: any) => {
+export const pushToCloud = (key: string, data: any) => {
   const userId = auth.currentUser?.uid;
   if (userId) {
     syncToCloud(userId, key, data);
@@ -75,6 +75,42 @@ export const exportTransactions = (transactions: Transaction[]): void => {
   const link = document.createElement("a");
   link.href = url;
   link.download = `meu-contador-${new Date().toISOString().split("T")[0]}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+export const exportTransactionsToCSV = (transactions: Transaction[]): void => {
+  const headers = [
+    "Data",
+    "Descrição",
+    "Tipo",
+    "Categoria",
+    "Valor",
+    "Método",
+    "Status",
+    "Escopo",
+  ];
+  const rows = transactions.map((t) => [
+    t.date,
+    `"${t.description.replace(/"/g, '""')}"`,
+    t.type === "income" ? "Receita" : "Despesa",
+    t.category,
+    t.amount.toString().replace(".", ","),
+    t.paymentMethod || "",
+    t.status || "Pendente",
+    t.scope,
+  ]);
+
+  const csvContent = [headers, ...rows].map((e) => e.join(";")).join("\n");
+  const blob = new Blob(["\ufeff" + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `meu-contador-extrato-${
+    new Date().toISOString().split("T")[0]
+  }.csv`;
   link.click();
   URL.revokeObjectURL(url);
 };
@@ -179,13 +215,18 @@ export const saveCashFlow = (cashFlow: CashFlowProjection[]): void => {
 };
 
 // ============= Profile =============
-export const loadProfile = () => {
+export const loadProfile = (): UserProfile | null => {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.PROFILE);
     return data ? JSON.parse(data) : null;
   } catch {
     return null;
   }
+};
+
+export const saveProfile = (d: UserProfile) => {
+  localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(d));
+  pushToCloud(STORAGE_KEYS.PROFILE, d);
 };
 
 // ============= Full Backup =============
@@ -207,7 +248,9 @@ export const exportFullBackup = () => {
   const url = URL.createObjectURL(dataBlob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `meu-contador-backup-${new Date().toISOString().split("T")[0]}.json`;
+  link.download = `meu-contador-backup-${
+    new Date().toISOString().split("T")[0]
+  }.json`;
   link.click();
   URL.revokeObjectURL(url);
 };
@@ -218,11 +261,11 @@ export const importFullBackup = (file: File): Promise<void> => {
     reader.onload = (event) => {
       try {
         const backup = JSON.parse(event.target?.result as string);
-        
+
         // Basic validation
         if (!backup.timestamp || !backup.version) {
-           reject(new Error("Arquivo de backup inválido"));
-           return;
+          reject(new Error("Arquivo de backup inválido"));
+          return;
         }
 
         // Restore all keys

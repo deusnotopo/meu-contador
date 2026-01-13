@@ -1,4 +1,6 @@
 import {
+  STORAGE_KEYS,
+  pushToCloud,
   saveBudgets,
   saveGoals,
   saveProfile,
@@ -12,22 +14,7 @@ import type {
   SavingsGoal,
 } from "@/types";
 
-import {
-  saveBudgets,
-  saveGoals,
-  saveProfile,
-  saveReminders,
-  saveTransactions,
-  syncToCloud
-} from "@/lib/storage";
-import type {
-  BillReminder,
-  Budget,
-  OnboardingData,
-  SavingsGoal,
-} from "@/types";
-
-const ONBOARDING_KEY = "meu_contador_onboarding";
+const ONBOARDING_KEY = STORAGE_KEYS.ONBOARDING;
 
 export const loadOnboarding = (): OnboardingData | null => {
   try {
@@ -40,10 +27,7 @@ export const loadOnboarding = (): OnboardingData | null => {
 
 export const saveOnboarding = (data: OnboardingData): void => {
   localStorage.setItem(ONBOARDING_KEY, JSON.stringify(data));
-  // Sync logic is handled by storage.ts's syncToCloud if needed, 
-  // but for safety in this mock version we just save locally.
-  // Ideally, we could pass a userId if we successfully imported the auth mock context,
-  // but for now local persistence is sufficient.
+  pushToCloud(ONBOARDING_KEY, data);
 };
 
 export const isOnboardingComplete = (): boolean => {
@@ -61,7 +45,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
 
   // Initial balance as a transaction if > 0
   if (data.profile.initialBalance > 0) {
-    const initialTransaction: any = {
+    const initialTransaction: Transaction = {
       id: Date.now(),
       type: "income",
       description: "Saldo Inicial (Onboarding)",

@@ -1,73 +1,55 @@
-# React + TypeScript + Vite
+# 🏦 Meu Contador - Centro de Comando Financeiro Inteligente
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Meu Contador** é um ecossistema financeiro de alta tecnologia projetado para profissionais, empresários e indivíduos que buscam controle absoluto sobre seu patrimônio. Fundamentado na regra **50-30-20** e em algoritmos de solvência bancária, o app une design premium a inteligência artificial de ponta.
 
-Currently, two official plugins are available:
+![Tech Preview](https://img.shields.io/badge/Status-Produção_Ready-emerald?style=for-the-badge)
+![AI Powered](https://img.shields.io/badge/AI-Mistral_v1-indigo?style=for-the-badge)
+![Security](https://img.shields.io/badge/Security-Firebase_Auth-blue?style=for-the-badge)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Principais Tecnologias
 
-## React Compiler
+- **🎨 UI/UX**: React 19 + Tailwind CSS + Framer Motion (Glassmorphism & Cyber-Design).
+- **☁️ Backend**: Firebase SDK (Authentication & Firestore Sync).
+- **🤖 Intelligence**: Mistral AI para consultoria financeira via Chat e Insights preditivos.
+- **📱 PWA**: Instalável em qualquer dispositivo com suporte offline.
+- **📊 Analytics**: Recharts para visualização de dados e exportação para PDF/CSV/JSON.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Configuração Inicial
 
-## Expanding the ESLint configuration
+1. **Instale as dependências:**
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+   ```bash
+   npm install
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. **Configure o ambiente:**
+   Crie um arquivo `.env` na raiz seguindo o modelo do `.env.example`.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. **Inicie em desenvolvimento:**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+   ```bash
+   npm run dev
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+4. **Gerar Build de Produção:**
+   ```bash
+   npm run build
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🏦 Metodologias Implementadas
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Regra 50/30/20**: Categorização automática de gastos (Necessidades, Desejos, Investimentos/Dívidas).
+- **DTI Ratio**: Monitoramento da relação Dívida/Renda para análise de risco de crédito.
+- **DRE Business**: Demonstrativo de Resultados completo para gestão empresarial.
+- **Emergency Fund**: Rastreador de cobertura de fundo de reserva.
+
+## 🔒 Segurança de Dados
+
+O Meu Contador oferece **Segurança Dupla**:
+
+1. **Cloud Sync**: Sincronização em tempo real com seu projeto Firebase pessoal.
+2. **Local Backup**: Exportação total em JSON e extratos em CSV (Excel) para controle offline absoluto.
+
+---
+
+_Desenvolvido com foco em precisão, estética e saúde financeira._ 🎩💰

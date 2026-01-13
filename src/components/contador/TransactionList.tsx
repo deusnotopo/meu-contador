@@ -80,6 +80,22 @@ export const TransactionList = ({
                             Recorrente
                           </Badge>
                         )}
+                        {transaction.scope === "personal" && transaction.classification && (
+                           <Badge
+                             variant="outline"
+                             className={`text-[10px] font-bold uppercase tracking-tighter ${
+                               transaction.classification === "necessity" ? "border-primary text-primary" :
+                               transaction.classification === "want" ? "border-warning text-warning" :
+                               transaction.classification === "investment" ? "border-success text-success" :
+                               "border-muted text-muted-foreground"
+                             }`}
+                           >
+                             {transaction.classification === "necessity" ? "Necessidade" :
+                              transaction.classification === "want" ? "Desejo" :
+                              transaction.classification === "investment" ? "Investimento" :
+                              "Dívida/Outros"}
+                           </Badge>
+                        )}
                       </div>
                       <h4 className="font-bold text-foreground text-base mb-2">
                         {transaction.description}

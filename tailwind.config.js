@@ -72,10 +72,15 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "1.5rem",
+        "2xl": "2rem",
+        "3xl": "2.5rem",
+        premium: "var(--radius-premium)",
       },
       boxShadow: {
         card: "var(--shadow-card)",
         elevated: "var(--shadow-elevated)",
+        premium: "var(--shadow-premium)",
       },
       keyframes: {
         "fade-in": {
