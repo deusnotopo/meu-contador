@@ -99,10 +99,10 @@ export const PremiumPlans = ({
                 </div>
                 <div className="flex items-center justify-center gap-3 mb-2">
                   <span className="text-xl text-slate-500 line-through font-bold">
-                    R$ 59,90
+                    R$ 29,90
                   </span>
                   <span className="text-6xl font-black text-white glow-text tracking-tighter">
-                    R$ 29,90
+                    R$ 14,99
                   </span>
                 </div>
                 <p className="text-sm text-indigo-300/60 font-bold uppercase tracking-widest">
