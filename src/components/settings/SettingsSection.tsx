@@ -4,26 +4,26 @@ import { Label } from "@/components/ui/label";
 import { useTheme } from "@/context/ThemeContext";
 import { resetOnboarding } from "@/lib/onboarding";
 import {
-    exportFullBackup,
-    importFullBackup,
-    loadProfile,
-    saveProfile,
+  exportFullBackup,
+  importFullBackup,
+  loadProfile,
+  saveProfile,
 } from "@/lib/storage";
 import { showError, showSuccess } from "@/lib/toast";
 import {
-    Bell,
-    Building2,
-    Database,
-    Download,
-    LogOut,
-    Moon,
-    Palette,
-    Shield,
-    Smartphone,
-    Sun,
-    Upload,
-    User,
-    Users
+  Bell,
+  Building2,
+  Database,
+  Download,
+  LogOut,
+  Moon,
+  Palette,
+  Shield,
+  Smartphone,
+  Sun,
+  Upload,
+  User,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { CollaborationPanel } from "../profile/CollaborationPanel";
@@ -58,13 +58,25 @@ const LanguageSwitcher = () => {
       </Button>
     </div>
   );
+};
+
 const ThemeSwitcher = () => {
   const { theme, setTheme } = useTheme();
   return (
     <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
       {[
-        { id: "midnight", label: "Midnight", icon: Moon, color: "text-indigo-400" },
-        { id: "emerald", label: "Emerald", icon: Palette, color: "text-emerald-400" },
+        {
+          id: "midnight",
+          label: "Midnight",
+          icon: Moon,
+          color: "text-indigo-400",
+        },
+        {
+          id: "emerald",
+          label: "Emerald",
+          icon: Palette,
+          color: "text-emerald-400",
+        },
         { id: "aura", label: "Aura", icon: Sun, color: "text-amber-400" },
       ].map((t) => (
         <Button
@@ -183,7 +195,10 @@ export const SettingsSection = () => {
                     : "text-slate-500 hover:text-white hover:bg-white/5"
                 }`}
               >
-                <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+                <item.icon
+                  size={18}
+                  strokeWidth={activeTab === item.id ? 2.5 : 2}
+                />
                 {item.label}
               </button>
             ))}
@@ -341,53 +356,81 @@ export const SettingsSection = () => {
                 </div>
                 <div className="p-6 md:p-8 pt-0 space-y-10">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <button 
-                      onClick={() => setTheme('midnight')}
-                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${theme === 'midnight' ? 'bg-indigo-500/10 border-indigo-500' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+                    <button
+                      onClick={() => setTheme("midnight")}
+                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${
+                        theme === "midnight"
+                          ? "bg-indigo-500/10 border-indigo-500"
+                          : "bg-white/5 border-white/5 hover:border-white/20"
+                      }`}
                     >
                       <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center text-white shadow-xl">
                         <Moon size={24} />
                       </div>
                       <div>
-                        <h4 className="font-black text-white text-lg">Midnight</h4>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Padrão Premium Dark</p>
+                        <h4 className="font-black text-white text-lg">
+                          Midnight
+                        </h4>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Padrão Premium Dark
+                        </p>
                       </div>
                     </button>
 
-                    <button 
-                      onClick={() => setTheme('emerald')}
-                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${theme === 'emerald' ? 'bg-emerald-500/10 border-emerald-500' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+                    <button
+                      onClick={() => setTheme("emerald")}
+                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${
+                        theme === "emerald"
+                          ? "bg-emerald-500/10 border-emerald-500"
+                          : "bg-white/5 border-white/5 hover:border-white/20"
+                      }`}
                     >
                       <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-xl">
                         <Palette size={24} />
                       </div>
                       <div>
-                        <h4 className="font-black text-white text-lg">Emerald</h4>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Prosperidade & Natureza</p>
+                        <h4 className="font-black text-white text-lg">
+                          Emerald
+                        </h4>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Prosperidade & Natureza
+                        </p>
                       </div>
                     </button>
 
-                    <button 
-                      onClick={() => setTheme('aura')}
-                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${theme === 'aura' ? 'bg-amber-500/10 border-amber-500' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+                    <button
+                      onClick={() => setTheme("aura")}
+                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${
+                        theme === "aura"
+                          ? "bg-amber-500/10 border-amber-500"
+                          : "bg-white/5 border-white/5 hover:border-white/20"
+                      }`}
                     >
                       <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-900 shadow-xl">
                         <Sun size={24} />
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-900 text-lg">Aura Light</h4>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Clean & Minimalista</p>
+                        <h4 className="font-black text-slate-900 text-lg">
+                          Aura Light
+                        </h4>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Clean & Minimalista
+                        </p>
                       </div>
                     </button>
                   </div>
 
                   <div className="p-6 rounded-3xl bg-white/5 border border-white/5 flex items-center justify-between">
                     <div className="space-y-1">
-                      <h4 className="text-sm font-black text-white uppercase tracking-widest">Animações Fluídas</h4>
-                      <p className="text-[10px] text-slate-500 font-medium">Habilita transições suaves e micro-interações</p>
+                      <h4 className="text-sm font-black text-white uppercase tracking-widest">
+                        Animações Fluídas
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Habilita transições suaves e micro-interações
+                      </p>
                     </div>
                     <div className="h-6 w-12 rounded-full bg-emerald-500 flex items-center justify-end px-1 cursor-pointer">
-                       <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                      <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
                     </div>
                   </div>
                 </div>
@@ -438,7 +481,8 @@ export const SettingsSection = () => {
                   <Button
                     onClick={async () => {
                       if ("Notification" in window) {
-                        const permission = await Notification.requestPermission();
+                        const permission =
+                          await Notification.requestPermission();
                         if (permission === "granted")
                           showSuccess("Notificações ON!");
                       }
@@ -533,16 +577,25 @@ export const SettingsSection = () => {
                 </h3>
               </div>
               <div className="p-6 md:p-8 pt-0 space-y-6 px-10">
-                <p className="text-sm text-slate-400 leading-relaxed font-medium">Seus dados financeiros permanecem sob seu controle. A sincronização em nuvem é opcional e utiliza criptografia de ponta a ponta.</p>
+                <p className="text-sm text-slate-400 leading-relaxed font-medium">
+                  Seus dados financeiros permanecem sob seu controle. A
+                  sincronização em nuvem é opcional e utiliza criptografia de
+                  ponta a ponta.
+                </p>
                 <div className="py-4 border-y border-white/5">
-                   <div className="flex items-center justify-between">
-                      <span className="text-xs font-black uppercase tracking-widest text-white">Mascarar Valores Automático</span>
-                      <div className="h-6 w-12 rounded-full bg-slate-800 flex items-center px-1 opacity-50 cursor-not-available">
-                         <div className="w-4 h-4 bg-white/20 rounded-full" />
-                      </div>
-                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-widest text-white">
+                      Mascarar Valores Automático
+                    </span>
+                    <div className="h-6 w-12 rounded-full bg-slate-800 flex items-center px-1 opacity-50 cursor-not-available">
+                      <div className="w-4 h-4 bg-white/20 rounded-full" />
+                    </div>
+                  </div>
                 </div>
-                 <Button variant="outline" className="w-full h-12 rounded-xl border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/5 transition-all">
+                <Button
+                  variant="outline"
+                  className="w-full h-12 rounded-xl border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/5 transition-all"
+                >
                   Auditar Histórico de Acesso
                 </Button>
               </div>

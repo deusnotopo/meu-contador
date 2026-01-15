@@ -1,21 +1,21 @@
 import { Card, CardContent } from "@/components/ui/card";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-    CurrencyCode,
-    SUPPORTED_CURRENCIES,
-    currencyService,
+  CurrencyCode,
+  SUPPORTED_CURRENCIES,
+  currencyService,
 } from "@/lib/currency";
 import {
-    ArrowDownCircle,
-    ArrowUpCircle,
-    ListChecks,
-    Wallet,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  ListChecks,
+  Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { PrivacyValue } from "../ui/PrivacyValue";
@@ -79,7 +79,6 @@ export const SummaryCards = ({
   ];
 
   return (
-  return (
     <div className="space-y-4">
       <div className="flex justify-end">
         <Select
@@ -103,75 +102,77 @@ export const SummaryCards = ({
         {cards.map((card, i) => (
           <Card
             key={i}
-          className={`glass-card border-none group transition-all duration-500 hover:-translate-y-2 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden ${
-            card.gradient.includes("gradient")
-              ? "bg-gradient-to-br from-indigo-600/20 to-purple-600/20"
-              : ""
-          }`}
-        >
-          {card.gradient.includes("gradient") && (
-            <div className="absolute -inset-4 bg-indigo-500/10 blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-          )}
-          <CardContent className="p-5 md:p-7 relative z-10">
-            <div className="flex items-start justify-between mb-4 md:mb-6">
-              <div
-                className={`p-3 md:p-4 rounded-xl md:rounded-2xl ${
-                  card.gradient.includes("gradient")
-                    ? "bg-indigo-500 shadow-lg shadow-indigo-500/30"
-                    : "bg-white/5"
-                }`}
-              >
-                <card.icon
-                  size={innerWidth < 768 ? 18 : 24}
-                  className={
+            className={`glass-card border-none group transition-all duration-500 hover:-translate-y-2 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden ${
+              card.gradient.includes("gradient")
+                ? "bg-gradient-to-br from-indigo-600/20 to-purple-600/20"
+                : ""
+            }`}
+          >
+            {card.gradient.includes("gradient") && (
+              <div className="absolute -inset-4 bg-indigo-500/10 blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+            )}
+            <CardContent className="p-5 md:p-7 relative z-10">
+              <div className="flex items-start justify-between mb-4 md:mb-6">
+                <div
+                  className={`p-3 md:p-4 rounded-xl md:rounded-2xl ${
                     card.gradient.includes("gradient")
-                      ? "text-white"
-                      : card.textColor
-                  }
-                />
-              </div>
-            </div>
-            <div className="space-y-1 md:space-y-2">
-              <p
-                className={`text-[8px] md:text-xs font-black uppercase tracking-[0.15em] ${
-                  card.gradient.includes("gradient")
-                    ? "text-indigo-200"
-                    : "text-slate-500"
-                }`}
-              >
-                {card.title}
-              </p>
-              <h3
-                className={`text-xl md:text-3xl font-black tracking-tighter ${
-                  card.gradient.includes("gradient")
-                    ? "text-white glow-text"
-                    : card.textColor
-                }`}
-              >
-                {card.isCount ? (
-                  card.value
-                ) : (
-                  card.value
-                ) : (
-                  <PrivacyValue
-                    value={card.value}
-                    displayValue={format(convert(card.value))}
+                      ? "bg-indigo-500 shadow-lg shadow-indigo-500/30"
+                      : "bg-white/5"
+                  }`}
+                >
+                  <card.icon
+                    size={
+                      typeof window !== "undefined" && window.innerWidth < 768
+                        ? 18
+                        : 24
+                    }
+                    className={
+                      card.gradient.includes("gradient")
+                        ? "text-white"
+                        : card.textColor
+                    }
                   />
-                )}
-              </h3>
-              <p
-                className={`text-[8px] md:text-xs font-bold ${
-                  card.gradient.includes("gradient")
-                    ? "text-indigo-200/60"
-                    : "text-slate-500/70"
-                }`}
-              >
-                {card.subtitle}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                </div>
+              </div>
+              <div className="space-y-1 md:space-y-2">
+                <p
+                  className={`text-[8px] md:text-xs font-black uppercase tracking-[0.15em] ${
+                    card.gradient.includes("gradient")
+                      ? "text-indigo-200"
+                      : "text-slate-500"
+                  }`}
+                >
+                  {card.title}
+                </p>
+                <h3
+                  className={`text-xl md:text-3xl font-black tracking-tighter ${
+                    card.gradient.includes("gradient")
+                      ? "text-white glow-text"
+                      : card.textColor
+                  }`}
+                >
+                  {card.isCount ? (
+                    card.value
+                  ) : (
+                    <PrivacyValue
+                      value={card.value}
+                      displayValue={format(convert(card.value))}
+                    />
+                  )}
+                </h3>
+                <p
+                  className={`text-[8px] md:text-xs font-bold ${
+                    card.gradient.includes("gradient")
+                      ? "text-indigo-200/60"
+                      : "text-slate-500/70"
+                  }`}
+                >
+                  {card.subtitle}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
