@@ -261,18 +261,35 @@ const App = () => {
           </p>
         </div>
       ) : !showMainApp && !isOnboardingComplete() ? (
-        <Suspense
-          fallback={
-            <div className="min-h-screen flex items-center justify-center">
-              <Loader2 className="animate-spin text-indigo-500" size={48} />
-            </div>
-          }
-        >
-          <OnboardingWizard onComplete={handleOnboardingComplete} />
-        </Suspense>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="onboarding"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.5 }}
+            className="w-full h-full"
+          >
+            <Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center">
+                  <Loader2 className="animate-spin text-indigo-500" size={48} />
+                </div>
+              }
+            >
+              <OnboardingWizard onComplete={handleOnboardingComplete} />
+            </Suspense>
+          </motion.div>
+        </AnimatePresence>
       ) : (
         /* Immersive App Shell */
-        <div className="relative z-10">
+        <motion.div
+          key="main-app"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative z-10"
+        >
           {/* Main Desktop Header */}
           <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 hidden md:block">
             <nav className="max-w-7xl mx-auto flex items-center justify-between glass-premium rounded-2xl px-6 py-3 border border-white/10 shadow-premium">
@@ -453,7 +470,7 @@ const App = () => {
               </Suspense>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
       )}
 
       <VoiceCommander />
