@@ -19,7 +19,6 @@ import {
   User,
 } from "lucide-react";
 import React, { Suspense, lazy, useEffect, useState } from "react";
-import { Toaster } from "react-hot-toast";
 import { VoiceCommander } from "./components/ai/VoiceCommander";
 import { LoginForm } from "./components/auth/LoginForm";
 import { HelpCenter } from "./components/support/HelpCenter";
@@ -458,16 +457,6 @@ const App = () => {
       )}
 
       <VoiceCommander />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: "#1e293b",
-            color: "#fff",
-            border: "1px solid rgba(255,255,255,0.1)",
-          },
-        }}
-      />
     </div>
   );
 };
