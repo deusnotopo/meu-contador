@@ -1,5 +1,8 @@
 import type { Transaction } from "@/types";
-import { calculateFinancialHealth, getClassification } from "./financial-health";
+import {
+  calculateFinancialHealth,
+  getClassification,
+} from "./financial-health";
 
 // HYBRID ARCHITECTURE: Calls our Vercel Serverless Function instead of the AI API directly
 // This protects our API Key and ensures better performance across the Vercel ecosystem
@@ -53,9 +56,16 @@ export const getFinancialInsights = async (
     - Taxa de Poupança: ${healthMetrics.savingsRate.toFixed(1)}% (Meta: >20%)
     - Cobertura de Liquidez: ${healthMetrics.expenseCoverage.toFixed(1)} meses
     - Regra 50-30-20:
-      - Necessidades: ${healthMetrics.rule503020.necessity.percentage.toFixed(1)}% (Meta: 50%)
-      - Desejos: ${healthMetrics.rule503020.want.percentage.toFixed(1)}% (Meta: 30%)
-      - Investimentos/Dívidas: ${(healthMetrics.rule503020.investment.percentage + healthMetrics.rule503020.debt.percentage).toFixed(1)}% (Meta: 20%)
+      - Necessidades: ${healthMetrics.rule503020.necessity.percentage.toFixed(
+        1
+      )}% (Meta: 50%)
+      - Desejos: ${healthMetrics.rule503020.want.percentage.toFixed(
+        1
+      )}% (Meta: 30%)
+      - Investimentos/Dívidas: ${(
+        healthMetrics.rule503020.investment.percentage +
+        healthMetrics.rule503020.debt.percentage
+      ).toFixed(1)}% (Meta: 20%)
 
     Sua tarefa é explicar o PORQUÊ desse score e dar dicas baseadas nele.
     Não re-calcule o score. Confie nos dados acima.
@@ -73,7 +83,9 @@ export const getFinancialInsights = async (
 
     Responda APENAS em formato JSON puro, seguindo exatamente esta estrutura:
     {
-      "score": number, // Deve ser igual ou muito próximo de ${Math.round(healthMetrics.score)}
+      "score": number, // Deve ser igual ou muito próximo de ${Math.round(
+        healthMetrics.score
+      )}
       "tips": ["string", "string", "string"],
       "predictions": [
         {
@@ -95,37 +107,128 @@ export const getFinancialInsights = async (
       body: JSON.stringify({
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
       }),
     });
 
     if (!response.ok) {
-        const errorText = await response.text();
-        console.error("AI Proxy Error:", errorText);
-        throw new Error(`Falha no Proxy: ${response.status}`);
+      const errorText = await response.text();
+      console.error("AI Proxy Error:", errorText);
+      throw new Error(`Falha no Proxy: ${response.status}`);
     }
 
     const data = await response.json();
     const contentString = data.choices[0].message.content;
-    
+
     // Safely parse JSON
     let content;
     try {
-        content = JSON.parse(contentString);
+      content = JSON.parse(contentString);
     } catch (parseError) {
-        const cleanContent = contentString.replace(/```json|```/g, "").trim();
-        content = JSON.parse(cleanContent);
+      const cleanContent = contentString.replace(/```json|```/g, "").trim();
+      content = JSON.parse(cleanContent);
     }
 
     return content as AIInsights;
   } catch (error) {
     console.error("Erro ao buscar insights da IA via Proxy:", error);
     return {
-        score: 75,
-        tips: ["Verifique sua conexão com a Internet.", "Tente novamente mais tarde.", "Controle seus gastos fixos."],
-        predictions: []
+      score: 75,
+      tips: [
+        "Verifique sua conexão com a Internet.",
+        "Tente novamente mais tarde.",
+        "Controle seus gastos fixos.",
+      ],
+      predictions: [],
+    };
+  }
+};
+
+export interface ParsedCommand {
+  type: "transaction" | "investment" | "unknown";
+  data?: any;
+  confidence: number;
+  message?: string;
+}
+
+export const parseVoiceCommand = async (
+  text: string
+): Promise<ParsedCommand> => {
+  const systemPrompt = `
+    You are a financial AI assistant. Parse the user's natural language command into structured JSON.
+    Current Date: ${new Date().toISOString().split("T")[0]}
+
+    OUTPUT FORMAT:
+    {
+      "type": "transaction" | "investment" | "unknown",
+      "data": { ... } // schema below
+    }
+
+    IF TRANSACTION (expense/income):
+    "data": {
+      "type": "income" | "expense",
+      "amount": number,
+      "description": string (capitalize first letter),
+      "category": string (Infer from context. Valid: Alimentação, Transporte, Moradia, Lazer, Saúde, Educação, Compras, Salário, Investimento, Freelance, Outros),
+      "date": "YYYY-MM-DD" (Resolve relative dates like "hoje", "ontem"),
+      "paymentMethod": "Pix" | "Cartão de Crédito" | "Dinheiro" (default "Pix")
+    }
+
+    IF INVESTMENT:
+    "data": {
+      "ticker": string (e.g., PETR4, AAPL),
+      "amount": number (quantity),
+      "price": number (if specified, otherwise null),
+      "type": "stock" | "fii" | "crypto"
+    }
+
+    EXAMPLES:
+    User: "Gastei 50 no mcdonalds"
+    JSON: { "type": "transaction", "data": { "type": "expense", "amount": 50, "description": "Mcdonalds", "category": "Alimentação", "date": "2024-03-20", "paymentMethod": "Pix" } }
+
+    User: "Recebi 5000 de salário"
+    JSON: { "type": "transaction", "data": { "type": "income", "amount": 5000, "description": "Salário", "category": "Salário", "date": "2024-03-20", "paymentMethod": "Pix" } }
+    
+    User: "Comprei 10 ações da Petrobras"
+    JSON: { "type": "investment", "data": { "ticker": "PETR4", "amount": 10, "type": "stock" } }
+
+    User: "Olá tudo bem"
+    JSON: { "type": "unknown", "message": "Comando não reconhecido como financeiro." }
+  `;
+
+  try {
+    const response = await fetch(AI_PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: text },
+        ],
+        temperature: 0.1, // Low temp for deterministic JSON
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!response.ok) throw new Error("AI Proxy failed");
+
+    const data = await response.json();
+    let content = JSON.parse(data.choices[0].message.content);
+
+    return {
+      type: content.type,
+      data: content.data,
+      confidence: 0.9,
+      message: content.message,
+    };
+  } catch (error) {
+    console.error("AI Parse Error:", error);
+    return {
+      type: "unknown",
+      confidence: 0,
+      message: "Erro ao processar comando. Tente novamente.",
     };
   }
 };

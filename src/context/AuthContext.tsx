@@ -1,6 +1,12 @@
 import { auth, googleProvider } from "@/lib/firebase";
-import { loadProfile, saveProfile, syncAllData } from "@/lib/storage";
-import { UserProfile } from "@/types";
+import {
+  loadPrivacyMode,
+  loadProfile,
+  savePrivacyMode,
+  saveProfile,
+  syncAllData,
+} from "@/lib/storage";
+import type { UserProfile } from "@/types";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -21,6 +27,8 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: UserProfile) => Promise<void>;
+  privacyMode: boolean;
+  togglePrivacy: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,20 +40,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [privacyMode, setPrivacyMode] = useState(() => loadPrivacyMode());
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        // Sync data when user returns
-        setIsSyncing(true);
-        // We sync using the UID
-        await syncAllData(currentUser.uid);
-        const profile = loadProfile();
-        if (profile?.isPro) setIsPro(true);
-        setIsSyncing(false);
-      }
+    // onAuthStateChanged expects a synchronous function
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+
+      const initializeUser = async () => {
+        try {
+          if (currentUser) {
+            setIsSyncing(true);
+            // Move sync to background to avoid blocking the UI
+            syncAllData(currentUser.uid)
+              .catch((err) =>
+                console.error("Initial sync background error:", err)
+              )
+              .finally(() => {
+                const profile = loadProfile();
+                if (profile?.isPro) setIsPro(true);
+                setIsSyncing(false);
+              });
+          }
+        } catch (error) {
+          console.error("Auth initialization error:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      initializeUser();
     });
     return () => unsubscribe();
   }, []);
@@ -78,8 +102,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await signOut(auth);
   };
 
-  const updateProfile = async (data: any) => {
+  const updateProfile = async (data: UserProfile) => {
     saveProfile(data);
+  };
+
+  const togglePrivacy = () => {
+    const newState = !privacyMode;
+    setPrivacyMode(newState);
+    savePrivacyMode(newState);
   };
 
   return (
@@ -94,6 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loginWithGoogle,
         logout,
         updateProfile,
+        privacyMode,
+        togglePrivacy,
       }}
     >
       {children}

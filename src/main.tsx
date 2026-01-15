@@ -11,3 +11,6 @@ createRoot(document.getElementById("root")!).render(
     </AuthProvider>
   </StrictMode>
 );
+
+// PWA registration is handled by vite-plugin-pwa automatically
+// if registerType: 'autoUpdate' is used in vite.config.ts

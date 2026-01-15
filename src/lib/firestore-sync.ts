@@ -7,7 +7,11 @@ import { db } from "./firebase";
  * @param key - The storage key (e.g., 'transactions')
  * @param data - The data to save
  */
-export const syncToCloud = async (userId: string, key: string, data: any) => {
+export const syncToCloud = async (
+  userId: string,
+  key: string,
+  data: unknown
+) => {
   if (!userId) return;
   try {
     const userRef = doc(db, "users", userId, "data", key);
@@ -51,7 +55,7 @@ export const loadFromCloud = async (userId: string, key: string) => {
 export const subscribeToCloud = (
   userId: string,
   key: string,
-  onUpdate: (data: any) => void
+  onUpdate: (data: unknown) => void
 ) => {
   if (!userId) return () => {};
 

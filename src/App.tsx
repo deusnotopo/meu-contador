@@ -1,14 +1,35 @@
 import { Button } from "@/components/ui/button";
-import { isOnboardingComplete } from "@/lib/onboarding";
+import { isOnboardingComplete, saveOnboarding } from "@/lib/onboarding";
+import { checkRecurringTransactions } from "@/lib/recurrence";
+import { loadTransactions } from "@/lib/storage";
 import { ToastProvider } from "@/lib/toast";
 import { AnimatePresence, motion } from "framer-motion";
-import { Crown, Loader2, Settings } from "lucide-react";
+import {
+  BookOpen,
+  Briefcase,
+  Building2,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  PieChart,
+  Settings,
+  User,
+} from "lucide-react";
 import React, { Suspense, lazy, useEffect, useState } from "react";
+import { Toaster } from "react-hot-toast";
+import { VoiceCommander } from "./components/ai/VoiceCommander";
 import { LoginForm } from "./components/auth/LoginForm";
-import { SettingsSection } from "./components/settings/SettingsSection";
-import { PremiumPlans } from "./components/subscription/PremiumPlans";
+import { HelpCenter } from "./components/support/HelpCenter";
+import { SyncIndicator } from "./components/ui/SyncIndicator";
 import { CardSkeleton } from "./components/ui/skeleton";
 import { useAuth } from "./context/AuthContext";
+import { LanguageProvider, useLanguage } from "./context/LanguageContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import { useCloudSync } from "./hooks/useCloudSync";
+import { loadReminders } from "./lib/storage";
 
 // Lazy load heavy components
 const GlobalDashboard = lazy(() =>
@@ -34,6 +55,21 @@ const OnboardingWizard = lazy(() =>
 const EducationSection = lazy(() =>
   import("./components/education/EducationSection").then((m) => ({
     default: m.EducationSection,
+  }))
+);
+const InvestmentsDashboard = lazy(() =>
+  import("./components/investments/InvestmentsDashboard").then((m) => ({
+    default: m.InvestmentsDashboard,
+  }))
+);
+const PremiumPlans = lazy(() =>
+  import("./components/subscription/PremiumPlans").then((m) => ({
+    default: m.PremiumPlans,
+  }))
+);
+const SettingsSection = lazy(() =>
+  import("./components/settings/SettingsSection").then((m) => ({
+    default: m.SettingsSection,
   }))
 );
 
@@ -63,7 +99,7 @@ class ErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: any, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("App Crash:", error, errorInfo);
   }
 
@@ -93,22 +129,100 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+// Main Application Component
+
 const App = () => {
-  const { user, loading: authLoading, isSyncing } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    isSyncing,
+    privacyMode,
+    togglePrivacy,
+    logout,
+  } = useAuth();
+  const { theme } = useTheme();
+
+  // Enable real-time cloud sync
+  useCloudSync(user?.uid);
+
   const [mainTab, setMainTab] = useState<
-    "overview" | "personal" | "business" | "education" | "settings"
+    | "overview"
+    | "personal"
+    | "business"
+    | "investments"
+    | "education"
+    | "settings"
   >("overview");
   const [showMainApp, setShowMainApp] = useState(() => isOnboardingComplete());
   const [showPremium, setShowPremium] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const { t } = useLanguage();
 
   // Watch for sync completion to skip onboarding for returning users
+
   useEffect(() => {
+    // Run recurrence check once on load if user is logged in
+    if (user) {
+      checkRecurringTransactions();
+    }
+
     if (user && !showMainApp && isOnboardingComplete()) {
       setShowMainApp(true);
     }
 
     if (!isSyncing && user && !showMainApp && isOnboardingComplete()) {
       setShowMainApp(true);
+    }
+
+    // Heuristic: If user has data (transactions) but no onboarding flag, mark as complete
+    // This fixes the issue for users migrating from other devices or versions
+    if (user && !showMainApp && !isOnboardingComplete()) {
+      const transactions = loadTransactions();
+      if (transactions.length > 0) {
+        console.log("Data detected, skipping onboarding...");
+        saveOnboarding({
+          completed: true,
+          profile: {
+            name: user.displayName || "Usuário",
+            email: user.email || "",
+            isPro: false,
+            initialBalance: 0,
+          },
+          budgets: [],
+          goals: [],
+          reminders: [],
+        });
+        setShowMainApp(true);
+      }
+    }
+
+    // Automated due date notifications
+    if (
+      showMainApp &&
+      typeof Notification !== "undefined" &&
+      Notification.permission === "granted"
+    ) {
+      const checkReminders = () => {
+        const reminders = loadReminders();
+        const today = new Date().toISOString().split("T")[0];
+        const dueToday = reminders.filter(
+          (r) => r.dueDate === today && !r.isPaid
+        );
+
+        if (dueToday.length > 0) {
+          dueToday.forEach((bill) => {
+            new Notification("Lembrete de Pagamento", {
+              body: `Sua conta "${bill.name}" de R$ ${bill.amount.toFixed(
+                2
+              )} vence hoje!`,
+              icon: "/logo-new.png",
+            });
+          });
+        }
+      };
+
+      // Check once on load
+      checkReminders();
     }
   }, [isSyncing, user, showMainApp]);
 
@@ -117,140 +231,250 @@ const App = () => {
   };
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen mesh-gradient selection:bg-indigo-500/30 selection:text-white">
-        <ToastProvider />
+    <div className="min-h-screen bg-black text-foreground selection:bg-indigo-500/30 overflow-x-hidden relative">
+      <ToastProvider />
 
-        {authLoading ? (
-          <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-indigo-500/5 animate-pulse blur-3xl" />
-            <Loader2
-              className="animate-spin text-indigo-500 relative z-10"
-              size={48}
-            />
-          </div>
-        ) : !user ? (
-          <LoginForm />
-        ) : !showMainApp && !isOnboardingComplete() ? (
-          <Suspense
-            fallback={
-              <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="animate-spin text-indigo-500" size={48} />
+      {/* Background Layers */}
+      <div className="mesh-gradient" />
+      <div className="bg-grid-pattern fixed inset-0 z-0 opacity-40 pointer-events-none" />
+
+      {authLoading ? (
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-indigo-500/5 animate-pulse blur-3xl" />
+          <Loader2
+            className="animate-spin text-indigo-500 relative z-10"
+            size={48}
+          />
+        </div>
+      ) : !user ? (
+        <LoginForm />
+      ) : isSyncing && !showMainApp ? (
+        <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-emerald-500/5 animate-pulse blur-3xl" />
+          <Loader2
+            className="animate-spin text-emerald-500 relative z-10 mb-4"
+            size={48}
+          />
+          <p className="text-slate-400 animate-pulse font-medium">
+            Sincronizando seus dados...
+          </p>
+        </div>
+      ) : !showMainApp && !isOnboardingComplete() ? (
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center">
+              <Loader2 className="animate-spin text-indigo-500" size={48} />
+            </div>
+          }
+        >
+          <OnboardingWizard onComplete={handleOnboardingComplete} />
+        </Suspense>
+      ) : (
+        /* Immersive App Shell */
+        <div className="relative z-10">
+          {/* Main Desktop Header */}
+          <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 hidden md:block">
+            <nav className="max-w-7xl mx-auto flex items-center justify-between glass-premium rounded-2xl px-6 py-3 border border-white/10 shadow-premium">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-lg shadow-indigo-500/10 group">
+                  <LayoutDashboard
+                    className="text-indigo-400 group-hover:scale-110 transition-transform"
+                    size={24}
+                  />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-black premium-gradient-text tracking-tighter leading-none">
+                    MEU CONTADOR
+                  </h1>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">
+                    Super App
+                  </p>
+                </div>
               </div>
-            }
-          >
-            <OnboardingWizard onComplete={handleOnboardingComplete} />
-          </Suspense>
-        ) : (
-          /* Main Immersive App Shell */
-          <div className="relative min-h-screen">
-            {/* Floating Premium Navigation */}
-            <header className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-5xl">
-              <nav className="glass-premium rounded-[2rem] px-6 py-3 flex items-center justify-between group border-white/20">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full" />
-                    <img
-                      src="/icon.png"
-                      className="w-10 h-10 relative z-10 floating"
-                      alt="Logo"
-                    />
-                    {isSyncing && (
-                      <motion.div
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#02040a]"
-                      />
-                    )}
-                  </div>
-                  <div className="hidden sm:block">
-                    <Button
-                      onClick={() => setShowPremium(true)}
-                      className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white border-0 shadow-lg hover:shadow-amber-500/20 transition-all duration-300 rounded-xl h-10 px-4 group"
-                    >
-                      <Crown className="mr-2 h-4 w-4 fill-white/20 group-hover:scale-110 transition-transform" />
-                      <span className="font-extrabold tracking-wide">
-                        Seja PRO
-                      </span>
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Cyber Navigation Tabs */}
-                <div className="flex bg-black/20 p-1 rounded-2xl border border-white/5 mx-4">
-                  {[
-                    { id: "overview", label: "Resumo" },
-                    { id: "personal", label: "Pessoal" },
-                    { id: "business", label: "Negócio" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setMainTab(tab.id as typeof mainTab)}
-                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                        mainTab === tab.id
-                          ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setMainTab("settings")}
-                    className={`w-10 h-10 rounded-xl transition-all ${
-                      mainTab === "settings"
-                        ? "bg-indigo-500 text-white"
-                        : "text-slate-400 hover:text-white bg-white/5"
+              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
+                {[
+                  { id: "overview", label: t("nav.overview"), icon: PieChart },
+                  { id: "personal", label: t("nav.personal"), icon: User },
+                  { id: "business", label: t("nav.business"), icon: Building2 },
+                  {
+                    id: "investments",
+                    label: t("nav.investments"),
+                    icon: Briefcase,
+                  },
+                  {
+                    id: "education",
+                    label: t("nav.education"),
+                    icon: BookOpen,
+                  },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setMainTab(item.id as any)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
+                      mainTab === item.id
+                        ? "bg-white text-black shadow-white/20 shadow-lg"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <Settings size={20} />
-                  </Button>
-                </div>
-              </nav>
-            </header>
+                    <item.icon size={14} />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
 
-            <main className="pt-32 pb-12 px-4 max-w-7xl mx-auto w-full">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={mainTab}
-                  initial={{ opacity: 0, scale: 0.98, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 1.02, y: -10 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              <div className="flex items-center gap-3">
+                <SyncIndicator />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowHelp(true)}
+                  className="w-10 h-10 rounded-xl bg-white/5 text-slate-400 hover:text-white"
                 >
-                  <Suspense fallback={<LoadingFallback />}>
-                    <div className="relative">
-                      {mainTab === "overview" && <GlobalDashboard />}
-                      {mainTab === "personal" && <PersonalFinance />}
-                      {mainTab === "business" && <BusinessFinance />}
-                      {mainTab === "education" && <EducationSection />}
-                      {mainTab === "settings" && <SettingsSection />}
-                    </div>
-                  </Suspense>
-                </motion.div>
-              </AnimatePresence>
+                  <HelpCircle size={18} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => togglePrivacy()}
+                  className="w-10 h-10 rounded-xl bg-white/5 text-slate-400 hover:text-white"
+                >
+                  {privacyMode ? <EyeOff size={18} /> : <Eye size={18} />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMainTab("settings")}
+                  className={`w-10 h-10 rounded-xl transition-all ${
+                    mainTab === "settings"
+                      ? "bg-indigo-500 text-white"
+                      : "bg-white/5 text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Settings size={20} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={logout}
+                  className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all"
+                >
+                  <LogOut size={20} />
+                </Button>
+              </div>
+            </nav>
+          </header>
 
-              <AnimatePresence>
-                {showPremium && (
-                  <Suspense fallback={null}>
-                    <PremiumPlans
-                      onClose={() => setShowPremium(false)}
-                      userEmail={user?.email}
+          {/* Mobile Navigation */}
+          <nav className="md:hidden fixed bottom-6 left-4 right-4 z-50 glass-premium rounded-[2rem] border border-white/10 shadow-2xl p-2 pb-safe pt-2">
+            <div className="grid grid-cols-5 gap-1">
+              {[
+                { id: "overview", icon: LayoutDashboard, label: "Início" },
+                { id: "personal", icon: User, label: "Pessoal" },
+                { id: "business", icon: Building2, label: "Empresa" },
+                { id: "investments", icon: Briefcase, label: "Invest." },
+                { id: "settings", icon: Settings, label: "Ajustes" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setMainTab(tab.id as any)}
+                  className={`relative flex flex-col items-center justify-center py-3 rounded-2xl transition-all duration-500 ${
+                    mainTab === tab.id
+                      ? "text-indigo-400"
+                      : "text-slate-500 hover:text-slate-400"
+                  }`}
+                >
+                  <tab.icon
+                    size={22}
+                    className={`transition-transform duration-500 ${
+                      mainTab === tab.id ? "scale-110" : "scale-100"
+                    }`}
+                  />
+                  <span className="text-[8px] font-black uppercase tracking-[0.1em] mt-1.5">
+                    {tab.label}
+                  </span>
+                  {mainTab === tab.id && (
+                    <motion.div
+                      layoutId="nav-dot"
+                      className="absolute -bottom-1 w-1 h-1 bg-indigo-400 rounded-full shadow-[0_0_8px_rgba(129,140,248,0.8)]"
                     />
-                  </Suspense>
-                )}
-              </AnimatePresence>
-            </main>
-          </div>
-        )}
-      </div>
-    </ErrorBoundary>
+                  )}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Page Content */}
+          <main className="max-w-7xl mx-auto px-4 md:px-6 pt-24 md:pt-32 pb-24 md:pb-12">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mainTab}
+                initial={{ opacity: 0, scale: 0.99, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 1.01, y: -10 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Suspense fallback={<LoadingFallback />}>
+                  <div className="animate-fade-in">
+                    {mainTab === "overview" && <GlobalDashboard />}
+                    {mainTab === "personal" && <PersonalFinance />}
+                    {mainTab === "business" && <BusinessFinance />}
+                    {mainTab === "investments" && <InvestmentsDashboard />}
+                    {mainTab === "education" && <EducationSection />}
+                    {mainTab === "settings" && <SettingsSection />}
+                  </div>
+                </Suspense>
+              </motion.div>
+            </AnimatePresence>
+          </main>
+
+          {/* Overlays */}
+          <AnimatePresence>
+            {showHelp && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+              >
+                <div className="premium-card w-full max-w-4xl max-h-[90vh] overflow-hidden">
+                  <HelpCenter onClose={() => setShowHelp(false)} />
+                </div>
+              </motion.div>
+            )}
+            {showPremium && (
+              <Suspense fallback={null}>
+                <PremiumPlans
+                  onClose={() => setShowPremium(false)}
+                  userEmail={user?.email}
+                />
+              </Suspense>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      <VoiceCommander />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: "#1e293b",
+            color: "#fff",
+            border: "1px solid rgba(255,255,255,0.1)",
+          },
+        }}
+      />
+    </div>
   );
 };
 
-export default App;
+const AppWithProviders = () => (
+  <ThemeProvider>
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
+  </ThemeProvider>
+);
+
+export default AppWithProviders;

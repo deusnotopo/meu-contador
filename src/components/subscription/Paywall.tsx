@@ -1,9 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
-import { Crown, Lock } from "lucide-react";
 import React, { useState } from "react";
-import { PremiumPlans } from "./PremiumPlans";
 
 interface PaywallProps {
   children: React.ReactNode;
@@ -12,14 +8,11 @@ interface PaywallProps {
   variant?: "blur" | "card";
 }
 
-export const Paywall = ({ 
-  children, 
-  featureName = "Funcionalidade Premium", 
 export const Paywall = ({
   children,
   featureName = "Funcionalidade Premium",
   description = "Assine o plano PRO para desbloquear este recurso exclusivo.",
-  variant = "card"
+  variant = "card",
 }: PaywallProps) => {
   const { isPro } = useAuth();
   const [showPlans, setShowPlans] = useState(false);

@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/formatters";
@@ -11,6 +10,7 @@ import { showSuccess } from "@/lib/toast";
 import type {
   OnboardingBudget,
   OnboardingData,
+  OnboardingExpense,
   OnboardingGoal,
   OnboardingReminder,
   UserProfile,
@@ -28,6 +28,7 @@ import {
   Brain,
   Building2,
   Check,
+  Crown,
   Settings,
   Shield,
   Sparkles,
@@ -46,6 +47,7 @@ const STEPS = [
   { id: "welcome", title: "Bem-vindo", icon: Sparkles },
   { id: "profile", title: "Seu Perfil", icon: Wallet },
   { id: "balance", title: "Seu Saldo", icon: Wallet },
+  { id: "expenses", title: "Gastos", icon: TrendingUp },
   { id: "business", title: "Empresa", icon: Building2 },
   { id: "budgets", title: "Orçamentos", icon: Target },
   { id: "goals", title: "Metas", icon: TrendingUp },
@@ -66,6 +68,9 @@ const initialProfile: UserProfile = {
 export const OnboardingWizard = ({ onComplete }: Props) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
+  const [historicalExpenses, setHistoricalExpenses] = useState<
+    OnboardingExpense[]
+  >([]);
   const [budgets, setBudgets] = useState<OnboardingBudget[]>(
     budgetTemplates.moderate
   );
@@ -111,6 +116,7 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
       budgets,
       goals,
       reminders,
+      historicalExpenses,
       preferences,
       completed: true,
       completedAt: new Date().toISOString(),
@@ -143,6 +149,13 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
         return <ProfileStep profile={profile} onChange={handleProfileChange} />;
       case "balance":
         return <BalanceStep profile={profile} onChange={handleProfileChange} />;
+      case "expenses":
+        return (
+          <ExpensesStep
+            expenses={historicalExpenses}
+            setExpenses={setHistoricalExpenses}
+          />
+        );
       case "business":
         return <BusinessStep profile={profile} setProfile={setProfile} />;
       case "budgets":
@@ -183,22 +196,28 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
                 <Crown className="text-white fill-white" size={24} />
               </div>
               <div>
-                <span className="font-black text-2xl tracking-tighter text-white glow-text">Meu Contador</span>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sua Jornada Premium</p>
+                <span className="font-black text-2xl tracking-tighter text-white glow-text">
+                  Meu Contador
+                </span>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                  Sua Jornada Premium
+                </p>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-xs font-black text-indigo-400 uppercase tracking-widest block">Progresso</span>
+              <span className="text-xs font-black text-indigo-400 uppercase tracking-widest block">
+                Progresso
+              </span>
               <span className="text-lg font-black text-white">
                 {currentStep + 1} / {STEPS.length}
               </span>
             </div>
           </div>
-          
+
           <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-8">
-            <div 
-                className="h-full gradient-premium transition-all duration-500 rounded-full"
-                style={{ width: `${progress}%` }}
+            <div
+              className="h-full gradient-premium transition-all duration-500 rounded-full"
+              style={{ width: `${progress}%` }}
             />
           </div>
 
@@ -209,11 +228,18 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
               const isActive = i === currentStep;
               const isComplete = i < currentStep;
               return (
-                <div key={step.id} className="flex flex-col items-center gap-2 group">
+                <div
+                  key={step.id}
+                  className="flex flex-col items-center gap-2 group"
+                >
                   <div
                     className={`
                     w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500
-                    ${isComplete ? "bg-success/20 text-success border border-success/30" : ""}
+                    ${
+                      isComplete
+                        ? "bg-success/20 text-success border border-success/30"
+                        : ""
+                    }
                     ${
                       isActive
                         ? "gradient-premium text-white scale-110 shadow-premium"
@@ -226,13 +252,15 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
                     }
                   `}
                   >
-                    {isComplete ? <Check size={20} className="font-black" /> : <Icon size={20} />}
+                    {isComplete ? (
+                      <Check size={20} className="font-black" />
+                    ) : (
+                      <Icon size={20} />
+                    )}
                   </div>
                   <span
                     className={`text-[10px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity ${
-                      isActive
-                        ? "text-primary"
-                        : "text-slate-600"
+                      isActive ? "text-primary" : "text-slate-600"
                     }`}
                   >
                     {step.title}
@@ -662,7 +690,7 @@ const BalanceStep = ({
   onChange,
 }: {
   profile: UserProfile;
-  onChange: (field: keyof UserProfile, value: any) => void;
+  onChange: (field: keyof UserProfile, value: unknown) => void;
 }) => {
   return (
     <div className="space-y-8">
@@ -741,7 +769,7 @@ const BusinessStep = ({
                 });
               } else {
                 const { businessProfile, ...rest } = profile;
-                setProfile(rest as any);
+                setProfile(rest as UserProfile);
               }
             }}
           />
@@ -872,6 +900,108 @@ const PreferencesStep = ({
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const ExpensesStep = ({
+  expenses,
+  setExpenses,
+}: {
+  expenses: OnboardingExpense[];
+  setExpenses: (e: OnboardingExpense[]) => void;
+}) => {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const prevMonth = new Date(new Date().setMonth(new Date().getMonth() - 1))
+    .toISOString()
+    .slice(0, 7);
+  const twoMonthsAgo = new Date(new Date().setMonth(new Date().getMonth() - 2))
+    .toISOString()
+    .slice(0, 7);
+
+  const categories = [
+    { name: "Alimentação", icon: "🍱" },
+    { name: "Moradia", icon: "🏠" },
+    { name: "Transporte", icon: "🚗" },
+    { name: "Lazer", icon: "🎭" },
+    { name: "Saúde", icon: "🏥" },
+    { name: "Educação", icon: "🎓" },
+    { name: "Contas", icon: "🧾" },
+  ];
+
+  const updateExpense = (category: string, month: string, amount: number) => {
+    const newExpenses = [...expenses].filter(
+      (e) => !(e.category === category && e.month === month)
+    );
+    if (amount > 0) {
+      newExpenses.push({ category, month, amount });
+    }
+    setExpenses(newExpenses);
+  };
+
+  const getAmount = (category: string, month: string) => {
+    return (
+      expenses.find((e) => e.category === category && e.month === month)
+        ?.amount || 0
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold italic tracking-tighter uppercase mb-1 text-white">
+          Seus Gastos Mensais
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          Insira seus gastos médios dos últimos meses para uma análise mais
+          precisa da IA. Isso ajudará a criar previsões reais.
+        </p>
+      </div>
+
+      <div className="space-y-8 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+        {[twoMonthsAgo, prevMonth, currentMonth].map((month) => (
+          <div key={month} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
+              <h3 className="font-black text-lg uppercase tracking-widest text-white/90">
+                {month === currentMonth ? "Mês Atual" : "Mês Passado"} ({month})
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categories.map((cat) => (
+                <div
+                  key={cat.name}
+                  className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center justify-between group hover:border-indigo-500/20 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl group-hover:scale-110 transition-transform">
+                      {cat.icon}
+                    </span>
+                    <span className="font-bold text-sm text-slate-300">
+                      {cat.name}
+                    </span>
+                  </div>
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-400">
+                      R$
+                    </span>
+                    <Input
+                      type="number"
+                      value={getAmount(cat.name, month) || ""}
+                      onChange={(e) =>
+                        updateExpense(cat.name, month, Number(e.target.value))
+                      }
+                      className="h-10 pl-8 bg-black/40 border-white/10 rounded-xl font-black text-right text-white"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

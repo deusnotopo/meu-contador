@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AIInsights } from "@/lib/ai";
 import { getFinancialInsights } from "@/lib/ai";
 import { formatCurrency } from "@/lib/formatters";
@@ -92,24 +91,38 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
       });
 
   return (
-    <Card className="glass-card border-none rounded-[2rem] overflow-hidden min-h-[300px] group transition-all duration-500 hover:shadow-premium">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between gap-2 text-lg font-black tracking-tight text-white">
-          <div className="flex items-center gap-2">
-            <Brain className="text-primary glow-text" size={22} />
-            Previsão Inteligente
+    <div className="premium-card group transition-all duration-500 min-h-[400px]">
+      <div className="p-8 space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
+              <Brain size={20} />
+            </div>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+              Previsão <span className="text-white">Inteligente</span>
+            </h3>
           </div>
           {loading && (
-            <Loader2 className="animate-spin text-indigo-400" size={16} />
+            <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+              <Loader2 className="animate-spin text-purple-400" size={12} />
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">
+                Processing IA
+              </span>
+            </div>
           )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </div>
+
         {predictions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center bg-white/5 rounded-[2rem] border border-dashed border-white/10">
-            <TrendingUp size={40} className="text-slate-600 mb-3" />
-            <p className="text-slate-500 text-sm font-bold max-w-[200px]">
-              Insira transações para ativar o motor de previsão IA.
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-white/5 rounded-[2.5rem] border border-dashed border-white/10">
+            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-6">
+              <TrendingUp size={24} className="text-slate-600" />
+            </div>
+            <h4 className="text-sm font-black text-white uppercase tracking-widest mb-2">
+              Motor Desligado
+            </h4>
+            <p className="text-slate-500 text-xs font-bold max-w-[240px] leading-relaxed">
+              Precisamos de mais dados para calibrar os algoritmos de previsão e
+              projetar seu futuro financeiro.
             </p>
           </div>
         ) : (
@@ -117,65 +130,70 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
             {predictions.map((p) => (
               <div
                 key={p.category}
-                className="group p-5 rounded-[2rem] bg-white/5 hover:bg-white/10 transition-all border border-white/5 shadow-premium"
+                className="group/item p-6 rounded-3xl bg-white/5 hover:bg-white/10 transition-all border border-white/10"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-5 min-w-0">
                     <div
-                      className={`p-4 rounded-2xl shadow-lg ${
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xl transition-transform group-hover/item:scale-110 ${
                         p.trend === "up"
-                          ? "bg-danger/20 text-danger"
+                          ? "bg-rose-500/10 text-rose-500 border border-rose-500/10"
                           : p.trend === "down"
-                          ? "bg-success/20 text-success"
-                          : "bg-info/20 text-info"
+                          ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/10"
+                          : "bg-sky-500/10 text-sky-500 border border-sky-500/10"
                       }`}
                     >
                       {p.trend === "up" ? (
-                        <TrendingUp size={20} />
+                        <TrendingUp size={20} strokeWidth={3} />
                       ) : p.trend === "down" ? (
-                        <TrendingDown size={20} />
+                        <TrendingDown size={20} strokeWidth={3} />
                       ) : (
-                        <Minus size={20} />
+                        <Minus size={20} strokeWidth={3} />
                       )}
                     </div>
-                    <div>
-                      <span className="text-xl font-black text-white tracking-tight">{p.category}</span>
-                      <p className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] mt-0.5">
-                        Estimativa
+                    <div className="min-w-0">
+                      <h4 className="text-lg font-black text-white tracking-tight truncate uppercase">
+                        {p.category}
+                      </h4>
+                      <p className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em]">
+                        Estimativa Próximo Mês
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-white glow-text">
+                  <div className="text-right shrink-0">
+                    <div className="text-xl font-black text-white tracking-tighter">
                       {formatCurrency(p.predictedAmount)}
-                    </span>
-                    <p
-                      className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${
+                    </div>
+                    <div
+                      className={`text-[8px] font-black uppercase tracking-widest mt-1 px-2 py-0.5 rounded-full inline-block ${
                         p.trend === "up"
-                          ? "text-danger"
+                          ? "bg-rose-500/10 text-rose-500"
                           : p.trend === "down"
-                          ? "text-success"
-                          : "text-indigo-400"
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : "bg-sky-500/10 text-sky-500"
                       }`}
                     >
                       {p.trend === "up"
                         ? "Alta Prevista"
                         : p.trend === "down"
-                        ? "Baixa Prevista"
-                        : "Estável"}
-                    </p>
+                        ? "Otimização"
+                        : "Consistente"}
+                    </div>
                   </div>
                 </div>
                 {p.reason && (
-                  <p className="mt-4 text-sm text-slate-400 font-bold leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity">
-                    {p.reason}
-                  </p>
+                  <div className="mt-4 pt-4 border-t border-white/5 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <p className="text-[11px] text-slate-400 font-bold leading-relaxed">
+                      <span className="text-indigo-400 mr-2">CONTEXTO:</span>
+                      {p.reason}
+                    </p>
+                  </div>
                 )}
               </div>
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

@@ -12,6 +12,7 @@ import type {
   Budget,
   OnboardingData,
   SavingsGoal,
+  Transaction,
 } from "@/types";
 
 const ONBOARDING_KEY = STORAGE_KEYS.ONBOARDING;
@@ -112,4 +113,24 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
       };
     });
   saveReminders(reminders);
+
+  // Save historical expenses as transactions
+  if (data.historicalExpenses && data.historicalExpenses.length > 0) {
+    const historicalTransactions: Transaction[] = data.historicalExpenses.map(
+      (exp, i) => ({
+        id: Date.now() + i + 500,
+        type: "expense",
+        description: `Gasto Histórico: ${exp.category}`,
+        amount: exp.amount,
+        category: exp.category,
+        date: `${exp.month}-15`, // Mid-month as representative
+        paymentMethod: "Dinheiro",
+        notes: "Importado durante onboarding",
+        recurring: true,
+        scope: "personal",
+      })
+    );
+    const existing = loadTransactions();
+    saveTransactions([...existing, ...historicalTransactions]);
+  }
 };

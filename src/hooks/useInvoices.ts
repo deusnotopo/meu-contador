@@ -1,4 +1,9 @@
-import { loadInvoices, saveInvoices } from "@/lib/storage";
+import {
+  loadInvoices,
+  saveInvoices,
+  STORAGE_EVENT,
+  STORAGE_KEYS,
+} from "@/lib/storage";
 import { showError, showSuccess } from "@/lib/toast";
 import type { Invoice } from "@/types";
 import { useEffect, useState } from "react";
@@ -8,6 +13,16 @@ export const useInvoices = () => {
 
   useEffect(() => {
     setInvoices(loadInvoices());
+
+    const handleStorageChange = (e: any) => {
+      if (e.detail?.key === STORAGE_KEYS.INVOICES) {
+        setInvoices(e.detail.data);
+      }
+    };
+
+    window.addEventListener(STORAGE_EVENT as any, handleStorageChange);
+    return () =>
+      window.removeEventListener(STORAGE_EVENT as any, handleStorageChange);
   }, []);
 
   const addInvoice = (invoice: Omit<Invoice, "id">) => {

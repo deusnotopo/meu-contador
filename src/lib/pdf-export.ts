@@ -1,250 +1,231 @@
-import { Transaction } from "@/types";
+import type { Transaction, UserProfile } from "@/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatCurrency } from "./formatters";
 
-interface ExportData {
-  title: string;
-  subtitle?: string;
-  headers: string[];
-  rows: (string | number | { content: string; styles: object })[][];
-  filename: string;
-}
+export const exportFinancialReport = (
+  transactions: Transaction[],
+  profile: UserProfile | null,
+  period: string
+) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
 
-export interface DREItem {
-  label: string;
-  monthly: number;
-  accumulated: number;
-  percent: number;
-}
+  // Header Colors & Style
+  const primaryColor = [79, 70, 229]; // Indigo-600
 
-export const exportToPDF = ({
-  title,
-  subtitle,
-  headers,
-  rows,
-  filename,
-}: ExportData) => {
-  const doc = jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
+  // 1. Logo & Title
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 0, pageWidth, 40, "F");
 
-  // Header
-  doc.setFontSize(20);
-  doc.setTextColor(33, 33, 33);
-  doc.text(title, 14, 22);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont("helvetica", "bold");
+  doc.text("MEU CONTADOR", 20, 25);
 
-  if (subtitle) {
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(subtitle, 14, 30);
-  }
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("RELATÓRIO FINANCEIRO INTELIGENTE", 20, 32);
 
-  // Divider
-  doc.setDrawColor(200, 200, 200);
-  doc.line(14, 35, pageWidth - 14, 35);
+  // 2. Report Info
+  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Proprietário: ${profile?.name || "Usuário Meu Contador"}`, 20, 55);
+  doc.text(`Período: ${period}`, 20, 62);
+  doc.text(
+    `Data de Emissão: ${new Date().toLocaleDateString("pt-BR")}`,
+    20,
+    69
+  );
 
-  // Table
+  // 3. Summary Boxes
+  const income = transactions
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + t.amount, 0);
+  const expense = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + t.amount, 0);
+  const balance = income - expense;
+
   autoTable(doc, {
-    head: [headers],
-    body: rows,
-    startY: 40,
-    styles: {
-      fontSize: 9,
-      cellPadding: 4,
+    startY: 80,
+    head: [["RESUMO FINANCEIRO", "VALOR"]],
+    body: [
+      [
+        "Receitas Totais",
+        new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(income),
+      ],
+      [
+        "Despesas Totais",
+        new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(expense),
+      ],
+      [
+        "Saldo do Período",
+        new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(balance),
+      ],
+    ],
+    theme: "striped",
+    headStyles: { fillColor: primaryColor, textColor: 255 },
+    columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
+  });
+
+  // 4. Detailed Transaction Table
+  const tableData = transactions
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((t) => [
+      new Date(t.date).toLocaleDateString("pt-BR"),
+      t.description,
+      t.category,
+      t.type === "income" ? "RECEITA" : "DESPESA",
+      new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }).format(t.amount),
+    ]);
+
+  autoTable(doc, {
+    startY: (doc as any).lastAutoTable.cursor.y + 15,
+    head: [["DATA", "DESCRIÇÃO", "CATEGORIA", "TIPO", "VALOR"]],
+    body: tableData,
+    theme: "grid",
+    headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+    columnStyles: { 4: { halign: "right" } },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.column.index === 3) {
+        if (data.cell.text[0] === "RECEITA") {
+          data.cell.styles.textColor = [16, 185, 129]; // emerald
+        } else {
+          data.cell.styles.textColor = [244, 63, 94]; // rose
+        }
+      }
     },
-    headStyles: {
-      fillColor: [79, 70, 229], // Primary color
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-    },
-    alternateRowStyles: {
-      fillColor: [245, 245, 255],
-    },
-    margin: { top: 40 },
   });
 
   // Footer
-  const pageCount = (doc.internal as any).getNumberOfPages();
+  const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    const date = new Date().toLocaleString("pt-BR");
     doc.text(
-      `Gerado por Meu Contador em ${date} - Página ${i} de ${pageCount}`,
-      14,
-      doc.internal.pageSize.getHeight() - 10
+      `Meu Contador - Inteligência para suas finanças • Página ${i} de ${pageCount}`,
+      pageWidth / 2,
+      doc.internal.pageSize.height - 10,
+      { align: "center" }
     );
   }
 
-  doc.save(`${filename}.pdf`);
+  doc.save(`relatorio-financeiro-${period.replace(/\s/g, "-")}.pdf`);
 };
 
-export const exportDRE = (title: string, data: DREItem[]) => {
-  const headers = ["Categoria", "Mensal", "Acumulado", "Análise (%)"];
-  const rows = data.map((item: DREItem) => [
-    item.label,
-    formatCurrency(item.monthly),
-    formatCurrency(item.accumulated),
-    `${item.percent.toFixed(1)}%`,
-  ]);
-
-  exportToPDF({
-    title: `Demonstrativo de Resultados (DRE) - ${title}`,
-    subtitle:
-      "Relatório financeiro detalhado de receitas e despesas corporativas.",
-    headers,
-    rows,
-    filename: `DRE_${title.replace(/\s+/g, "_")}_${
-      new Date().toISOString().split("T")[0]
-    }`,
-  });
-};
-
-export const exportTransactions = (
+export const exportTransactionsPDF = (
   title: string,
   transactions: Transaction[]
 ) => {
-  const headers = ["Data", "Descrição", "Categoria", "Tipo", "Valor"];
-  const rows = transactions.map((t: Transaction) => [
-    new Date(t.date).toLocaleDateString("pt-BR"),
-    t.description,
-    t.category,
-    t.type === "income" ? "Receita" : "Despesa",
-    formatCurrency(t.amount),
-  ]);
-
-  exportToPDF({
-    title: `Relatório de Transações - ${title}`,
-    subtitle: `Total de ${transactions.length} transações registradas no período.`,
-    headers,
-    rows,
-    filename: `Relatorio_Transacoes_${title.replace(/\s+/g, "_")}`,
-  });
+  exportFinancialReport(transactions, null, title);
 };
 
 export const exportFullMonthlyReport = (
   month: string,
   transactions: Transaction[],
-  totals: { income: number; expense: number; balance: number }
+  _totals: unknown
 ) => {
-  const doc = jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
+  exportFinancialReport(transactions, null, month);
+};
+
+export const exportDRE = (
+  companyName: string,
+  data: {
+    label: string;
+    monthly: number;
+    accumulated: number;
+    percent: number;
+  }[]
+) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+
+  // Header Colors & Style
   const primaryColor = [79, 70, 229]; // Indigo-600
 
-  // 1. Cover / Header Section
-  doc.setFillColor(31, 41, 55); // Dark Slate
-  doc.rect(0, 0, pageWidth, 50, "F");
+  // 1. Logo & Title
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 0, pageWidth, 40, "F");
 
-  doc.setFontSize(24);
   doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text("RELATÓRIO FINANCEIRO MENSAL", 14, 25);
+  doc.text(companyName, 20, 25);
 
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text(`Período: ${month}`, 14, 35);
-  doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 42);
+  doc.text("DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO (DRE)", 20, 32);
 
-  // 2. Executive Summary Cards (Visual Layout)
-  doc.setDrawColor(229, 231, 235);
-
-  // Card 1: Receita
-  doc.roundedRect(14, 60, 58, 25, 3, 3);
-  doc.setFontSize(8);
-  doc.setTextColor(107, 114, 128);
-  doc.text("TOTAL RECEITAS", 18, 68);
-  doc.setFontSize(14);
-  doc.setTextColor(16, 185, 129); // Success Green
+  // 2. Report Info
+  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text(formatCurrency(totals.income), 18, 78);
-
-  // Card 2: Despesa
-  doc.roundedRect(76, 60, 58, 25, 3, 3);
-  doc.setFontSize(8);
-  doc.setTextColor(107, 114, 128);
-  doc.text("TOTAL DESPESAS", 80, 68);
-  doc.setFontSize(14);
-  doc.setTextColor(239, 68, 68); // Danger Red
-  doc.text(formatCurrency(totals.expense), 80, 78);
-
-  // Card 3: Saldo
-  doc.roundedRect(138, 60, 58, 25, 3, 3);
-  doc.setFontSize(8);
-  doc.setTextColor(107, 114, 128);
-  doc.text("SALDO LÍQUIDO", 142, 68);
-  doc.setFontSize(14);
-  doc.setTextColor(
-    totals.balance >= 0 ? 59 : 239,
-    totals.balance >= 0 ? 130 : 68,
-    totals.balance >= 0 ? 246 : 68
-  );
-  doc.text(formatCurrency(totals.balance), 142, 78);
-
-  // 3. Methodology 50-30-20 Breakdown
-  const expenses = transactions.filter((t) => t.type === "expense");
-  const totalExp = expenses.reduce((sum, t) => sum + t.amount, 0);
-  const getP = (cls: string) => {
-    const v = expenses
-      .filter((t) => t.classification === cls)
-      .reduce((s, t) => s + t.amount, 0);
-    return totalExp > 0 ? (v / totalExp) * 100 : 0;
-  };
-
-  doc.setFontSize(14);
-  doc.setTextColor(31, 41, 55);
-  doc.text("ANÁLISE DE ESTRUTURA (50-30-20)", 14, 100);
-
-  doc.setFontSize(9);
-  doc.setTextColor(75, 85, 99);
   doc.text(
-    `Necessidades: ${getP("necessity").toFixed(1)}% (Alvo: 50%)`,
-    14,
-    110
-  );
-  doc.text(`Desejos: ${getP("want").toFixed(1)}% (Alvo: 30%)`, 14, 116);
-  doc.text(
-    `Investimentos: ${getP("investment").toFixed(1)}% (Alvo: 20%)`,
-    14,
-    122
+    `Data de Emissão: ${new Date().toLocaleDateString("pt-BR")}`,
+    20,
+    55
   );
 
-  // 4. Detailed Transaction Table
-  const tableHeaders = ["Data", "Descrição", "Categoria", "Valor"];
-  const tableRows = transactions.map((t) => [
-    new Date(t.date).toLocaleDateString("pt-BR"),
-    t.description,
-    t.category,
-    {
-      content: formatCurrency(t.amount),
-      styles: {
-        halign: "right",
-        textColor: t.type === "income" ? [16, 185, 129] : [239, 68, 68],
-      },
-    },
+  // 3. Table
+  const tableData = data.map((row) => [
+    row.label,
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(row.monthly),
+    `${row.percent.toFixed(1)}%`,
   ]);
 
   autoTable(doc, {
-    startY: 130,
-    head: [tableHeaders],
-    body: tableRows,
+    startY: 65,
+    head: [["DESCRIÇÃO", "VALOR", "%"]],
+    body: tableData,
     theme: "striped",
-    headStyles: { fillColor: [31, 41, 55] },
-    styles: { fontSize: 8 },
-    margin: { horizontal: 14 },
+    headStyles: { fillColor: primaryColor, textColor: 255 },
+    columnStyles: {
+      1: { halign: "right" },
+      2: { halign: "right" },
+    },
+    didParseCell: (data) => {
+      if (data.section === "body") {
+        const label = data.row.raw[0] as string;
+        if (label === "Receita Bruta" || label === "Resultado Líquido") {
+          data.cell.styles.fontStyle = "bold";
+        }
+        if (label === "Resultado Líquido") {
+          data.cell.styles.fillColor = [240, 240, 240];
+        }
+      }
+    },
   });
 
-  // Footer / Signature
-  const finalY = (doc as any).lastAutoTable.finalY + 20;
-  if (finalY < doc.internal.pageSize.getHeight() - 40) {
-    doc.setFontSize(10);
+  // Footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.line(14, finalY + 15, 80, finalY + 15);
-    doc.text("Responsável Financeiro", 14, finalY + 22);
-
-    doc.line(pageWidth - 80, finalY + 15, pageWidth - 14, finalY + 15);
-    doc.text("Aprovação Diretoria", pageWidth - 80, finalY + 22);
+    doc.text(
+      `Meu Contador - DRE Gerencial • Página ${i} de ${pageCount}`,
+      pageWidth / 2,
+      doc.internal.pageSize.height - 10,
+      { align: "center" }
+    );
   }
 
-  doc.save(`Relatorio_Mensal_${month.replace(/\//g, "-")}.pdf`);
+  doc.save(`DRE-${new Date().toISOString().split("T")[0]}.pdf`);
 };

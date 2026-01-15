@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
-import { generateWeeklyEmailHtml } from "../../src/lib/reports/email-template.js";
+// Fix path to use proper relative location and avoid .js if not needed by local environment,
+// though Vercel usually handles this, we'll keep it safe.
+import { generateWeeklyEmailHtml } from "../../src/lib/reports/email-template.ts";
 
-// Initialize Resend with API Key from Environment Variables
-// The user needs to add RESEND_API_KEY to Vercel env
 const resend = new Resend(process.env.RESEND_API_KEY);
+const APP_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:5173";
 
 export default async function handler(
   request: VercelRequest,
@@ -71,7 +74,8 @@ export default async function handler(
       message: "Email sent successfully",
       data,
     });
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as { message?: string };
     console.error("Email Error:", error);
     return response.status(500).json({
       success: false,

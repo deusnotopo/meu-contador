@@ -1,6 +1,8 @@
 import {
   loadTransactions,
   saveTransactions as saveToStorage,
+  STORAGE_EVENT,
+  STORAGE_KEYS,
 } from "@/lib/storage";
 import { showError, showSuccess } from "@/lib/toast";
 import type {
@@ -22,53 +24,20 @@ export const useTransactions = (
 
   useEffect(() => {
     const loaded = loadTransactions();
-    
-    // Recurrence Logic
-    let newTransactions: Transaction[] = [];
-    const today = new Date();
-    const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-    
-    loaded.forEach(t => {
-      // Only process active recurring transactions that are NOT from the current month
-      if (t.recurring && t.date.slice(0, 7) !== currentMonthStr) {
-        
-        // Check if recurrence already exists for this month
-        // We assume a recurrence is a transaction with same description, category, amount and type in the current month
-        const alreadyGenerated = loaded.some(existing => 
-           existing.description === t.description &&
-           existing.amount === t.amount &&
-           existing.type === t.type &&
-           existing.date.slice(0, 7) === currentMonthStr &&
-           existing.date.slice(8, 10) === t.date.slice(8, 10) // Same day match
-        );
 
-        if (!alreadyGenerated) {
-           // Check if we passed the day
-           const dueDay = parseInt(t.date.slice(8, 10));
-           if (today.getDate() >= dueDay) {
-              const newDate = `${currentMonthStr}-${String(dueDay).padStart(2, '0')}`;
-              newTransactions.push({
-                ...t,
-                id: Date.now() + Math.random(), // Unique ID
-                date: newDate,
-                // recurring: true // Keep it recurring so it propagates? Or only parent is recurring? 
-                // Let's keep it recurring so next month it checks this one or the chain continues. 
-                // A better approach for a complex app is a "subscription" model, but for simple MVP:
-                recurring: true 
-              });
-           }
-        }
+    // Recurrence logic moved to main App check
+    setTransactions(loaded);
+
+    // LISTENER FOR REMOTE/BACKGROUND UPDATES
+    const handleStorageChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.key === STORAGE_KEYS.TRANSACTIONS) {
+        setTransactions(loadTransactions());
       }
-    });
+    };
 
-    if (newTransactions.length > 0) {
-      const updatedList = [...loaded, ...newTransactions];
-      saveToStorage(updatedList);
-      setTransactions(updatedList);
-      showSuccess(`${newTransactions.length} transações recorrentes geradas para este mês.`);
-    } else {
-      setTransactions(loaded);
-    }
+    window.addEventListener(STORAGE_EVENT, handleStorageChange);
+    return () => window.removeEventListener(STORAGE_EVENT, handleStorageChange);
   }, []);
 
   const scopedTransactions = useMemo(() => {

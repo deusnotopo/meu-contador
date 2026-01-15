@@ -18,6 +18,7 @@ interface Alert {
   title: string;
   message: string;
   icon: React.ReactNode;
+  educationalTip?: string;
 }
 
 interface SmartAlertsProps {
@@ -77,6 +78,8 @@ export const SmartAlerts = ({ transactions }: SmartAlertsProps) => {
             currentExpenses - previousExpenses
           )} a mais).`,
           icon: <TrendingUp className="text-warning" size={20} />,
+          educationalTip:
+            "Tente identificar compras impulsivas. A regra dos 30 dias pode ajudar: espere 30 dias antes de comprar itens não essenciais.",
         });
       } else if (increasePercent < -15) {
         detectedAlerts.push({
@@ -89,6 +92,8 @@ export const SmartAlerts = ({ transactions }: SmartAlertsProps) => {
             Math.abs(currentExpenses - previousExpenses)
           )} economizados)`,
           icon: <TrendingDown className="text-success" size={20} />,
+          educationalTip:
+            "Que tal investir essa economia? O poder dos juros compostos pode transformar esse valor em uma fortuna no longo prazo.",
         });
       }
     }
@@ -106,6 +111,8 @@ export const SmartAlerts = ({ transactions }: SmartAlertsProps) => {
           currentIncome
         )}) este mês. Déficit de ${formatCurrency(Math.abs(balance))}.`,
         icon: <AlertTriangle className="text-danger" size={20} />,
+        educationalTip:
+          "Priorize pagar dívidas com juros altos primeiro. Considere criar um orçamento base zero para o próximo mês.",
       });
     }
 
@@ -133,6 +140,7 @@ export const SmartAlerts = ({ transactions }: SmartAlertsProps) => {
           topCategory[1]
         )}). Considere revisar.`,
         icon: <AlertCircle className="text-info" size={20} />,
+        educationalTip: `Reduzir gastos em grandes categorias tem mais impacto do que cortar pequenos prazeres. Veja se consegue renegociar contratos em ${topCategory[0]}.`,
       });
     }
 
@@ -230,7 +238,17 @@ export const SmartAlerts = ({ transactions }: SmartAlertsProps) => {
                     {typeBadges[alert.type]}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{alert.message}</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {alert.message}
+                </p>
+                {alert.educationalTip && (
+                  <div className="bg-black/20 p-3 rounded-lg border border-black/5 mt-2">
+                    <p className="text-xs font-medium opacity-90 flex gap-2">
+                      <span>💡</span>
+                      {alert.educationalTip}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

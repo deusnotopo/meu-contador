@@ -72,7 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res
       .status(200)
       .json({ message: "Ignored status", received: status });
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as { message?: string };
     console.error("Webhook Error:", error);
     return res.status(500).json({ error: error.message });
   }

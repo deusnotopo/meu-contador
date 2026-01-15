@@ -9,6 +9,7 @@ export interface Transaction {
   paymentMethod: string;
   notes: string;
   recurring: boolean;
+  recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly";
   scope: "personal" | "business";
   classification?: "necessity" | "want" | "investment" | "debt";
 }
@@ -22,6 +23,7 @@ export interface TransactionFormData {
   paymentMethod: string;
   notes: string;
   recurring: boolean;
+  recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly";
   scope: "personal" | "business";
   classification?: "necessity" | "want" | "investment" | "debt";
 }
@@ -169,11 +171,18 @@ export interface OnboardingReminder {
   enabled: boolean;
 }
 
+export interface OnboardingExpense {
+  category: string;
+  amount: number;
+  month: string; // YYYY-MM
+}
+
 export interface OnboardingData {
   profile: UserProfile;
   budgets: OnboardingBudget[];
   goals: OnboardingGoal[];
   reminders: OnboardingReminder[];
+  historicalExpenses?: OnboardingExpense[];
   preferences: {
     showScore: boolean;
     showPredictions: boolean;
@@ -194,6 +203,7 @@ export interface Investment {
   averagePrice: number;
   currentPrice: number;
   sector: string;
+  targetAllocation?: number; // Target percentage (0-100)
   lastUpdate: string;
 }
 
@@ -203,4 +213,79 @@ export interface InvestmentPortfolio {
   profit: number;
   profitPercentage: number;
   assets: Investment[];
+}
+
+export interface Dividend {
+  id: string;
+  assetId: number;
+  assetTicker: string;
+  amount: number;
+  date: string;
+  type: "dividend" | "jcp";
+}
+
+export interface InvestmentSale {
+  id: string;
+  assetId: number;
+  assetTicker: string;
+  type: "stock" | "fii" | "crypto" | "etf";
+  amount: number; // Quantity sold
+  price: number; // Sale price
+  date: string;
+  totalValue: number; // amount * price
+}
+
+export interface TaxIndicator {
+  month: string; // YYYY-MM
+  totalStockSales: number;
+  isOverLimit: boolean;
+  estimatedTax: number;
+}
+
+export interface Debt {
+  id: string;
+  name: string;
+  balance: number;
+  interestRate: number; // Monthly %
+  minPayment: number;
+  dueDate?: string;
+  category: "credit_card" | "loan" | "overdraft" | "other";
+}
+
+// ============= Education Types =============
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctOption: number; // Index 0-3
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  content: string; // Markdown supported
+  duration: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  completed: boolean;
+  category: string;
+  iconName: "Target" | "BarChart3" | "TrendingUp" | "DollarSign" | "Star"; // Changed from LucideIcon to string for serializability
+  quiz?: QuizQuestion;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  iconName: "CheckCircle" | "Target" | "PiggyBank" | "CreditCard" | "Star";
+  unlocked: boolean;
+  progress: number;
+  maxProgress: number;
+}
+
+export interface EducationProgress {
+  completedLessons: string[];
+  unlockedAchievements: string[];
+  points: number;
+  streak: number;
 }

@@ -1,6 +1,4 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +16,12 @@ import {
 } from "@/components/ui/select";
 import { personalCategories } from "@/lib/constants";
 import { formatCurrency } from "@/lib/formatters";
-import { loadReminders, saveReminders } from "@/lib/storage";
+import {
+  STORAGE_EVENT,
+  STORAGE_KEYS,
+  loadReminders,
+  saveReminders,
+} from "@/lib/storage";
 import type { BillReminder } from "@/types";
 import { Bell, Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -46,8 +49,17 @@ export const RemindersSection = () => {
   const today = new Date();
 
   useEffect(() => {
-    const saved = loadReminders();
-    setReminders(saved);
+    setReminders(loadReminders());
+
+    const handleStorageChange = (e: any) => {
+      if (e.detail?.key === STORAGE_KEYS.REMINDERS) {
+        setReminders(e.detail.data);
+      }
+    };
+
+    window.addEventListener(STORAGE_EVENT as any, handleStorageChange);
+    return () =>
+      window.removeEventListener(STORAGE_EVENT as any, handleStorageChange);
   }, []);
 
   const handleSave = () => {
@@ -143,40 +155,52 @@ export const RemindersSection = () => {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Bell className="text-primary" size={20} />
-          Lembretes de Contas
-        </h3>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-rose-500/10 rounded-xl text-rose-400">
+            <Bell size={20} />
+          </div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+            Gestão de <span className="text-white">Pagamentos</span>
+          </h3>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" onClick={openNewDialog}>
-              <Plus size={16} className="mr-2" />
+            <Button
+              onClick={openNewDialog}
+              className="h-10 px-6 rounded-xl bg-white text-black hover:bg-white/90 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-white/5 transition-all hover:scale-105 active:scale-95"
+            >
+              <Plus size={14} className="mr-2" />
               Novo Lembrete
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="glass-premium border-white/10 text-white max-w-md">
             <DialogHeader>
-              <DialogTitle>
-                {editingReminder ? "Editar Lembrete" : "Novo Lembrete"}
+              <DialogTitle className="text-2xl font-black tracking-tight">
+                {editingReminder ? "Editar" : "Novo"}{" "}
+                <span className="premium-gradient-text">Lembrete</span>
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div>
-                <label className="text-sm font-medium">Nome da Conta</label>
+            <div className="space-y-6 pt-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  Nome da Conta
+                </label>
                 <Input
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="Ex: Aluguel"
-                  className="mt-1"
+                  placeholder="Ex: Aluguel, Internet..."
+                  className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-rose-500/20 text-white font-medium px-6"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Valor (R$)</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                    Valor (R$)
+                  </label>
                   <Input
                     type="number"
                     value={formData.amount || ""}
@@ -186,13 +210,13 @@ export const RemindersSection = () => {
                         amount: Number(e.target.value),
                       })
                     }
-                    placeholder="1500"
-                    className="mt-1"
+                    placeholder="0"
+                    className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-rose-500/20 text-white px-6"
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">
-                    Data de Vencimento
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                    Vencimento
                   </label>
                   <Input
                     type="date"
@@ -200,56 +224,70 @@ export const RemindersSection = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, dueDate: e.target.value })
                     }
-                    className="mt-1"
+                    className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-rose-500/20 text-white px-6"
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Categoria</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  Categoria
+                </label>
                 <Select
                   value={formData.category}
                   onValueChange={(v) =>
                     setFormData({ ...formData, category: v })
                   }
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-rose-500/20 text-white">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-900 border-white/10 text-white">
                     {personalCategories.expense.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
+                      <SelectItem
+                        key={cat}
+                        value={cat}
+                        className="focus:bg-white/10 focus:text-white"
+                      >
                         {cat}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-sm font-medium">Recorrência</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  Frequência
+                </label>
                 <Select
                   value={formData.recurring}
                   onValueChange={(v: "monthly" | "yearly" | "once") =>
                     setFormData({ ...formData, recurring: v })
                   }
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-rose-500/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-900 border-white/10 text-white">
                     <SelectItem value="monthly">Mensal</SelectItem>
                     <SelectItem value="yearly">Anual</SelectItem>
-                    <SelectItem value="once">Uma vez</SelectItem>
+                    <SelectItem value="once">Uma única vez</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-4 pt-4">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setIsDialogOpen(false)}
+                  className="flex-1 h-12 rounded-xl text-slate-400 font-bold"
                 >
-                  Cancelar
+                  Descartar
                 </Button>
-                <Button onClick={handleSave}>Salvar</Button>
+                <Button
+                  onClick={handleSave}
+                  className="flex-1 h-12 rounded-xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest"
+                >
+                  Confirmar
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -257,19 +295,24 @@ export const RemindersSection = () => {
       </div>
 
       {reminders.length === 0 ? (
-        <Card className="shadow-card border-0">
-          <CardContent className="py-12 text-center">
-            <Bell className="mx-auto text-muted-foreground mb-4" size={48} />
-            <p className="text-muted-foreground">
-              Nenhum lembrete de conta ainda.
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Adicione lembretes para nunca esquecer de pagar suas contas.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="premium-card p-20 text-center">
+          <Bell className="mx-auto text-white/5 mb-6" size={64} />
+          <h4 className="text-xl font-black text-white mb-2 tracking-tight">
+            Nenhuma Conta Pendente
+          </h4>
+          <p className="text-sm text-slate-500 mb-8 max-w-sm mx-auto">
+            Organize seus boletos e pagamentos recorrentes para evitar multas e
+            juros.
+          </p>
+          <Button
+            onClick={openNewDialog}
+            className="px-10 h-14 rounded-2xl bg-white text-black font-black uppercase tracking-[0.2em] transform transition-all hover:scale-105"
+          >
+            Agendar Pagamento
+          </Button>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {sortedReminders.map((r) => {
             const due = new Date(r.dueDate);
             const isOverdue = !r.isPaid && due < today;
@@ -278,88 +321,109 @@ export const RemindersSection = () => {
               due <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
 
             return (
-              <Card
+              <div
                 key={r.id}
-                className={`shadow-card border-0 group ${
-                  r.isPaid ? "opacity-60" : ""
+                className={`premium-card group transition-all duration-500 ${
+                  r.isPaid ? "opacity-40 grayscale-[0.8]" : "hover:scale-[1.02]"
                 }`}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold">{r.name}</h4>
+                <div className="p-6 md:p-8 flex items-center justify-between gap-6">
+                  <div className="flex items-center gap-5 flex-1 min-w-0">
+                    <button
+                      onClick={() => handleTogglePaid(r)}
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                        r.isPaid
+                          ? "bg-emerald-500 text-black scale-90"
+                          : isOverdue
+                          ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                          : "bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5"
+                      }`}
+                    >
+                      <Check size={20} strokeWidth={r.isPaid ? 3 : 2} />
+                    </button>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4
+                          className={`font-black tracking-tight truncate ${
+                            r.isPaid ? "text-slate-500" : "text-white"
+                          }`}
+                        >
+                          {r.name}
+                        </h4>
                         {r.category && (
-                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 px-1.5 py-0.5 bg-white/5 rounded">
                             {r.category}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Vence: {formatDate(r.dueDate)}
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                        {isOverdue ? "Venceu" : "Vence"}:{" "}
+                        <span
+                          className={
+                            isOverdue ? "text-rose-500" : "text-slate-300"
+                          }
+                        >
+                          {formatDate(r.dueDate)}
+                        </span>
                         {r.recurring !== "once" && (
-                          <span className="ml-1">
-                            ({r.recurring === "monthly" ? "mensal" : "anual"})
+                          <span className="flex items-center gap-1 opacity-50">
+                            • {r.recurring === "monthly" ? "Mensal" : "Anual"}
                           </span>
                         )}
                       </p>
                     </div>
-                    <div className="text-right flex items-center gap-2">
-                      <div>
-                        <p className="font-bold text-lg">
-                          {formatCurrency(r.amount)}
-                        </p>
+                  </div>
+
+                  <div className="text-right flex items-center gap-4">
+                    <div className="space-y-1">
+                      <p
+                        className={`text-xl font-black tracking-tighter ${
+                          r.isPaid
+                            ? "text-slate-500 line-through"
+                            : "text-white"
+                        }`}
+                      >
+                        {formatCurrency(r.amount)}
+                      </p>
+                      <div className="flex justify-end">
                         {r.isPaid ? (
-                          <Badge className="bg-success/10 text-success">
-                            <Check size={12} className="mr-1" />
-                            Pago
-                          </Badge>
+                          <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase tracking-widest border border-emerald-500/10">
+                            Confirmado
+                          </div>
                         ) : isOverdue ? (
-                          <Badge variant="destructive">Atrasado</Badge>
+                          <div className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 text-[8px] font-black uppercase tracking-widest border border-rose-500/10 animate-pulse">
+                            Atrasado
+                          </div>
                         ) : isDueSoon ? (
-                          <Badge className="bg-warning/10 text-warning">
-                            Em breve
-                          </Badge>
+                          <div className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-widest border border-amber-500/10">
+                            Prioridade
+                          </div>
                         ) : null}
                       </div>
-                      <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleTogglePaid(r)}
-                          title={
-                            r.isPaid
-                              ? "Marcar como não pago"
-                              : "Marcar como pago"
-                          }
-                        >
-                          <Check
-                            size={14}
-                            className={r.isPaid ? "text-success" : ""}
-                          />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleEdit(r)}
-                        >
-                          <Pencil size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-danger hover:text-danger"
-                          onClick={() => handleDelete(r.id)}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                        onClick={() => handleEdit(r)}
+                      >
+                        <Pencil size={12} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg bg-rose-500/5 hover:bg-rose-500/10 text-rose-500"
+                        onClick={() => handleDelete(r.id)}
+                      >
+                        <Trash2 size={12} />
+                      </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>

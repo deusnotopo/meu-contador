@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +7,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -17,11 +15,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { personalCategories } from "@/lib/constants";
-import { formatCurrency } from "@/lib/formatters";
-import { loadBudgets, saveBudgets } from "@/lib/storage";
+import {
+  STORAGE_EVENT,
+  STORAGE_KEYS,
+  loadBudgets,
+  saveBudgets,
+} from "@/lib/storage";
 import type { Budget, Transaction } from "@/types";
 import { Pencil, Plus, Target, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { EmptyState } from "../ui/EmptyState";
+import { PrivacyValue } from "../ui/PrivacyValue";
 
 interface Props {
   transactions: Transaction[];
@@ -36,8 +40,21 @@ export const BudgetsSection = ({ transactions }: Props) => {
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   useEffect(() => {
-    const saved = loadBudgets();
-    setBudgets(saved);
+    const load = () => {
+      const saved = loadBudgets();
+      setBudgets(saved);
+    };
+    load();
+
+    const handleStorageChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.key === STORAGE_KEYS.BUDGETS) {
+        load();
+      }
+    };
+
+    window.addEventListener(STORAGE_EVENT, handleStorageChange);
+    return () => window.removeEventListener(STORAGE_EVENT, handleStorageChange);
   }, []);
 
   // Calculate spent per category from transactions
@@ -102,45 +119,64 @@ export const BudgetsSection = ({ transactions }: Props) => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Orçamentos do Mês</h3>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+            <Target size={20} />
+          </div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+            Gerenciamento de <span className="text-white">Orçamentos</span>
+          </h3>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" onClick={openNewDialog}>
-              <Plus size={16} className="mr-2" />
+            <Button
+              onClick={openNewDialog}
+              className="h-10 px-6 rounded-xl bg-white text-black hover:bg-white/90 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-white/5 transition-all hover:scale-105 active:scale-95"
+            >
+              <Plus size={14} className="mr-2" />
               Novo Orçamento
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="glass-premium border-white/10 text-white max-w-md">
             <DialogHeader>
-              <DialogTitle>
-                {editingBudget ? "Editar Orçamento" : "Novo Orçamento"}
+              <DialogTitle className="text-2xl font-black tracking-tight">
+                {editingBudget ? "Editar" : "Novo"}{" "}
+                <span className="premium-gradient-text">Orçamento</span>
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div>
-                <label className="text-sm font-medium">Categoria</label>
+            <div className="space-y-6 pt-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  Categoria
+                </label>
                 <Select
                   value={formData.category}
                   onValueChange={(v) =>
                     setFormData({ ...formData, category: v })
                   }
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-indigo-500/20 text-white">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-900 border-white/10 text-white">
                     {availableCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
+                      <SelectItem
+                        key={cat}
+                        value={cat}
+                        className="focus:bg-white/10 focus:text-white"
+                      >
                         {cat}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-sm font-medium">Limite (R$)</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  Limite Mensal (R$)
+                </label>
                 <Input
                   type="number"
                   value={formData.limit || ""}
@@ -148,17 +184,23 @@ export const BudgetsSection = ({ transactions }: Props) => {
                     setFormData({ ...formData, limit: Number(e.target.value) })
                   }
                   placeholder="Ex: 500"
-                  className="mt-1"
+                  className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-indigo-500/20 text-white font-medium px-6"
                 />
               </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-4 pt-4">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setIsDialogOpen(false)}
+                  className="flex-1 h-12 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 font-bold"
                 >
                   Cancelar
                 </Button>
-                <Button onClick={handleSave}>Salvar</Button>
+                <Button
+                  onClick={handleSave}
+                  className="flex-1 h-12 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black uppercase tracking-widest"
+                >
+                  Confirmar
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -166,42 +208,47 @@ export const BudgetsSection = ({ transactions }: Props) => {
       </div>
 
       {budgets.length === 0 ? (
-        <Card className="shadow-card border-0">
-          <CardContent className="py-12 text-center">
-            <Target className="mx-auto text-muted-foreground mb-4" size={48} />
-            <p className="text-muted-foreground">
-              Nenhum orçamento configurado ainda.
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Crie orçamentos para controlar seus gastos por categoria.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="premium-card p-10">
+          <EmptyState
+            icon={Target}
+            title="Nenhum Orçamento Definido"
+            description="Orçamentos ajudam você a não gastar mais do que planejou em categorias específicas."
+            actionLabel="Criar Orçamento"
+            onAction={openNewDialog}
+            tips={[
+              "Defina orçamentos realistas para categorias variáveis como Lazer, Alimentação e Uber.",
+              "Um bom orçamento deve ser flexível: revise-o conforme seus gastos mudam.",
+            ]}
+          />
+        </div>
       ) : (
-        <Card className="shadow-card border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="text-primary" size={20} />
-              Orçamentos do Mês
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {budgets.map((b) => {
-                const spent = spentByCategory[b.category] || 0;
-                const pct = Math.min(100, (spent / b.limit) * 100);
-                const isOverBudget = spent > b.limit;
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {budgets.map((b) => {
+            const spent = spentByCategory[b.category] || 0;
+            const pct = Math.min(100, (spent / b.limit) * 100);
+            const isOverBudget = spent > b.limit;
+            const isClosingIn = pct > 85 && !isOverBudget;
 
-                return (
-                  <div
-                    key={b.id}
-                    className="p-4 border rounded-xl group relative"
-                  >
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+            return (
+              <div
+                key={b.id}
+                className="premium-card group hover:scale-[1.02] transition-all duration-500"
+              >
+                <div className="p-6 md:p-8 space-y-6">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <h4 className="text-lg font-black tracking-tight text-white group-hover:text-indigo-400 transition-colors">
+                        {b.category}
+                      </h4>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        Orçamento Mensal
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
+                        className="h-9 w-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
                         onClick={() => handleEdit(b)}
                       >
                         <Pencil size={14} />
@@ -209,45 +256,70 @@ export const BudgetsSection = ({ transactions }: Props) => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-danger hover:text-danger"
+                        className="h-9 w-9 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 transition-all"
                         onClick={() => handleDelete(b.id)}
                       >
                         <Trash2 size={14} />
                       </Button>
                     </div>
-                    <div className="flex justify-between mb-2">
-                      <span className="font-medium">{b.category}</span>
-                      <span
-                        className={`text-sm ${
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-end">
+                      <div className="space-y-0.5">
+                        <span
+                          className={`text-2xl font-black tracking-tighter ${
+                            isOverBudget ? "text-rose-500" : "text-white"
+                          }`}
+                        >
+                          <PrivacyValue value={spent} />
+                        </span>
+                        <span className="text-slate-500 text-xs font-bold ml-2">
+                          {" "}
+                          / <PrivacyValue value={b.limit} />
+                        </span>
+                      </div>
+                      <div
+                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                           isOverBudget
-                            ? "text-danger font-bold"
-                            : "text-muted-foreground"
+                            ? "bg-rose-500/10 text-rose-500"
+                            : isClosingIn
+                            ? "bg-amber-500/10 text-amber-500"
+                            : "bg-emerald-500/10 text-emerald-500"
                         }`}
                       >
-                        {formatCurrency(spent)} / {formatCurrency(b.limit)}
-                      </span>
+                        {Math.round(pct)}%
+                      </div>
                     </div>
-                    <Progress
-                      value={pct}
-                      className={
-                        isOverBudget
-                          ? "bg-danger/20"
-                          : pct > 80
-                          ? "bg-warning/20"
-                          : ""
-                      }
-                    />
-                    {isOverBudget && (
-                      <p className="text-xs text-danger mt-1">
-                        Orçamento excedido em {formatCurrency(spent - b.limit)}
-                      </p>
-                    )}
+
+                    <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <div
+                        className={`h-full transition-all duration-1000 ease-out rounded-full ${
+                          isOverBudget
+                            ? "bg-rose-500"
+                            : isClosingIn
+                            ? "bg-amber-500"
+                            : "bg-gradient-to-r from-indigo-500 to-emerald-500"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+
+                  {isOverBudget && (
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/5 border border-rose-500/10">
+                      <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                      <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">
+                        Excedeu <PrivacyValue value={spent - b.limit} /> do
+                        planejado
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

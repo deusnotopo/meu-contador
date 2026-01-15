@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -8,11 +7,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/formatters";
-import { loadGoals, saveGoals } from "@/lib/storage";
+import {
+  STORAGE_EVENT,
+  STORAGE_KEYS,
+  loadGoals,
+  saveGoals,
+} from "@/lib/storage";
 import type { SavingsGoal } from "@/types";
-import { Pencil, Plus, PlusCircle, Trash2, TrendingUp } from "lucide-react";
+import { Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const GOAL_ICONS = ["🏦", "✈️", "🚗", "🏠", "💻", "📱", "🎓", "💍", "🏥", "🎯"];
@@ -38,8 +41,17 @@ export const GoalsSection = () => {
   });
 
   useEffect(() => {
-    const saved = loadGoals();
-    setGoals(saved);
+    setGoals(loadGoals());
+
+    const handleStorageChange = (e: any) => {
+      if (e.detail?.key === STORAGE_KEYS.GOALS) {
+        setGoals(e.detail.data);
+      }
+    };
+
+    window.addEventListener(STORAGE_EVENT as any, handleStorageChange);
+    return () =>
+      window.removeEventListener(STORAGE_EVENT as any, handleStorageChange);
   }, []);
 
   const handleSave = () => {
@@ -133,34 +145,47 @@ export const GoalsSection = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Suas Metas de Economia</h3>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
+            <TrendingUp size={20} />
+          </div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+            Metas de <span className="text-white">Economia</span>
+          </h3>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" onClick={openNewDialog}>
-              <Plus size={16} className="mr-2" />
+            <Button
+              onClick={openNewDialog}
+              className="h-10 px-6 rounded-xl bg-white text-black hover:bg-white/90 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-white/5 transition-all hover:scale-105 active:scale-95"
+            >
+              <Plus size={14} className="mr-2" />
               Nova Meta
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="glass-premium border-white/10 text-white max-w-lg">
             <DialogHeader>
-              <DialogTitle>
-                {editingGoal ? "Editar Meta" : "Nova Meta"}
+              <DialogTitle className="text-2xl font-black tracking-tight">
+                {editingGoal ? "Ajustar" : "Nova"}{" "}
+                <span className="premium-gradient-text">Meta Financeira</span>
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div>
-                <label className="text-sm font-medium">Ícone</label>
-                <div className="flex flex-wrap gap-2 mt-1">
+            <div className="space-y-8 pt-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  Escolha um Símbolo
+                </label>
+                <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
                   {GOAL_ICONS.map((icon) => (
                     <button
                       key={icon}
                       onClick={() => setFormData({ ...formData, icon })}
-                      className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center border-2 transition-all ${
+                      className={`h-10 rounded-xl text-lg flex items-center justify-center transition-all ${
                         formData.icon === icon
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
+                          ? "bg-white text-black shadow-xl scale-110"
+                          : "bg-white/5 text-white hover:bg-white/10"
                       }`}
                     >
                       {icon}
@@ -168,20 +193,26 @@ export const GoalsSection = () => {
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Nome da Meta</label>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  Nome da Meta
+                </label>
                 <Input
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="Ex: Reserva de Emergência"
-                  className="mt-1"
+                  placeholder="Ex: Viagem de Férias, Carro Novo..."
+                  className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-purple-500/20 text-white font-medium px-6"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Valor Alvo (R$)</label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                    Valor Alvo (R$)
+                  </label>
                   <Input
                     type="number"
                     value={formData.targetAmount || ""}
@@ -192,11 +223,11 @@ export const GoalsSection = () => {
                       })
                     }
                     placeholder="10000"
-                    className="mt-1"
+                    className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-purple-500/20 text-white px-6"
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
                     Já Economizado (R$)
                   </label>
                   <Input
@@ -209,29 +240,39 @@ export const GoalsSection = () => {
                       })
                     }
                     placeholder="0"
-                    className="mt-1"
+                    className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-purple-500/20 text-white px-6"
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Prazo</label>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  Prazo Estimado
+                </label>
                 <Input
                   type="date"
                   value={formData.deadline}
                   onChange={(e) =>
                     setFormData({ ...formData, deadline: e.target.value })
                   }
-                  className="mt-1"
+                  className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-purple-500/20 text-white px-6"
                 />
               </div>
-              <div className="flex gap-2 justify-end">
+
+              <div className="flex gap-4 pt-4">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setIsDialogOpen(false)}
+                  className="flex-1 h-12 rounded-xl text-slate-400 font-bold"
                 >
                   Cancelar
                 </Button>
-                <Button onClick={handleSave}>Salvar</Button>
+                <Button
+                  onClick={handleSave}
+                  className="flex-1 h-12 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black uppercase tracking-widest shadow-lg shadow-purple-500/20"
+                >
+                  Salvar Meta
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -239,98 +280,137 @@ export const GoalsSection = () => {
       </div>
 
       {goals.length === 0 ? (
-        <Card className="shadow-card border-0">
-          <CardContent className="py-12 text-center">
-            <TrendingUp
-              className="mx-auto text-muted-foreground mb-4"
-              size={48}
-            />
-            <p className="text-muted-foreground">
-              Nenhuma meta de economia ainda.
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Crie metas para acompanhar seu progresso de economia.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="premium-card p-20 text-center">
+          <TrendingUp className="mx-auto text-white/10 mb-6" size={64} />
+          <h4 className="text-xl font-black text-white mb-2 tracking-tight">
+            Comece sua Jornada de Independência
+          </h4>
+          <p className="text-sm text-slate-500 mb-8 max-w-sm mx-auto">
+            Crie metas visuais para acompanhar sua evolução e realizar seus
+            sonhos com clareza.
+          </p>
+          <Button
+            onClick={openNewDialog}
+            className="px-10 h-14 rounded-2xl bg-white text-black font-black uppercase tracking-[0.2em] transform transition-all hover:scale-105"
+          >
+            Definir Primeira Meta
+          </Button>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {goals.map((goal) => {
             const pct = (goal.currentAmount / goal.targetAmount) * 100;
             const remaining = goal.targetAmount - goal.currentAmount;
 
             return (
-              <Card
+              <div
                 key={goal.id}
-                className="shadow-card border-0 overflow-hidden group relative"
+                className="premium-card group hover:scale-[1.03] transition-all duration-500"
               >
-                <div
-                  className={`h-2 bg-gradient-to-r ${
-                    goal.color || "from-primary to-purple-600"
-                  }`}
-                />
-                <div className="absolute top-4 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => handleEdit(goal)}
-                  >
-                    <Pencil size={14} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-danger hover:text-danger"
-                    onClick={() => handleDelete(goal.id)}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
+                <div className="p-1 px-8 pt-0">
+                  <div
+                    className={`h-1.5 w-1/2 mx-auto rounded-b-full bg-gradient-to-r ${
+                      goal.color || "from-primary to-purple-600"
+                    } opacity-50 group-hover:opacity-100 transition-opacity`}
+                  />
                 </div>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">{goal.icon}</span>
-                    <span className="font-semibold">{goal.name}</span>
+
+                <div className="p-8 space-y-8 relative">
+                  <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                      onClick={() => handleEdit(goal)}
+                    >
+                      <Pencil size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500"
+                      onClick={() => handleDelete(goal.id)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progresso</span>
-                      <span className="font-medium">{pct.toFixed(0)}%</span>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-white/10 transition-colors shadow-2xl">
+                      {goal.icon}
                     </div>
-                    <Progress value={pct} />
-                    <div className="flex justify-between text-sm">
-                      <span>{formatCurrency(goal.currentAmount)}</span>
-                      <span className="text-muted-foreground">
-                        {formatCurrency(goal.targetAmount)}
+                    <div className="space-y-0.5">
+                      <h4 className="font-black text-white text-lg tracking-tight uppercase">
+                        {goal.name}
+                      </h4>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        Saldo da Meta
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-end justify-between">
+                      <div className="space-y-1">
+                        <span className="text-3xl font-black text-white tracking-tighter">
+                          {formatCurrency(goal.currentAmount).split(",")[0]}
+                        </span>
+                        <span className="text-slate-500 text-xs font-bold ml-1">
+                          /{formatCurrency(goal.targetAmount)}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">
+                        {Math.round(pct)}%
                       </span>
                     </div>
-                    {remaining > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Faltam {formatCurrency(remaining)}
-                      </p>
-                    )}
-                    <div className="flex gap-2 pt-2">
+
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-1000 ease-out bg-gradient-to-r ${
+                          goal.color || "from-indigo-500 to-purple-600"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                          Falta
+                        </span>
+                        <span className="text-xs font-bold text-white/80">
+                          {formatCurrency(remaining)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                          Prazo
+                        </span>
+                        <span className="text-xs font-bold text-white/80">
+                          {new Date(goal.deadline).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all">
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
+                        variant="ghost"
                         onClick={() => handleAddMoney(goal, 100)}
+                        className="flex-1 h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border border-white/5"
                       >
-                        <PlusCircle size={14} className="mr-1" />
                         +R$100
                       </Button>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
+                        variant="ghost"
                         onClick={() => handleAddMoney(goal, 500)}
+                        className="flex-1 h-12 rounded-2xl bg-white text-black hover:bg-white/90 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-white/5"
                       >
                         +R$500
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>

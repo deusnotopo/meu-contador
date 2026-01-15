@@ -1,12 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTransactions } from "@/hooks/useTransactions";
+import { STORAGE_EVENT, STORAGE_KEYS, loadGoals } from "@/lib/storage";
 import type { Transaction, TransactionFormData } from "@/types";
+import { SavingsGoal } from "@/types";
 import {
+  AlertCircle,
   BarChart3,
   Bell,
   Brain,
+  Camera,
   Download,
+  FileSpreadsheet,
   LayoutDashboard,
   PlusCircle,
   Sparkles,
@@ -14,7 +19,9 @@ import {
   TrendingUp,
   Upload,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DebtRecovery } from "./DebtRecovery";
+import { SmartInsights } from "./SmartInsights";
 
 import { AnalyticsTab } from "@/components/contador/AnalyticsTab";
 import { SummaryCards } from "@/components/contador/SummaryCards";
@@ -28,9 +35,11 @@ import { GlobalAlerts } from "@/components/personal/GlobalAlerts";
 import { GoalsSection } from "@/components/personal/GoalsSection";
 import { PredictionsCard } from "@/components/personal/PredictionsCard";
 import { RemindersSection } from "@/components/personal/RemindersSection";
+import { ReceiptScanner } from "@/components/receipts/ReceiptScanner";
 import { useAuth } from "@/context/AuthContext";
 import { exportFullMonthlyReport } from "@/lib/pdf-export";
-import { exportTransactions, importTransactions } from "@/lib/storage";
+import { exportTransactionsToCSV, importTransactions } from "@/lib/storage";
+import { showError, showSuccess } from "@/lib/toast";
 import { FileText } from "lucide-react";
 
 export const PersonalFinance = () => {
@@ -38,6 +47,7 @@ export const PersonalFinance = () => {
   const [showPremium, setShowPremium] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showForm, setShowForm] = useState(false);
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
 
@@ -60,9 +70,23 @@ export const PersonalFinance = () => {
   } = useTransactions("personal");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [goals, setGoals] = useState<SavingsGoal[]>(() => loadGoals());
+
+  useEffect(() => {
+    const handleStorageChange = (e: any) => {
+      if (e.detail?.key === STORAGE_KEYS.GOALS) {
+        setGoals(e.detail.data);
+      }
+    };
+    window.addEventListener(STORAGE_EVENT as any, handleStorageChange);
+    return () =>
+      window.removeEventListener(STORAGE_EVENT as any, handleStorageChange);
+  }, []);
 
   const handleExport = () => {
-    exportTransactions(transactions);
+    // exportTransactions(transactions); // CSV
+    exportFullMonthlyReport("Relatório Mensal", transactions, totals);
+    showSuccess("Relatório PDF gerado!");
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,21 +140,29 @@ export const PersonalFinance = () => {
   ).length;
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-10 animate-fade-in pb-12">
       {/* Premium Header */}
-      <div className="glass-panel p-8 rounded-[2.5rem] border-none">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-          <div className="space-y-2">
-            <h2 className="text-4xl font-black text-white flex items-center gap-3 tracking-tighter">
-              <Sparkles className="text-primary glow-text" size={32} />
-              Gestão <span className="text-primary">Master</span>
+      <div className="premium-card p-6 md:p-10">
+        <div className="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/10 blur-[120px] rounded-full" />
+        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-blue-500/5 blur-[120px] rounded-full" />
+
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+          <div className="space-y-4 flex flex-col items-center md:items-start">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-white/5 text-[10px] font-black uppercase tracking-widest text-indigo-400">
+              <Sparkles size={12} />
+              Gestão Financeira
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black leading-tight tracking-tighter">
+              Fluxo <br className="hidden md:block" />
+              <span className="premium-gradient-text">Pessoal Master</span>
             </h2>
-            <p className="text-lg text-slate-400 font-bold max-w-md">
-              Acompanhe seu fluxo de caixa pessoal com precisão matemática.
+            <p className="text-slate-400 font-medium max-w-md hidden md:block">
+              Acompanhe seu fluxo de caixa pessoal com precisão matemática em
+              tempo real.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <input
               type="file"
               ref={fileInputRef}
@@ -138,92 +170,114 @@ export const PersonalFinance = () => {
               accept=".json"
               className="hidden"
             />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => exportTransactionsToCSV(transactions)}
-              className="hidden lg:flex gap-2 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 rounded-xl"
-            >
-              <FileSpreadsheet size={16} />
-              EXCEL
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="hidden md:flex gap-2 border-slate-700/50 text-slate-400 hover:bg-white/5 rounded-xl"
-            >
-              <Download size={16} />
-              JSON
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="hidden md:flex gap-2 border-slate-700/50 text-slate-400 hover:bg-white/5 rounded-xl"
-            >
-              <Upload size={16} />
-              IMPORTAR
-            </Button>
-            <Button
-              onClick={handleNewTransaction}
-              size="lg"
-              className="bg-white text-black hover:bg-slate-100 font-black rounded-2xl px-6 h-12 shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 transition-all"
-            >
-              <PlusCircle size={18} className="mr-2" />
-              NOVA TRANSAÇÃO
-            </Button>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => exportTransactionsToCSV(transactions)}
+                className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white"
+                title="Exportar para Excel"
+              >
+                <FileSpreadsheet size={18} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleExport}
+                className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white"
+                title="Exportar para JSON"
+              >
+                <Download size={18} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white"
+                title="Importar transações"
+              >
+                <Upload size={18} />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
+              <Button
+                onClick={() => setShowReceiptScanner(true)}
+                className="bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl h-14 px-6 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all"
+              >
+                <Camera size={18} className="mr-2 hidden sm:block" />
+                Escanear
+              </Button>
+              <Button
+                onClick={handleNewTransaction}
+                className="bg-white text-black hover:bg-white/90 font-black rounded-2xl h-14 px-8 shadow-xl shadow-white/5 transition-all text-[10px] md:text-xs uppercase tracking-widest whitespace-nowrap"
+              >
+                <PlusCircle size={18} className="mr-2 hidden sm:block" />
+                Novo Lançamento
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted/50 flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger
-            value="dashboard"
-            className="data-[state=active]:bg-card gap-2"
-          >
-            <LayoutDashboard size={16} />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger
-            value="budgets"
-            className="data-[state=active]:bg-card gap-2"
-          >
-            <Target size={16} />
-            Orçamentos
-          </TabsTrigger>
-          <TabsTrigger
-            value="goals"
-            className="data-[state=active]:bg-card gap-2"
-          >
-            <TrendingUp size={16} />
-            Metas
-          </TabsTrigger>
-          <TabsTrigger
-            value="reminders"
-            className="data-[state=active]:bg-card gap-2"
-          >
-            <Bell size={16} />
-            Lembretes
-          </TabsTrigger>
-          <TabsTrigger
-            value="analytics"
-            className="data-[state=active]:bg-card gap-2"
-          >
-            <BarChart3 size={16} />
-            Análises
-          </TabsTrigger>
-          <TabsTrigger
-            value="insights"
-            className="data-[state=active]:bg-card gap-2"
-          >
-            <Brain size={16} />
-            Insights IA
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="relative group">
+        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black/20 to-transparent pointer-events-none z-10 md:hidden" />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full md:w-fit mb-10 overflow-x-auto no-scrollbar scroll-smooth">
+            <TabsTrigger
+              value="dashboard"
+              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
+            >
+              <LayoutDashboard size={14} />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger
+              value="budgets"
+              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
+            >
+              <Target size={14} />
+              Orçamentos
+            </TabsTrigger>
+            <TabsTrigger
+              value="goals"
+              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
+            >
+              <TrendingUp size={14} />
+              Metas
+            </TabsTrigger>
+            <TabsTrigger
+              value="reminders"
+              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
+            >
+              <Bell size={14} />
+              Lembretes
+            </TabsTrigger>
+            <TabsTrigger
+              value="analytics"
+              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
+            >
+              <BarChart3 size={14} />
+              Análises
+            </TabsTrigger>
+            <TabsTrigger
+              value="insights"
+              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
+            >
+              <Brain size={14} />
+              IA Insights
+            </TabsTrigger>
+            <TabsTrigger
+              value="debts"
+              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-rose-500 data-[state=active]:text-white flex items-center gap-2 whitespace-nowrap"
+            >
+              <AlertCircle size={14} />
+              Dívidas
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {/* Transaction Form */}
       {showForm && (
@@ -249,8 +303,7 @@ export const PersonalFinance = () => {
 
           <div className="flex justify-end px-2">
             <Button
-              variant="outline"
-              className="gap-2 border-primary/30 hover:border-primary text-primary font-bold rounded-xl"
+              className="group relative overflow-hidden bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl h-14 px-8 font-black text-xs uppercase tracking-widest transition-all"
               onClick={() => {
                 const month = new Date().toLocaleDateString("pt-BR", {
                   month: "long",
@@ -259,8 +312,9 @@ export const PersonalFinance = () => {
                 exportFullMonthlyReport(month, transactions, totals);
               }}
             >
-              <FileText size={16} />
-              Gerar Relatório PRO (PDF)
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <FileText size={18} className="mr-3 text-indigo-400" />
+              Relatório PDF Pro
             </Button>
           </div>
 
@@ -313,14 +367,29 @@ export const PersonalFinance = () => {
       )}
 
       {activeTab === "insights" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FinancialHealthCard
-            transactions={transactions}
-            totals={totals}
-            showDetails
-          />
-          <PredictionsCard transactions={transactions} showDetails />
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <FinancialHealthCard
+              transactions={transactions}
+              totals={totals}
+              showDetails
+            />
+            <PredictionsCard transactions={transactions} showDetails />
+          </div>
+          <SmartInsights transactions={transactions} goals={goals} />
         </div>
+      )}
+
+      {activeTab === "debts" && <DebtRecovery />}
+
+      {/* Receipt Scanner Modal */}
+      {showReceiptScanner && (
+        <ReceiptScanner
+          onClose={() => setShowReceiptScanner(false)}
+          onTransactionCreated={() => {
+            // Auto-refresh handled by storage events
+          }}
+        />
       )}
     </div>
   );

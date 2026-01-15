@@ -202,11 +202,7 @@ export const TransactionForm = ({
             </div>
           )}
 
-          <div
-            className={`${
-              scope === "personal" ? "md:col-span-1" : "md:col-span-2"
-            } space-y-2`}
-          >
+          <div className="md:col-span-2 space-y-2">
             <Label className="text-sm font-semibold">Observações</Label>
             <Input
               type="text"
@@ -216,6 +212,45 @@ export const TransactionForm = ({
               }
               placeholder="Informações adicionais..."
             />
+          </div>
+
+          <div className="flex items-center gap-4 md:col-span-2 p-4 bg-muted/30 rounded-lg border border-border/50">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="recurring"
+                checked={formData.recurring}
+                onChange={(e) =>
+                  setFormData({ ...formData, recurring: e.target.checked })
+                }
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label
+                htmlFor="recurring"
+                className="text-sm font-semibold cursor-pointer"
+              >
+                Transação Recorrente
+              </Label>
+            </div>
+
+            {formData.recurring && (
+              <Select
+                value={formData.recurrenceInterval || "monthly"}
+                onValueChange={(
+                  value: "monthly" | "weekly" | "bi-weekly" | "yearly"
+                ) => setFormData({ ...formData, recurrenceInterval: value })}
+              >
+                <SelectTrigger className="w-[180px] h-8 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Semanal</SelectItem>
+                  <SelectItem value="bi-weekly">Quinzenal</SelectItem>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="yearly">Anual</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 

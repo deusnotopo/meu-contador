@@ -1,32 +1,94 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { resetOnboarding } from "@/lib/onboarding";
 import {
-  exportFullBackup,
-  importFullBackup,
-  loadProfile,
-  saveProfile,
+    exportFullBackup,
+    importFullBackup,
+    loadProfile,
+    saveProfile,
 } from "@/lib/storage";
 import { showError, showSuccess } from "@/lib/toast";
 import {
-  Building2,
-  Database,
-  Download,
-  LogOut,
-  Shield,
-  Smartphone,
-  Trash2,
-  Upload,
-  User,
+    Bell,
+    Building2,
+    Database,
+    Download,
+    LogOut,
+    Moon,
+    Palette,
+    Shield,
+    Smartphone,
+    Sun,
+    Upload,
+    User,
 } from "lucide-react";
 import { useState } from "react";
+
+const LanguageSwitcher = () => {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setLanguage("pt-BR")}
+        className={`text-xs ${
+          language === "pt-BR"
+            ? "bg-white/10 text-white font-bold"
+            : "text-slate-400"
+        }`}
+      >
+        🇧🇷 PT
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setLanguage("en-US")}
+        className={`text-xs ${
+          language === "en-US"
+            ? "bg-white/10 text-white font-bold"
+            : "text-slate-400"
+        }`}
+      >
+        🇺🇸 EN
+      </Button>
+    </div>
+  );
+const ThemeSwitcher = () => {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
+      {[
+        { id: "midnight", label: "Midnight", icon: Moon, color: "text-indigo-400" },
+        { id: "emerald", label: "Emerald", icon: Palette, color: "text-emerald-400" },
+        { id: "aura", label: "Aura", icon: Sun, color: "text-amber-400" },
+      ].map((t) => (
+        <Button
+          key={t.id}
+          variant="ghost"
+          size="sm"
+          onClick={() => setTheme(t.id as any)}
+          className={`text-[9px] uppercase font-black px-3 ${
+            theme === t.id
+              ? "bg-white/10 text-white"
+              : "text-slate-500 hover:text-white"
+          }`}
+        >
+          <t.icon size={12} className={`mr-1.5 ${t.color}`} />
+          {t.label}
+        </Button>
+      ))}
+    </div>
+  );
+};
 
 export const SettingsSection = () => {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState(loadProfile() || {});
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState("personal");
 
   const handleSave = () => {
     try {
@@ -49,279 +111,435 @@ export const SettingsSection = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black">Configurações</h1>
-          <p className="text-muted-foreground">
-            Gerencie sua conta e preferências do app
+    <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-white/5 pb-10">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-black tracking-tighter uppercase">
+            {t("settings.title").split(" ")[0]}{" "}
+            <span className="premium-gradient-text">
+              {t("settings.title").split(" ").slice(1).join(" ")}
+            </span>
+          </h1>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.2em]">
+            {t("settings.subtitle")}
           </p>
         </div>
-        <Button
-          variant="destructive"
-          onClick={logout}
-          className="gap-2 rounded-xl"
-        >
-          <LogOut size={18} />
-          Sair
-        </Button>
+        <div className="flex items-center gap-4">
+          <ThemeSwitcher />
+          <LanguageSwitcher />
+          <Button
+            variant="ghost"
+            onClick={logout}
+            className="h-12 px-6 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 border border-rose-500/10 text-[10px] font-black uppercase tracking-widest transition-all"
+          >
+            <LogOut size={16} className="mr-2" />
+            {t("settings.logout")}
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Navigation / Profile Summary */}
-        <div className="md:col-span-1 space-y-4">
-          <Card className="rounded-3xl border-none shadow-elevated bg-gradient-to-br from-primary/10 to-purple-500/10 overflow-hidden">
-            <CardContent className="p-6 text-center space-y-4">
-              <div className="w-20 h-20 mx-auto bg-primary rounded-full flex items-center justify-center text-primary-foreground text-3xl font-black">
+        <div className="lg:col-span-4 space-y-6">
+          <div className="premium-card relative overflow-hidden group">
+            <div className="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/10 blur-[80px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-700"></div>
+            <div className="p-8 text-center space-y-6 relative z-10">
+              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[32px] flex items-center justify-center text-white text-4xl font-black shadow-2xl shadow-indigo-500/20 rotate-3 group-hover:rotate-0 transition-transform duration-500">
                 {profile.name?.charAt(0) || user?.email?.charAt(0)}
               </div>
-              <div>
-                <h3 className="font-bold text-xl">
+              <div className="space-y-1">
+                <h3 className="font-black text-2xl text-white tracking-tight">
                   {profile.name || "Seu Nome"}
                 </h3>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  {user?.email}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <div className="space-y-1">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 rounded-xl h-12 text-primary bg-primary/5"
-            >
-              <User size={18} /> Perfil Pessoal
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 rounded-xl h-12 text-muted-foreground"
-            >
-              <Building2 size={18} /> Dados da Empresa
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 rounded-xl h-12 text-muted-foreground"
-            >
-              <Smartphone size={18} /> Mobile & Instalação
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 rounded-xl h-12 text-muted-foreground"
-            >
-              <Database size={18} /> Dados & Backup
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 rounded-xl h-12 text-muted-foreground"
-            >
-              <Shield size={18} /> Segurança
-            </Button>
+          <div className="p-2 bg-white/5 rounded-3xl border border-white/5 space-y-1">
+            {[
+              {
+                id: "personal",
+                label: "Perfil Pessoal",
+                icon: User,
+              },
+              { id: "business", label: "Dados da Empresa", icon: Building2 },
+              { id: "visual", label: "Aparência & Temas", icon: Palette },
+              { id: "mobile", label: "Mobile & PWA", icon: Smartphone },
+              { id: "data", label: "Dados & Backup", icon: Database },
+              { id: "security", label: "Privacidade", icon: Shield },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-4 px-6 h-14 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                  activeTab === item.id
+                    ? "bg-white text-black shadow-xl"
+                    : "text-slate-500 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+                {item.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Content */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="lg:col-span-8 space-y-8">
           {/* Personal Section */}
-          <Card className="rounded-3xl border-none shadow-elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="text-primary" /> Perfil Pessoal
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome Completo</Label>
-                  <Input
-                    value={profile.name}
-                    onChange={(e) =>
-                      setProfile({ ...profile, name: e.target.value })
-                    }
-                    className="rounded-xl"
-                  />
+          {activeTab === "personal" && (
+            <div className="premium-card">
+              <div className="p-6 md:p-8 flex items-center gap-4 border-b border-white/5 mb-8">
+                <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                  <User size={20} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Renda Mensal (Base)</Label>
-                  <Input
-                    type="number"
-                    value={profile.monthlyIncome}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        monthlyIncome: Number(e.target.value),
-                      })
-                    }
-                    className="rounded-xl"
-                  />
-                </div>
+                <h3 className="text-lg font-black uppercase tracking-widest text-white">
+                  Perfil <span className="text-indigo-400">Pessoal</span>
+                </h3>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Business Section */}
-          <Card className="rounded-3xl border-none shadow-elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="text-purple-500" /> Perfil da Empresa
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome da Empresa</Label>
-                <Input
-                  value={profile.businessProfile?.name || ""}
-                  onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      businessProfile: {
-                        ...(profile.businessProfile || {}),
-                        name: e.target.value,
-                      },
-                    })
-                  }
-                  className="rounded-xl"
-                  placeholder="Nome Fantasia"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Ramo de Atividade</Label>
-                  <Input
-                    value={profile.businessProfile?.sector || ""}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        businessProfile: {
-                          ...(profile.businessProfile || {}),
-                          sector: e.target.value,
-                        },
-                      })
-                    }
-                    className="rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>CNPJ</Label>
-                  <Input
-                    value={profile.businessProfile?.cnpj || ""}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        businessProfile: {
-                          ...(profile.businessProfile || {}),
-                          cnpj: e.target.value,
-                        },
-                      })
-                    }
-                    className="rounded-xl"
-                    placeholder="00.000.000/0001-00"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Mobile Install Section */}
-          <Card className="rounded-3xl border-none shadow-elevated bg-success/5 border border-success/10">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-success/10 rounded-2xl text-success">
-                  <Smartphone size={32} />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <h3 className="font-bold text-lg">
-                    Meu Contador no seu Celular
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Você pode instalar o app diretamente na sua tela de início
-                    sem precisar da App Store ou Play Store.
-                  </p>
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      className="rounded-xl border-success text-success hover:bg-success/10"
-                    >
-                      Como Instalar (iOS)
-                    </Button>
-                    <Button className="rounded-xl bg-success hover:bg-success/80 text-white">
-                      Instalar Agora (Android)
-                    </Button>
+              <div className="p-6 md:p-8 pt-0 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                      Nome Completo
+                    </Label>
+                    <Input
+                      value={profile.name}
+                      onChange={(e) =>
+                        setProfile({ ...profile, name: e.target.value })
+                      }
+                      className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-indigo-500/20 focus:border-indigo-500/30 text-white font-medium px-6"
+                      placeholder="Como devemos te chamar?"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                      Renda Mensal (Base)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={profile.monthlyIncome}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          monthlyIncome: Number(e.target.value),
+                        })
+                      }
+                      className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-indigo-500/20 focus:border-indigo-500/30 text-white font-medium px-6"
+                      placeholder="R$ 0,00"
+                    />
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
 
-          
-          {/* Backup Section */}
-          <Card className="rounded-3xl border-none shadow-elevated bg-blue-500/5 border border-blue-500/10 mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-600">
-                <Database size={20} /> Backup & Restauração
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-               <p className="text-sm text-muted-foreground">
-                 Seus dados estão salvos apenas neste dispositivo. Faça backups regulares para não perder nada.
-               </p>
-               <div className="flex gap-4">
-                 <Button onClick={exportFullBackup} variant="outline" className="flex-1 gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
-                    <Download size={16} /> Fazer Backup
-                 </Button>
-                 <Button className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700 relative">
-                    <Upload size={16} /> Restaurar
-                    <input 
-                      type="file" 
-                      accept=".json"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          try {
-                            await importFullBackup(file);
-                            showSuccess("Dados restaurados com sucesso!");
-                            window.location.reload();
-                          } catch(err) {
-                            showError("Erro ao restaurar backup.");
-                          }
-                        }
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                    />
-                 </Button>
-               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-3xl border-none shadow-elevated border border-danger/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-danger">
-                <Trash2 size={20} /> Perigo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">Resetar Aplicativo</p>
-                  <p className="text-xs text-muted-foreground">
-                    Isso apagará todos os dados locais permanentemente.
-                  </p>
+          {/* Business Section */}
+          {activeTab === "business" && (
+            <div className="premium-card">
+              <div className="p-6 md:p-8 flex items-center gap-4 border-b border-white/5 mb-8">
+                <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500">
+                  <Building2 size={20} />
                 </div>
-                <Button
-                  variant="ghost"
-                  onClick={handleReset}
-                  className="text-danger hover:bg-danger/10 rounded-xl"
-                >
-                  Resetar Dados
+                <h3 className="text-lg font-black uppercase tracking-widest text-white">
+                  Dados da <span className="text-amber-500">Empresa</span>
+                </h3>
+              </div>
+              <div className="p-6 md:p-8 pt-0 space-y-8">
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                    Razão Social / Nome Fantasia
+                  </Label>
+                  <Input
+                    value={profile.businessProfile?.name || ""}
+                    onChange={(e) =>
+                      setProfile({
+                        ...profile,
+                        businessProfile: {
+                          ...(profile.businessProfile || {}),
+                          name: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-amber-500/20 focus:border-amber-500/30 text-white font-medium px-6"
+                    placeholder="Nome Fantasia da Empresa"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                      Setor de Atuação
+                    </Label>
+                    <Input
+                      value={profile.businessProfile?.sector || ""}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          businessProfile: {
+                            ...(profile.businessProfile || {}),
+                            sector: e.target.value,
+                          },
+                        })
+                      }
+                      className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-amber-500/20 focus:border-amber-500/30 text-white font-medium px-6"
+                      placeholder="Ex: Consultoria, Varejo..."
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                      CNPJ
+                    </Label>
+                    <Input
+                      value={profile.businessProfile?.cnpj || ""}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          businessProfile: {
+                            ...(profile.businessProfile || {}),
+                            cnpj: e.target.value,
+                          },
+                        })
+                      }
+                      className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-amber-500/20 focus:border-amber-500/30 text-white font-medium px-6"
+                      placeholder="00.000.000/0001-00"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Visual Section */}
+          {activeTab === "visual" && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="premium-card">
+                <div className="p-6 md:p-8 flex items-center gap-4 border-b border-white/5 mb-8">
+                  <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
+                    <Palette size={20} />
+                  </div>
+                  <h3 className="text-lg font-black uppercase tracking-widest text-white">
+                    Temas & <span className="text-purple-400">Visual</span>
+                  </h3>
+                </div>
+                <div className="p-6 md:p-8 pt-0 space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <button 
+                      onClick={() => setTheme('midnight')}
+                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${theme === 'midnight' ? 'bg-indigo-500/10 border-indigo-500' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center text-white shadow-xl">
+                        <Moon size={24} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-white text-lg">Midnight</h4>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Padrão Premium Dark</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setTheme('emerald')}
+                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${theme === 'emerald' ? 'bg-emerald-500/10 border-emerald-500' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-xl">
+                        <Palette size={24} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-white text-lg">Emerald</h4>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Prosperidade & Natureza</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setTheme('aura')}
+                      className={`group p-6 rounded-[2.5rem] border transition-all text-left space-y-4 ${theme === 'aura' ? 'bg-amber-500/10 border-amber-500' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-900 shadow-xl">
+                        <Sun size={24} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-900 text-lg">Aura Light</h4>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Clean & Minimalista</p>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="p-6 rounded-3xl bg-white/5 border border-white/5 flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-black text-white uppercase tracking-widest">Animações Fluídas</h4>
+                      <p className="text-[10px] text-slate-500 font-medium">Habilita transições suaves e micro-interações</p>
+                    </div>
+                    <div className="h-6 w-12 rounded-full bg-emerald-500 flex items-center justify-end px-1 cursor-pointer">
+                       <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PWA & Notifications Grid */}
+          {activeTab === "mobile" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="premium-card bg-emerald-500/[0.02] border-emerald-500/10">
+                <div className="p-8 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400">
+                      <Smartphone size={24} />
+                    </div>
+                    <h4 className="text-sm font-black uppercase tracking-widest text-white">
+                      App Mobile
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                    Instale o Meu Contador na tela de início para acesso
+                    instantâneo e offline.
+                  </p>
+                  <Button
+                    onClick={() => alert("Menu -> Adicionar à Tela de Início")}
+                    className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest transition-all text-[10px]"
+                  >
+                    Instalar App
+                  </Button>
+                </div>
+              </div>
+
+              <div className="premium-card bg-amber-500/[0.02] border-amber-500/10">
+                <div className="p-8 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500">
+                      <Bell size={24} />
+                    </div>
+                    <h4 className="text-sm font-black uppercase tracking-widest text-white">
+                      Alertas PRO
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                    Receba avisos de vencimentos e insights de IA direto no seu
+                    navegador.
+                  </p>
+                  <Button
+                    onClick={async () => {
+                      if ("Notification" in window) {
+                        const permission = await Notification.requestPermission();
+                        if (permission === "granted")
+                          showSuccess("Notificações ON!");
+                      }
+                    }}
+                    className="w-full h-12 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black uppercase tracking-widest transition-all text-[10px]"
+                  >
+                    Ativar Alertas
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Backup & DANGER */}
+          {activeTab === "data" && (
+            <div className="premium-card animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="p-6 md:p-8 flex items-center gap-4 border-b border-white/5 mb-8">
+                <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+                  <Database size={20} />
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-widest text-white">
+                  Centro de <span className="text-blue-400">Dados</span>
+                </h3>
+              </div>
+              <div className="p-6 md:p-8 pt-0 space-y-8">
+                <div className="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/10 space-y-4">
+                  <p className="text-xs text-blue-200/60 font-medium">
+                    Backup de segurança em arquivo JSON. Seus dados são
+                    criptografados localmente.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button
+                      onClick={exportFullBackup}
+                      className="flex-1 h-12 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-[10px] font-black uppercase tracking-widest transition-all"
+                    >
+                      <Download size={14} className="mr-2" /> Exportar Tudo
+                    </Button>
+                    <div className="flex-1 relative">
+                      <Button className="w-full h-12 rounded-xl bg-blue-500 hover:bg-blue-400 text-black text-[10px] font-black uppercase tracking-widest transition-all">
+                        <Upload size={14} className="mr-2" /> Restaurar Backup
+                      </Button>
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              await importFullBackup(file);
+                              showSuccess("Restauração Concluída!");
+                              window.location.reload();
+                            } catch (err) {
+                              showError("Erro no arquivo de backup.");
+                            }
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/10 flex items-center justify-between gap-6">
+                  <div>
+                    <h4 className="text-sm font-black text-rose-400 uppercase tracking-widest mb-1">
+                      Limpeza Completa
+                    </h4>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Apaga permanentemente todos os registros locais.
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    onClick={handleReset}
+                    className="h-10 px-4 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-[9px] font-black uppercase tracking-widest transition-all"
+                  >
+                    Resetar App
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "security" && (
+            <div className="premium-card animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="p-6 md:p-8 flex items-center gap-4 border-b border-white/5 mb-8">
+                <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                  <Shield size={20} />
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-widest text-white">
+                  Centro de <span className="text-indigo-400">Privacidade</span>
+                </h3>
+              </div>
+              <div className="p-6 md:p-8 pt-0 space-y-6 px-10">
+                <p className="text-sm text-slate-400 leading-relaxed font-medium">Seus dados financeiros permanecem sob seu controle. A sincronização em nuvem é opcional e utiliza criptografia de ponta a ponta.</p>
+                <div className="py-4 border-y border-white/5">
+                   <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-widest text-white">Mascarar Valores Automático</span>
+                      <div className="h-6 w-12 rounded-full bg-slate-800 flex items-center px-1 opacity-50 cursor-not-available">
+                         <div className="w-4 h-4 bg-white/20 rounded-full" />
+                      </div>
+                   </div>
+                </div>
+                 <Button variant="outline" className="w-full h-12 rounded-xl border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/5 transition-all">
+                  Auditar Histórico de Acesso
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end sticky bottom-8 pt-4">
             <Button
               onClick={handleSave}
-              className="gradient-primary px-12 py-6 rounded-2xl text-lg font-bold shadow-elevated border-0"
+              className="h-16 px-16 rounded-[24px] bg-white text-black hover:bg-white/90 font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-white/10 transition-all hover:scale-105 active:scale-95"
             >
-              Salvar Todas as Mudanças
+              {t("settings.save")}
             </Button>
           </div>
         </div>

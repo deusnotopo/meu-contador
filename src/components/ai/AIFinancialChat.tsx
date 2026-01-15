@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { executeAction } from "@/lib/ai/action-executor";
+import { parseIntent } from "@/lib/ai/intent-parser";
 import type { Transaction } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bot, Loader2, Send, Sparkles, User, X } from "lucide-react";
+import { Bot, Loader2, Send, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { VoiceInput } from "./VoiceInput";
 
 interface Message {
   id: string;
@@ -57,7 +59,32 @@ export const AIFinancialChat = ({
     setIsLoading(true);
 
     try {
-      // Prepare context for AI
+      // STEP 1: Check for actionable intent
+      const intent = parseIntent(input);
+
+      if (
+        intent.type !== "unknown" &&
+        intent.type !== "query" &&
+        intent.confidence > 0.7
+      ) {
+        // Execute action directly
+        const result = await executeAction(intent);
+
+        const actionMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: result.success
+            ? `✅ **AÇÃO EXECUTADA**\n\n${result.message}`
+            : `❌ **ERRO**\n\n${result.message}`,
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, actionMessage]);
+        setIsLoading(false);
+        return;
+      }
+
+      // STEP 2: Fall back to AI Q&A
       const recentTransactions = transactions.slice(-20);
       const totalIncome = transactions
         .filter((t) => t.type === "income")
@@ -69,13 +96,14 @@ export const AIFinancialChat = ({
       const response = await fetch("/api/ai-proxy", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           messages: [
             {
-               role: "system",
-               content: "Você é um Processador Financeiro de Alta Performance. Suas respostas devem ser precisas, profissionais e inspirar autoridade tecnológica. Use termos como 'Auditoria', 'Fluxo de Capital', 'Otimização' e 'Indicadores'. Formate números em negrito."
+              role: "system",
+              content:
+                "Você é um Processador Financeiro de Alta Performance. Suas respostas devem ser precisas, profissionais e inspirar autoridade tecnológica. Use termos como 'Auditoria', 'Fluxo de Capital', 'Otimização' e 'Indicadores'. Formate números em negrito.",
             },
             {
               role: "user",
@@ -88,12 +116,14 @@ export const AIFinancialChat = ({
 ${recentTransactions
   .map(
     (t) =>
-      `- ${t.type.toUpperCase()}: ${t.description} | R$ ${t.amount} (${t.category.toUpperCase()})`
+      `- ${t.type.toUpperCase()}: ${t.description} | R$ ${
+        t.amount
+      } (${t.category.toUpperCase()})`
   )
   .join("\n")}
 
-AUDITORIA SOLICITADA: ${input}`
-            }
+AUDITORIA SOLICITADA: ${input}`,
+            },
           ],
         }),
       });
@@ -139,7 +169,7 @@ AUDITORIA SOLICITADA: ${input}`
     "Auditoria: Gastos Mensais",
     "Previsão: ROI Próximo Mês",
     "Estratégia: Economizar R$ 5k",
-    "Status: Saúde Financeira"
+    "Status: Saúde Financeira",
   ];
 
   return (
@@ -151,15 +181,24 @@ AUDITORIA SOLICITADA: ${input}`
             <Bot className="text-indigo-400" size={28} />
           </div>
           <div>
-            <h3 className="font-black text-xl tracking-tighter text-glow">CENTRO DE INTELIGÊNCIA</h3>
+            <h3 className="font-black text-xl tracking-tighter text-glow">
+              CENTRO DE INTELIGÊNCIA
+            </h3>
             <div className="flex items-center gap-2">
-               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">SISTEMA OPERACIONAL ATIVO</p>
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                SISTEMA OPERACIONAL ATIVO
+              </p>
             </div>
           </div>
         </div>
         {onClose && (
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl hover:bg-white/5 text-slate-400">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="rounded-xl hover:bg-white/5 text-slate-400"
+          >
             <X size={20} />
           </Button>
         )}
@@ -173,26 +212,45 @@ AUDITORIA SOLICITADA: ${input}`
               key={message.id}
               initial={{ opacity: 0, x: message.role === "user" ? 20 : -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className={`flex gap-4 ${message.role === "user" ? "flex-row-reverse" : ""}`}
+              className={`flex gap-4 ${
+                message.role === "user" ? "flex-row-reverse" : ""
+              }`}
             >
-              <div className={`mt-1 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center border ${
-                message.role === "user" ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" : "bg-white/5 border-white/10 text-slate-400"
-              }`}>
-                {message.role === "user" ? <User size={20} /> : <Bot size={20} />}
+              <div
+                className={`mt-1 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center border ${
+                  message.role === "user"
+                    ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400"
+                    : "bg-white/5 border-white/10 text-slate-400"
+                }`}
+              >
+                {message.role === "user" ? (
+                  <User size={20} />
+                ) : (
+                  <Bot size={20} />
+                )}
               </div>
-              
-              <div className={`flex flex-col max-w-[85%] ${message.role === "user" ? "items-end" : "items-start"}`}>
-                <div className={`p-5 rounded-3xl ${
-                  message.role === "user" 
-                  ? "bg-indigo-600 text-white font-medium shadow-[0_0_30px_rgba(79,70,229,0.2)]" 
-                  : "bg-white/5 border border-white/10 text-slate-300 font-sans"
-                }`}>
+
+              <div
+                className={`flex flex-col max-w-[85%] ${
+                  message.role === "user" ? "items-end" : "items-start"
+                }`}
+              >
+                <div
+                  className={`p-5 rounded-3xl ${
+                    message.role === "user"
+                      ? "bg-indigo-600 text-white font-medium shadow-[0_0_30px_rgba(79,70,229,0.2)]"
+                      : "bg-white/5 border border-white/10 text-slate-300 font-sans"
+                  }`}
+                >
                   <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
                     {message.content}
                   </p>
                 </div>
                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mt-2 px-1">
-                  {message.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  {message.timestamp.toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </p>
               </div>
             </motion.div>
@@ -200,17 +258,21 @@ AUDITORIA SOLICITADA: ${input}`
         </AnimatePresence>
 
         {isLoading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-4">
-             <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                <Loader2 size={20} className="text-indigo-400 animate-spin" />
-             </div>
-             <div className="p-5 rounded-3xl bg-white/5 border border-white/10">
-                <div className="flex gap-1">
-                   <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" />
-                   <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                   <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]" />
-                </div>
-             </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex gap-4"
+          >
+            <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+              <Loader2 size={20} className="text-indigo-400 animate-spin" />
+            </div>
+            <div className="p-5 rounded-3xl bg-white/5 border border-white/10">
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" />
+                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+              </div>
+            </div>
           </motion.div>
         )}
         <div ref={messagesEndRef} />
@@ -232,26 +294,36 @@ AUDITORIA SOLICITADA: ${input}`
           </div>
         )}
 
-        <div className="relative group">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Comando de Auditoria..."
-            className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium"
-            disabled={isLoading}
+        <div className="flex gap-2 items-center">
+          <VoiceInput
+            onTranscript={(text) => setInput(text)}
+            isProcessing={isLoading}
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className="absolute right-2 top-2 bottom-2 px-5 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-800 transition-all"
-          >
-            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          </button>
+          <div className="relative group flex-1">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Comando de Auditoria..."
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium"
+              disabled={isLoading}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className="absolute right-2 top-2 bottom-2 px-5 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-800 transition-all"
+            >
+              {isLoading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Send size={16} />
+              )}
+            </button>
+          </div>
         </div>
         <p className="text-center text-[9px] font-black text-slate-700 uppercase tracking-[0.3em] mt-4">
-           MNT-OS v2.5 • ENCRYPTED PAYLOAD
+          MNT-OS v2.5 • ENCRYPTED PAYLOAD
         </p>
       </div>
     </div>
