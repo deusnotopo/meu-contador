@@ -18,6 +18,7 @@ import {
 import { useEffect, useState } from "react";
 import { AIFinancialChat } from "./ai/AIFinancialChat";
 import { SmartAlerts } from "./ai/SmartAlerts";
+import { SmartCoach } from "./ai/SmartCoach";
 import { AdvancedCombinedChart } from "./charts/AdvancedCombinedChart";
 import { PrivacyValue } from "./ui/PrivacyValue";
 import { Button } from "./ui/button";
@@ -316,6 +317,12 @@ export const GlobalDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Smart Coach (Predictive AI) */}
+      <SmartCoach
+        transactions={personal.allTransactions}
+        currentBalance={personal.totals.balance}
+      />
 
       {/* Floating Action */}
       <div className="fixed bottom-8 right-8 z-[100]">

@@ -1,6 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { executeAction } from "@/lib/ai/action-executor";
 import { parseIntent } from "@/lib/ai/intent-parser";
+import {
+  getCategoryPredictions,
+  predictEndOfMonthBalance,
+} from "@/lib/prediction-engine";
 import type { Transaction } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Loader2, Send, User, X } from "lucide-react";
@@ -111,6 +115,22 @@ export const AIFinancialChat = ({
 - RECEITA: R$ ${totalIncome.toFixed(2)}
 - DESPESA: R$ ${totalExpense.toFixed(2)}
 - SALDO: R$ ${(totalIncome - totalExpense).toFixed(2)}
+
+INTELIGÊNCIA PREDITIVA (FUTURO):
+- PROJEÇÃO FIM DO MÊS: R$ ${predictEndOfMonthBalance(
+                transactions,
+                totalIncome - totalExpense
+              ).predictedBalance.toFixed(2)}
+- TENDÊNCIAS POR CATEGORIA:
+${getCategoryPredictions(transactions)
+  .slice(0, 5)
+  .map(
+    (p) =>
+      `  • ${p.category}: R$ ${p.predictedAmount.toFixed(2)} (${
+        p.trend === "up" ? "🔺 AUMENTO" : "🔻 QUESA"
+      } de ${p.percentChange.toFixed(0)}%)`
+  )
+  .join("\n")}
 
 ÚLTIMOS INPUTS:
 ${recentTransactions
