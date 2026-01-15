@@ -9,7 +9,6 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   plugins: [
     react(),
-    /*
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
@@ -34,7 +33,6 @@ export default defineConfig({
         ],
       },
     }),
-    */
   ],
   resolve: {
     alias: {
