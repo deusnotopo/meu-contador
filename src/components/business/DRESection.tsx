@@ -26,75 +26,67 @@ export const DRESection = ({ transactions }: Props) => {
       .filter((t) => {
         if (t.type !== "expense") return false;
         const cat = t.category.toLowerCase();
-        return keywords.some((k) => cat.includes(k.toLowerCase()));
+        const desc = (t.description || "").toLowerCase();
+        return keywords.some(
+          (k) => cat.includes(k.toLowerCase()) || desc.includes(k.toLowerCase())
+        );
       })
       .reduce((s, t) => s + t.amount, 0);
 
-  // Categorias baseadas em palavras-chave comuns
-  const taxes = filterByKeywords([
+  const taxKeywords = [
     "imposto",
     "taxa",
     "tributo",
     "das",
     "simples",
+    "ismples",
     "darf",
-  ]);
-  const cogs = filterByKeywords([
+    "iss",
+    "icms",
+    "irpj",
+    "pis",
+    "cofins",
+    "fgts",
+    "inss",
+  ];
+  const cogsKeywords = [
     "fornecedor",
     "mercadoria",
     "estoque",
     "compra",
     "produção",
     "matéria",
-  ]);
-  const personnel = filterByKeywords([
+    "logística",
+    "frete",
+  ];
+  const personnelKeywords = [
     "salário",
     "folha",
     "sócio",
     "prolabore",
+    "pro-labore",
     "fgts",
     "inss",
     "benefício",
-  ]);
+    "vale",
+  ];
 
-  // Operacional = Tudo que não foi capturado acima
-  // Para evitar contagem dupla, filtramos explicitamente o que JÁ foi somado
+  const taxes = filterByKeywords(taxKeywords);
+  const cogs = filterByKeywords(cogsKeywords);
+  const personnel = filterByKeywords(personnelKeywords);
+
   const calculatedExpenseIds = new Set(
     transactions
       .filter((t) => t.type === "expense")
       .filter((t) => {
         const cat = t.category.toLowerCase();
+        const desc = (t.description || "").toLowerCase();
         const allKeywords = [
-          "imposto",
-          "taxa",
-          "tributo",
-          "das",
-          "simples",
-          "darf",
-          "iss",
-          "icms",
-          "irpj",
-          "pis",
-          "cofins",
-          "fgts",
-          "inss",
-          "prolabore",
-          "pro-labore",
-          "salário",
-          "folha",
-          "sócio",
-          "benefício",
-          "vale",
-          "fornecedor",
-          "mercadoria",
-          "estoque",
-          "compra",
-          "matéria",
-          "logística",
-          "frete",
+          ...taxKeywords,
+          ...cogsKeywords,
+          ...personnelKeywords,
         ];
-
-        return allKeywords.some((k) => cat.includes(k));
+        return allKeywords.some((k) => cat.includes(k) || desc.includes(k));
       })
       .map((t) => t.id)
   );
@@ -175,7 +167,6 @@ export const DRESection = ({ transactions }: Props) => {
 
       <div className="p-6 md:p-8 space-y-8">
         <div className="space-y-4">
-          {/* Receita */}
           <div className="flex justify-between items-center py-4 px-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
@@ -190,7 +181,6 @@ export const DRESection = ({ transactions }: Props) => {
             </span>
           </div>
 
-          {/* Despesas Detalhadas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex justify-between items-center">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -236,7 +226,6 @@ export const DRESection = ({ transactions }: Props) => {
           </div>
         </div>
 
-        {/* Resumo Final */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div
             className={`p-6 rounded-3xl relative overflow-hidden bg-white/5 border border-white/10`}
@@ -246,7 +235,6 @@ export const DRESection = ({ transactions }: Props) => {
                 netResult >= 0 ? "bg-emerald-500" : "bg-rose-500"
               }`}
             />
-
             <p className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-500 mb-4 relative z-10">
               Lucro Líquido
             </p>
@@ -276,7 +264,6 @@ export const DRESection = ({ transactions }: Props) => {
 
           <div className="p-6 rounded-3xl relative overflow-hidden bg-white/5 border border-white/10">
             <div className="absolute right-0 top-0 w-32 h-32 blur-[60px] rounded-full opacity-20 bg-indigo-500" />
-
             <p className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-500 mb-4 relative z-10">
               Margem OP
             </p>
@@ -294,24 +281,3 @@ export const DRESection = ({ transactions }: Props) => {
     </div>
   );
 };
-
-// Internal Badge helper since it might not be exported from types
-const Badge = ({
-  children,
-  variant,
-  className,
-}: {
-  children: React.ReactNode;
-  variant?: string;
-  className?: string;
-}) => (
-  <span
-    className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${
-      variant === "outline"
-        ? "border-border"
-        : "bg-primary text-primary-foreground"
-    } ${className}`}
-  >
-    {children}
-  </span>
-);

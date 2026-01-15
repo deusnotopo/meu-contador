@@ -208,10 +208,23 @@ export const useInvestments = () => {
     showSuccess("Cotações atualizadas via B3!");
   };
 
+  const totals = {
+    currentValue: assets.reduce(
+      (sum, a) => sum + (a.currentPrice || a.averagePrice) * a.amount,
+      0
+    ),
+    totalInvested: assets.reduce(
+      (sum, a) => sum + a.averagePrice * a.amount,
+      0
+    ),
+    totalDividends: dividends.reduce((sum, d) => sum + d.amount, 0),
+  };
+
   return {
     assets,
     dividends,
     loading,
+    totals,
     addAsset,
     updateAsset,
     deleteAsset,

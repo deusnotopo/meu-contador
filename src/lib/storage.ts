@@ -33,7 +33,18 @@ export const pushToCloud = async (key: string, data: unknown) => {
   if (userId) {
     try {
       window.dispatchEvent(new Event("sync:start"));
-      await syncToCloud(userId, key, data);
+
+      // Profile always goes to 'users'
+      if (key === STORAGE_KEYS.PROFILE) {
+        await syncToCloud(userId, key, data, "users");
+      } else {
+        // Other data goes to current workspace
+        const profile = loadProfile();
+        const workspaceId = profile?.currentWorkspaceId || userId;
+        const collection = profile?.currentWorkspaceId ? "workspaces" : "users";
+        await syncToCloud(workspaceId, key, data, collection);
+      }
+
       window.dispatchEvent(new Event("sync:end"));
     } catch (error) {
       console.error("Sync error:", error);
@@ -50,13 +61,52 @@ export const syncAllData = async (userId: string) => {
   if (!userId) return;
 
   try {
-    const keys = Object.values(STORAGE_KEYS);
-    console.log(`[Sync] Starting parallel sync for ${keys.length} keys...`);
+    console.log(`[Sync] Starting sync sequence for user ${userId}...`);
+
+    // 1. Sync Profile FIRST (Always from users collection)
+    try {
+      const cloudProfile = await loadFromCloud(
+        userId,
+        STORAGE_KEYS.PROFILE,
+        "users"
+      );
+      if (cloudProfile) {
+        localStorage.setItem(
+          STORAGE_KEYS.PROFILE,
+          JSON.stringify(cloudProfile)
+        );
+        window.dispatchEvent(
+          new CustomEvent(STORAGE_EVENT, {
+            detail: { key: STORAGE_KEYS.PROFILE, data: cloudProfile },
+          })
+        );
+      }
+    } catch (e) {
+      console.error("[Sync] Failed to sync profile:", e);
+    }
+
+    // 2. Determine Sync Target (Workspace vs Personal)
+    const profile = loadProfile();
+    const workspaceId = profile?.currentWorkspaceId || userId;
+    const collectionName = profile?.currentWorkspaceId ? "workspaces" : "users";
+
+    console.log(
+      `[Sync] Target: ${collectionName}/${workspaceId} (Workspace Mode: ${!!profile?.currentWorkspaceId})`
+    );
+
+    // 3. Sync all other keys from target
+    const keys = Object.values(STORAGE_KEYS).filter(
+      (k) => k !== STORAGE_KEYS.PROFILE
+    );
 
     await Promise.all(
       keys.map(async (key) => {
         try {
-          const cloudData = await loadFromCloud(userId, key);
+          const cloudData = await loadFromCloud(
+            workspaceId,
+            key,
+            collectionName
+          );
           if (cloudData) {
             localStorage.setItem(key, JSON.stringify(cloudData));
             // Trigger local update for hooks

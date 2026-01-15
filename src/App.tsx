@@ -24,8 +24,10 @@ import { VoiceCommander } from "./components/ai/VoiceCommander";
 import { LoginForm } from "./components/auth/LoginForm";
 import { HelpCenter } from "./components/support/HelpCenter";
 import { SyncIndicator } from "./components/ui/SyncIndicator";
+import { WorkspaceSwitcher } from "./components/ui/WorkspaceSwitcher";
 import { CardSkeleton } from "./components/ui/skeleton";
 import { useAuth } from "./context/AuthContext";
+import { CurrencyProvider } from "./context/CurrencyContext";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { useCloudSync } from "./hooks/useCloudSync";
@@ -324,6 +326,7 @@ const App = () => {
               </div>
 
               <div className="flex items-center gap-3">
+                <WorkspaceSwitcher />
                 <SyncIndicator />
                 <Button
                   variant="ghost"
@@ -472,7 +475,9 @@ const App = () => {
 const AppWithProviders = () => (
   <ThemeProvider>
     <LanguageProvider>
-      <App />
+      <CurrencyProvider>
+        <App />
+      </CurrencyProvider>
     </LanguageProvider>
   </ThemeProvider>
 );

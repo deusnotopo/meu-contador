@@ -23,8 +23,10 @@ import {
     Sun,
     Upload,
     User,
+    Users
 } from "lucide-react";
 import { useState } from "react";
+import { CollaborationPanel } from "../profile/CollaborationPanel";
 
 const LanguageSwitcher = () => {
   const { language, setLanguage } = useLanguage();
@@ -166,6 +168,7 @@ export const SettingsSection = () => {
                 icon: User,
               },
               { id: "business", label: "Dados da Empresa", icon: Building2 },
+              { id: "collab", label: "Espaços (Novo)", icon: Users },
               { id: "visual", label: "Aparência & Temas", icon: Palette },
               { id: "mobile", label: "Mobile & PWA", icon: Smartphone },
               { id: "data", label: "Dados & Backup", icon: Database },
@@ -310,6 +313,18 @@ export const SettingsSection = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Collaboration Section */}
+          {activeTab === "collab" && (
+            <CollaborationPanel
+              profile={profile}
+              onUpdate={(updated) => {
+                setProfile(updated);
+                saveProfile(updated);
+              }}
+              userId={user?.uid || ""}
+            />
           )}
 
           {/* Visual Section */}

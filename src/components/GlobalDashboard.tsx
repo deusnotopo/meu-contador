@@ -1,4 +1,5 @@
 import { useLanguage } from "@/context/LanguageContext";
+import { useInvestments } from "@/hooks/useInvestments";
 import { useTransactions } from "@/hooks/useTransactions";
 import { calculateFinancialHealth } from "@/lib/financial-health";
 import { exportFinancialReport } from "@/lib/pdf-export";
@@ -7,6 +8,7 @@ import { showSuccess } from "@/lib/toast";
 import type { BillReminder } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowUpRight,
   Bell,
   Bot,
   Building2,
@@ -14,18 +16,21 @@ import {
   FileText,
   Sparkles,
   User,
+  Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AIFinancialChat } from "./ai/AIFinancialChat";
 import { SmartAlerts } from "./ai/SmartAlerts";
 import { SmartCoach } from "./ai/SmartCoach";
 import { AdvancedCombinedChart } from "./charts/AdvancedCombinedChart";
+import { NetWorthChart } from "./charts/NetWorthChart";
 import { PrivacyValue } from "./ui/PrivacyValue";
 import { Button } from "./ui/button";
 
 export const GlobalDashboard = () => {
   const personal = useTransactions("personal");
   const business = useTransactions("business");
+  const { totals: investTotals } = useInvestments();
   const [nextBills, setNextBills] = useState<BillReminder[]>([]);
   const [showChat, setShowChat] = useState(false);
   const profile = loadProfile();
@@ -57,12 +62,24 @@ export const GlobalDashboard = () => {
     income: personal.totals.income + business.totals.income,
     expense: personal.totals.expense + business.totals.expense,
     balance: personal.totals.balance + business.totals.balance,
+    netWorth:
+      personal.totals.balance +
+      business.totals.balance +
+      investTotals.currentValue,
     count: personal.transactions.length + business.transactions.length,
   };
 
+  // Mock historical net worth data based on monthly trend
+  const netWorthHistory = personal.monthlyTrend.map((d) => ({
+    month: d.month,
+    value:
+      globalTotals.netWorth -
+      (personal.totals.balance - (d.receitas - d.despesas)),
+  }));
+
   const { score: globalHealth, dti } = calculateFinancialHealth(
     [...personal.transactions, ...business.transactions],
-    globalTotals
+    globalTotals as any
   );
 
   const getHealthStatus = (s: number) => {
@@ -94,7 +111,7 @@ export const GlobalDashboard = () => {
   return (
     <div className="space-y-12 animate-fade-in pb-12">
       {/* AI command Center Hero */}
-      <div className="premium-card p-6 md:p-12">
+      <div className="premium-card p-6 md:p-12 overflow-hidden">
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/10 blur-[120px] rounded-full" />
         <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-purple-500/5 blur-[120px] rounded-full" />
 
@@ -110,14 +127,26 @@ export const GlobalDashboard = () => {
               Controle <br />
               <span className="premium-gradient-text">Absoluto</span>
             </h2>
-            <p className="text-base text-slate-400 font-medium max-w-lg leading-relaxed">
-              Bem-vindo ao seu{" "}
-              <span className="text-white">Ecossistema Financeiro</span>.
-              {globalTotals.count > 0
-                ? ` Sua inteligência artificial processou ${globalTotals.count} eventos nesta sessão.`
-                : " Pronto para transformar seus dados em patrimônio."}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+
+            {/* Net Worth Teaser - Exclusive to Super App Status */}
+            <div className="mt-8 flex items-center gap-6">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Patrimônio Líquido
+                </p>
+                <div className="text-3xl font-black text-white flex items-baseline gap-2">
+                  <PrivacyValue value={globalTotals.netWorth} />
+                  <span className="text-emerald-400 text-xs flex items-center gap-1 font-bold">
+                    <ArrowUpRight size={14} /> +12.4%
+                  </span>
+                </div>
+              </div>
+              <div className="flex-1 max-w-[200px] h-[50px]">
+                <NetWorthChart data={netWorthHistory} />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
               <Button
                 onClick={() => setShowChat(true)}
                 className="w-full sm:w-auto h-14 px-10 rounded-2xl bg-white text-black font-black hover:bg-white/90 shadow-xl shadow-white/5 transition-all text-sm tracking-tight"
@@ -172,13 +201,13 @@ export const GlobalDashboard = () => {
             icon: Bell,
           },
           {
-            label: t("dash.balance"),
-            value: globalTotals.balance,
-            color: "text-white",
-            icon: Sparkles,
+            label: "Total Investido",
+            value: investTotals.totalInvested,
+            color: "text-amber-400",
+            icon: Wallet,
           },
           {
-            label: "Fluxo",
+            label: "Eventos IA",
             value: globalTotals.count,
             isRaw: true,
             color: "text-indigo-400",

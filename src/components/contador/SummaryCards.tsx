@@ -1,10 +1,23 @@
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
-  ListChecks,
-  Wallet,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    CurrencyCode,
+    SUPPORTED_CURRENCIES,
+    currencyService,
+} from "@/lib/currency";
+import {
+    ArrowDownCircle,
+    ArrowUpCircle,
+    ListChecks,
+    Wallet,
 } from "lucide-react";
+import { useState } from "react";
 import { PrivacyValue } from "../ui/PrivacyValue";
 
 interface Props {
@@ -22,6 +35,13 @@ export const SummaryCards = ({
   transactionCount,
   isGlobal = false,
 }: Props) => {
+  const [currency, setCurrency] = useState<CurrencyCode>("BRL");
+
+  const convert = (val: number) =>
+    currencyService.convertFromBRL(val, currency);
+
+  const format = (val: number) => currencyService.format(val, currency);
+
   const cards = [
     {
       title: isGlobal ? "Total em Caixa" : "Saldo Atual",
@@ -59,10 +79,30 @@ export const SummaryCards = ({
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-      {cards.map((card, i) => (
-        <Card
-          key={i}
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Select
+          value={currency}
+          onValueChange={(v: CurrencyCode) => setCurrency(v)}
+        >
+          <SelectTrigger className="w-[140px] h-8 bg-white/5 border-white/10 text-xs font-bold uppercase tracking-widest text-slate-400">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <SelectItem key={c.code} value={c.code}>
+                {c.symbol} {c.code}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {cards.map((card, i) => (
+          <Card
+            key={i}
           className={`glass-card border-none group transition-all duration-500 hover:-translate-y-2 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden ${
             card.gradient.includes("gradient")
               ? "bg-gradient-to-br from-indigo-600/20 to-purple-600/20"
@@ -111,7 +151,12 @@ export const SummaryCards = ({
                 {card.isCount ? (
                   card.value
                 ) : (
-                  <PrivacyValue value={card.value} />
+                  card.value
+                ) : (
+                  <PrivacyValue
+                    value={card.value}
+                    displayValue={format(convert(card.value))}
+                  />
                 )}
               </h3>
               <p
@@ -127,6 +172,7 @@ export const SummaryCards = ({
           </CardContent>
         </Card>
       ))}
+      </div>
     </div>
   );
 };

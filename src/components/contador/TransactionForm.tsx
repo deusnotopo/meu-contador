@@ -3,20 +3,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import {
-  businessCategories,
-  initialTransactionFormData,
-  paymentMethods,
-  personalCategories,
+    businessCategories,
+    initialTransactionFormData,
+    paymentMethods,
+    personalCategories,
 } from "@/lib/constants";
+import {
+    SUPPORTED_CURRENCIES,
+    currencyService,
+} from "@/lib/currency";
 import { getDefaultClassification } from "@/lib/financial-health";
-import type { Transaction, TransactionFormData } from "@/types";
+import type { CurrencyCode, Transaction, TransactionFormData } from "@/types";
 import { Edit2, PlusCircle, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -35,6 +39,8 @@ export const TransactionForm = ({
 }: TransactionFormProps) => {
   const [formData, setFormData] = useState<TransactionFormData>({
     ...initialTransactionFormData,
+    ...initialTransactionFormData,
+    currency: "BRL",
     scope,
   });
 
@@ -57,7 +63,23 @@ export const TransactionForm = ({
       showError("Por favor, preencha todos os campos obrigatórios");
       return;
     }
-    onSubmit(formData, !!editingTransaction);
+    // Convert Amount if needed (Base is BRL)
+    const finalAmount = currencyService.convertToBRL(
+      parseFloat(formData.amount),
+      (formData.currency as CurrencyCode) || "BRL"
+    );
+
+    // Save with original specs
+    const payload = {
+      ...formData,
+      amount: finalAmount.toString(),
+      originalAmount: parseFloat(formData.amount),
+      exchangeRate: currencyService
+        .getRate((formData.currency as CurrencyCode) || "BRL")
+        .toString(),
+    };
+
+    onSubmit(payload, !!editingTransaction);
   };
 
   return (
@@ -128,6 +150,38 @@ export const TransactionForm = ({
               }
               placeholder="0,00"
             />
+          </div>
+
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Moeda</Label>
+            <Select
+              value={formData.currency || "BRL"}
+              onValueChange={(value: CurrencyCode) =>
+                setFormData({ ...formData, currency: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    {c.symbol} - {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {formData.currency && formData.currency !== "BRL" && (
+              <p className="text-[10px] text-muted-foreground">
+                Cotação: 1 {formData.currency} ={" "}
+                {currencyService
+                  .getRate(formData.currency as CurrencyCode)
+                  .toFixed(2)}{" "}
+                BRL
+              </p>
+            )}
           </div>
 
           <div className="md:col-span-2 space-y-2">

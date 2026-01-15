@@ -1,46 +1,51 @@
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/context/AuthContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useInvestments } from "@/hooks/useInvestments";
 import { formatCurrency } from "@/lib/formatters";
+import { loadProfile } from "@/lib/storage";
+import { Investment } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-    Briefcase,
-    LineChart,
-    PieChart,
-    Plus,
-    RefreshCcw,
-    Trash2,
+  Briefcase,
+  LineChart,
+  PieChart,
+  Plus,
+  RefreshCcw,
+  Trash2,
 } from "lucide-react";
 import { useState } from "react";
 import {
-    Cell,
-    Pie,
-    PieChart as RePieChart,
-    ResponsiveContainer,
-    Tooltip,
+  Cell,
+  Pie,
+  PieChart as RePieChart,
+  ResponsiveContainer,
+  Tooltip,
 } from "recharts";
 import { PrivacyValue } from "../ui/PrivacyValue";
+import { DividendForecast } from "./DividendForecast";
 import { DividendList } from "./DividendList";
-
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/context/AuthContext";
-import { AnimatePresence, motion } from "framer-motion";
+import { PortfolioAnalysis } from "./PortfolioAnalysis";
+import { RebalancingPanel } from "./RebalancingPanel";
 
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
 
@@ -65,13 +70,22 @@ const item = {
 
 export const InvestmentsDashboard = () => {
   const { user } = useAuth();
-  const { assets, loading, addAsset, deleteAsset, addSale, getTaxIndicators, syncPrices } =
-    useInvestments();
+  const {
+    assets,
+    loading,
+    addAsset,
+    deleteAsset,
+    addSale,
+    getTaxIndicators,
+    syncPrices,
+    dividends,
+  } = useInvestments();
+  const { convert } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
-  const [sellAssetId, setSellAssetId] = useState<number | null>(null);
   const [sellAmount, setSellAmount] = useState("");
   const [sellPrice, setSellPrice] = useState("");
   const [showRealGain, setShowRealGain] = useState(false);
+  const [profile] = useState(loadProfile()); // Load profile safely
   const IPCA_ANUAL = 0.045; // 4.5% sample IPCA for Brazil context
 
   // ... (keeping existing logic functions)
@@ -95,15 +109,20 @@ export const InvestmentsDashboard = () => {
     amount: "",
     averagePrice: "",
     currentPrice: "",
+    currency: "BRL" as "BRL" | "USD" | "EUR" | "GBP",
     targetAllocation: "",
   });
 
   const totalInvested = assets.reduce(
-    (acc, curr) => acc + curr.amount * curr.averagePrice,
+    (acc, curr) =>
+      acc +
+      convert(curr.amount * curr.averagePrice, curr.currency || "BRL", "BRL"),
     0
   );
   const totalValue = assets.reduce(
-    (acc, curr) => acc + curr.amount * curr.currentPrice,
+    (acc, curr) =>
+      acc +
+      convert(curr.amount * curr.currentPrice, curr.currency || "BRL", "BRL"),
     0
   );
   const profit = totalValue - totalInvested;
@@ -112,7 +131,11 @@ export const InvestmentsDashboard = () => {
 
   const allocationData = assets.map((asset) => ({
     name: asset.ticker,
-    value: asset.amount * asset.currentPrice,
+    value: convert(
+      asset.amount * asset.currentPrice,
+      asset.currency || "BRL",
+      "BRL"
+    ),
   }));
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -124,7 +147,8 @@ export const InvestmentsDashboard = () => {
       amount: parseFloat(formData.amount),
       averagePrice: parseFloat(formData.averagePrice),
       currentPrice: parseFloat(formData.currentPrice || formData.averagePrice),
-      sector: formData.sector,
+      currency: formData.currency,
+      sector: "General", // Default sector
       targetAllocation: parseFloat(formData.targetAllocation) || 0,
     });
     setIsOpen(false);
@@ -135,7 +159,7 @@ export const InvestmentsDashboard = () => {
       amount: "",
       averagePrice: "",
       currentPrice: "",
-      sector: "",
+      currency: "BRL",
       targetAllocation: "",
     });
   };
@@ -262,40 +286,65 @@ export const InvestmentsDashboard = () => {
                       required
                     />
                   </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">
-                          Qtd
-                        </Label>
-                        <Input
-                          className="bg-white/5 border-white/10 h-12 rounded-xl"
-                          type="number"
-                          step="any"
-                          value={formData.amount}
-                          onChange={(e) =>
-                            setFormData({ ...formData, amount: e.target.value })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">
-                          Preço Médio
-                        </Label>
-                        <Input
-                          className="bg-white/5 border-white/10 h-12 rounded-xl"
-                          type="number"
-                          step="0.01"
-                          value={formData.averagePrice}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              averagePrice: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                        Moeda
+                      </Label>
+                      <Select
+                        value={formData.currency}
+                        onValueChange={(v) =>
+                          setFormData({
+                            ...formData,
+                            currency: v as any,
+                          })
+                        }
+                      >
+                        <SelectTrigger className="bg-white/5 border-white/10 h-12 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                          <SelectItem value="BRL">Real (BRL)</SelectItem>
+                          <SelectItem value="USD">Dólar (USD)</SelectItem>
+                          <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                          <SelectItem value="GBP">Libra (GBP)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                        Qtd
+                      </Label>
+                      <Input
+                        className="bg-white/5 border-white/10 h-12 rounded-xl"
+                        type="number"
+                        step="any"
+                        value={formData.amount}
+                        onChange={(e) =>
+                          setFormData({ ...formData, amount: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                        Preço Médio
+                      </Label>
+                      <Input
+                        className="bg-white/5 border-white/10 h-12 rounded-xl"
+                        type="number"
+                        step="0.01"
+                        value={formData.averagePrice}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            averagePrice: e.target.value,
+                          })
+                        }
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">
@@ -335,15 +384,19 @@ export const InvestmentsDashboard = () => {
         >
           {[
             { label: "Patrimônio", value: totalValue, type: "currency" },
-            { 
-              label: showRealGain ? "Lucro Real (Líquido)" : "Lucro Bruto", 
-              value: showRealGain ? profit - (totalInvested * IPCA_ANUAL) : profit, 
-              type: "profit" 
+            {
+              label: showRealGain ? "Lucro Real (Líquido)" : "Lucro Bruto",
+              value: showRealGain
+                ? profit - totalInvested * IPCA_ANUAL
+                : profit,
+              type: "profit",
             },
-            { 
-              label: showRealGain ? "Rendimento Real" : "Performance", 
-              value: showRealGain ? profitPercentage - (IPCA_ANUAL * 100) : profitPercentage, 
-              type: "percent" 
+            {
+              label: showRealGain ? "Rendimento Real" : "Performance",
+              value: showRealGain
+                ? profitPercentage - IPCA_ANUAL * 100
+                : profitPercentage,
+              type: "percent",
             },
           ].map((stat, i) => (
             <motion.div
@@ -403,6 +456,18 @@ export const InvestmentsDashboard = () => {
               Rebalancear
             </TabsTrigger>
             <TabsTrigger
+              value="forecast"
+              className="px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg active:scale-95"
+            >
+              Projeção
+            </TabsTrigger>
+            <TabsTrigger
+              value="analysis"
+              className="px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg active:scale-95"
+            >
+              Análise
+            </TabsTrigger>
+            <TabsTrigger
               value="fiscal"
               className="px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg active:scale-95"
             >
@@ -445,7 +510,7 @@ export const InvestmentsDashboard = () => {
                           dataKey="value"
                           stroke="none"
                         >
-                          {allocationData.map((entry, index) => (
+                          {allocationData.map((_, index) => (
                             <Cell
                               key={`cell-${index}`}
                               fill={COLORS[index % COLORS.length]}
@@ -562,7 +627,10 @@ export const InvestmentsDashboard = () => {
                             <div className="flex items-center gap-8">
                               <div className="text-right">
                                 <div className="font-black text-white text-lg tracking-tight">
-                                  <PrivacyValue value={assetValue} />
+                                  <PrivacyValue
+                                    value={assetValue}
+                                    currency={asset.currency}
+                                  />
                                 </div>
                                 <div
                                   className={`text-xs font-bold ${
@@ -583,8 +651,9 @@ export const InvestmentsDashboard = () => {
                                       size="sm"
                                       className="opacity-0 group-hover:opacity-100 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 px-4 h-10 font-bold text-[10px] uppercase tracking-widest"
                                       onClick={() => {
-                                        setSellAssetId(asset.id);
-                                        setSellPrice(asset.currentPrice.toString());
+                                        setSellPrice(
+                                          asset.currentPrice.toString()
+                                        );
                                       }}
                                     >
                                       Vender
@@ -599,13 +668,16 @@ export const InvestmentsDashboard = () => {
                                     <div className="space-y-4 pt-4">
                                       <div className="space-y-2">
                                         <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">
-                                          Quantidade (Disponível: {asset.amount})
+                                          Quantidade (Disponível: {asset.amount}
+                                          )
                                         </Label>
                                         <Input
                                           type="number"
                                           className="bg-white/5 h-12 rounded-xl"
                                           value={sellAmount}
-                                          onChange={(e) => setSellAmount(e.target.value)}
+                                          onChange={(e) =>
+                                            setSellAmount(e.target.value)
+                                          }
                                           max={asset.amount}
                                         />
                                       </div>
@@ -617,7 +689,9 @@ export const InvestmentsDashboard = () => {
                                           type="number"
                                           className="bg-white/5 h-12 rounded-xl"
                                           value={sellPrice}
-                                          onChange={(e) => setSellPrice(e.target.value)}
+                                          onChange={(e) =>
+                                            setSellPrice(e.target.value)
+                                          }
                                         />
                                       </div>
                                       <Button
@@ -632,7 +706,6 @@ export const InvestmentsDashboard = () => {
                                             date: new Date().toISOString(),
                                           });
                                           setSellAmount("");
-                                          setSellAssetId(null);
                                         }}
                                       >
                                         Confirmar Venda
@@ -666,7 +739,15 @@ export const InvestmentsDashboard = () => {
           </TabsContent>
 
           <TabsContent value="rebalance" className="mt-0 outline-none">
-            {/* ... (keeping existing rebalance content) */}
+            <RebalancingPanel assets={assets} />
+          </TabsContent>
+
+          <TabsContent value="forecast" className="mt-0 outline-none">
+            <DividendForecast assets={assets} dividends={dividends} />
+          </TabsContent>
+
+          <TabsContent value="analysis" className="mt-0 outline-none">
+            <PortfolioAnalysis assets={assets} profile={profile || undefined} />
           </TabsContent>
 
           <TabsContent value="fiscal" className="mt-0 outline-none">
@@ -674,7 +755,8 @@ export const InvestmentsDashboard = () => {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <h3 className="text-2xl font-black text-white uppercase tracking-tight">
-                    Inteligência <span className="text-indigo-400">Fiscal</span> 🇧🇷
+                    Inteligência <span className="text-indigo-400">Fiscal</span>{" "}
+                    🇧🇷
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
                     Monitoramento de impostos e limites de isenção.
@@ -690,7 +772,10 @@ export const InvestmentsDashboard = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {getTaxIndicators().map((indicator) => (
-                    <div key={indicator.month} className="p-8 rounded-[40px] bg-white/[0.03] border border-white/5 space-y-6">
+                    <div
+                      key={indicator.month}
+                      className="p-8 rounded-[40px] bg-white/[0.03] border border-white/5 space-y-6"
+                    >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-4 py-1.5 rounded-full">
                           {indicator.month}
@@ -712,29 +797,49 @@ export const InvestmentsDashboard = () => {
                             Vendas de Ações (Mês)
                           </p>
                           <p className="text-xl font-black text-white">
-                            {formatCurrency(indicator.totalStockSales)} <span className="text-slate-600">/ R$ 20k</span>
+                            {formatCurrency(indicator.totalStockSales)}{" "}
+                            <span className="text-slate-600">/ R$ 20k</span>
                           </p>
                         </div>
                         <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                           <motion.div
                             initial={{ width: 0 }}
-                            animate={{ width: `${Math.min((indicator.totalStockSales / 20000) * 100, 100)}%` }}
-                            className={`h-full transition-all ${indicator.isOverLimit ? 'bg-rose-500' : indicator.totalStockSales > 15000 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                            animate={{
+                              width: `${Math.min(
+                                (indicator.totalStockSales / 20000) * 100,
+                                100
+                              )}%`,
+                            }}
+                            className={`h-full transition-all ${
+                              indicator.isOverLimit
+                                ? "bg-rose-500"
+                                : indicator.totalStockSales > 15000
+                                ? "bg-amber-500"
+                                : "bg-emerald-500"
+                            }`}
                           />
                         </div>
                       </div>
 
                       <div className="pt-6 border-t border-white/5 flex justify-between items-center">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Imposto Estimado (Swing)</p>
-                          <p className={`text-xl font-black ${indicator.isOverLimit ? 'text-rose-400' : 'text-slate-500'}`}>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            Imposto Estimado (Swing)
+                          </p>
+                          <p
+                            className={`text-xl font-black ${
+                              indicator.isOverLimit
+                                ? "text-rose-400"
+                                : "text-slate-500"
+                            }`}
+                          >
                             {formatCurrency(indicator.estimatedTax)}
                           </p>
                         </div>
                         <div className="text-right max-w-[150px]">
                           <p className="text-[8px] font-medium text-slate-500 leading-tight">
-                            {indicator.isOverLimit 
-                              ? "Você deve emitir um DARF (código 6015) até o último dia útil do mês seguinte." 
+                            {indicator.isOverLimit
+                              ? "Você deve emitir um DARF (código 6015) até o último dia útil do mês seguinte."
                               : "Vendas abaixo de R$ 20k/mês em ações são isentas de IR no Brasil."}
                           </p>
                         </div>
@@ -746,15 +851,36 @@ export const InvestmentsDashboard = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                  { title: "FIIs", desc: "Isentos no dividendo, mas pagam 20% sobre lucro na venda (qualquer valor).", color: "text-amber-400" },
-                  { title: "Day Trade", desc: "Alíquota fixa de 20% sobre o lucro líquido. Não há isenção de R$ 20k.", color: "text-rose-400" },
-                  { title: "Cripto", desc: "Isenção de até R$ 35k em vendas mensais (exceto para lucro no exterior).", color: "text-indigo-400" }
+                  {
+                    title: "FIIs",
+                    desc: "Isentos no dividendo, mas pagam 20% sobre lucro na venda (qualquer valor).",
+                    color: "text-amber-400",
+                  },
+                  {
+                    title: "Day Trade",
+                    desc: "Alíquota fixa de 20% sobre o lucro líquido. Não há isenção de R$ 20k.",
+                    color: "text-rose-400",
+                  },
+                  {
+                    title: "Cripto",
+                    desc: "Isenção de até R$ 35k em vendas mensais (exceto para lucro no exterior).",
+                    color: "text-indigo-400",
+                  },
                 ].map((item) => (
-                  <div key={item.title} className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 flex items-start gap-4">
+                  <div
+                    key={item.title}
+                    className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 flex items-start gap-4"
+                  >
                     <div className="mt-1 w-2 h-2 rounded-full bg-white/20 shrink-0" />
                     <div>
-                      <h4 className={`text-xs font-black uppercase tracking-widest mb-1 ${item.color}`}>{item.title}</h4>
-                      <p className="text-[10px] text-slate-400 leading-relaxed font-medium">{item.desc}</p>
+                      <h4
+                        className={`text-xs font-black uppercase tracking-widest mb-1 ${item.color}`}
+                      >
+                        {item.title}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                        {item.desc}
+                      </p>
                     </div>
                   </div>
                 ))}

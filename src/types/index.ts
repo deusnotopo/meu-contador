@@ -12,6 +12,9 @@ export interface Transaction {
   recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly";
   scope: "personal" | "business";
   classification?: "necessity" | "want" | "investment" | "debt";
+  currency?: "BRL" | "USD" | "EUR" | "GBP";
+  originalAmount?: number;
+  exchangeRate?: number;
 }
 
 export interface TransactionFormData {
@@ -26,6 +29,8 @@ export interface TransactionFormData {
   recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly";
   scope: "personal" | "business";
   classification?: "necessity" | "want" | "investment" | "debt";
+  currency?: "BRL" | "USD" | "EUR" | "GBP";
+  exchangeRate?: string;
 }
 
 // ============= Budget Types =============
@@ -142,6 +147,8 @@ export interface UserProfile {
     sector: string;
     cnpj?: string;
   };
+  currentWorkspaceId?: string;
+  workspaces?: string[]; // List of workspace IDs user has access to
   isPro?: boolean;
   subscriptionPlan?: "free" | "pro";
 }
@@ -202,6 +209,7 @@ export interface Investment {
   amount: number; // Quantity
   averagePrice: number;
   currentPrice: number;
+  currency?: "BRL" | "USD" | "EUR" | "GBP";
   sector: string;
   targetAllocation?: number; // Target percentage (0-100)
   lastUpdate: string;

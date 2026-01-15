@@ -5,12 +5,16 @@ interface PrivacyValueProps {
   value: number;
   className?: string;
   isRaw?: boolean;
+  displayValue?: string;
+  currency?: string;
 }
 
 export const PrivacyValue = ({
   value,
   className,
   isRaw,
+  displayValue,
+  currency = "BRL",
 }: PrivacyValueProps) => {
   const { privacyMode } = useAuth();
 
@@ -19,6 +23,8 @@ export const PrivacyValue = ({
   }
 
   return (
-    <span className={className}>{isRaw ? value : formatCurrency(value)}</span>
+    <span className={className}>
+      {displayValue || (isRaw ? value : formatCurrency(value, currency))}
+    </span>
   );
 };

@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 2%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 4%;
+  --card-foreground: 0 0% 98%;
+  --primary: 250 100% 65%;
+  --primary-foreground: 0 0% 100%;
+}
+
+body {
+  background-color: black;
+  color: white;
+}

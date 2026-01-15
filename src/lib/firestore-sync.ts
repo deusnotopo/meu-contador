@@ -10,11 +10,12 @@ import { db } from "./firebase";
 export const syncToCloud = async (
   userId: string,
   key: string,
-  data: unknown
+  data: unknown,
+  collectionName: string = "users"
 ) => {
   if (!userId) return;
   try {
-    const userRef = doc(db, "users", userId, "data", key);
+    const userRef = doc(db, collectionName, userId, "data", key);
     await setDoc(
       userRef,
       {
@@ -33,10 +34,14 @@ export const syncToCloud = async (
  * @param userId - The Firebase user ID
  * @param key - The storage key
  */
-export const loadFromCloud = async (userId: string, key: string) => {
+export const loadFromCloud = async (
+  userId: string,
+  key: string,
+  collectionName: string = "users"
+) => {
   if (!userId) return null;
   try {
-    const userRef = doc(db, "users", userId, "data", key);
+    const userRef = doc(db, collectionName, userId, "data", key);
     const snap = await getDoc(userRef);
     if (snap.exists()) {
       return snap.data().payload;
@@ -55,11 +60,12 @@ export const loadFromCloud = async (userId: string, key: string) => {
 export const subscribeToCloud = (
   userId: string,
   key: string,
-  onUpdate: (data: unknown) => void
+  onUpdate: (data: unknown) => void,
+  collectionName: string = "users"
 ) => {
   if (!userId) return () => {};
 
-  const userRef = doc(db, "users", userId, "data", key);
+  const userRef = doc(db, collectionName, userId, "data", key);
   return onSnapshot(userRef, (snap) => {
     if (snap.exists()) {
       onUpdate(snap.data().payload);
