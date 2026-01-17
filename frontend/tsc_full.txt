@@ -1,0 +1,207 @@
+﻿src/components/ai/VoiceInput.tsx(15,50): error TS2304: Cannot find name 'SpeechRecognition'.
+src/components/banking/BankConnectionModal.tsx(4,33): error TS6133: 'BankAccount' is declared but its value is never read.
+src/components/business/BusinessFinance.tsx(266,71): error TS2322: Type '(amount: number, from: Currency, to: Currency) => number' is not assignable to type '(amount: number, from: string, to: string) => number'.
+  Types of parameters 'from' and 'from' are incompatible.
+    Type 'string' is not assignable to type 'Currency'.
+src/components/business/InvoicesSection.tsx(36,31): error TS2304: Cannot find name 'useState'.
+src/components/business/InvoicesSection.tsx(37,39): error TS2304: Cannot find name 'useState'.
+src/components/business/InvoicesSection.tsx(39,35): error TS2304: Cannot find name 'useState'.
+src/components/contador/TransactionForm.tsx(20,15): error TS2724: '"@/types"' has no exported member named 'CurrencyCode'. Did you mean 'Currency'?
+src/components/contador/TransactionForm.tsx(20,29): error TS2305: Module '"@/types"' has no exported member 'FinancialClassification'.
+src/components/contador/TransactionForm.tsx(49,19): error TS2345: Argument of type '{ amount: string; id: string; type: "income" | "expense"; description: string; category: string; date: string; paymentMethod: string; notes: string; recurring: boolean; recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly"; ... 4 more ...; exchangeRate?: number; }' is not assignable to parameter of type 'SetStateAction<TransactionFormData>'.
+  Type '{ amount: string; id: string; type: "income" | "expense"; description: string; category: string; date: string; paymentMethod: string; notes: string; recurring: boolean; recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly"; ... 4 more ...; exchangeRate?: number; }' is not assignable to type 'TransactionFormData'.
+    Types of property 'exchangeRate' are incompatible.
+      Type 'number | undefined' is not assignable to type 'string | undefined'.
+        Type 'number' is not assignable to type 'string'.
+src/components/contador/TransactionList.tsx(167,30): error TS2304: Cannot find name 'formatCurrency'.
+src/components/design/DesignSystemShowcase.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/ErrorBoundary.test.tsx(8,3): error TS2304: Cannot find name 'beforeAll'.
+src/components/ErrorBoundary.test.tsx(12,3): error TS2304: Cannot find name 'afterAll'.
+src/components/GlobalDashboard.tsx(5,1): error TS6133: 'exportFinancialReport' is declared but its value is never read.
+src/components/GlobalDashboard.tsx(13,3): error TS6133: 'Building2' is declared but its value is never read.
+src/components/GlobalDashboard.tsx(17,11): error TS6133: 'LucideUser' is declared but its value is never read.
+src/components/GlobalDashboard.tsx(30,1): error TS6133: 'AnalyticsDashboard' is declared but its value is never read.
+src/components/GlobalDashboard.tsx(37,9): error TS6133: 'profile' is declared but its value is never read.
+src/components/GlobalDashboard.tsx(39,10): error TS6133: 'backendStatus' is declared but its value is never read.
+src/components/GlobalDashboard.tsx(100,9): error TS6133: 'status' is declared but its value is never read.
+src/components/GlobalDashboard.tsx(265,22): error TS2741: Property 'transactions' is missing in type '{}' but required in type 'AIFinancialChatProps'.
+src/components/GlobalErrorBoundary.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/GlobalErrorBoundary.tsx(21,5): error TS2741: Property 'errorInfo' is missing in type '{ hasError: true; error: Error; }' but required in type 'State'.
+src/components/investments/AddAssetWizard.tsx(65,18): error TS2345: Argument of type '{ name: string; ticker: string; type: "stock" | "fii" | "crypto" | "fixed_income" | "etf"; amount: number; averagePrice: number; currentPrice: number; currency: "BRL" | "USD" | "EUR" | "GBP"; sector: string; targetAllocation: number; }' is not assignable to parameter of type 'Omit<Investment, "id">'.
+  Property 'lastUpdate' is missing in type '{ name: string; ticker: string; type: "stock" | "fii" | "crypto" | "fixed_income" | "etf"; amount: number; averagePrice: number; currentPrice: number; currency: "BRL" | "USD" | "EUR" | "GBP"; sector: string; targetAllocation: number; }' but required in type 'Omit<Investment, "id">'.
+src/components/investments/AddAssetWizard.tsx(218,44): error TS2322: Type 'string' is not assignable to type 'number'.
+src/components/investments/AddAssetWizard.tsx(257,44): error TS2322: Type 'string' is not assignable to type 'number'.
+src/components/investments/AddAssetWizard.tsx(291,42): error TS2322: Type 'string' is not assignable to type 'number'.
+src/components/investments/DividendForecast.tsx(29,16): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/components/investments/DividendList.tsx(26,19): error TS2339: Property 'dividends' does not exist on type '{ assets: Investment[]; loading: boolean; totals: { currentValue: number; totalInvested: number; totalDividends: number; }; addAsset: (asset: Omit<Investment, "id" | "lastUpdate">) => Promise<...>; ... 4 more ...; syncPrices: (token?: string) => Promise<...>; }'.
+src/components/investments/DividendList.tsx(26,43): error TS2339: Property 'deleteDividend' does not exist on type '{ assets: Investment[]; loading: boolean; totals: { currentValue: number; totalInvested: number; totalDividends: number; }; addAsset: (asset: Omit<Investment, "id" | "lastUpdate">) => Promise<...>; ... 4 more ...; syncPrices: (token?: string) => Promise<...>; }'.
+src/components/investments/DividendList.tsx(36,29): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(36,34): error TS7006: Parameter 'curr' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(54,46): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number' have no overlap.
+src/components/investments/DividendList.tsx(58,5): error TS2554: Expected 2 arguments, but got 1.
+src/components/investments/DividendList.tsx(226,35): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(226,40): error TS7006: Parameter 'curr' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(227,25): error TS6133: 'date' is declared but its value is never read.
+src/components/investments/DividendList.tsx(245,38): error TS18046: 'monthDividends' is of type 'unknown'.
+src/components/investments/DividendList.tsx(246,22): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(246,27): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(261,26): error TS18046: 'monthDividends' is of type 'unknown'.
+src/components/investments/DividendList.tsx(263,30): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(263,33): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(267,33): error TS7006: Parameter 'dividend' implicitly has an 'any' type.
+src/components/investments/DividendList.tsx(319,7): error TS6133: 'indicators' is declared but its value is never read.
+src/components/layout/Sidebar.tsx(70,42): error TS2345: Argument of type 'string' is not assignable to parameter of type 'TabType'.
+src/components/notifications/NotificationCenter.tsx(9,3): error TS6133: 'TrendingUp' is declared but its value is never read.
+src/components/notifications/NotificationCenter.tsx(10,3): error TS6133: 'Target' is declared but its value is never read.
+src/components/notifications/NotificationCenter.tsx(11,3): error TS6133: 'DollarSign' is declared but its value is never read.
+src/components/notifications/NotificationCenter.tsx(12,3): error TS6133: 'Calendar' is declared but its value is never read.
+src/components/notifications/NotificationCenter.tsx(20,20): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/onboarding/OnboardingWizard.tsx(51,48): error TS2304: Cannot find name 'Briefcase'.
+src/components/onboarding/OnboardingWizard.tsx(102,50): error TS2304: Cannot find name 'Investment'.
+src/components/onboarding/OnboardingWizard.tsx(1007,60): error TS2339: Property 'businessProfile' does not exist on type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1033,15): error TS2353: Object literal may only specify known properties, and 'businessProfile' does not exist in type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1036,21): error TS2339: Property 'businessProfile' does not exist on type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1084,32): error TS2339: Property 'businessProfile' does not exist on type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1088,21): error TS2353: Object literal may only specify known properties, and 'businessProfile' does not exist in type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1089,34): error TS2339: Property 'businessProfile' does not exist on type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1103,32): error TS2339: Property 'businessProfile' does not exist on type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1107,21): error TS2353: Object literal may only specify known properties, and 'businessProfile' does not exist in type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1108,34): error TS2339: Property 'businessProfile' does not exist on type 'UserProfile'.
+src/components/onboarding/OnboardingWizard.tsx(1189,18): error TS7053: Element implicitly has an 'any' type because expression of type 'string | number | symbol' can't be used to index type '{ showScore: boolean; showPredictions: boolean; weeklyReport: boolean; alerts: boolean; }'.
+  No index signature with a parameter of type 'string' was found on type '{ showScore: boolean; showPredictions: boolean; weeklyReport: boolean; alerts: boolean; }'.
+src/components/onboarding/OnboardingWizard.tsx(1189,43): error TS2304: Cannot find name 'PreferencesType'.
+src/components/onboarding/OnboardingWizard.tsx(1198,26): error TS7053: Element implicitly has an 'any' type because expression of type 'string | number | symbol' can't be used to index type '{ showScore: boolean; showPredictions: boolean; weeklyReport: boolean; alerts: boolean; }'.
+  No index signature with a parameter of type 'string' was found on type '{ showScore: boolean; showPredictions: boolean; weeklyReport: boolean; alerts: boolean; }'.
+src/components/onboarding/OnboardingWizard.tsx(1198,51): error TS2304: Cannot find name 'PreferencesType'.
+src/components/onboarding/OnboardingWizard.tsx(1208,19): error TS7053: Element implicitly has an 'any' type because expression of type 'string | number | symbol' can't be used to index type '{ showScore: boolean; showPredictions: boolean; weeklyReport: boolean; alerts: boolean; }'.
+  No index signature with a parameter of type 'string' was found on type '{ showScore: boolean; showPredictions: boolean; weeklyReport: boolean; alerts: boolean; }'.
+src/components/onboarding/OnboardingWizard.tsx(1208,44): error TS2304: Cannot find name 'PreferencesType'.
+src/components/onboarding/OnboardingWizard.tsx(1357,16): error TS2304: Cannot find name 'Investment'.
+src/components/onboarding/OnboardingWizard.tsx(1358,23): error TS2304: Cannot find name 'Investment'.
+src/components/onboarding/OnboardingWizard.tsx(1369,18): error TS2304: Cannot find name 'Investment'.
+src/components/personal/BudgetsSection.tsx(81,9): error TS2322: Type 'number' is not assignable to type 'string'.
+src/components/personal/BudgetsSection.tsx(104,50): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number' have no overlap.
+src/components/personal/BudgetsSection.tsx(260,53): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/components/personal/EmergencyFundCard.tsx(59,26): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/components/personal/EmergencyFundCard.tsx(60,27): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/components/personal/GlobalAlerts.tsx(4,43): error TS2305: Module '"lucide-react"' has no exported member 'TriangleAlert'.
+src/components/personal/GlobalAlerts.tsx(24,9): error TS6133: 'getVariant' is declared but its value is never read.
+src/components/personal/GoalsSection.tsx(76,9): error TS2322: Type 'number' is not assignable to type 'string'.
+src/components/personal/GoalsSection.tsx(117,46): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number' have no overlap.
+src/components/personal/GoalsSection.tsx(332,51): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/components/personal/RemindersSection.tsx(84,9): error TS2322: Type 'number' is not assignable to type 'string'.
+src/components/personal/RemindersSection.tsx(121,54): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number' have no overlap.
+src/components/personal/RemindersSection.tsx(419,53): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/components/personal/SmartInsights.tsx(141,29): error TS6133: 'i' is declared but its value is never read.
+src/components/profile/AuditLogViewer.tsx(4,19): error TS6133: 'User' is declared but its value is never read.
+src/components/profile/AuditLogViewer.tsx(6,74): error TS2307: Cannot find module '@/components/ui/tooltip' or its corresponding type declarations.
+src/components/receipts/ReceiptScanner.tsx(99,7): error TS2322: Type 'number' is not assignable to type 'string'.
+src/components/security/MFAGate.tsx(3,10): error TS6133: 'ShieldAlert' is declared but its value is never read.
+src/components/settings/SettingsSection.tsx(235,15): error TS2322: Type '(theme: "light" | "dark") => void' is not assignable to type '(theme: "light" | "dark" | "system") => void'.
+  Types of parameters 'theme' and 'theme' are incompatible.
+    Type '"light" | "dark" | "system"' is not assignable to type '"light" | "dark"'.
+      Type '"system"' is not assignable to type '"light" | "dark"'.
+src/components/subscription/Paywall.tsx(13,3): error TS6133: 'featureName' is declared but its value is never read.
+src/components/subscription/Paywall.tsx(14,3): error TS6133: 'description' is declared but its value is never read.
+src/components/subscription/Paywall.tsx(15,3): error TS6133: 'variant' is declared but its value is never read.
+src/components/subscription/Paywall.tsx(17,9): error TS6133: 'isPro' is declared but its value is never read.
+src/components/subscription/Paywall.tsx(18,10): error TS6133: 'showPlans' is declared but its value is never read.
+src/components/subscription/Paywall.tsx(18,21): error TS6133: 'setShowPlans' is declared but its value is never read.
+src/components/ui/PremiumGate.tsx(13,50): error TS6133: 'fallback' is declared but its value is never read.
+src/components/ui/QuickSetupWizard.tsx(2,18): error TS6133: 'AnimatePresence' is declared but its value is never read.
+src/components/ui/QuickSetupWizard.tsx(3,1): error TS6133: 'Button' is declared but its value is never read.
+src/components/ui/SwipeToDelete.tsx(15,67): error TS6133: 'xDir' is declared but its value is never read.
+src/components/ui/SwipeToDelete.tsx(15,85): error TS6133: 'vx' is declared but its value is never read.
+src/components/ui/SyncIndicator.tsx(91,46): error TS2339: Property 'animate' does not exist on type '{ icon: LucideIcon; color: string; bg: string; label: string; } | { icon: LucideIcon; color: string; bg: string; label: string; animate: boolean; } | { icon: LucideIcon; color: string; bg: string; label: string; } | { ...; }'.
+  Property 'animate' does not exist on type '{ icon: LucideIcon; color: string; bg: string; label: string; }'.
+src/context/AuthContext.test.tsx(2,22): error TS6133: 'act' is declared but its value is never read.
+src/context/AuthContext.test.tsx(2,27): error TS6133: 'waitFor' is declared but its value is never read.
+src/context/AuthContext.tsx(111,28): error TS6133: 'backendUser' is declared but its value is never read.
+src/context/LanguageContext.test.tsx(1,32): error TS6133: 'vi' is declared but its value is never read.
+src/context/LanguageContext.test.tsx(1,36): error TS6133: 'beforeEach' is declared but its value is never read.
+src/context/LanguageContext.test.tsx(26,42): error TS2345: Argument of type '"common.save"' is not assignable to parameter of type '"nav.overview" | "nav.personal" | "nav.business" | "nav.investments" | "nav.education" | "nav.settings" | "dash.greeting" | "dash.balance" | "dash.month_expenses" | "dash.month_income" | ... 39 more ... | "settings.about"'.
+src/features/settings/components/SecuritySettings.tsx(33,10): error TS2304: Cannot find name 'Button'.
+src/features/settings/components/SecuritySettings.tsx(38,11): error TS2304: Cannot find name 'Button'.
+src/hooks/useTour.ts(3,10): error TS6133: 'useEffect' is declared but its value is never read.
+src/hooks/useTour.ts(7,9): error TS6133: 't' is declared but its value is never read.
+src/hooks/useWebVitals.ts(32,19): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/ai/action-executor.ts(73,5): error TS2353: Object literal may only specify known properties, and 'context' does not exist in type 'Transaction'.
+src/lib/ai/action-executor.ts(111,9): error TS2741: Property 'recurring' is missing in type '{ id: string; name: string; amount: number; dueDate: string; isPaid: false; category: string; }' but required in type 'BillReminder'.
+src/lib/api-client.ts(4,34): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/api.ts(1,29): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/financial-health.ts(122,5): error TS2739: Type '{ income: number; expense: number; balance: number; }' is missing the following properties from type '{ totalIncome: number; totalExpense: number; balance: number; }': totalIncome, totalExpense
+src/lib/firebase.ts(7,23): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(8,27): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(9,26): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(10,30): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(11,34): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(12,22): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/i18n/translations.ts(2,13): error TS2300: Duplicate identifier 'TranslationKey'.
+src/lib/i18n/translations.ts(133,13): error TS2300: Duplicate identifier 'TranslationKey'.
+src/lib/intent-parser.ts#recurring-detector.ts(1,10): error TS2305: Module '"@/types"' has no exported member 'Reminder'.
+src/lib/logger.test.ts(11,5): error TS2322: Type 'MockInstance<[message?: any, ...optionalParams: any[]], void>' is not assignable to type 'MockInstance<unknown[], unknown>'.
+  The types returned by 'withImplementation(...)' are incompatible between these types.
+    Type 'MockInstance<[message?: any, ...optionalParams: any[]], void> | Promise<MockInstance<[message?: any, ...optionalParams: any[]], void>>' is not assignable to type 'MockInstance<unknown[], unknown> | Promise<MockInstance<unknown[], unknown>>'.
+      Type 'MockInstance<[message?: any, ...optionalParams: any[]], void>' is not assignable to type 'MockInstance<unknown[], unknown> | Promise<MockInstance<unknown[], unknown>>'.
+src/lib/logger.test.ts(12,5): error TS2322: Type 'MockInstance<[message?: any, ...optionalParams: any[]], void>' is not assignable to type 'MockInstance<unknown[], unknown>'.
+  The types returned by 'withImplementation(...)' are incompatible between these types.
+    Type 'MockInstance<[message?: any, ...optionalParams: any[]], void> | Promise<MockInstance<[message?: any, ...optionalParams: any[]], void>>' is not assignable to type 'MockInstance<unknown[], unknown> | Promise<MockInstance<unknown[], unknown>>'.
+      Type 'MockInstance<[message?: any, ...optionalParams: any[]], void>' is not assignable to type 'MockInstance<unknown[], unknown> | Promise<MockInstance<unknown[], unknown>>'.
+src/lib/logger.test.ts(13,5): error TS2322: Type 'MockInstance<[message?: any, ...optionalParams: any[]], void>' is not assignable to type 'MockInstance<unknown[], unknown>'.
+  The types returned by 'withImplementation(...)' are incompatible between these types.
+    Type 'MockInstance<[message?: any, ...optionalParams: any[]], void> | Promise<MockInstance<[message?: any, ...optionalParams: any[]], void>>' is not assignable to type 'MockInstance<unknown[], unknown> | Promise<MockInstance<unknown[], unknown>>'.
+      Type 'MockInstance<[message?: any, ...optionalParams: any[]], void>' is not assignable to type 'MockInstance<unknown[], unknown> | Promise<MockInstance<unknown[], unknown>>'.
+src/lib/logger.test.ts(14,5): error TS2322: Type 'MockInstance<[message?: any, ...optionalParams: any[]], void>' is not assignable to type 'MockInstance<unknown[], unknown>'.
+  The types returned by 'withImplementation(...)' are incompatible between these types.
+    Type 'MockInstance<[message?: any, ...optionalParams: any[]], void> | Promise<MockInstance<[message?: any, ...optionalParams: any[]], void>>' is not assignable to type 'MockInstance<unknown[], unknown> | Promise<MockInstance<unknown[], unknown>>'.
+      Type 'MockInstance<[message?: any, ...optionalParams: any[]], void>' is not assignable to type 'MockInstance<unknown[], unknown> | Promise<MockInstance<unknown[], unknown>>'.
+src/lib/logger.ts(16,39): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/logger.ts(28,11): error TS6133: 'entry' is declared but its value is never read.
+src/lib/onboarding.ts(52,7): error TS2322: Type 'number' is not assignable to type 'string'.
+src/lib/onboarding.ts(67,9): error TS2322: Type '{ id: number; category: string; limit: number; spent: number; month: string; }[]' is not assignable to type 'Budget[]'.
+  Type '{ id: number; category: string; limit: number; spent: number; month: string; }' is not assignable to type 'Budget'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+src/lib/onboarding.ts(79,9): error TS2322: Type '{ id: number; name: string; targetAmount: number; currentAmount: number; deadline: string; icon: string; color: string; }[]' is not assignable to type 'SavingsGoal[]'.
+  Type '{ id: number; name: string; targetAmount: number; currentAmount: number; deadline: string; icon: string; color: string; }' is not assignable to type 'SavingsGoal'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+src/lib/onboarding.ts(102,9): error TS2322: Type '{ id: number; name: string; amount: number; dueDate: string; category: string; isPaid: false; recurring: "monthly"; }[]' is not assignable to type 'BillReminder[]'.
+  Type '{ id: number; name: string; amount: number; dueDate: string; category: string; isPaid: false; recurring: "monthly"; }' is not assignable to type 'BillReminder'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+src/lib/onboarding.ts(121,11): error TS2322: Type '{ id: number; type: "expense"; description: string; amount: number; category: string; date: string; paymentMethod: string; notes: string; recurring: true; scope: "personal"; }[]' is not assignable to type 'Transaction[]'.
+  Type '{ id: number; type: "expense"; description: string; amount: number; category: string; date: string; paymentMethod: string; notes: string; recurring: true; scope: "personal"; }' is not assignable to type 'Transaction'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+src/lib/open-finance.ts(2,30): error TS7016: Could not find a declaration file for module 'uuid'. 'D:/meu-contador/node_modules/uuid/dist/esm-browser/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/uuid` if it exists or add a new declaration (.d.ts) file containing `declare module 'uuid';`
+src/lib/open-finance.ts(47,28): error TS6133: 'accountId' is declared but its value is never read.
+src/lib/open-finance.ts(59,9): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type 'Partial<Transaction>'.
+src/lib/open-finance.ts(68,9): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type 'Partial<Transaction>'.
+src/lib/open-finance.ts(77,9): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type 'Partial<Transaction>'.
+src/lib/pdf-export.ts(77,19): error TS2322: Type 'number[]' is not assignable to type 'Color | undefined'.
+  Type 'number[]' is not assignable to type '[number, number, number]'.
+    Target requires 3 element(s) but source may have fewer.
+src/lib/pdf-export.ts(114,34): error TS2339: Property 'getNumberOfPages' does not exist on type '{ events: PubSub; scaleFactor: number; pageSize: { width: number; getWidth: () => number; height: number; getHeight: () => number; }; pages: number[]; getEncryptor(objectId: number): (data: string) => string; }'.
+src/lib/pdf-export.ts(198,19): error TS2322: Type 'number[]' is not assignable to type 'Color | undefined'.
+  Type 'number[]' is not assignable to type '[number, number, number]'.
+    Target requires 3 element(s) but source may have fewer.
+src/lib/pdf-export.ts(205,23): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'HTMLTableRowElement | RowInput'.
+  Property '0' does not exist on type 'HTMLTableRowElement | RowInput'.
+src/lib/pdf-export.ts(217,34): error TS2339: Property 'getNumberOfPages' does not exist on type '{ events: PubSub; scaleFactor: number; pageSize: { width: number; getWidth: () => number; height: number; getHeight: () => number; }; pages: number[]; getEncryptor(objectId: number): (data: string) => string; }'.
+src/lib/recurrence.ts(72,15): error TS2322: Type 'number' is not assignable to type 'string'.
+src/lib/sentry.ts(9,68): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sentry.ts(17,40): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sentry.ts(54,26): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/sentry.ts(65,57): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/storage.ts(169,5): error TS18046: 'data' is of type 'unknown'.
+src/lib/storage.ts(256,7): error TS2339: Property 'status' does not exist on type 'Transaction'.
+src/lib/storage.ts(346,5): error TS2322: Type 'number' is not assignable to type 'string'.
+src/lib/storage.ts(381,32): error TS2304: Cannot find name 'UserProfile'.
+src/lib/storage.ts(390,32): error TS2304: Cannot find name 'UserProfile'.
+src/lib/storage.ts(423,34): error TS2304: Cannot find name 'Dividend'.
+src/lib/storage.ts(432,42): error TS2304: Cannot find name 'Dividend'.
+src/lib/storage.ts(437,40): error TS2552: Cannot find name 'InvestmentSale'. Did you mean 'Investment'?
+src/lib/storage.ts(446,44): error TS2552: Cannot find name 'InvestmentSale'. Did you mean 'Investment'?
+src/lib/toast.tsx(17,30): error TS6133: 'toastId' is declared but its value is never read.

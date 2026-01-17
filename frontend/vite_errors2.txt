@@ -1,0 +1,133 @@
+﻿[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32mÔ£ô[39m 3667 modules transformed.
+node.exe : 
+[31mx[39m Build 
+failed in 32.47s
+No linha:1 
+caractere:1
++ & "C:\Program Fil
+es\nodejs/node.exe"
+ "C:\Program Files\
+nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo 
+             : No  
+  tSpecified: (   
+ [31mx[39m Bui    
+ld failed in 3    
+2.47s:String)     
+[], RemoteExce    
+ption
+    + FullyQualifi 
+   edErrorId : Na  
+  tiveCommandErr   
+ or
+ 
+[31merror during 
+build:
+[31m[vite-plugin-p
+wa:build] There 
+was an error 
+during the build:
+  src/components/pe
+rsonal/GlobalAlerts
+.tsx (4:42): 
+"TriangleAlert" is 
+not exported by "no
+de_modules/lucide-r
+eact/dist/esm/lucid
+e-react.js", 
+imported by "src/co
+mponents/personal/G
+lobalAlerts.tsx".
+Additionally, 
+handling the error 
+in the 'buildEnd' 
+hook caused the 
+following error:
+  src/components/pe
+rsonal/GlobalAlerts
+.tsx (4:42): 
+"TriangleAlert" is 
+not exported by "no
+de_modules/lucide-r
+eact/dist/esm/lucid
+e-react.js", 
+imported by "src/co
+mponents/personal/G
+lobalAlerts.tsx".[
+31m
+file: [36mD:/meu-c
+ontador/frontend/sr
+c/components/person
+al/GlobalAlerts.tsx
+:4:42[31m
+[33m
+2: import { 
+useFinancialAlerts 
+} from "@/hooks/use
+FinancialAlerts";
+3: import { 
+AnimatePresence, 
+motion } from 
+"framer-motion";
+4: import { 
+AlertCircle, 
+CheckCircle2, 
+Info, 
+TriangleAlert } 
+from 
+"lucide-react";
+                   
+                   
+       ^
+5: 
+6: export const 
+GlobalAlerts = () 
+=> {
+[31m
+    at 
+getRollupError (fil
+e:///D:/meu-contado
+r/node_modules/vite
+/node_modules/rollu
+p/dist/es/shared/pa
+rseAst.js:401:41)
+    at file:///D:/m
+eu-contador/node_mo
+dules/vite/node_mod
+ules/rollup/dist/es
+/shared/node-entry.
+js:23467:39
+    at async catchU
+nfinishedHookAction
+s (file:///D:/meu-c
+ontador/node_module
+s/vite/node_modules
+/rollup/dist/es/sha
+red/node-entry.js:2
+2925:16)
+    at async 
+rollupInternal (fil
+e:///D:/meu-contado
+r/node_modules/vite
+/node_modules/rollu
+p/dist/es/shared/no
+de-entry.js:23450:5
+)
+    at async build 
+(file:///D:/meu-con
+tador/node_modules/
+vite/dist/node/chun
+ks/dep-BK3b2jBa.js:
+65709:14)
+    at async 
+CAC.<anonymous> (fi
+le:///D:/meu-contad
+or/node_modules/vit
+e/dist/node/cli.js:
+829:5)[39m

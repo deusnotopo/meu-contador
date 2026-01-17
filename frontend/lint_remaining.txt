@@ -1,0 +1,200 @@
+﻿
+> meu-contador@0.0.0 lint
+> eslint .
+
+
+D:\meu-contador\api\ai-proxy.ts
+  25:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\api\cron\weekly-report.ts
+  8:7  warning  'APP_URL' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\App.tsx
+   90:7   warning  'ErrorBoundary' is defined but never used   @typescript-eslint/no-unused-vars
+  144:11  warning  'theme' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  333:58  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  401:55  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\GlobalDashboard.tsx
+  80:32  warning  'dti' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  82:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\ai\VoiceCommander.tsx
+  23:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\components\business\BusinessFinance.tsx
+  31:11  warning  'convert' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  81:36  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  83:40  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\business\CashFlowSection.tsx
+  28:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\charts\NetWorthChart.tsx
+  16:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\education\EducationSection.tsx
+   41:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   68:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   73:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  476:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\education\LessonPlayer.tsx
+   91:26  warning  'node' is defined but never used  @typescript-eslint/no-unused-vars
+   97:26  warning  'node' is defined but never used  @typescript-eslint/no-unused-vars
+  103:25  warning  'node' is defined but never used  @typescript-eslint/no-unused-vars
+  109:26  warning  'node' is defined but never used  @typescript-eslint/no-unused-vars
+  115:30  warning  'node' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\components\investments\DividendList.tsx
+  227:25  warning  'date' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  319:7   warning  'indicators' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\components\investments\InvestmentsDashboard.tsx
+  169:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  171:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  351:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  453:24  warning  'i' is defined but never used             @typescript-eslint/no-unused-vars
+  755:65  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\notifications\NotificationCenter.tsx
+   9:3   warning  'TrendingUp' is defined but never used  @typescript-eslint/no-unused-vars
+  10:3   warning  'Target' is defined but never used      @typescript-eslint/no-unused-vars
+  11:3   warning  'DollarSign' is defined but never used  @typescript-eslint/no-unused-vars
+  12:3   warning  'Calendar' is defined but never used    @typescript-eslint/no-unused-vars
+  20:20  warning  'useEffect' is defined but never used   @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\components\onboarding\OnboardingWizard.tsx
+  1036:21  warning  'businessProfile' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  1427:68  warning  Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\personal\GlobalAlerts.tsx
+  24:9  warning  'getVariant' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\components\personal\GoalsSection.tsx
+  46:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\personal\PersonalFinance.tsx
+   47:11  warning  'isPro' is assigned a value but never used           @typescript-eslint/no-unused-vars
+   48:10  warning  'showPremium' is assigned a value but never used     @typescript-eslint/no-unused-vars
+   48:23  warning  'setShowPremium' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   78:37  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   83:46  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   85:51  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  137:36  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  139:40  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  148:36  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\personal\RemindersSection.tsx
+  54:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\personal\SmartInsights.tsx
+   26:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:29  warning  'i' is defined but never used             @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\components\settings\SettingsSection.tsx
+   87:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:14  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  538:38  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\components\subscription\Paywall.tsx
+  13:3   warning  'featureName' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  14:3   warning  'description' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  15:3   warning  'variant' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  17:11  warning  'isPro' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  18:10  warning  'showPlans' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  18:21  warning  'setShowPlans' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\components\ui\QuickSetupWizard.tsx
+  2:18  warning  'AnimatePresence' is defined but never used  @typescript-eslint/no-unused-vars
+  3:10  warning  'Button' is defined but never used           @typescript-eslint/no-unused-vars
+  9:22  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\components\ui\badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\meu-contador\src\components\ui\button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\meu-contador\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+D:\meu-contador\src\context\AuthContext.tsx
+  136:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\meu-contador\src\context\CurrencyContext.tsx
+  54:52  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  55:13  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  68:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\meu-contador\src\context\LanguageContext.tsx
+  44:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\meu-contador\src\context\ThemeContext.tsx
+  34:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\meu-contador\src\hooks\useFinancialAlerts.ts
+  71:6  warning  React Hook useMemo has an unnecessary dependency: 'transactions'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\meu-contador\src\hooks\useInvestments.ts
+  23:11  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  44:65  warning  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\hooks\useInvoices.ts
+  17:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  23:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  51:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  63:16  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\hooks\useTransactions.ts
+   51:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+   69:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+   90:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  102:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\lib\ai.ts
+  129:14  warning  'parseError' is defined but never used    @typescript-eslint/no-unused-vars
+  151:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\lib\ai\action-executor.ts
+  15:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\meu-contador\src\lib\ocr\tesseract-service.ts
+  43:32  error  Unnecessary escape character: \$  no-useless-escape
+
+D:\meu-contador\src\lib\pdf-export.ts
+   96:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:3   warning  '_totals' is defined but never used       @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\lib\prediction-engine.ts
+  61:9  warning  'runningBalance' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\lib\storage.ts
+  289:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  509:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\meu-contador\src\lib\toast.tsx
+   4:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+   4:38  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   8:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+   8:36  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  12:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  12:38  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  17:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  17:30  warning  'toastId' is defined but never used                                                                                             @typescript-eslint/no-unused-vars
+  17:39  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  21:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  21:38  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  21:53  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+
+Ô£û 113 problems (2 errors, 111 warnings)
+

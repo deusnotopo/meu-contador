@@ -1,0 +1,229 @@
+﻿
+> meu-contador@0.0.0 test
+> vitest --run
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mD:/meu-contador/frontend[39m
+
+ [33mÔØ»[39m src/lib/currency.test.ts [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/components/ErrorBoundary.test.tsx [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/components/navigation/DesktopNavigation.test.tsx [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/context/LanguageContext.test.tsx [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/lib/logger.test.ts [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/hooks/useTransactions.test.ts [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/context/AuthContext.test.tsx [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/components/QuickActions.test.tsx [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/components/ui/DashboardWidgets.test.tsx [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/components/navigation/MobileNavigation.test.tsx [2m ([22m[2m0 test[22m[2m)[22m
+ [33mÔØ»[39m src/lib/formatters.test.ts [2m ([22m[2m0 test[22m[2m)[22m
+
+node.exe : [31mÔÄ»
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1m
+[7m Failed Suites 
+11 [27m[22mÔÄ»ÔÄ»
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+No linha:1 
+caractere:1
++ & "C:\Program Fil
+es\nodejs/node.exe"
+ "C:\Program Files\
+nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo 
+             : No  
+  tSpecified: (   
+ [31mÔÄ»ÔÄ»ÔÄ»Ô    
+...»ÔÄ»ÔÄ»ÔÄ»    
+[39m:String) [    
+], RemoteExcep    
+tion
+    + FullyQualifi 
+   edErrorId : Na  
+  tiveCommandErr   
+ or
+ 
+
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/components/ErrorBo
+undary.test.tsx 
+[2m[ src/component
+s/ErrorBoundary.tes
+t.tsx ][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/components/QuickAc
+tions.test.tsx 
+[2m[ src/component
+s/QuickActions.test
+.tsx ][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/context/AuthContex
+t.test.tsx [2m[ sr
+c/context/AuthConte
+xt.test.tsx ][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/context/LanguageCo
+ntext.test.tsx 
+[2m[ src/context/L
+anguageContext.test
+.tsx ][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/hooks/useTransacti
+ons.test.ts [2m[ s
+rc/hooks/useTransac
+tions.test.ts 
+][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/lib/currency.test.
+ts [2m[ src/lib/cu
+rrency.test.ts 
+][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/lib/formatters.tes
+t.ts [2m[ src/lib/
+formatters.test.ts 
+][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/lib/logger.test.ts
+ [2m[ src/lib/logg
+er.test.ts ][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/components/navigat
+ion/DesktopNavigati
+on.test.tsx [2m[ s
+rc/components/navig
+ation/DesktopNaviga
+tion.test.tsx 
+][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/components/navigat
+ion/MobileNavigatio
+n.test.tsx [2m[ sr
+c/components/naviga
+tion/MobileNavigati
+on.test.tsx ][22m
+[31m[1m[7m FAIL 
+[27m[22m[39m src
+/components/ui/Dash
+boardWidgets.test.t
+sx [2m[ src/compon
+ents/ui/DashboardWi
+dgets.test.tsx 
+][22m
+[31m[1mError[22m
+: Cannot find 
+module 'is-weakmap'
+Require stack:
+- D:\meu-contador\n
+ode_modules\which-c
+ollection\index.js
+- D:\meu-contador\n
+ode_modules\deep-eq
+ual\index.js
+- D:\meu-contador\f
+rontend\node_module
+s\aria-query\lib\el
+ementRoleMap.js
+- D:\meu-contador\f
+rontend\node_module
+s\aria-query\lib\in
+dex.js
+- D:\meu-contador\f
+rontend\node_module
+s\@testing-library\
+dom\dist\role-helpe
+rs.js
+- D:\meu-contador\f
+rontend\node_module
+s\@testing-library\
+dom\dist\suggestion
+s.js[39m
+[90m [2mÔØ»[22m 
+TracingChannel.trac
+eSync node:diagnost
+ics_channel:[2m328
+:14[22m[39m
+[90m [2mÔØ»[22m 
+Object.<anonymous> 
+../node_modules/whi
+ch-collection/index
+.js:[2m5:17[22m[
+39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»[22m[39m
+[31m[1mSerialized
+ Error:[22m[39m 
+[90m{ code: 'MODUL
+E_NOT_FOUND', 
+requireStack: [ 'D:
+\meu-contador\node_
+modules\which-colle
+ction\index.js', 'D
+:\meu-contador\node
+_modules\deep-equal
+\index.js', 'D:\meu
+-contador\frontend\
+node_modules\aria-q
+uery\lib\elementRol
+eMap.js', 'D:\meu-c
+ontador\frontend\no
+de_modules\aria-que
+ry\lib\index.js', '
+D:\meu-contador\fro
+ntend\node_modules\
+@testing-library\do
+m\dist\role-helpers
+.js', 'D:\meu-conta
+dor\frontend\node_m
+odules\@testing-lib
+rary\dom\dist\sugge
+stions.js' ] }[39m
+[31m[2mÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»[1/11]ÔÄ»[22m[3
+9m
+
+[2m Test Files [22m [1m[31m11 failed[39m[22m[90m (11)[39m
+[2m      Tests [22m [2mno tests[22m
+[2m   Start at [22m 11:43:33
+[2m   Duration [22m 21.75s[2m (transform 1.45s, setup 0ms, collect 0ms, tests 0ms, environment 68.42s, prepare 12.09s)[22m
+
+npm error 
+Lifecycle script 
+`test` failed with 
+error:
+npm error code 1
+npm error path D:\m
+eu-contador\fronten
+d
+npm error 
+workspace 
+meu-contador@0.0.0
+npm error location 
+D:\meu-contador\fro
+ntend
+npm error command 
+failed
+npm error command C
+:\Windows\system32\
+cmd.exe /d /s /c 
+vitest --run

@@ -1,0 +1,119 @@
+﻿­ƒÜÇ Starting Emergency Manual Build (CDN Fallback Mode V2)...
+Ô£à Cleaned dist directory
+Ô£à Copied public assets
+­ƒÄ¿ Building Tailwind CSS...
+Ô£à Tailwind CSS built
+ÔÜí Bundling Application with Esbuild...
+node : X [ERROR] Unexpected closing "div" 
+tag does not match opening "CardContent" tag
+No linha:1 caractere:1
++ node build_manual.js 2>&1 | Out-File 
+-Encoding UTF8 build_log_utf8.tx ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (X [ERROR] Unexp...ardContent" tag:Str  
+  ing) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+
+    src/components/contador/TransactionForm.
+tsx:309:10:
+      309 Ôöé         </div>
+          Ôöé           ~~~
+          ÔòÁ           CardContent
+
+  The opening "CardContent" tag is here:
+
+    src/components/contador/TransactionForm.
+tsx:97:7:
+      97 Ôöé       <CardContent 
+className="space-y-6">
+         ÔòÁ        ~~~~~~~~~~~
+
+X [ERROR] Unexpected closing "CardContent" 
+tag does not match opening "Card" tag
+
+    src/components/contador/TransactionForm.
+tsx:328:8:
+      328 Ôöé       </CardContent>
+          Ôöé         ~~~~~~~~~~~
+          ÔòÁ         Card
+
+  The opening "Card" tag is here:
+
+    src/components/contador/TransactionForm.
+tsx:86:5:
+      86 Ôöé     <Card 
+className="shadow-card border-0 
+animate-scale-in">
+         ÔòÁ      ~~~~
+
+X [ERROR] Unterminated regular expression
+
+    src/components/contador/TransactionForm.
+tsx:329:11:
+      329 Ôöé     </Card>
+          ÔòÁ            ^
+
+X [ERROR] Could not resolve 
+"@radix-ui/react-dropdown-menu"
+
+    
+src/components/ui/dropdown-menu.tsx:2:39:
+      2 Ôöé ...rt * as 
+DropdownMenuPrimitive from 
+"@radix-ui/react-dropdown-menu";
+        ÔòÁ                                 
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path 
+"@radix-ui/react-dropdown-menu" as external 
+to exclude it from the bundle, which will 
+remove this error and leave the unresolved 
+path in the bundle.
+
+ÔØî Esbuild failed: Error: Build failed 
+with 4 errors:
+src/components/contador/TransactionForm.tsx:
+309:10: ERROR: Unexpected closing "div" tag 
+does not match opening "CardContent" tag
+src/components/contador/TransactionForm.tsx:
+328:8: ERROR: Unexpected closing 
+"CardContent" tag does not match opening 
+"Card" tag
+src/components/contador/TransactionForm.tsx:
+329:11: ERROR: Unterminated regular 
+expression
+src/components/ui/dropdown-menu.tsx:2:39: 
+ERROR: Could not resolve 
+"@radix-ui/react-dropdown-menu"
+    at failureErrorWithLog (D:\meu-contador\
+node_modules\esbuild\lib\main.js:1472:15)
+    at D:\meu-contador\node_modules\esbuild\
+lib\main.js:945:25
+    at runOnEndCallbacks (D:\meu-contador\no
+de_modules\esbuild\lib\main.js:1315:45)
+    at buildResponseToResult (D:\meu-contado
+r\node_modules\esbuild\lib\main.js:943:7)
+    at D:\meu-contador\node_modules\esbuild\
+lib\main.js:970:16
+    at responseCallbacks.<computed> (D:\meu-
+contador\node_modules\esbuild\lib\main.js:62
+2:9)
+    at handleIncomingPacket (D:\meu-contador
+\node_modules\esbuild\lib\main.js:677:12)
+    at Socket.readFromStdout (D:\meu-contado
+r\node_modules\esbuild\lib\main.js:600:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk 
+(node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode 
+(node:internal/streams/readable:510:3)
+    at Readable.push 
+(node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead 
+(node:internal/stream_base_commons:189:23) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}

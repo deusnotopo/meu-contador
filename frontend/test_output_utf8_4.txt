@@ -1,0 +1,51 @@
+﻿
+> meu-contador@0.0.0 test
+> vitest --run
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mD:/meu-contador/frontend[39m
+
+ [32mÔ£ô[39m src/hooks/useTransactions.test.ts [2m ([22m[2m3 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/currency.test.ts [2m ([22m[2m6 tests[22m[2m)[22m[90m 97[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/logger.test.ts [2m ([22m[2m5 tests[22m[2m)[22m[90m 103[2mms[22m[39m
+[90mstdout[2m | src/components/ErrorBoundary.test.tsx[2m > [22m[2mErrorBoundary[2m > [22m[2mshould render error UI when error occurs[22m[39m
+[Sentry] Error Captured: Test error
+  Context: {
+    feature: [32m'Test Feature'[39m,
+    componentStack: [32m'\n'[39m +
+      [32m'    at ThrowError (D:\\meu-contador\\frontend\\src\\components\\ErrorBoundary.test.tsx:33:13)\n'[39m +
+      [32m'    at ErrorBoundary (D:\\meu-contador\\frontend\\src\\components\\ErrorBoundary.tsx:14:5)'[39m
+  }
+
+[90mstdout[2m | src/components/ErrorBoundary.test.tsx[2m > [22m[2mErrorBoundary[2m > [22m[2mshould display feature name in error message[22m[39m
+[Sentry] Error Captured: Test error
+  Context: {
+    feature: [32m'Payment Module'[39m,
+    componentStack: [32m'\n'[39m +
+      [32m'    at ThrowError (D:\\meu-contador\\frontend\\src\\components\\ErrorBoundary.test.tsx:50:13)\n'[39m +
+      [32m'    at ErrorBoundary (D:\\meu-contador\\frontend\\src\\components\\ErrorBoundary.tsx:14:5)'[39m
+  }
+
+[90mstdout[2m | src/components/ErrorBoundary.test.tsx[2m > [22m[2mErrorBoundary[2m > [22m[2mshould have a try again button[22m[39m
+[Sentry] Error Captured: Test error
+  Context: {
+    feature: [32m'Test'[39m,
+    componentStack: [32m'\n'[39m +
+      [32m'    at ThrowError (D:\\meu-contador\\frontend\\src\\components\\ErrorBoundary.test.tsx:67:13)\n'[39m +
+      [32m'    at ErrorBoundary (D:\\meu-contador\\frontend\\src\\components\\ErrorBoundary.tsx:14:5)'[39m
+  }
+
+ [32mÔ£ô[39m src/components/ErrorBoundary.test.tsx [2m ([22m[2m4 tests[22m[2m)[22m[33m 1687[2mms[22m[39m
+ [32mÔ£ô[39m src/context/LanguageContext.test.tsx [2m ([22m[2m5 tests[22m[2m)[22m[33m 523[2mms[22m[39m
+ [32mÔ£ô[39m src/context/AuthContext.test.tsx [2m ([22m[2m4 tests[22m[2m)[22m[90m 176[2mms[22m[39m
+ [32mÔ£ô[39m src/components/navigation/DesktopNavigation.test.tsx [2m ([22m[2m3 tests[22m[2m)[22m[33m 2096[2mms[22m[39m
+ [32mÔ£ô[39m src/components/QuickActions.test.tsx [2m ([22m[2m3 tests[22m[2m)[22m[90m 107[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/formatters.test.ts [2m ([22m[2m3 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32mÔ£ô[39m src/components/ui/DashboardWidgets.test.tsx [2m ([22m[2m3 tests[22m[2m)[22m[90m 149[2mms[22m[39m
+ [32mÔ£ô[39m src/components/navigation/MobileNavigation.test.tsx [2m ([22m[2m3 tests[22m[2m)[22m[33m 393[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[32m42 passed[39m[22m[90m (42)[39m
+[2m   Start at [22m 11:45:13
+[2m   Duration [22m 32.00s[2m (transform 3.99s, setup 21.13s, collect 20.47s, tests 5.36s, environment 66.24s, prepare 13.76s)[22m
+

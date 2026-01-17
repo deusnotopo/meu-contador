@@ -1,0 +1,31 @@
+
+> meu-contador@0.0.0 build
+> tsc && vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 33 modules transformed.
+[31mx[39m Build failed in 8.48s
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+D:/meu-contador/src/components/investments/InvestmentsDashboard.tsx:40:6: ERROR: Expected ":" but found "container"[31m
+file: [36mD:/meu-contador/src/components/investments/InvestmentsDashboard.tsx:40:6[31m
+[33m
+[33mExpected ":" but found "container"[33m
+38 |  const container = {
+39 |  
+40 |  const container = {
+   |        ^
+41 |    hidden: { opacity: 0 },
+42 |    show: {
+[31m
+    at failureErrorWithLog (D:\meu-contador\node_modules\esbuild\lib\main.js:1472:15)
+    at D:\meu-contador\node_modules\esbuild\lib\main.js:755:50
+    at responseCallbacks.<computed> (D:\meu-contador\node_modules\esbuild\lib\main.js:622:9)
+    at handleIncomingPacket (D:\meu-contador\node_modules\esbuild\lib\main.js:677:12)
+    at Socket.readFromStdout (D:\meu-contador\node_modules\esbuild\lib\main.js:600:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)[39m
