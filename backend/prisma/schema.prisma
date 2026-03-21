@@ -2,6 +2,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Seed configuration
+// Run with: npm run db:seed
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -38,7 +41,7 @@ model User {
   investments     Investment[]
   investmentSales InvestmentSale[]
   debts           Debt[]
-  preferences     Json        @default("{\"theme\":\"dark\",\"language\":\"pt\",\"privacyMode\":false}")
+  preferences     String      @default("{\"theme\":\"dark\",\"language\":\"pt\",\"privacyMode\":false}")
 }
 
 model Workspace {
