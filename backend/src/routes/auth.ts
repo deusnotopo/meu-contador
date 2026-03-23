@@ -42,7 +42,7 @@ export async function authRoutes(app: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const { email, password, name } = request.body;
+    const { email, password, name } = request.body as { email: string; password: string; name?: string };
 
     const existingUser = await db.user.findUnique({
       where: { email },
@@ -113,13 +113,13 @@ export async function authRoutes(app: FastifyInstance) {
                    decodedToken = payload;
                }
            }
-           if (!decodedToken) return reply.status(401).send({ message: 'Invalid token' });
+           if (!decodedToken) return (reply as any).status(401).send({ message: 'Invalid token' });
       }
 
       const { email, name, uid } = decodedToken;
 
       if (!email) {
-        return reply.status(400).send({ message: 'Google account must have email' });
+        return (reply as any).status(400).send({ message: 'Google account must have email' });
       }
 
       // Upsert User
@@ -148,7 +148,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     } catch (err) {
       console.error(err);
-      return reply.status(500).send({ message: 'Internal Server Error' });
+      return (reply as any).status(500).send({ message: 'Internal Server Error' });
     }
   });
 
@@ -176,7 +176,7 @@ export async function authRoutes(app: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const { email, password } = request.body;
+    const { email, password } = request.body as { email: string; password: string };
 
     const user = await db.user.findUnique({
       where: { email },
