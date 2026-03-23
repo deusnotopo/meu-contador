@@ -46,6 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [language, setLanguageState] = useState('pt');
   const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
 
+  // Helper: promessa com timeout
+  const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+    const timeout = new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), ms)
+    );
+    return Promise.race([promise, timeout]);
+  };
+
   // Initial Auth Check & Preferences Sync
   useEffect(() => {
     const checkAuth = async () => {
@@ -57,8 +65,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         setIsSyncing(true);
-        const userData = await api.get<any>("/auth/me");
-        const preferences = await api.get<any>("/users/preferences");
+        // Timeout de 5s para não travar se o backend estiver dormindo (Render free tier)
+        const userData = await withTimeout(api.get<any>("/auth/me"), 5000);
+        const preferences = await withTimeout(api.get<any>("/users/preferences"), 5000);
         console.log("Fetched preferences from server:", preferences);
         
         // Apply preferences to state
@@ -93,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsPro(!!userData.isPro);
       } catch (error) {
         console.error("Session restoration failed:", error);
+        // Remove token inválido ou sessão que expirou/não respondeu
         localStorage.removeItem("authToken");
       } finally {
         setLoading(false);
@@ -102,6 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     checkAuth();
   }, []);
+
+
 
   const login = async (email: string, password?: string) => {
     if (!password) throw new Error("Senha é obrigatória.");
