@@ -1,12 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import { detectPatterns } from "@/lib/recurring-detector";
-import {
-  addReminder,
-  loadInvestments,
-  loadReminders,
-  loadTransactions,
-} from "@/lib/storage";
+import { useInvestments } from "@/hooks/useInvestments";
+import { addReminder, loadReminders } from "@/lib/storage";
 import { showSuccess } from "@/lib/toast";
 import type { SavingsGoal, Transaction } from "@/types";
 import { motion } from "framer-motion";
@@ -21,14 +17,16 @@ interface Props {
 
 export const SmartInsights = ({ transactions, goals }: Props) => {
   const [reminders, setReminders] = useState(() => loadReminders());
+  const { assets } = useInvestments();
+  
   const patterns = detectPatterns(transactions, reminders);
 
-  const handleAddReminder = (p: any) => {
+  const handleAddReminder = async (p: any) => {
     // Set next month as default due date
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-    addReminder({
+    await addReminder({
       name: p.description,
       amount: p.amount,
       category: p.category,
@@ -40,25 +38,23 @@ export const SmartInsights = ({ transactions, goals }: Props) => {
     showSuccess(`${p.description} adicionado aos lembretes!`);
   };
 
-  const assets = loadInvestments();
   const totalInvested = assets.reduce(
-    (acc, a) => acc + a.amount * a.currentPrice,
+    (acc, a) => acc + (a.amount * (a.currentPrice || 1)),
     0
   );
 
   // Basic Wealth Timeline Logic
-  const allTransactions = loadTransactions();
   const monthlyExpenses =
-    allTransactions
+    transactions
       .filter((t) => t.type === "expense")
       .reduce((acc, t) => acc + t.amount, 0) /
-    (allTransactions.length > 30 ? 3 : 1); // rough monthly avg
+    (transactions.length > 30 ? 3 : 1); // rough monthly avg
 
   const monthlySurplus =
-    allTransactions.reduce(
+    transactions.reduce(
       (acc, t) => acc + (t.type === "income" ? t.amount : -t.amount),
       0
-    ) / (allTransactions.length > 30 ? 3 : 1);
+    ) / (transactions.length > 30 ? 3 : 1);
 
   // FIRE Calculation (4% Rule)
   // Required Capital = Monthly Expenses * 12 / 0.04
@@ -74,7 +70,7 @@ export const SmartInsights = ({ transactions, goals }: Props) => {
       : Infinity;
 
   // Expense Optimization logic
-  const wantTotal = allTransactions
+  const wantTotal = transactions
     .filter((t) => t.type === "expense" && t.classification === "want")
     .reduce((acc, t) => acc + t.amount, 0);
 

@@ -3,6 +3,7 @@ import type { UserProfile, WorkspaceRole } from "@/types";
 import { auth, googleProvider } from "@/lib/firebase";
 import { signInWithPopup } from "firebase/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { syncAllData } from "@/lib/storage";
 
 // Extended User type to support both Profile data and Auth IDs
 export interface AuthUser extends UserProfile {
@@ -65,9 +66,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         setIsSyncing(true);
-        // Timeout de 5s para não travar se o backend estiver dormindo (Render free tier)
-        const userData = await withTimeout(api.get<any>("/auth/me"), 5000);
-        const preferences = await withTimeout(api.get<any>("/users/preferences"), 5000);
+        // Timeout de 15s para não travar se o backend estiver dormindo (Render free tier)
+        const [userData, preferences] = await Promise.all([
+          withTimeout(api.get<any>("/auth/me"), 15000),
+          withTimeout(api.get<any>("/users/preferences"), 15000).catch((e) => {
+            console.warn("Preferences timeout/error, using defaults", e);
+            return { privacyMode: false, language: 'pt', theme: 'dark' };
+          })
+        ]);
         console.log("Fetched preferences from server:", preferences);
         
         // Apply preferences to state
@@ -100,6 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         setUser(authUser);
         setIsPro(!!userData.isPro);
+
+        // Trigger background sync to load all financial data without blocking the UI
+        syncAllData(authUser.id).catch(err => console.error("Background sync failed:", err));
       } catch (error) {
         console.error("Session restoration failed:", error);
         // Remove token inválido ou sessão que expirou/não respondeu
@@ -127,13 +136,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       localStorage.setItem("authToken", token);
 
-      // We might need to fetch full profile if login response is partial, 
-      // but for now let's assume login returns basic info and we fetch /me or use what we have.
-      // Ideally calling /me matches the useEffect logic. Let's reuse /me logic or manual mapping.
-      // To ensure full profile, let's fetch /me immediately.
-      
-      const fullUser = await api.get<any>("/auth/me");
-      const preferences = await api.get<any>("/users/preferences");
+      // Remove extra /auth/me call, leverage the backendUser passed from login response
+      const preferences = await api.get<any>("/users/preferences").catch((e) => {
+         console.warn("Could not fetch prefs", e);
+         return { privacyMode: false, language: 'pt', theme: 'dark' };
+      });
 
       // Apply preferences
       setPrivacyMode(preferences.privacyMode);
@@ -146,22 +153,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
        const authUser: AuthUser = {
-            ...fullUser,
-            id: fullUser.id,
-            uid: fullUser.id,
-            email: fullUser.email,
-             // Defaults 
-            monthlyIncome: fullUser.monthlyIncome || 0,
-            financialGoal: fullUser.financialGoal || "save",
-            riskProfile: fullUser.riskProfile || "moderate",
-            hasEmergencyFund: fullUser.hasEmergencyFund || false,
-            hasDebts: fullUser.hasDebts || false,
-            initialBalance: fullUser.initialBalance || 0,
-             isPro: fullUser.isPro || false
+            ...backendUser,
+            id: backendUser.id,
+            uid: backendUser.id,
+            email: backendUser.email,
+            monthlyIncome: backendUser.monthlyIncome || 0,
+            financialGoal: backendUser.financialGoal || "save",
+            riskProfile: backendUser.riskProfile || "moderate",
+            hasEmergencyFund: backendUser.hasEmergencyFund || false,
+            hasDebts: backendUser.hasDebts || false,
+            initialBalance: backendUser.initialBalance || 0,
+            isPro: backendUser.isPro || false
         };
 
       setUser(authUser);
       setIsPro(authUser.isPro || false);
+      
+      // Perform initial full-sync blocking login to guarantee data readiness
+      await syncAllData(authUser.id);
     } catch (error) {
        console.error("Login error:", error);
        throw error;
@@ -181,9 +190,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       localStorage.setItem("authToken", token);
       
-      // Fetch /me to get normalized object
-      const fullUser = await api.get<any>("/auth/me");
-      const preferences = await api.get<any>("/users/preferences");
+      const [fullUser, preferences] = await Promise.all([
+        api.get<any>("/auth/me"),
+        api.get<any>("/users/preferences").catch((e) => {
+           console.warn("Could not fetch prefs", e);
+           return { privacyMode: false, language: 'pt', theme: 'dark' };
+        })
+      ]);
 
       // Apply preferences (will be defaults for new user)
       setPrivacyMode(preferences.privacyMode);
@@ -205,6 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         };
         
       setUser(authUser);
+      await syncAllData(authUser.id);
     } finally {
       setIsSyncing(false);
     }
@@ -251,11 +265,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const authUser: AuthUser = {
             ...apiUser,
-            // Ensure ID consistency
             id: apiUser.id,
             uid: apiUser.id,
             email: apiUser.email,
-            // Defaults or from API
             monthlyIncome: apiUser.monthlyIncome || 0,
             financialGoal: apiUser.financialGoal || "save",
             riskProfile: apiUser.riskProfile || "moderate",
@@ -263,7 +275,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             hasDebts: apiUser.hasDebts || false,
             initialBalance: apiUser.initialBalance || 0,
             isPro: apiUser.isPro || false,
-             // Business
             businessName: apiUser.businessName,
             businessCnpj: apiUser.businessCnpj,
             businessSector: apiUser.businessSector
@@ -271,6 +282,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       setUser(authUser);
       setIsPro(authUser.isPro || false);
+      
+      await syncAllData(authUser.id);
     } catch (error) {
       console.error("Google Login Failed", error);
       throw error;

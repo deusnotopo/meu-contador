@@ -15,9 +15,9 @@ import {
   isValidImageFile,
   processReceiptImage,
 } from "@/lib/ocr/tesseract-service";
-import { loadTransactions, saveTransactions } from "@/lib/storage";
 import { showError, showSuccess } from "@/lib/toast";
-import type { Transaction } from "@/types";
+import type { TransactionFormData } from "@/types";
+import { useTransactions } from "@/hooks/useTransactions";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Camera,
@@ -89,28 +89,36 @@ export const ReceiptScanner = ({
     }
   };
 
-  const handleSaveTransaction = () => {
+  const personalTransactions = useTransactions("personal");
+
+  const handleSaveTransaction = async () => {
     if (!formData.amount || !formData.description || !formData.category) {
       showError("Preencha todos os campos obrigatórios.");
       return;
     }
 
-    const transaction: Transaction = {
-      id: Date.now(),
-      amount: parseFloat(formData.amount),
+    const transaction: TransactionFormData = {
+      amount: formData.amount,
+      currency: "BRL",
       description: formData.description,
       type: "expense",
       category: formData.category,
       date: formData.date,
       scope: "personal",
+      paymentMethod: "pix",
+      classification: "necessity",
+      notes: "Via Scanner OCR",
+      recurring: false
     };
 
-    const transactions = loadTransactions();
-    saveTransactions([...transactions, transaction]);
-
-    showSuccess("Transação criada a partir do recibo!");
-    onTransactionCreated?.();
-    onClose();
+    try {
+      await personalTransactions.addTransaction(transaction);
+      showSuccess("Transação criada a partir do recibo!");
+      onTransactionCreated?.();
+      onClose();
+    } catch (e) {
+      showError("Erro ao processar criação da transação");
+    }
   };
 
   return (

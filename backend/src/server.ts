@@ -15,6 +15,7 @@ import { budgetRoutes } from './routes/budgets';
 import { goalRoutes } from './routes/goals';
 import { authRoutes } from './routes/auth';
 import { userRoutes } from './routes/user';
+import { aiRoutes } from './routes/ai';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 declare module 'fastify' {
@@ -110,6 +111,7 @@ app.register(transactionRoutes);
 app.register(investmentRoutes);
 app.register(budgetRoutes);
 app.register(goalRoutes);
+app.register(aiRoutes);
 
 // --- Bootstrap ---
 async function bootstrap() {

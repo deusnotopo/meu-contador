@@ -9,7 +9,8 @@ import firebaseAdmin from 'firebase-admin';
 try {
   if (!firebaseAdmin.apps.length) {
     firebaseAdmin.initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID || 'meu-contador-project'
+        // Must match the frontend token issuer
+        projectId: process.env.FIREBASE_PROJECT_ID || 'meucontador-367cf'
     });
   }
 } catch (e) {

@@ -1,23 +1,31 @@
 import { motion } from 'framer-motion';
-import { Plus, Zap } from 'lucide-react';
+import { Plus, Zap, ScanLine } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
 
 interface QuickActionsProps {
   onNewTransaction?: () => void;
   onNewReminder?: () => void;
+  onScanReceipt?: () => void;
 }
 
-export function QuickActions({ onNewTransaction, onNewReminder }: QuickActionsProps) {
+export function QuickActions({ onNewTransaction, onNewReminder, onScanReceipt }: QuickActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const actions = [
     {
       icon: Plus,
-      label: 'Nova Transação',
+      label: 'Novo Lançamento',
       onClick: onNewTransaction,
       color: 'bg-indigo-500 hover:bg-indigo-600',
       shortcut: 'Ctrl+N',
+    },
+    {
+      icon: ScanLine,
+      label: 'Escanear Nota (IA)',
+      onClick: onScanReceipt,
+      color: 'bg-purple-500 hover:bg-purple-600',
+      shortcut: 'Ctrl+S',
     },
     {
       icon: Zap,

@@ -1,12 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3,
-  Building2,
+  Bot,
   LayoutDashboard,
   Settings,
-  Sparkles,
-  User,
-  PieChart,
+  Target,
+  ListOrdered,
 } from "lucide-react";
 import React, { lazy, Suspense, useState } from "react";
 import { useLanguage } from "./context/LanguageContext";
@@ -20,6 +18,13 @@ import { QuickActions } from "./components/QuickActions";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { loadTransactions } from "./lib/storage";
 import { MonitoringService } from "./lib/monitoring";
+import { TransactionForm } from "./components/contador/TransactionForm";
+import { useTransactions } from "./hooks/useTransactions";
+import { showSuccess, showError } from "./lib/toast";
+import type { TransactionFormData } from "./types";
+import { WorkspaceSwitcher } from "./components/ui/WorkspaceSwitcher";
+import { ReceiptScanner } from "./components/receipts/ReceiptScanner";
+import { X } from "lucide-react";
 
 // Initialize Silicon Valley Standard Monitoring
 MonitoringService.init();
@@ -31,27 +36,21 @@ const GlobalDashboard = lazy(() =>
   }))
 );
 
-const PersonalFinance = lazy(() =>
-  import("./components/personal/PersonalFinance").then((m) => ({
-    default: m.PersonalFinance,
+const TransactionsView = lazy(() =>
+  import("./components/transactions/TransactionsView").then((m) => ({
+    default: m.TransactionsView,
   }))
 );
 
-const BusinessFinance = lazy(() =>
-  import("./components/business/BusinessFinance").then((m) => ({
-    default: m.BusinessFinance,
+const PlanningView = lazy(() =>
+  import("./components/planning/PlanningView").then((m) => ({
+    default: m.PlanningView,
   }))
 );
 
-const InvestmentsDashboard = lazy(() =>
-  import("./components/investments/InvestmentsDashboard").then((m) => ({
-    default: m.InvestmentsDashboard,
-  }))
-);
-
-const AnalyticsDashboard = lazy(() =>
-  import("./components/analytics/AnalyticsDashboard").then((m) => ({
-    default: m.AnalyticsDashboard,
+const AIAssistantView = lazy(() =>
+  import("./components/ai/AIAssistantView").then((m) => ({
+    default: m.AIAssistantView,
   }))
 );
 
@@ -61,11 +60,7 @@ const SettingsSection = lazy(() =>
   }))
 );
 
-const DesignSystemShowcase = lazy(() =>
-  import("./components/design/DesignSystemShowcase").then((m) => ({
-    default: m.DesignSystemShowcase,
-  }))
-);
+
 
 import LoadingSkeleton from "./components/ui/LoadingSkeleton";
 
@@ -109,6 +104,21 @@ export default function App() {
   useLanguage(); // Context must be consumed
   const { user, loading } = useAuth();
   const { startTour } = useTour();
+  
+  // Global Actions State
+  const [showGlobalTx, setShowGlobalTx] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const personalTransactions = useTransactions("personal");
+
+  const handleGlobalTxSubmit = async (formData: TransactionFormData) => {
+    try {
+      await personalTransactions.addTransaction(formData);
+      setShowGlobalTx(false);
+      showSuccess("Transação adicionada com sucesso!");
+    } catch (e) {
+      showError("Erro ao salvar transação");
+    }
+  };
 
   React.useEffect(() => {
     if (user && !loading) {
@@ -138,15 +148,17 @@ export default function App() {
            >
              <LayoutDashboard size={24} className="text-white" />
            </motion.div>
+            
+            <div className="w-full px-2">
+               <WorkspaceSwitcher />
+            </div>
 
            <div className="flex-1 flex flex-col gap-6 w-full px-4 mt-4">
               <NavItem active={activeTab === "dashboard"} icon={LayoutDashboard} onClick={() => setActiveTab("dashboard")} />
-              <NavItem active={activeTab === "personal"} icon={User} onClick={() => setActiveTab("personal")} />
-              <NavItem active={activeTab === "business"} icon={Building2} onClick={() => setActiveTab("business")} />
-              <NavItem active={activeTab === "investments"} icon={BarChart3} onClick={() => setActiveTab("investments")} />
-              <NavItem active={activeTab === "analytics"} icon={PieChart} onClick={() => setActiveTab("analytics")} />
+              <NavItem active={activeTab === "transactions"} icon={ListOrdered} onClick={() => setActiveTab("transactions")} />
+              <NavItem active={activeTab === "planning"} icon={Target} onClick={() => setActiveTab("planning")} />
               <div className="h-px bg-white/10 mx-2" />
-              <NavItem active={activeTab === "design"} icon={Sparkles} onClick={() => setActiveTab("design")} />
+              <NavItem active={activeTab === "ai"} icon={Bot} onClick={() => setActiveTab("ai")} />
            </div>
 
            <div className="px-4 w-full">
@@ -155,21 +167,30 @@ export default function App() {
         </div>
 
         {/* Mobile Navigation (Bottom) */}
-        <div className="md:hidden fixed bottom-6 left-6 right-6 h-20 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] flex items-center justify-around z-50 px-6 shadow-2xl">
+        <div className="md:hidden fixed bottom-4 left-4 right-4 h-16 bg-black/50 backdrop-blur-2xl border border-white/10 rounded-3xl flex items-center justify-around z-50 px-4 shadow-2xl">
            <NavItem active={activeTab === "dashboard"} icon={LayoutDashboard} onClick={() => setActiveTab("dashboard")} />
-           <NavItem active={activeTab === "design"} icon={Sparkles} onClick={() => setActiveTab("design")} />
-           <NavItem active={activeTab === "personal"} icon={User} onClick={() => setActiveTab("personal")} />
-           <NavItem active={activeTab === "analytics"} icon={PieChart} onClick={() => setActiveTab("analytics")} />
-           <NavItem active={activeTab === "investments"} icon={BarChart3} onClick={() => setActiveTab("investments")} />
+           <NavItem active={activeTab === "transactions"} icon={ListOrdered} onClick={() => setActiveTab("transactions")} />
+           <NavItem active={activeTab === "planning"} icon={Target} onClick={() => setActiveTab("planning")} />
+           <NavItem active={activeTab === "ai"} icon={Bot} onClick={() => setActiveTab("ai")} />
            <NavItem active={activeTab === "settings"} icon={Settings} onClick={() => setActiveTab("settings")} />
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-           <div className="flex-1 overflow-y-auto scrollbar-hide p-4 md:p-12 pb-32 md:pb-12">
+           <div className="flex-1 overflow-y-auto scrollbar-hide p-2 md:p-8 pb-32 md:pb-12 mt-6 md:mt-0">
+              
+              <div className="md:hidden flex justify-between items-center w-full px-2 mb-4 pt-4">
+                 <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-xl shadow-primary/40">
+                      <LayoutDashboard size={16} className="text-white" />
+                    </div>
+                    <span className="font-bold text-white tracking-tight">meu-contador</span>
+                 </div>
+                 <WorkspaceSwitcher />
+              </div>
       <main
         id="main-content"
-        className="pt-32 pb-32 md:pb-8 px-4 md:px-8 max-w-[1600px] mx-auto"
+        className="pt-4 md:pt-0 pb-24 md:pb-8 px-2 md:px-8 max-w-[1600px] mx-auto"
         role="main"
         tabIndex={-1}
       >
@@ -189,12 +210,10 @@ export default function App() {
                         className="w-full"
                       >
                         {activeTab === "dashboard" && <GlobalDashboard />}
-                        {activeTab === "personal" && <PersonalFinance />}
-                        {activeTab === "business" && <BusinessFinance />}
-                        {activeTab === "investments" && <InvestmentsDashboard />}
-                        {activeTab === "analytics" && <AnalyticsDashboard transactions={loadTransactions()} />}
+                        {activeTab === "transactions" && <TransactionsView />}
+                        {activeTab === "planning" && <PlanningView />}
+                        {activeTab === "ai" && <AIAssistantView />}
                         {activeTab === "settings" && <SettingsSection />}
-                        {activeTab === "design" && <DesignSystemShowcase />}
                       </motion.div>
                    </AnimatePresence>
                </Suspense>
@@ -203,15 +222,56 @@ export default function App() {
            </div>
            {/* Quick Actions FAB */}
            <QuickActions 
-             onNewTransaction={() => {
-               // TODO: Open transaction form
-               console.log('New transaction');
-             }}
+             onNewTransaction={() => setShowGlobalTx(true)}
+             onScanReceipt={() => setShowScanner(true)}
              onNewReminder={() => {
                // TODO: Open reminder form
                console.log('New reminder');
              }}
            />
+
+           {/* Global OCR Scanner Modal */}
+           <AnimatePresence>
+             {showScanner && (
+               <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/90 backdrop-blur-md">
+                 <motion.div
+                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                   exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                   className="w-full max-w-2xl relative"
+                 >
+                   <button 
+                     onClick={() => setShowScanner(false)}
+                     className="absolute -top-12 right-0 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all pointer-events-auto"
+                   >
+                     <X size={24} />
+                   </button>
+                   <ReceiptScanner onClose={() => setShowScanner(false)} />
+                 </motion.div>
+               </div>
+             )}
+           </AnimatePresence>
+
+           {/* Global Transaction Modal */}
+           <AnimatePresence>
+             {showGlobalTx && (
+               <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                 <motion.div
+                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                   exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                   className="w-full max-w-2xl relative"
+                 >
+                   <TransactionForm
+                     editingTransaction={null}
+                     onSubmit={handleGlobalTxSubmit}
+                     onCancel={() => setShowGlobalTx(false)}
+                     scope="personal"
+                   />
+                 </motion.div>
+               </div>
+             )}
+           </AnimatePresence>
         </div>
       </div>
     </div>

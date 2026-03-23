@@ -6,6 +6,7 @@ import { exportFinancialReport } from "@/lib/pdf-export";
 import { loadProfile } from "@/lib/storage";
 import { showSuccess } from "@/lib/toast";
 import { AnimatePresence, motion } from "framer-motion";
+import { api } from "@/lib/api";
 import {
   ArrowUpRight,
   Bell,
@@ -39,21 +40,22 @@ export const GlobalDashboard = () => {
   const [backendStatus, setBackendStatus] = useState<"ok" | "error" | "loading">("loading");
 
   useEffect(() => {
-    fetch("http://localhost:3000/health")
-      .then(res => res.ok ? setBackendStatus("ok") : setBackendStatus("error"))
+    // Health check using configured API URL
+    api.get("/health")
+      .then(() => setBackendStatus("ok"))
       .catch(() => setBackendStatus("error"));
   }, []);
 
   const handleExport = () => {
-    // const allTransactions = [
-    //   ...personal.transactions,
-    //   ...business.transactions,
-    // ];
-    // exportFinancialReport(
-    //   allTransactions,
-    //   profile,
-    //   "Últimos 30 dias (Consolidado)"
-    // );
+    const allTransactions = [
+      ...personal.transactions,
+      ...business.transactions,
+    ];
+    exportFinancialReport(
+      allTransactions,
+      profile,
+      "Últimos 30 dias (Consolidado)"
+    );
     showSuccess("Relatório PDF gerado com sucesso!");
   };
 
@@ -102,7 +104,7 @@ export const GlobalDashboard = () => {
   return (
     <div className="space-y-16 animate-fade-in pb-20 pt-10">
       {/* Hero Section - Premium Glassmorphism */}
-      <div className="glass-card p-10 md:p-20 relative group">
+      <div className="glass-card p-6 md:p-20 relative group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
         
         <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-16">
@@ -117,7 +119,7 @@ export const GlobalDashboard = () => {
               Inteligência Financeira 2025
             </motion.div>
             
-            <h2 className="text-6xl md:text-8xl font-heading font-extrabold leading-[0.85] tracking-tighter text-white">
+            <h2 className="text-5xl md:text-7xl font-heading font-extrabold leading-[0.85] tracking-tighter text-white">
               Controle <br />
               <span className="text-gradient">Absoluto.</span>
             </h2>
@@ -262,7 +264,7 @@ export const GlobalDashboard = () => {
                     </Button>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                    <AIFinancialChat />
+                    <AIFinancialChat transactions={[...personal.allTransactions, ...business.allTransactions]} />
                 </div>
             </motion.div>
           </div>
