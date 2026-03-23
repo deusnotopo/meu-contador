@@ -30,7 +30,7 @@ export const LoginForm = () => {
   useEffect(() => {
     const warmup = async () => {
       try {
-        const baseUrl = API_URL.replace('/api/v1', '');
+        const baseUrl = API_URL;
         await fetch(`${baseUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(15000) });
       } catch {
         // Silencioso — só queremos acordar o servidor
