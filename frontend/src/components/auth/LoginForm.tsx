@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { showError, showSuccess } from "@/lib/toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   ExternalLink,
@@ -11,8 +11,11 @@ import {
   Lock,
   Mail,
   Sparkles,
+  ServerCrash,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export const LoginForm = () => {
   const { login, register, loginWithGoogle } = useAuth();
@@ -21,12 +24,27 @@ export const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [domainError, setDomainError] = useState(false);
+  const [serverWaking, setServerWaking] = useState(false);
+
+  // Pré-aquece o backend ao abrir a tela de login (Render free tier cold start)
+  useEffect(() => {
+    const warmup = async () => {
+      try {
+        const baseUrl = API_URL.replace('/api/v1', '');
+        await fetch(`${baseUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(15000) });
+      } catch {
+        // Silencioso — só queremos acordar o servidor
+      }
+    };
+    warmup();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return showError("Preencha todos os campos.");
 
     setLoading(true);
+    setServerWaking(false);
     try {
       if (isRegistering) {
         await register(email, password);
@@ -39,16 +57,31 @@ export const LoginForm = () => {
       const e = err as { message?: string; code?: string };
       console.error("Auth Error:", e);
 
-      if (e.code === "auth/email-already-in-use") {
+      // Detecta erros de servidor acordando (timeout, network, 503)
+      const isServerStarting =
+        e.message?.includes("timeout") ||
+        e.message?.includes("Failed to fetch") ||
+        e.message?.includes("NetworkError") ||
+        e.message?.includes("503") ||
+        e.message?.includes("Service Unavailable");
+
+      if (isServerStarting) {
+        setServerWaking(true);
+        showError("Servidor iniciando. Aguarde alguns segundos e tente novamente.");
+      } else if (e.code === "auth/email-already-in-use") {
         showError("Este e-mail já está cadastrado. Tente fazer login.");
-        setIsRegistering(false); // Automatically switch to login mode
+        setIsRegistering(false);
       } else if (
         e.code === "auth/invalid-credential" ||
-        e.code === "auth/wrong-password"
+        e.code === "auth/wrong-password" ||
+        e.message === "Invalid credentials"
       ) {
         showError("E-mail ou senha incorretos.");
       } else if (e.code === "auth/weak-password") {
         showError("A senha é muito fraca. Use pelo menos 6 caracteres.");
+      } else if (e.message === "User already exists") {
+        showError("Este e-mail já está cadastrado. Tente fazer login.");
+        setIsRegistering(false);
       } else {
         showError("Erro na autenticação. Tente novamente.");
       }
@@ -56,6 +89,7 @@ export const LoginForm = () => {
       setLoading(false);
     }
   };
+
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -122,8 +156,31 @@ export const LoginForm = () => {
         </div>
 
         {/* Login Card */}
+        {/* Banner: servidor acordando */}
+        <AnimatePresence>
+          {serverWaking && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl"
+            >
+              <ServerCrash size={18} className="text-amber-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[12px] text-amber-200 font-semibold leading-tight">
+                  Servidor iniciando…
+                </p>
+                <p className="text-[11px] text-amber-300/70 mt-0.5 leading-tight">
+                  O servidor estava em repouso. Aguarde 10–30 segundos e tente novamente.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
           {/* Subtle border highlight */}
+
           <div className="absolute inset-0 border border-indigo-500/10 rounded-[2.5rem] pointer-events-none group-hover:border-indigo-500/20 transition-colors" />
 
           <form onSubmit={handleSubmit} className="space-y-6">
