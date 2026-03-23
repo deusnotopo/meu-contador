@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://meu-contador-iyut.onrender.com');
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('authToken');
