@@ -47,12 +47,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
 
   // Helper: promessa com timeout
-  const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     const timeout = new Promise<T>((_, reject) =>
       setTimeout(() => reject(new Error('Request timeout')), ms)
     );
     return Promise.race([promise, timeout]);
-  };
+  }
 
   // Initial Auth Check & Preferences Sync
   useEffect(() => {
