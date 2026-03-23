@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatDate } from "@/lib/formatters";
+import { formatDate, formatCurrency } from "@/lib/formatters";
 import type { Transaction } from "@/types";
 import { Calendar, ChevronDown, Edit2, FileText, Trash2 } from "lucide-react";
 import { useState } from "react";
