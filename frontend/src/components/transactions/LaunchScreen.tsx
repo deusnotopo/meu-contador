@@ -48,12 +48,15 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
     const amount = cents / 100;
     const cat = CATEGORIES.find((c) => c.id === catId);
     await addTransaction({
-      amount: tipo === "expense" ? -amount : amount,
+      amount: (tipo === "expense" ? -amount : amount).toString(),
       description: description || (cat?.nm ?? catId),
       category: catId,
       type: tipo === "expense" ? "expense" : "income",
       date: new Date().toISOString().split("T")[0],
       paymentMethod: "pix",
+      notes: "",
+      recurring: false,
+      scope: "personal",
     });
     onBack("overview");
   };

@@ -16,7 +16,7 @@ interface TransactionsViewProps {
 }
 
 export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
-  const { transactions, loading } = useTransactions();
+  const { transactions, isLoading } = useTransactions();
   const [activePeriod, setActivePeriod] = useState("Mar");
   const [search, setSearch] = useState("");
 
@@ -86,7 +86,7 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
         ))}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="skeleton" style={{ height: 64 }} />

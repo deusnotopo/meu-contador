@@ -1,257 +1,106 @@
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { useLanguage } from "@/context/LanguageContext";
-import { BusinessSettings } from "@/features/settings/components/BusinessSettings";
-import { DataSettings } from "@/features/settings/components/DataSettings";
-import { MobileSettings } from "@/features/settings/components/MobileSettings";
-import { ProfileSettings } from "@/features/settings/components/ProfileSettings";
-import { SecuritySettings } from "@/features/settings/components/SecuritySettings";
-import { VisualSettings } from "@/features/settings/components/VisualSettings";
-import { showError, showSuccess } from "@/lib/toast";
-import { UserProfile } from "@/types";
-import {
-  Building2,
-  Database,
-  LogOut,
-  Moon,
-  Palette,
-  Shield,
-  Smartphone,
-  Sun,
-  User as LucideUser,
-  Users,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { CollaborationPanel } from "../profile/CollaborationPanel";
-
-const LanguageSwitcher = () => {
-  const { language, setLanguage } = useAuth();
-  return (
-    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setLanguage("pt")}
-        className={`text-xs ${
-          language === "pt"
-            ? "bg-white/10 text-white font-bold"
-            : "text-slate-400"
-        }`}
-      >
-        🇧🇷 PT
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setLanguage("en")}
-        className={`text-xs ${
-          language === "en"
-            ? "bg-white/10 text-white font-bold"
-            : "text-slate-400"
-        }`}
-      >
-        🇺🇸 EN
-      </Button>
-    </div>
-  );
-};
-
-const ThemeSwitcher = () => {
-  const { theme, setTheme } = useAuth();
-  return (
-    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
-      {[
-        {
-          id: "dark",
-          label: "Dark",
-          icon: Moon,
-          color: "text-indigo-400",
-        },
-        {
-          id: "light",
-          label: "Light",
-          icon: Sun,
-          color: "text-amber-400",
-        },
-      ].map((t) => (
-        <Button
-          key={t.id}
-          variant="ghost"
-          size="sm"
-          onClick={() => setTheme(t.id as "light" | "dark")}
-          className={`text-[9px] uppercase font-black px-3 ${
-            theme === t.id
-              ? "bg-white/10 text-white"
-              : "text-slate-500 hover:text-white"
-          }`}
-        >
-          <t.icon size={12} className={`mr-1.5 ${t.color}`} />
-          {t.label}
-        </Button>
-      ))}
-    </div>
-  );
-};
+import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, Smartphone, ShieldCheck, CreditCard } from "lucide-react";
 
 export const SettingsSection = () => {
-  const {
-    user,
-    logout,
-    theme,
-    setTheme,
-    privacyMode,
-    togglePrivacy,
-    updateProfile,
-  } = useAuth();
-  // Initialize from user but allow local edits before save
-  const [profile, setProfile] = useState<
-    Partial<UserProfile> & { uid?: string }
-  >(user || {});
-
-  // Sync profile when user loads
-  useEffect(() => {
-    if (user) {
-      setProfile((prev) => ({ ...prev, ...user }));
-    }
-  }, [user]);
-
-  const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState("personal");
-
-  const handleSave = async () => {
-    try {
-      await updateProfile(profile);
-      showSuccess("Configurações salvas com sucesso!");
-    } catch {
-      showError("Erro ao salvar configurações.");
-    }
-  };
-
+  const { user, logout } = useAuth();
+  
   return (
-    <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-white/5 pb-10">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-black tracking-tighter uppercase">
-            {t("settings.title").split(" ")[0]}{" "}
-            <span className="premium-gradient-text">
-              {t("settings.title").split(" ").slice(1).join(" ")}
-            </span>
-          </h1>
-          <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.2em]">
-            {t("settings.subtitle")}
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <ThemeSwitcher />
-          <LanguageSwitcher />
-          <Button
-            variant="ghost"
-            onClick={logout}
-            className="h-12 px-6 rounded-xl bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 border border-rose-500/10 text-[10px] font-black uppercase tracking-widest transition-all"
-          >
-            <LogOut size={16} className="mr-2" />
-            {t("settings.logout")}
-          </Button>
+    <div style={{ padding: "10px 0", animation: "fsu 0.26s ease" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, padding: "0 16px" }}>
+        <button className="back-btn" onClick={() => window.history.back()}>
+          <ArrowLeft size={16} />
+        </button>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px" }}>
+          Perfil
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Navigation / Profile Summary */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="premium-card relative overflow-hidden group">
-            <div className="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/10 blur-[80px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-700"></div>
-            <div className="p-8 text-center space-y-6 relative z-10">
-              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[32px] flex items-center justify-center text-white text-4xl font-black shadow-2xl shadow-indigo-500/20 rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                {profile.name?.charAt(0) || user?.email?.charAt(0)}
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-black text-2xl text-white tracking-tight">
-                  {profile.name || "Seu Nome"}
-                </h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  {user?.email}
-                </p>
-              </div>
-            </div>
+      <div style={{ padding: "0 16px" }}>
+        {/* Profile Card */}
+        <div className="card" style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 24, padding: 20 }}>
+          <div className="avatar" style={{ width: 56, height: 56, fontSize: 18 }}>
+            {user?.name?.substring(0, 2).toUpperCase() || "MC"}
           </div>
-
-          <div className="p-2 bg-white/5 rounded-3xl border border-white/5 space-y-1">
-            {[
-              {
-                id: "personal",
-                label: "Perfil Pessoal",
-                icon: LucideUser,
-              },
-              { id: "business", label: "Dados da Empresa", icon: Building2 },
-              { id: "collab", label: "Espaços (Novo)", icon: Users },
-              { id: "visual", label: "Aparência & Temas", icon: Palette },
-              { id: "mobile", label: "Mobile & PWA", icon: Smartphone },
-              { id: "data", label: "Dados & Backup", icon: Database },
-              { id: "security", label: "Privacidade", icon: Shield },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-4 px-6 h-14 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                  activeTab === item.id
-                    ? "bg-white text-black shadow-xl"
-                    : "text-slate-500 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <item.icon
-                  size={18}
-                  strokeWidth={activeTab === item.id ? 2.5 : 2}
-                />
-                {item.label}
-              </button>
-            ))}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px" }}>
+              {user?.name || "Usuário"}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 2 }}>
+              {user?.email}
+            </div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--purple-d)", color: "var(--purple)", padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 8 }}>
+              ★ Assinante Premium
+            </div>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="lg:col-span-8 space-y-8">
-          {activeTab === "personal" && (
-            <ProfileSettings profile={profile} onChange={setProfile} />
-          )}
-
-          {activeTab === "business" && (
-            <BusinessSettings profile={profile} onChange={setProfile} />
-          )}
-
-          {activeTab === "collab" && (
-            <CollaborationPanel
-              profile={profile}
-              onUpdate={(updated) => {
-                setProfile(updated);
-                updateProfile(updated);
-              }}
-              userId={user?.uid || ""}
-            />
-          )}
-
-          {activeTab === "visual" && (
-            <VisualSettings
-              theme={theme}
-              setTheme={setTheme}
-              privacyMode={privacyMode}
-              togglePrivacy={togglePrivacy}
-            />
-          )}
-
-          {activeTab === "mobile" && <MobileSettings />}
-
-          {activeTab === "data" && <DataSettings />}
-
-          {activeTab === "security" && <SecuritySettings />}
-
-          <div className="flex justify-end sticky bottom-8 pt-4">
-            <Button
-              onClick={handleSave}
-              className="h-16 px-16 rounded-[24px] bg-white text-black hover:bg-white/90 font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-white/10 transition-all hover:scale-105 active:scale-95"
-            >
-              {t("settings.save")}
-            </Button>
+        {/* Quick Configs */}
+        <div className="sec-hd"><span className="sec-title">Integrações</span></div>
+        <div className="card space-y-2 mb-6">
+          <div className="row" style={{ padding: "12px 0", borderBottom: "1px solid var(--border)", cursor: "pointer" }}>
+            <div className="row-ico" style={{ background: "rgba(0,217,145,0.1)", color: "var(--green)" }}><ShieldCheck size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Open Finance</div>
+              <div className="row-sub">Banco Itaú, Nubank conectados</div>
+            </div>
+            <div style={{ fontSize: 10, color: "var(--blue)", fontWeight: 700, textTransform: "uppercase" }}>Gerenciar</div>
           </div>
+          <div className="row" style={{ padding: "12px 0", cursor: "pointer" }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><CreditCard size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Cartões e Contas</div>
+              <div className="row-sub">3 ativos</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="sec-hd"><span className="sec-title">Preferências</span></div>
+        <div className="card space-y-2 mb-6">
+          <div className="row" style={{ padding: "12px 0", borderBottom: "1px solid var(--border)", cursor: "pointer" }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Moon size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Tema Visual</div>
+              <div className="row-sub">Escuro (Padrão)</div>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button style={{ width: 28, height: 28, borderRadius: 8, background: "var(--glass3)", border: "1px solid var(--border)", color: "var(--t1)", display: "flex", alignItems: "center", justifyContent: "center" }}><Moon size={12} /></button>
+              <button style={{ width: 28, height: 28, borderRadius: 8, background: "var(--glass)", border: "1px solid var(--border)", color: "var(--t3)", display: "flex", alignItems: "center", justifyContent: "center" }}><Sun size={12} /></button>
+              <button style={{ width: 28, height: 28, borderRadius: 8, background: "var(--glass)", border: "1px solid var(--border)", color: "var(--t3)", display: "flex", alignItems: "center", justifyContent: "center" }}><Smartphone size={12} /></button>
+            </div>
+          </div>
+          <div className="row" style={{ padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Fingerprint size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Acesso Biométrico</div>
+              <div className="row-sub">Face ID / Touch ID</div>
+            </div>
+            <div>
+              {/* Toggle switch mock */}
+              <div style={{ width: 44, height: 24, borderRadius: 12, background: "var(--blue)", position: "relative", cursor: "pointer" }}>
+                <div style={{ position: "absolute", top: 2, right: 2, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 2px 4px rgba(0,0,0,0.2)" }} />
+              </div>
+            </div>
+          </div>
+          <div className="row" style={{ padding: "12px 0", cursor: "pointer" }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Download size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Exportar Dados</div>
+              <div className="row-sub">Relatório CSV ou PDF (IRPF)</div>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          onClick={() => logout()}
+          className="btn-ghost" 
+          style={{ width: "100%", padding: 16, color: "var(--red)", borderColor: "rgba(255,79,110,0.2)", display: "flex", gap: 8, justifyContent: "center", alignItems: "center" }}
+        >
+          <LogOut size={16} /> Encerrar Sessão
+        </button>
+        
+        <div style={{ textAlign: "center", margin: "24px 0 40px", fontSize: 10, color: "var(--t4)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          Versão 3.0.0 — Silicon Valley Standard
         </div>
       </div>
     </div>

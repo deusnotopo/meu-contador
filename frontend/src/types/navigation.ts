@@ -10,4 +10,5 @@ export type TabType =
   | "notifications"
   | "profile"
   | "settings"
+  | "ai"
   | "design";

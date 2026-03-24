@@ -33,14 +33,27 @@ export const useBudgets = () => {
     }
   };
 
-  const updateSpent = async (id: string, spent: number) => {
+  const updateBudget = async (id: string, updates: Partial<Budget>) => {
     try {
-      await api.put(`/budgets/${id}`, { spent });
-      setBudgets((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, spent } : b))
-      );
+      const current = budgets.find((b) => b.id === id);
+      const newLimit = updates.limit ?? current?.limit ?? 0;
+      const newSpent = updates.spent ?? current?.spent ?? 0;
+      
+      const updated = await api.put<Budget>(`/budgets/${id}`, { limit: newLimit, spent: newSpent });
+      setBudgets((prev) => prev.map((b) => (b.id === id ? updated : b)));
+      showSuccess("Orçamento atualizado!");
     } catch (error) {
-      console.error("Error updating budget spent:", error);
+      showError("Erro ao atualizar orçamento.");
+    }
+  };
+
+  const deleteBudget = async (id: string) => {
+    try {
+      await api.delete(`/budgets/${id}`);
+      setBudgets((prev) => prev.filter((b) => b.id !== id));
+      showSuccess("Orçamento excluído.");
+    } catch (error) {
+      showError("Erro ao excluir orçamentos.");
     }
   };
 
@@ -48,7 +61,8 @@ export const useBudgets = () => {
     budgets,
     loading,
     addBudget,
-    updateSpent,
+    updateBudget,
+    deleteBudget,
     refresh: fetchBudgets,
   };
 };
