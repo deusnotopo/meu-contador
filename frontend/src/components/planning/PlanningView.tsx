@@ -52,7 +52,7 @@ export const PlanningView = () => {
         </TabsContent>
         
         <TabsContent value="budgets" className="mt-0">
-          <BudgetsSection />
+          <BudgetsSection transactions={transactions} />
         </TabsContent>
         
         {!isBusiness && (

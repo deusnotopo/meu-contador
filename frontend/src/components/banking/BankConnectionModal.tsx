@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MockBankProvider } from "@/lib/open-finance";
+import { api } from "@/lib/api";
 import { showSuccess, showError } from "@/lib/toast";
-import { Building2, ShieldCheck, Loader2, Link2, ArrowRight } from "lucide-react";
+import { Building2, ShieldCheck, Loader2, Link2, ArrowRight, FileUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { OFXImportModal } from "./OFXImportModal";
 
 interface BankConnectionModalProps {
   isOpen: boolean;
@@ -16,8 +17,17 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
   const [step, setStep] = useState<"select" | "auth" | "sync">("select");
   const [selectedBank, setSelectedBank] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showOFX, setShowOFX] = useState(false);
 
-  const institutions = MockBankProvider.getInstitutions();
+  const [institutions, setInstitutions] = useState<any[]>([]);
+  
+  useEffect(() => {
+    if (isOpen) {
+      api.get("/banking/institutions")
+        .then(res => setInstitutions(res as any[]))
+        .catch(console.error);
+    }
+  }, [isOpen]);
 
   const handleBankSelect = (bank: any) => {
     setSelectedBank(bank);
@@ -38,9 +48,9 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
   const handleSync = async () => {
     setIsLoading(true);
     try {
-      const accounts = await MockBankProvider.getAccounts(selectedBank.id);
+      const accounts = await api.get(`/banking/accounts/${selectedBank.id}`) as any[];
       if (accounts.length > 0) {
-        const transactions = await MockBankProvider.syncTransactions(accounts[0].id);
+        const transactions = await api.post("/banking/sync", { accountId: accounts[0].id }) as any[];
         onSuccess(transactions);
         showSuccess(`Conectado ao ${selectedBank.name} com sucesso!`);
         onClose();
@@ -53,6 +63,7 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-[#020617] border-white/5 rounded-[2.5rem] p-0 overflow-hidden">
         <div className="p-8">
@@ -97,6 +108,17 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
                       </span>
                     </button>
                   ))}
+                </div>
+
+                {/* OFX Manual Import */}
+                <div className="mt-2 pt-4 border-t border-white/5">
+                  <button
+                    onClick={() => setShowOFX(true)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all text-slate-400 hover:text-white text-sm font-bold"
+                  >
+                    <FileUp size={18} className="text-indigo-400" />
+                    Importar extrato manual (.ofx / .qfx)
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -180,5 +202,15 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
         </div>
       </DialogContent>
     </Dialog>
+
+    <OFXImportModal
+      isOpen={showOFX}
+      onClose={() => setShowOFX(false)}
+      onSuccess={(imported) => {
+        setShowOFX(false);
+        onSuccess([]);
+      }}
+    />
+  </>
   );
 };

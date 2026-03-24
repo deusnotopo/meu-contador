@@ -35,7 +35,12 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
 export const api = {
   get: <T>(endpoint: string) => apiFetch<T>(endpoint, { method: 'GET' }),
-  post: <T>(endpoint: string, body: any) => apiFetch<T>(endpoint, { method: 'POST', body: JSON.stringify(body) }),
+  post: <T>(endpoint: string, body: any, opts: RequestInit = {}) =>
+    apiFetch<T>(endpoint, {
+      method: 'POST',
+      body: typeof body === 'string' ? body : JSON.stringify(body),
+      ...opts,
+    }),
   put: <T>(endpoint: string, body: any) => apiFetch<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
   patch: <T>(endpoint: string, body: any) => apiFetch<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(endpoint: string) => apiFetch<T>(endpoint, { method: 'DELETE' }),

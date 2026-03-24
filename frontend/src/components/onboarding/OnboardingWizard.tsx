@@ -5,7 +5,8 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/formatters";
 import { applyOnboardingConfig, saveOnboarding } from "@/lib/onboarding";
-import { showSuccess } from "@/lib/toast";
+import { showSuccess, showError } from "@/lib/toast";
+import { api } from "@/lib/api";
 import type {
   OnboardingBudget,
   OnboardingData,
@@ -26,6 +27,7 @@ import {
   ArrowRight,
   Bell,
   Brain,
+  Briefcase,
   Building2,
   Check,
   Crown,
@@ -36,6 +38,7 @@ import {
   TrendingUp,
   Wallet,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -97,15 +100,16 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
     budgetTemplates.moderate
   );
   const [goals, setGoals] = useState<OnboardingGoal[]>(goalPresets);
-  const [reminders, setReminders] =
-    useState<OnboardingReminder[]>(commonBillReminders);
-  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [reminders, setReminders] = useState<OnboardingReminder[]>(commonBillReminders);
+  const [investments, setInvestments] = useState<any[]>([]);
   const [preferences, setPreferences] = useState({
     showScore: true,
     showPredictions: true,
     weeklyReport: true,
     alerts: true,
   });
+
+  const [isSaving, setIsSaving] = useState(false);
 
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
@@ -133,7 +137,8 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
+    setIsSaving(true);
     const data: OnboardingData = {
       profile,
       budgets,
@@ -145,10 +150,18 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
       completed: true,
       completedAt: new Date().toISOString(),
     };
-    saveOnboarding(data);
-    applyOnboardingConfig(data);
-    showSuccess(`Bem-vindo(a), ${profile.name}! Tudo pronto.`);
-    onComplete();
+    
+    try {
+      await api.put('/users/onboarding', data);
+      saveOnboarding(data);
+      applyOnboardingConfig(data);
+      showSuccess(`Bem-vindo(a), ${profile.name}! Tudo pronto na Nuvem.`);
+      onComplete();
+    } catch (e) {
+      showError("Falha na formatação. Sua sessão pode ter expirado.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const paginate = (newDirection: number) => {
@@ -372,12 +385,19 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
 
             <Button
               onClick={() => paginate(1)}
+              disabled={isSaving}
               className="bg-white hover:bg-indigo-50 text-indigo-950 rounded-xl px-8 h-12 gap-3 text-base font-bold shadow-lg shadow-white/5 hover:scale-105 transition-all duration-300"
             >
-              {currentStep === STEPS.length - 1
-                ? "Concluir Setup"
-                : "Continuar"}
-              {currentStep === STEPS.length - 1 ? (
+              {isSaving ? (
+                "Sincronizando Banco..."
+              ) : currentStep === STEPS.length - 1 ? (
+                "Concluir Setup"
+              ) : (
+                "Continuar"
+              )}
+              {isSaving ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : currentStep === STEPS.length - 1 ? (
                 <Check size={18} />
               ) : (
                 <ArrowRight size={18} />
@@ -1004,7 +1024,7 @@ const BusinessStep = ({
   profile: UserProfile;
   setProfile: (p: UserProfile) => void;
 }) => {
-  const [hasBusiness, setHasBusiness] = useState(!!profile.businessProfile);
+  const [hasBusiness, setHasBusiness] = useState(!!(profile as any).businessProfile);
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto text-center">
@@ -1031,9 +1051,9 @@ const BusinessStep = ({
             setProfile({
               ...profile,
               businessProfile: { name: "", sector: "" },
-            });
+            } as any);
           } else {
-            const { businessProfile, ...rest } = profile;
+            const { businessProfile, ...rest } = profile as any;
             setProfile(rest as UserProfile);
           }
         }}
@@ -1081,15 +1101,15 @@ const BusinessStep = ({
                 Nome da Empresa
               </Label>
               <Input
-                value={profile.businessProfile?.name || ""}
+                value={(profile as any).businessProfile?.name || ""}
                 onChange={(e) =>
                   setProfile({
                     ...profile,
                     businessProfile: {
-                      ...profile.businessProfile!,
+                      ...(profile as any).businessProfile,
                       name: e.target.value,
                     },
-                  })
+                  } as any)
                 }
                 placeholder="Ex: Minha Loja Ltda"
                 className="rounded-xl h-14 bg-white/5 border-white/10 text-white font-medium"
@@ -1100,15 +1120,15 @@ const BusinessStep = ({
                 Ramo de Atividade
               </Label>
               <Input
-                value={profile.businessProfile?.sector || ""}
+                value={(profile as any).businessProfile?.sector || ""}
                 onChange={(e) =>
                   setProfile({
                     ...profile,
                     businessProfile: {
-                      ...profile.businessProfile!,
+                      ...(profile as any).businessProfile,
                       sector: e.target.value,
                     },
-                  })
+                  } as any)
                 }
                 placeholder="Ex: Varejo, Tecnologia, Serviços..."
                 className="rounded-xl h-14 bg-white/5 border-white/10 text-white font-medium"
@@ -1186,7 +1206,7 @@ const PreferencesStep = ({
             className={`
                p-5 rounded-2xl border transition-all duration-300
                ${
-                 preferences[key as keyof PreferencesType]
+                 (preferences as any)[key]
                    ? "bg-white/10 border-indigo-500/30 shadow-lg"
                    : "bg-white/5 border-white/5 hover:bg-white/[0.07]"
                }
@@ -1195,7 +1215,7 @@ const PreferencesStep = ({
             <div className="flex items-center justify-between mb-3">
               <div className="p-2.5 rounded-xl bg-white/5">{icon}</div>
               <Switch
-                checked={preferences[key as keyof PreferencesType]}
+                checked={(preferences as any)[key]}
                 onCheckedChange={(v) =>
                   setPreferences({ ...preferences, [key]: v })
                 }
@@ -1205,7 +1225,7 @@ const PreferencesStep = ({
             <div>
               <p
                 className={`font-bold text-base ${
-                  preferences[key as keyof PreferencesType]
+                  (preferences as any)[key]
                     ? "text-white"
                     : "text-slate-300"
                 }`}
@@ -1354,8 +1374,8 @@ const InvestmentsStep = ({
   investments,
   setInvestments,
 }: {
-  investments: Investment[];
-  setInvestments: (i: Investment[]) => void;
+  investments: any[];
+  setInvestments: (i: any[]) => void;
 }) => {
   const [newAsset, setNewAsset] = useState({
     ticker: "",
@@ -1366,7 +1386,7 @@ const InvestmentsStep = ({
 
   const addAsset = () => {
     if (!newAsset.ticker) return;
-    const asset: Investment = {
+    const asset: any = {
       id: Date.now(),
       name: newAsset.ticker.toUpperCase(),
       ticker: newAsset.ticker.toUpperCase(),

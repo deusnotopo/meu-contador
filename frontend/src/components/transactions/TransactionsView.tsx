@@ -1,44 +1,131 @@
-import { motion } from 'framer-motion';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useAuth } from '@/context/AuthContext';
-import { TransactionList } from '../contador/TransactionList';
-import { Card } from '../ui/card';
-import { ListOrdered } from 'lucide-react';
+import { useState } from "react";
+import { ArrowLeft, Search } from "lucide-react";
+import { useTransactions } from "@/hooks/useTransactions";
+import { formatCurrency } from "@/lib/formatters";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Receipt } from "lucide-react";
+import type { TabType } from "@/types/navigation";
 
-export const TransactionsView = () => {
-  const { user } = useAuth();
-  
-  // Use the active scope (business if workspaceId exists and is not personal, otherwise personal)
-  const isBusiness = user?.currentWorkspaceId && user.currentWorkspaceId !== 'personal';
-  const scope = isBusiness ? 'business' : 'personal';
-  
-  const { transactions, isLoading, deleteTransaction } = useTransactions(scope);
+const PERIODS = ["Mar", "Fev", "Jan", "Dez", "Nov", "Out"];
+
+// Map month abbreviations to month numbers (0-based)
+const MONTH_MAP: Record<string, number> = { Mar: 2, Fev: 1, Jan: 0, Dez: 11, Nov: 10, Out: 9 };
+
+interface TransactionsViewProps {
+  onBack: (tab: TabType) => void;
+}
+
+export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
+  const { transactions, loading } = useTransactions();
+  const [activePeriod, setActivePeriod] = useState("Mar");
+  const [search, setSearch] = useState("");
+
+  const now = new Date();
+  const targetMonth = MONTH_MAP[activePeriod] ?? now.getMonth();
+  const targetYear = now.getFullYear() - (targetMonth > now.getMonth() ? 1 : 0);
+
+  const filtered = transactions
+    .filter((t) => {
+      const d = new Date(t.date);
+      const matchesPeriod = d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+      const matchesSearch = search === "" ||
+        t.description.toLowerCase().includes(search.toLowerCase()) ||
+        t.category.toLowerCase().includes(search.toLowerCase());
+      return matchesPeriod && matchesSearch;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Group by "date label"
+  const today = new Date().toISOString().split("T")[0];
+  const groups: Record<string, typeof filtered> = {};
+  filtered.forEach((t) => {
+    const dateStr = t.date;
+    const label = dateStr === today ? "Hoje" : new Date(dateStr).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(t);
+  });
+
+  const CATEGORY_ICONS: Record<string, string> = {
+    moradia: "🏠", mercado: "🛒", delivery: "🍕", transporte: "🚗",
+    saude: "💊", lazer: "🎬", roupas: "👕", outros: "📦",
+    salario: "💰", investimentos: "📈", receita: "💰", income: "💰",
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-5xl mx-auto space-y-6 pt-6"
-    >
-      <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-400">
-          <ListOrdered size={28} />
-        </div>
-        <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Extrato Consolidado</h1>
-          <p className="text-slate-400 text-sm font-medium mt-1">
-            Visualizando transações {isBusiness ? 'da Empresa' : 'Pessoais'}
-          </p>
+    <div style={{ padding: "10px 0", animation: "fsu 0.26s ease" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <button className="back-btn" onClick={() => onBack("overview")}>
+          <ArrowLeft size={16} />
+        </button>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px" }}>
+          Transações
         </div>
       </div>
 
-      <Card className="glass-card border-none bg-slate-900/50 p-6 rounded-[2rem]">
-        <TransactionList 
-           transactions={transactions} 
-           onDelete={deleteTransaction}
-           onEdit={() => {}} 
+      {/* Search */}
+      <div className="search-bar">
+        <Search size={15} color="var(--t2)" />
+        <input
+          placeholder="Buscar transação..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-      </Card>
-    </motion.div>
+      </div>
+
+      {/* Period tabs */}
+      <div className="period-tabs">
+        {PERIODS.map((p) => (
+          <button
+            key={p}
+            className={`period-tab${activePeriod === p ? " active" : ""}`}
+            onClick={() => setActivePeriod(p)}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton" style={{ height: 64 }} />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Receipt}
+          title="Nenhuma transação encontrada"
+          description={search ? "Tente outro termo de busca." : `Sem transações em ${activePeriod}.`}
+        />
+      ) : (
+        Object.entries(groups).map(([label, txns]) => (
+          <div key={label}>
+            <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "14px 0 8px", fontWeight: 600 }}>
+              {label}
+            </div>
+            <div className="card">
+              {txns.map((tx) => (
+                <div key={tx.id} className="row">
+                  <div
+                    className="row-ico"
+                    style={{ background: tx.amount > 0 ? "var(--green-d)" : "var(--glass2)" }}
+                  >
+                    {CATEGORY_ICONS[tx.category] ?? "📦"}
+                  </div>
+                  <div className="row-main">
+                    <div className="row-title">{tx.description}</div>
+                    <div className="row-sub">{tx.category} · {new Date(tx.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</div>
+                  </div>
+                  <div className={`row-amt ${tx.amount > 0 ? "amt-plus" : "amt-minus"}`}>
+                    {tx.amount > 0 ? "+" : "−"}&nbsp;{formatCurrency(Math.abs(tx.amount))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
   );
 };

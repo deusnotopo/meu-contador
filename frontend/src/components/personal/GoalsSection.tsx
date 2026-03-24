@@ -8,15 +8,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/formatters";
-import {
-  STORAGE_EVENT,
-  STORAGE_KEYS,
-  loadGoals,
-  saveGoals,
-} from "@/lib/storage";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useGoals } from "@/hooks/useGoals";
 import type { SavingsGoal } from "@/types";
-import { Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Pencil, Plus, Trash2, TrendingUp, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 const GOAL_ICONS = ["🏦", "✈️", "🚗", "🏠", "💻", "📱", "🎓", "💍", "🏥", "🎯"];
 const GOAL_COLORS = [
@@ -29,7 +25,7 @@ const GOAL_COLORS = [
 ];
 
 export const GoalsSection = () => {
-  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const { goals, loading, addGoal, editGoal, deleteGoal, updateGoalProgress } = useGoals();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [formData, setFormData] = useState({
@@ -40,40 +36,19 @@ export const GoalsSection = () => {
     icon: "🎯",
   });
 
-  useEffect(() => {
-    setGoals(loadGoals());
-
-    const handleStorageChange = (e: any) => {
-      if (e.detail?.key === STORAGE_KEYS.GOALS) {
-        setGoals(e.detail.data);
-      }
-    };
-
-    window.addEventListener(STORAGE_EVENT as any, handleStorageChange);
-    return () =>
-      window.removeEventListener(STORAGE_EVENT as any, handleStorageChange);
-  }, []);
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || formData.targetAmount <= 0) return;
 
-    let updatedGoals: SavingsGoal[];
     if (editingGoal) {
-      updatedGoals = goals.map((g) =>
-        g.id === editingGoal.id
-          ? {
-              ...g,
-              name: formData.name,
-              targetAmount: formData.targetAmount,
-              currentAmount: formData.currentAmount,
-              deadline: formData.deadline,
-              icon: formData.icon,
-            }
-          : g
-      );
+      await editGoal(editingGoal.id, {
+        name: formData.name,
+        targetAmount: formData.targetAmount,
+        currentAmount: formData.currentAmount,
+        deadline: formData.deadline,
+        icon: formData.icon,
+      });
     } else {
-      const newGoal: SavingsGoal = {
-        id: Date.now(),
+      await addGoal({
         name: formData.name,
         targetAmount: formData.targetAmount,
         currentAmount: formData.currentAmount,
@@ -84,12 +59,9 @@ export const GoalsSection = () => {
             .split("T")[0],
         icon: formData.icon,
         color: GOAL_COLORS[goals.length % GOAL_COLORS.length],
-      };
-      updatedGoals = [...goals, newGoal];
+      });
     }
 
-    setGoals(updatedGoals);
-    saveGoals(updatedGoals);
     setIsDialogOpen(false);
     setEditingGoal(null);
     setFormData({
@@ -107,29 +79,21 @@ export const GoalsSection = () => {
       name: goal.name,
       targetAmount: goal.targetAmount,
       currentAmount: goal.currentAmount,
-      deadline: goal.deadline,
+      deadline: String(goal.deadline).split('T')[0], // ensure proper format for input type="date"
       icon: goal.icon,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    const updatedGoals = goals.filter((g) => g.id !== id);
-    setGoals(updatedGoals);
-    saveGoals(updatedGoals);
+  const handleDelete = async (id: string) => {
+    await deleteGoal(id);
   };
 
-  const handleAddMoney = (goal: SavingsGoal, amount: number) => {
-    const updatedGoals = goals.map((g) =>
-      g.id === goal.id
-        ? {
-            ...g,
-            currentAmount: Math.min(g.targetAmount, g.currentAmount + amount),
-          }
-        : g
+  const handleAddMoney = async (goal: SavingsGoal, amount: number) => {
+    await updateGoalProgress(
+      goal.id, 
+      Math.min(goal.targetAmount, goal.currentAmount + amount)
     );
-    setGoals(updatedGoals);
-    saveGoals(updatedGoals);
   };
 
   const openNewDialog = () => {
@@ -143,6 +107,15 @@ export const GoalsSection = () => {
     });
     setIsDialogOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20">
+        <Loader2 size={40} className="text-primary animate-spin mb-4" />
+        <p className="text-slate-400 font-medium">Carregando metas...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -280,22 +253,13 @@ export const GoalsSection = () => {
       </div>
 
       {goals.length === 0 ? (
-        <div className="premium-card p-20 text-center">
-          <TrendingUp className="mx-auto text-white/10 mb-6" size={64} />
-          <h4 className="text-xl font-black text-white mb-2 tracking-tight">
-            Comece sua Jornada de Independência
-          </h4>
-          <p className="text-sm text-slate-500 mb-8 max-w-sm mx-auto">
-            Crie metas visuais para acompanhar sua evolução e realizar seus
-            sonhos com clareza.
-          </p>
-          <Button
-            onClick={openNewDialog}
-            className="px-10 h-14 rounded-2xl bg-white text-black font-black uppercase tracking-[0.2em] transform transition-all hover:scale-105"
-          >
-            Definir Primeira Meta
-          </Button>
-        </div>
+        <EmptyState
+          icon={TrendingUp}
+          title="Comece sua Jornada de Independência"
+          description="Crie metas visuais para acompanhar sua evolução e realizar seus sonhos com clareza."
+          actionLabel="Definir Primeira Meta"
+          onAction={openNewDialog}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {goals.map((goal) => {

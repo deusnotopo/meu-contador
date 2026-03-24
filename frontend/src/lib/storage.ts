@@ -4,9 +4,12 @@ import type {
   CashFlowProjection,
   EducationProgress,
   Investment,
+  InvestmentSale,
   Invoice,
   SavingsGoal,
   Transaction,
+  UserProfile,
+  Dividend,
 } from "@/types";
 import { auth } from "./firebase";
 import { loadFromCloud, syncToCloud } from "./firestore-sync";
@@ -166,7 +169,7 @@ const updateEducationOnAction = (key: string, data: unknown) => {
   // Achievement: Budget Master (if they have at least 1 budget)
   if (
     key === STORAGE_KEYS.BUDGETS &&
-    data.length > 0 &&
+    Array.isArray(data) && data.length > 0 &&
     !currentProgress.unlockedAchievements.includes("budget-master")
   ) {
     currentProgress.unlockedAchievements.push("budget-master");
@@ -253,7 +256,7 @@ export const exportTransactionsToCSV = (transactions: Transaction[]): void => {
     t.category,
     t.amount.toString().replace(".", ","),
     t.paymentMethod || "",
-    t.status || "Pendente",
+    (t as any).status || "Pendente",
     t.scope,
   ]);
 
@@ -343,7 +346,7 @@ export const addReminder = (
   const reminders = loadReminders();
   const newReminder: BillReminder = {
     ...reminder,
-    id: Date.now(),
+    id: String(Date.now()),
     isPaid: false,
   };
   saveReminders([...reminders, newReminder]);

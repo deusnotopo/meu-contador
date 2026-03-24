@@ -23,7 +23,7 @@ describe('useLanguage', () => {
   it('should translate keys', () => {
     const { result } = renderHook(() => useLanguage(), { wrapper });
     
-    const translation = result.current.t('common.save');
+    const translation = result.current.t('settings.save');
     expect(typeof translation).toBe('string');
     expect(translation.length).toBeGreaterThan(0);
   });

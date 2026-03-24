@@ -73,14 +73,18 @@ model Transaction {
   currency           String   @default("BRL")
   originalAmount     Float?
   exchangeRate       Float?
-  
+  fitid              String?  // OFX Financial Institution Transaction ID (dedup)
+
   userId             String
   user               User     @relation(fields: [userId], references: [id])
   workspaceId        String?
   workspace          Workspace? @relation(fields: [workspaceId], references: [id])
   
   createdAt          DateTime @default(now())
+
+  @@unique([userId, fitid], name: "unique_user_fitid")
 }
+
 
 model Budget {
   id       String @id @default(uuid())

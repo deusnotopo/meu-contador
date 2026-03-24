@@ -23,7 +23,7 @@ export const useGoals = () => {
     fetchGoals();
   }, []);
 
-  const addGoal = async (goal: Omit<SavingsGoal, "id" | "currentAmount">) => {
+  const addGoal = async (goal: Omit<SavingsGoal, "id">) => {
     try {
       const newGoal = await api.post<SavingsGoal>("/goals", goal);
       setGoals((prev) => [...prev, newGoal]);
@@ -44,6 +44,18 @@ export const useGoals = () => {
     }
   };
 
+  const editGoal = async (id: string, updates: Partial<SavingsGoal>) => {
+    try {
+      await api.patch(`/goals/${id}`, updates);
+      setGoals((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, ...updates } : g))
+      );
+      showSuccess("Meta atualizada!");
+    } catch (error) {
+      showError("Erro ao atualizar meta.");
+    }
+  };
+
   const deleteGoal = async (id: string) => {
     try {
       await api.delete(`/goals/${id}`);
@@ -59,6 +71,7 @@ export const useGoals = () => {
     loading,
     addGoal,
     updateGoalProgress,
+    editGoal,
     deleteGoal,
     refresh: fetchGoals,
   };

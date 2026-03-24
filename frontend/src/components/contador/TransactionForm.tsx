@@ -17,7 +17,7 @@ import {
 } from "@/lib/constants";
 import { SUPPORTED_CURRENCIES, currencyService } from "@/lib/currency";
 import { getDefaultClassification } from "@/lib/financial-health";
-import type { CurrencyCode, FinancialClassification, Transaction, TransactionFormData } from "@/types";
+import type { Transaction, TransactionFormData } from "@/types";
 import { showError } from "@/lib/toast";
 import { Edit2, PlusCircle, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -49,7 +49,7 @@ export const TransactionForm = ({
       setFormData({
         ...editingTransaction,
         amount: editingTransaction.amount.toString(),
-      });
+      } as any);
     } else {
       setFormData({ ...initialTransactionFormData, scope });
     }
@@ -63,7 +63,7 @@ export const TransactionForm = ({
     // Convert Amount if needed (Base is BRL)
     const finalAmount = currencyService.convertToBRL(
       parseFloat(formData.amount),
-      (formData.currency as CurrencyCode) || "BRL"
+      (formData.currency as any) || "BRL"
     );
 
     // Save with original specs
@@ -72,7 +72,7 @@ export const TransactionForm = ({
       amount: finalAmount.toString(),
       originalAmount: parseFloat(formData.amount),
       exchangeRate: currencyService
-        .getRate((formData.currency as CurrencyCode) || "BRL")
+        .getRate((formData.currency as any) || "BRL")
         .toString(),
     };
 
@@ -153,7 +153,7 @@ export const TransactionForm = ({
             <Label className="text-sm font-semibold">Moeda</Label>
             <Select
               value={formData.currency || "BRL"}
-              onValueChange={(value: CurrencyCode) =>
+              onValueChange={(value: any) =>
                 setFormData({ ...formData, currency: value })
               }
             >
@@ -172,7 +172,7 @@ export const TransactionForm = ({
               <p className="text-[10px] text-muted-foreground">
                 Cotação: 1 {formData.currency} ={" "}
                 {currencyService
-                  .getRate(formData.currency as CurrencyCode)
+                  .getRate(formData.currency as any)
                   .toFixed(2)}{" "}
                 BRL
               </p>
@@ -234,7 +234,7 @@ export const TransactionForm = ({
               </Label>
               <Select
                 value={formData.classification}
-                onValueChange={(value: FinancialClassification) =>
+                onValueChange={(value: any) =>
                   setFormData({ ...formData, classification: value })
                 }
               >

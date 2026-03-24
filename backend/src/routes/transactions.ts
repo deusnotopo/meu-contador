@@ -3,12 +3,9 @@ import { z } from 'zod';
 import { db } from '../lib/db';
 
 export async function transactionRoutes(app: FastifyInstance) {
-  app.get('/transactions', async (request, reply) => {
+  app.get('/transactions', { preHandler: [(app as any).authenticate] }, async (request, reply) => {
     const { scope } = request.query as { scope?: string };
-    
-    // We'll use a default user for now until Auth is implemented
-    const user = await db.user.findFirst();
-    if (!user) return reply.status(404).send({ message: 'User not found' });
+    const user = request.user as { id: string };
 
     const transactions = await db.transaction.findMany({
       where: {
@@ -20,7 +17,7 @@ export async function transactionRoutes(app: FastifyInstance) {
     return transactions;
   });
 
-  app.post('/transactions', async (request, reply) => {
+  app.post('/transactions', { preHandler: [(app as any).authenticate] }, async (request, reply) => {
     const schema = z.object({
       description: z.string(),
       amount: z.number(),
@@ -31,8 +28,7 @@ export async function transactionRoutes(app: FastifyInstance) {
     });
 
     const body = schema.parse(request.body);
-    const user = await db.user.findFirst();
-    if (!user) return reply.status(404).send({ message: 'User not found' });
+    const user = request.user as { id: string };
 
     const transaction = await db.transaction.create({
       data: {
@@ -45,7 +41,7 @@ export async function transactionRoutes(app: FastifyInstance) {
     return transaction;
   });
 
-  app.delete('/transactions/:id', async (request, reply) => {
+  app.delete('/transactions/:id', { preHandler: [(app as any).authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     await db.transaction.delete({ where: { id } });
     return reply.status(204).send();

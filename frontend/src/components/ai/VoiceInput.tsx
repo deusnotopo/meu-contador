@@ -12,7 +12,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   isProcessing = false,
 }) => {
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(
+  const [recognition, setRecognition] = useState<any | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);

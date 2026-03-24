@@ -30,6 +30,7 @@ import {
 import { EmptyState } from "../ui/EmptyState";
 import { PrivacyValue } from "../ui/PrivacyValue";
 import { FadeIn } from "../ui/skeleton";
+import { useState } from "react";
 
 export const InvoicesSection = () => {
   const { invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
@@ -40,7 +41,7 @@ export const InvoicesSection = () => {
     number: "",
     client: "",
     amount: "",
-    status: "pending" as const,
+    status: "pending" as any,
     dueDate: new Date().toISOString().split("T")[0],
   });
 

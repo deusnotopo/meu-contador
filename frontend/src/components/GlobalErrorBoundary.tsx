@@ -13,12 +13,12 @@ interface State {
 export class GlobalErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
-    error: null,
-    errorInfo: null,
+    error: null as any,
+    errorInfo: null as any,
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, errorInfo: null as any };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {

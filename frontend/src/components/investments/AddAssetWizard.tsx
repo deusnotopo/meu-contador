@@ -72,7 +72,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
         currency: data.currency!,
         sector: data.sector || "Geral",
         targetAllocation: Number(data.targetAllocation) || 0,
-      });
+      } as any);
     }
   };
 
@@ -215,7 +215,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                       autoFocus
                       value={data.amount}
                       onChange={(e) =>
-                        setData({ ...data, amount: e.target.value })
+                        setData({ ...data, amount: e.target.value as any })
                       }
                       className="h-14 bg-white/5 border-white/10 rounded-xl text-lg font-bold"
                     />
@@ -254,7 +254,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                       step="0.01"
                       value={data.averagePrice}
                       onChange={(e) =>
-                        setData({ ...data, averagePrice: e.target.value })
+                        setData({ ...data, averagePrice: e.target.value as any })
                       }
                       className="h-14 bg-white/5 border-white/10 rounded-xl pl-10 text-lg font-bold"
                     />
@@ -288,7 +288,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     placeholder="0%"
                     value={data.targetAllocation}
                     onChange={(e) =>
-                      setData({ ...data, targetAllocation: e.target.value })
+                      setData({ ...data, targetAllocation: e.target.value as any })
                     }
                     className="h-14 bg-white/5 border-white/10 rounded-xl text-center text-xl font-black"
                   />

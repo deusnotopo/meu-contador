@@ -119,6 +119,10 @@ export const calculateFinancialHealth = (
     expenseCoverage,
     dti,
     rule503020,
-    details: totals,
+    details: {
+      totalIncome: totals.income,
+      totalExpense: totals.expense,
+      balance: totals.balance,
+    },
   };
 };

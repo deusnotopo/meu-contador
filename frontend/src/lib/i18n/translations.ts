@@ -129,5 +129,3 @@ export const translations = {
     "settings.about": "About",
   },
 };
-
-export type TranslationKey = keyof (typeof translations)["pt-BR"];

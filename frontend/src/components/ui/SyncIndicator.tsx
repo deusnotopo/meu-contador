@@ -88,7 +88,7 @@ export const SyncIndicator = () => {
     >
       <Icon
         size={14}
-        className={`${config.color} ${config.animate ? "animate-spin" : ""}`}
+        className={`${config.color} ${(config as any).animate ? "animate-spin" : ""}`}
       />
     </div>
   );

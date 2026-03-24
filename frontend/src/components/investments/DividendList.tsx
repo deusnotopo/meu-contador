@@ -23,7 +23,7 @@ import { useMemo, useState } from "react";
 import { PrivacyValue } from "../ui/PrivacyValue";
 
 export const DividendList = () => {
-  const { assets, dividends, addDividend, deleteDividend } = useInvestments();
+  const { assets, dividends, addDividend, deleteDividend } = useInvestments() as any;
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     assetId: "",
@@ -48,14 +48,14 @@ export const DividendList = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const assetId = parseInt(formData.assetId);
+    const assetId = formData.assetId;
     const amount = parseFloat(formData.amount.replace(",", "."));
 
-    const selectedAsset = assets.find((a) => a.id === assetId);
+    const selectedAsset = assets.find((a: any) => a.id.toString() === assetId);
 
     if (!selectedAsset || isNaN(amount) || amount <= 0) return;
 
-    addDividend({
+    (addDividend as any)({
       assetId,
       assetTicker: selectedAsset.ticker,
       amount,
@@ -242,7 +242,7 @@ export const DividendList = () => {
                     parseInt(month) - 1
                   ).toLocaleString("pt-BR", { month: "long", year: "numeric" });
 
-                  const monthTotal = monthDividends.reduce(
+                  const monthTotal = (monthDividends as any[]).reduce(
                     (sum, d) => sum + d.amount,
                     0
                   );
@@ -258,7 +258,7 @@ export const DividendList = () => {
                         </span>
                       </div>
                       <div className="space-y-3 pl-2 border-l-2 border-white/5 ml-3">
-                        {monthDividends
+                        {(monthDividends as any[])
                           .sort(
                             (a, b) =>
                               new Date(b.date).getTime() -

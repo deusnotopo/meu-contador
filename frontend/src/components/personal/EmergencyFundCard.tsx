@@ -47,7 +47,7 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
     const targetAmount = avgMonthlyExpense * targetMonths;
     const progress =
       targetAmount > 0 ? (currentSavings / targetAmount) * 100 : 0;
-    const monthsCovered =
+    const monthsCoveredNum =
       avgMonthlyExpense > 0 ? currentSavings / avgMonthlyExpense : 0;
 
     return {
@@ -55,9 +55,9 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
       currentSavings,
       targetAmount,
       progress: Math.min(100, Math.max(0, progress)),
-      monthsCovered: monthsCovered.toFixed(1),
-      isSafe: parseFloat(monthsCovered) >= 3,
-      isSolid: parseFloat(monthsCovered) >= 6,
+      monthsCovered: monthsCoveredNum.toFixed(1),
+      isSafe: monthsCoveredNum >= 3,
+      isSolid: monthsCoveredNum >= 6,
     };
   }, [transactions]);
 

@@ -69,7 +69,7 @@ export const checkRecurringTransactions = () => {
           if (!inQueue) {
             newTransactions.push({
               ...t,
-              id: Date.now() + Math.random(),
+              id: String(Date.now() + Math.random()),
               date: nextDueDateStr,
               recurring: true, // Mark as recurring
               recurrenceInterval: interval, // Keep the interval

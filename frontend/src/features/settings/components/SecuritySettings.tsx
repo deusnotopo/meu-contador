@@ -1,5 +1,6 @@
 import { Shield } from "lucide-react";
 import { MFASetup } from "@/components/security/MFASetup";
+import { Button } from "@/components/ui/button";
 
 export const SecuritySettings = () => {
   return (

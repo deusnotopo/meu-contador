@@ -81,7 +81,7 @@ export const RemindersSection = () => {
       );
     } else {
       const newReminder: BillReminder = {
-        id: Date.now(),
+        id: Date.now().toString(),
         name: formData.name,
         amount: formData.amount,
         dueDate: formData.dueDate,
@@ -117,7 +117,7 @@ export const RemindersSection = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     const updatedReminders = reminders.filter((r) => r.id !== id);
     setReminders(updatedReminders);
     saveReminders(updatedReminders);

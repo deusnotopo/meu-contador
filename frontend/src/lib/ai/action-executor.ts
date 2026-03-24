@@ -70,7 +70,10 @@ const executeTransactionAction = async (
     type,
     category: category || "Outros",
     date,
-    context: "personal",
+    paymentMethod: "Outros",
+    notes: "Gerado pela Inteligência Artificial",
+    recurring: false,
+    scope: "personal",
   };
 
   const transactions = loadTransactions();
@@ -115,6 +118,7 @@ const executeReminderAction = async (
     dueDate,
     isPaid: false,
     category: "Contas",
+    recurring: "monthly",
   };
 
   saveReminders([...reminders, newReminder]);

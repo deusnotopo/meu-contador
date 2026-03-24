@@ -11,7 +11,7 @@ export const exportFinancialReport = (
   const pageWidth = doc.internal.pageSize.width;
 
   // Header Colors & Style
-  const primaryColor = [79, 70, 229]; // Indigo-600
+  const primaryColor: [number, number, number] = [79, 70, 229]; // Indigo-600
 
   // 1. Logo & Title
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -111,7 +111,7 @@ export const exportFinancialReport = (
   });
 
   // Footer
-  const pageCount = doc.internal.getNumberOfPages();
+  const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
@@ -155,7 +155,7 @@ export const exportDRE = (
   const pageWidth = doc.internal.pageSize.width;
 
   // Header Colors & Style
-  const primaryColor = [79, 70, 229]; // Indigo-600
+  const primaryColor: [number, number, number] = [79, 70, 229]; // Indigo-600
 
   // 1. Logo & Title
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -214,7 +214,7 @@ export const exportDRE = (
   });
 
   // Footer
-  const pageCount = doc.internal.getNumberOfPages();
+  const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);

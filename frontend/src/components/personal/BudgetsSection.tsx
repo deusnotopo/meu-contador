@@ -78,7 +78,7 @@ export const BudgetsSection = ({ transactions }: Props) => {
       );
     } else {
       const newBudget: Budget = {
-        id: Date.now(),
+        id: Date.now().toString(),
         category: formData.category,
         limit: formData.limit,
         spent: 0,
@@ -100,7 +100,7 @@ export const BudgetsSection = ({ transactions }: Props) => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     const updatedBudgets = budgets.filter((b) => b.id !== id);
     setBudgets(updatedBudgets);
     saveBudgets(updatedBudgets);

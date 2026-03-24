@@ -3,14 +3,13 @@ import { z } from 'zod';
 import { db } from '../lib/db';
 
 export async function goalRoutes(app: FastifyInstance) {
-  app.get('/goals', async (request, reply) => {
-    const user = await db.user.findFirst();
-    if (!user) return reply.status(404).send({ message: 'User not found' });
+  app.get('/goals', { preHandler: [(app as any).authenticate] }, async (request, reply) => {
+    const user = request.user as { id: string };
 
     return db.savingsGoal.findMany({ where: { userId: user.id } });
   });
 
-  app.post('/goals', async (request, reply) => {
+  app.post('/goals', { preHandler: [(app as any).authenticate] }, async (request, reply) => {
     const schema = z.object({
       name: z.string(),
       targetAmount: z.number(),
@@ -21,8 +20,7 @@ export async function goalRoutes(app: FastifyInstance) {
     });
 
     const body = schema.parse(request.body);
-    const user = await db.user.findFirst();
-    if (!user) return reply.status(404).send({ message: 'User not found' });
+    const user = request.user as { id: string };
 
     return db.savingsGoal.create({
       data: {
@@ -33,17 +31,29 @@ export async function goalRoutes(app: FastifyInstance) {
     });
   });
 
-  app.patch('/goals/:id', async (request, reply) => {
+  app.patch('/goals/:id', { preHandler: [(app as any).authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const schema = z.object({
-      currentAmount: z.number(),
+      name: z.string().optional(),
+      targetAmount: z.number().optional(),
+      currentAmount: z.number().optional(),
+      deadline: z.string().optional(),
+      icon: z.string().optional(),
+      color: z.string().optional(),
     });
 
     const body = schema.parse(request.body);
-    return db.savingsGoal.update({ where: { id }, data: body });
+    
+    // Convert deadline string to Date if provided
+    const updateData = { ...body };
+    if (updateData.deadline) {
+      updateData.deadline = new Date(updateData.deadline) as any;
+    }
+
+    return db.savingsGoal.update({ where: { id }, data: updateData });
   });
 
-  app.delete('/goals/:id', async (request, reply) => {
+  app.delete('/goals/:id', { preHandler: [(app as any).authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     await db.savingsGoal.delete({ where: { id } });
     return reply.status(204).send();

@@ -26,7 +26,7 @@ export const DividendForecast: React.FC<Props> = ({ assets, dividends }) => {
 
     const assetYields = assets.map((asset) => {
       const assetDividends = dividends.filter(
-        (d) => d.assetId === asset.id && new Date(d.date) >= lastYear
+        (d) => String(d.assetId) === String(asset.id) && new Date(d.date) >= lastYear
       );
 
       const totalLastYear = assetDividends.reduce(

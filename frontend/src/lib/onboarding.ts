@@ -49,7 +49,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
   // Initial balance as a transaction if > 0
   if (data.profile.initialBalance > 0) {
     const initialTransaction: Transaction = {
-      id: Date.now(),
+      id: String(Date.now()),
       type: "income",
       description: "Saldo Inicial (Onboarding)",
       amount: data.profile.initialBalance,
@@ -67,7 +67,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
   const budgets: Budget[] = data.budgets
     .filter((b) => b.enabled)
     .map((b, i) => ({
-      id: Date.now() + i,
+      id: String(Date.now() + i),
       category: b.category,
       limit: b.amount,
       spent: 0,
@@ -79,7 +79,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
   const goals: SavingsGoal[] = data.goals
     .filter((g) => g.enabled)
     .map((g, i) => ({
-      id: Date.now() + i + 100,
+      id: String(Date.now() + i + 100),
       name: g.name,
       targetAmount: g.targetAmount,
       currentAmount: 0,
@@ -105,7 +105,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
       const dueDate = new Date(now.getFullYear(), now.getMonth(), r.dueDay);
       if (dueDate < now) dueDate.setMonth(dueDate.getMonth() + 1);
       return {
-        id: Date.now() + i + 200,
+        id: String(Date.now() + i + 200),
         name: r.name,
         amount: r.amount,
         dueDate: dueDate.toISOString().split("T")[0],
@@ -120,7 +120,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
   if (data.historicalExpenses && data.historicalExpenses.length > 0) {
     const historicalTransactions: Transaction[] = data.historicalExpenses.map(
       (exp, i) => ({
-        id: Date.now() + i + 500,
+        id: String(Date.now() + i + 500),
         type: "expense",
         description: `Gasto Histórico: ${exp.category}`,
         amount: exp.amount,

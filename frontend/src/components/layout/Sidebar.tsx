@@ -9,7 +9,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  PieChart
+  PieChart,
+  Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TabType } from "@/types/navigation";
@@ -26,6 +27,7 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
     { id: "overview", label: "Visão Geral", icon: LayoutDashboard },
     { id: "personal", label: "Pessoal", icon: User },
     { id: "business", label: "Empresarial", icon: Building2 },
+    { id: "planning", label: "Planejamento", icon: Target },
     { id: "investments", label: "Investimentos", icon: TrendingUp },
     { id: "education", label: "Educação", icon: GraduationCap },
   ];
@@ -67,7 +69,7 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
           return (
             <button
               key={item.id}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => onTabChange(item.id as TabType)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden",
                 isActive
@@ -114,6 +116,33 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
                 className="font-medium whitespace-nowrap overflow-hidden"
               >
                 Configurações
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
+
+        {/* Profile button */}
+        <button
+          onClick={() => onTabChange("settings")}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+            currentTab === "settings" // Reuse settings tab context for profile
+                ? "bg-slate-800 text-white shadow-glow"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          )}
+        >
+          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shrink-0">
+             <User size={12} className="text-white" />
+          </div>
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="font-medium whitespace-nowrap overflow-hidden text-sm"
+              >
+                Meu Perfil
               </motion.span>
             )}
           </AnimatePresence>

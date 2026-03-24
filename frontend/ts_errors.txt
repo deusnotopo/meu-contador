@@ -1,0 +1,4 @@
+﻿src/App.tsx(41,10): error TS2307: Cannot find module './components/investments/InvestmentsSection' or its corresponding type declarations.
+src/App.tsx(190,24): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"ai"' have no overlap.
+src/components/transactions/LaunchScreen.tsx(51,7): error TS2322: Type 'number' is not assignable to type 'string'.
+src/components/transactions/TransactionsView.tsx(19,25): error TS2339: Property 'loading' does not exist on type '{ transactions: Transaction[]; allTransactions: Transaction[]; filteredTransactions: Transaction[]; isLoading: boolean; filter: "income" | "expense" | "all"; ... 11 more ...; monthlyTrend: MonthlyData[]; }'.
