@@ -9,9 +9,10 @@ interface StatCardProps {
   icon: LucideIcon;
   variant: "income" | "expense" | "balance" | "neutral";
   delay?: number;
+  loading?: boolean;
 }
 
-const StatCard = ({ title, value, subtitle, icon: Icon, variant, delay = 0 }: StatCardProps) => {
+const StatCard = ({ title, value, subtitle, icon: Icon, variant, delay = 0, loading = false }: StatCardProps) => {
   const variantClasses = {
     income: "stat-card stat-card-income",
     expense: "stat-card stat-card-expense",
@@ -41,27 +42,35 @@ const StatCard = ({ title, value, subtitle, icon: Icon, variant, delay = 0 }: St
       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       <div className="flex items-start justify-between relative z-10">
-        <div className="space-y-3">
-          <p className={cn(
-            "text-xs font-bold uppercase tracking-widest opacity-80",
-            variant === "neutral" ? "text-muted-foreground" : "text-white/90"
-          )}>
-            {title}
-          </p>
-          <div className="space-y-1">
-            <p className="text-3xl font-heading font-extrabold tracking-tight">
-              {value}
-            </p>
-            {subtitle && (
-              <p className={cn(
-                "text-xs font-medium opacity-70",
-                variant === "neutral" ? "text-muted-foreground" : "text-white/80"
-              )}>
-                {subtitle}
-              </p>
-            )}
+        {loading ? (
+          <div className="space-y-3 w-full animate-pulse">
+            <div className="h-3 bg-white/30 rounded-md w-1/2"></div>
+            <div className="h-8 bg-white/30 rounded-lg w-3/4"></div>
+            {subtitle && <div className="h-2 bg-white/30 rounded-md w-1/3"></div>}
           </div>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            <p className={cn(
+              "text-xs font-bold uppercase tracking-widest opacity-80",
+              variant === "neutral" ? "text-muted-foreground" : "text-white/90"
+            )}>
+              {title}
+            </p>
+            <div className="space-y-1">
+              <p className="text-3xl font-heading font-extrabold tracking-tight">
+                {value}
+              </p>
+              {subtitle && (
+                <p className={cn(
+                  "text-xs font-medium opacity-70",
+                  variant === "neutral" ? "text-muted-foreground" : "text-white/80"
+                )}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
         <div className={cn(
           "p-4 rounded-2xl shadow-inner transition-transform duration-500 group-hover:rotate-12",
           variant === "neutral" ? "bg-white/5 border border-white/10" : "bg-white/20"

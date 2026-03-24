@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, Upload } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Receipt } from "lucide-react";
 import type { TabType } from "@/types/navigation";
+import { api } from "@/lib/api";
+import { showSuccess, showError } from "@/lib/toast";
 
 const PERIODS = ["Mar", "Fev", "Jan", "Dez", "Nov", "Out"];
 
@@ -16,9 +18,30 @@ interface TransactionsViewProps {
 }
 
 export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
-  const { transactions, isLoading } = useTransactions();
+  const { transactions, isLoading, refresh } = useTransactions();
   const [activePeriod, setActivePeriod] = useState("Mar");
   const [search, setSearch] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleOfxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const result = await api.post<{ importedCount: number }>("/banking/ofx", formData);
+      showSuccess(`Sucesso! ${result.importedCount} transações importadas.`);
+      await refresh();
+    } catch (error) {
+      showError("Erro ao importar arquivo OFX.");
+    } finally {
+      setIsUploading(false);
+      e.target.value = ""; // reset file input
+    }
+  };
 
   const now = new Date();
   const targetMonth = MONTH_MAP[activePeriod] ?? now.getMonth();
@@ -58,9 +81,24 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
         <button className="back-btn" onClick={() => onBack("overview")}>
           <ArrowLeft size={16} />
         </button>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px" }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px", flex: 1 }}>
           Transações
         </div>
+        <input 
+          type="file" 
+          id="ofx-upload" 
+          accept=".ofx" 
+          style={{ display: "none" }} 
+          onChange={handleOfxUpload} 
+        />
+        <button 
+          className="back-btn" 
+          onClick={() => document.getElementById("ofx-upload")?.click()}
+          style={{ opacity: isUploading ? 0.5 : 1, pointerEvents: isUploading ? "none" : "auto" }}
+          title="Importar OFX"
+        >
+          <Upload size={16} />
+        </button>
       </div>
 
       {/* Search */}

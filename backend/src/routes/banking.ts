@@ -1,203 +1,94 @@
-import { FastifyInstance } from 'fastify';
-import { z } from 'zod';
-import { db } from '../lib/db';
-import { v4 as uuidv4 } from 'uuid';
-import { parseOFX } from '../lib/ofx-parser';
+import { FastifyInstance } from "fastify";
+import { z } from "zod";
+import { db } from "../lib/db";
+import { parseOfx } from "../utils/ofxParser";
 
 export async function bankingRoutes(app: FastifyInstance) {
-  // GET /banking/institutions
-  app.get('/banking/institutions', {
-    schema: {
-      tags: ['Banking'],
-      security: [{ bearerAuth: [] }],
-      response: {
-        200: z.array(z.object({
-          id: z.string(),
-          name: z.string(),
-          color: z.string()
-        }))
-      }
-    },
-    preHandler: [app.authenticate]
-  }, async () => {
+  app.get("/banking/institutions", { preHandler: [(app as any).authenticate] }, async (request, reply) => {
+    // Return mock supported institutions
     return [
-      { id: "nubank", name: "Nubank", color: "#8a05be" },
-      { id: "itau", name: "Itaú", color: "#ec7000" },
-      { id: "inter", name: "Inter", color: "#ff7a00" },
-      { id: "btg", name: "BTG Pactual", color: "#001a33" },
-      { id: "bradesco", name: "Bradesco", color: "#cc092f" },
-      { id: "bb", name: "Banco do Brasil", color: "#fcee21" },
+      { id: "itau", name: "Itaú Unibanco", type: "retail" },
+      { id: "nubank", name: "Nubank", type: "digital" },
+      { id: "bb", name: "Banco do Brasil", type: "retail" },
+      { id: "bradesco", name: "Bradesco", type: "retail" },
+      { id: "santander", name: "Santander", type: "retail" },
+      { id: "inter", name: "Banco Inter", type: "digital" },
     ];
   });
 
-  // GET /banking/accounts/:institution
-  app.get('/banking/accounts/:institution', {
-    schema: {
-      tags: ['Banking'],
-      security: [{ bearerAuth: [] }],
-      params: z.object({ institution: z.string() })
-    },
-    preHandler: [app.authenticate]
-  }, async (request) => {
-    const { institution } = request.params as any;
-    return [
-      {
-        id: uuidv4(),
-        name: "Conta Corrente Principal",
-        institution,
-        balance: 15420.50,
-        currency: "BRL",
-        type: "checking"
-      },
-      {
-        id: uuidv4(),
-        name: "Cartão de Crédito",
-        institution,
-        balance: -2450.00,
-        currency: "BRL",
-        type: "credit_card"
-      }
-    ];
-  });
+  app.post("/banking/sync", { preHandler: [(app as any).authenticate] }, async (request, reply) => {
+    const schema = z.object({
+      institutionId: z.string(),
+      credentials: z.object({
+        account: z.string().optional(),
+        password: z.string().optional(),
+      }).optional(),
+    });
 
-  // POST /banking/sync
-  app.post('/banking/sync', {
-    schema: {
-      tags: ['Banking'],
-      security: [{ bearerAuth: [] }],
-      body: z.object({
-        accountId: z.string()
-      })
-    },
-    preHandler: [app.authenticate]
-  }, async (request) => {
-    const userId = request.user.id;
-    const date = new Date().toISOString().split('T')[0];
+    const body = schema.parse(request.body);
+    const user = request.user as { id: string };
 
-    // Generate highly realistic mock transactions and physically inject them INTO the database
-    const newTxns = [
-      { description: "Supermercado Extra", amount: 432.15, type: "expense", category: "Alimentação", date: new Date(date), paymentMethod: "Débito", scope: "personal", classification: "necessity" },
-      { description: "Netflix", amount: 55.90, type: "expense", category: "Lazer", date: new Date(date), paymentMethod: "Cartão de Crédito", scope: "personal", classification: "want" },
-      { description: "Uber Viagem", amount: 25.50, type: "expense", category: "Transporte", date: new Date(date), paymentMethod: "Cartão de Crédito", scope: "personal", classification: "necessity" },
-      { description: "Gasolina Posto Ipiranga", amount: 150.00, type: "expense", category: "Transporte", date: new Date(date), paymentMethod: "Cartão de Crédito", scope: "personal", classification: "necessity" },
-      { description: "Pix Recebido - Salário", amount: 5500.00, type: "income", category: "Salário", date: new Date(date), paymentMethod: "Pix", scope: "personal", classification: "income" }
+    // Inject 5 mock transactions directly into PostgreSQL for this user
+    const mockTransactions = [
+      { description: "Uber EATS", amount: -45.9, category: "Delivery", date: new Date().toISOString(), type: "expense", paymentMethod: "Credit Card", scope: "personal", userId: user.id },
+      { description: "Posto Ipiranga", amount: -120.0, category: "Transporte", date: new Date().toISOString(), type: "expense", paymentMethod: "Debit", scope: "personal", userId: user.id },
+      { description: "Salário ACME Corp", amount: 4500.0, category: "Salário", date: new Date().toISOString(), type: "income", paymentMethod: "Pix", scope: "personal", userId: user.id },
+      { description: "Netflix", amount: -39.9, category: "Lazer", date: new Date().toISOString(), type: "expense", paymentMethod: "Credit Card", scope: "personal", userId: user.id },
+      { description: "Mercado Extra", amount: -312.45, category: "Mercado", date: new Date().toISOString(), type: "expense", paymentMethod: "Credit Card", scope: "personal", userId: user.id },
     ];
 
-    const inserted = await db.$transaction(
-      newTxns.map(tx => db.transaction.create({
-        data: {
-          userId,
-          description: tx.description,
-          amount: tx.amount,
-          type: tx.type,
-          category: tx.category,
-          date: tx.date,
-          paymentMethod: tx.paymentMethod,
-          scope: tx.scope,
-          classification: tx.classification,
-          currency: "BRL"
-        }
-      }))
-    );
+    await db.transaction.createMany({
+      data: mockTransactions as any
+    });
 
-    return inserted;
-  });
-
-  // POST /banking/import-ofx
-  // Accepts raw OFX/QFX text as multipart field "file" or plain text body
-  app.post('/banking/import-ofx', {
-    schema: {
-      tags: ['Banking'],
-      security: [{ bearerAuth: [] }],
-    },
-    preHandler: [app.authenticate],
-  }, async (request, reply) => {
-    const userId = request.user.id;
-
-    // ----- Extract raw OFX text -----
-    let rawText = '';
-
-    const contentType = request.headers['content-type'] || '';
-
-    if (contentType.includes('multipart/form-data')) {
-      // Multipart upload: read file field
-      const data = await request.file();
-      if (!data) {
-        return reply.status(400).send({ message: 'Nenhum arquivo enviado.' });
-      }
-      const chunks: Buffer[] = [];
-      for await (const chunk of data.file) {
-        chunks.push(chunk);
-      }
-      rawText = Buffer.concat(chunks).toString('utf-8');
-    } else {
-      // Plain text body (front-end read the file as text and sent directly)
-      rawText = (request.body as string) || '';
-    }
-
-    if (!rawText || rawText.length < 50) {
-      return reply.status(400).send({ message: 'Arquivo OFX inválido ou vazio.' });
-    }
-
-    // ----- Parse -----
-    let parsed;
-    try {
-      parsed = parseOFX(rawText);
-    } catch (err) {
-      return reply.status(422).send({ message: 'Não foi possível processar o arquivo OFX. Verifique se é um extrato válido.' });
-    }
-
-    if (parsed.transactions.length === 0) {
-      return reply.status(422).send({ message: 'Nenhuma transação encontrada no arquivo OFX.' });
-    }
-
-    // ----- Deduplication by FITID -----
-    const existingFitids = await db.transaction.findMany({
-      where: { userId, fitid: { in: parsed.transactions.map(t => t.fitid) } },
-      select: { fitid: true },
-    }).then(rows => new Set(rows.map(r => r.fitid)));
-
-    const newTxns = parsed.transactions.filter(t => !existingFitids.has(t.fitid));
-
-    if (newTxns.length === 0) {
-      return reply.send({
-        imported: 0,
-        skipped: parsed.transactions.length,
-        message: 'Todas as transações deste extrato já foram importadas anteriormente.',
-      });
-    }
-
-    // ----- Bulk insert -----
-    const inserted = await db.$transaction(
-      newTxns.map(tx =>
-        db.transaction.create({
-          data: {
-            userId,
-            fitid: tx.fitid,
-            description: tx.description,
-            amount: tx.amount,
-            type: tx.type,
-            category: tx.category,
-            date: tx.date,
-            paymentMethod: tx.paymentMethod,
-            scope: 'personal',
-            classification: tx.type === 'income' ? 'income' : 'necessity',
-            currency: parsed.currency || 'BRL',
-          },
-        })
-      )
-    );
-
-    return {
-      imported: inserted.length,
-      skipped: parsed.transactions.length - inserted.length,
-      currency: parsed.currency,
-      period: {
-        from: parsed.startDate,
-        to: parsed.endDate,
-      },
-      transactions: inserted,
+    return { 
+      success: true, 
+      message: `Successfully synchronized 5 transactions from ${body.institutionId}` 
     };
   });
-}
 
+  app.post("/banking/ofx", { preHandler: [(app as any).authenticate] }, async (request, reply) => {
+    const user = request.user as { id: string };
+    const data = await request.file();
+
+    if (!data) {
+      return reply.status(400).send({ message: "No file uploaded" });
+    }
+
+    try {
+      const ofxBuffer = await data.toBuffer();
+      const ofxString = ofxBuffer.toString("utf-8");
+      
+      const parsedTransactions = parseOfx(ofxString);
+      
+      if (parsedTransactions.length === 0) {
+        return reply.status(400).send({ message: "No valid transactions found in the OFX file" });
+      }
+
+      // Format for Prisma
+      const insertData = parsedTransactions.map((t) => ({
+        userId: user.id,
+        description: t.description || "OFX Import",
+        amount: t.amount,
+        type: t.amount >= 0 ? "income" : "expense",
+        category: "Outros", // Default category, user can re-categorize later
+        date: t.date || new Date().toISOString(),
+        paymentMethod: "OFX",
+        scope: "personal",
+      }));
+
+      const result = await db.transaction.createMany({
+        data: insertData as any
+      });
+
+      return { 
+        success: true, 
+        importedCount: result.count,
+        message: `Successfully imported ${result.count} transactions from OFX`
+      };
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.status(500).send({ message: "Failed to parse or import OFX file", details: error.message });
+    }
+  });
+}

@@ -3,13 +3,17 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://l
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('authToken');
   
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
+  const headers = new Headers(options.headers || {});
+  
+  if (!(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  } else {
+    // For FormData, we must let the browser set the Content-Type to generate the boundary!
+    headers.delete('Content-Type');
+  }
 
   if (token) {
-    (headers as any)['Authorization'] = `Bearer ${token}`;
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
@@ -18,9 +22,7 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
   });
 
   if (response.status === 401) {
-    // Token expired or invalid
     localStorage.removeItem('authToken');
-    // Optionally redirect to login, but let the component handle the state change first
   }
 
   if (!response.ok) {
@@ -38,10 +40,14 @@ export const api = {
   post: <T>(endpoint: string, body: any, opts: RequestInit = {}) =>
     apiFetch<T>(endpoint, {
       method: 'POST',
-      body: typeof body === 'string' ? body : JSON.stringify(body),
+      body: body instanceof FormData ? body : (typeof body === 'string' ? body : JSON.stringify(body)),
       ...opts,
     }),
-  put: <T>(endpoint: string, body: any) => apiFetch<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
+  put: <T>(endpoint: string, body: any) => 
+    apiFetch<T>(endpoint, { 
+      method: 'PUT', 
+      body: body instanceof FormData ? body : JSON.stringify(body) 
+    }),
   patch: <T>(endpoint: string, body: any) => apiFetch<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(endpoint: string) => apiFetch<T>(endpoint, { method: 'DELETE' }),
 };

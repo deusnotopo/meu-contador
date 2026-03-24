@@ -223,5 +223,6 @@ export const useTransactions = (
     categoryData,
     getPieChartData,
     monthlyTrend,
+    refresh: fetchTransactions,
   };
 };
