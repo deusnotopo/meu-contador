@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -16,6 +17,7 @@ import { goalRoutes } from './routes/goals';
 import { authRoutes } from './routes/auth';
 import { userRoutes } from './routes/user';
 import { aiRoutes } from './routes/ai';
+import { bankingRoutes } from './routes/banking';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 declare module 'fastify' {
@@ -45,6 +47,10 @@ app.register(rateLimit, {
 
 app.register(jwt, {
   secret: process.env.JWT_SECRET || 'super-secret-key-enterprise-grade',
+});
+
+app.register(multipart, {
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
 });
 
 // --- Swagger Documentation ---
@@ -112,23 +118,11 @@ app.register(investmentRoutes);
 app.register(budgetRoutes);
 app.register(goalRoutes);
 app.register(aiRoutes);
+app.register(bankingRoutes);
 
 // --- Bootstrap ---
 async function bootstrap() {
   try {
-    // Ensure at least one user exists for development
-    const userCount = await db.user.count();
-    if (userCount === 0) {
-      await db.user.create({
-        data: {
-          email: 'admin@meucontador.com',
-          name: 'Admin Enterprise',
-          isPro: true,
-        },
-      });
-      console.log('✅ Default development user created');
-    }
-
     const port = Number(process.env.PORT) || 3000;
     await app.listen({ port, host: '0.0.0.0' });
     console.log(`🚀 Server running at http://localhost:${port}`);
