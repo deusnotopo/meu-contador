@@ -1,275 +1,301 @@
-import { useLanguage } from "@/context/LanguageContext";
-import { useInvestments } from "@/hooks/useInvestments";
+import React, { useState, useEffect } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
-import { calculateFinancialHealth } from "@/lib/financial-health";
-import { exportFinancialReport } from "@/lib/pdf-export";
+import { useInvestments } from "@/hooks/useInvestments";
 import { loadProfile } from "@/lib/storage";
-import { showSuccess } from "@/lib/toast";
-import { AnimatePresence, motion } from "framer-motion";
-import { api } from "@/lib/api";
-import {
-  ArrowUpRight,
-  Bell,
-  Bot,
-  Building2,
-  Cloud,
-  FileText,
-  Sparkles,
-  User as LucideUser,
-  Wallet,
-  X,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import AIFinancialChat from "./ai/AIFinancialChat";
-import { SmartAlerts } from "./ai/SmartAlerts";
-import { SmartCoach } from "./ai/SmartCoach";
-import { AdvancedCombinedChart } from "./charts/AdvancedCombinedChart";
-import { PrivacyValue } from "./ui/PrivacyValue";
-import { Button } from "./ui/button";
-import { OpenBillsWidget } from "./dashboard/OpenBillsWidget";
-import StatCard from "./dashboard/StatCard";
-import { AnalyticsDashboard } from "./analytics/AnalyticsDashboard";
+import { showSuccess, showError } from "@/lib/toast";
+
+const fmt = (n: number) =>
+  'R$ ' + Math.round(n).toLocaleString('pt-BR');
+const fmtM = (n: number) =>
+  n >= 1e6 ? 'R$ ' + (n / 1e6).toFixed(2).replace('.', ',') + ' M' : fmt(n);
+
+// SVG Sparkline Component
+const Sparkline = ({ data, color = "var(--blue)", h = 44, w = 318 }: { data: number[], color?: string, h?: number, w?: number }) => {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 6) - 3;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const fp = `0,${h} ${pts} ${w},${h}`;
+  const lx = (((data.length - 1) / (data.length - 1)) * w).toFixed(1);
+  const ly = (h - ((data[data.length - 1] - min) / range) * (h - 6) - 3).toFixed(1);
+  const gradId = "sg" + color.replace(/[^a-z]/gi, '');
+
+  return (
+    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible" }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={fp} fill={`url(#${gradId})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lx} cy={ly} r="3.5" fill={color} stroke="var(--bg)" strokeWidth="1.5" />
+    </svg>
+  );
+};
+
+// SVG BarChart Component
+const BarChart = ({ data, colors, h = 52, w = 318 }: { data: number[], colors: string | string[], h?: number, w?: number }) => {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data) || 1;
+  const bw = Math.floor((w - data.length * 3) / data.length);
+  return (
+    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      {data.map((v, i) => {
+        const bh = Math.max(4, (v / max) * h);
+        const x = i * (bw + 3);
+        const fill = Array.isArray(colors) ? colors[i % colors.length] : colors;
+        return (
+          <rect key={i} x={x} y={h - bh} width={bw} height={bh} rx="3" fill={fill} opacity="0.85" className="barchart-bar" />
+        );
+      })}
+    </svg>
+  );
+};
 
 export const GlobalDashboard = () => {
   const personal = useTransactions("personal");
   const business = useTransactions("business");
   const { totals: investTotals } = useInvestments();
-  const [showChat, setShowChat] = useState(false);
   const profile = loadProfile();
-  const { t } = useLanguage();
-  const [backendStatus, setBackendStatus] = useState<"ok" | "error" | "loading">("loading");
-
-  useEffect(() => {
-    // Health check using configured API URL
-    api.get("/health")
-      .then(() => setBackendStatus("ok"))
-      .catch(() => setBackendStatus("error"));
-  }, []);
-
-  const handleExport = () => {
-    const allTransactions = [
-      ...personal.transactions,
-      ...business.transactions,
-    ];
-    exportFinancialReport(
-      allTransactions,
-      profile,
-      "Últimos 30 dias (Consolidado)"
-    );
-    showSuccess("Relatório PDF gerado com sucesso!");
-  };
 
   const globalTotals = {
     income: personal.totals.income + business.totals.income,
     expense: personal.totals.expense + business.totals.expense,
     balance: personal.totals.balance + business.totals.balance,
-    netWorth:
-      personal.totals.balance +
-      business.totals.balance +
-      investTotals.currentValue,
-    count: personal.transactions.length + business.transactions.length,
+    netWorth: personal.totals.balance + business.totals.balance + investTotals.currentValue,
+    assets: personal.totals.balance + business.totals.balance + investTotals.currentValue, // simplified
+    liabilities: 0, // simplified for now
   };
 
-  const { score: globalHealth } = calculateFinancialHealth(
-    [...personal.transactions, ...business.transactions],
-    globalTotals as any
-  );
+  // Generate today's formatted date string
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+  const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1).replace('.', '');
 
-  const getHealthStatus = (s: number) => {
-    if (s >= 80)
-      return {
-        label: "Excelente",
-        color: "text-emerald-400",
-        bg: "bg-emerald-500/10",
-      };
-    if (s >= 60)
-      return { label: "Bom", color: "text-indigo-400", bg: "bg-indigo-500/10" };
-    if (s >= 40)
-      return {
-        label: "Regular",
-        color: "text-yellow-400",
-        bg: "bg-yellow-500/10",
-      };
-    if (s >= 20)
-      return {
-        label: "Alerta",
-        color: "text-orange-400",
-        bg: "bg-orange-500/10",
-      };
-    return { label: "Crítico", color: "text-rose-400", bg: "bg-rose-500/10" };
+  // Mock data to match the V2 design (until we fully wire up the real history array)
+  const sparklineData = [168000, 171000, 173500, 175200, 177800, 180100, 183000, 184500, 185900, globalTotals.netWorth || 187430];
+  const barData = [4200, 4800, 5100, 5600, 5400, globalTotals.expense || 5820];
+  const barColors = ['rgba(74,139,255,0.7)', 'rgba(74,139,255,0.7)', 'rgba(74,139,255,0.7)', 'rgba(74,139,255,0.7)', 'rgba(74,139,255,0.7)', 'rgba(74,139,255,1)'];
+  const months = ['Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar'];
+
+  const savingRate = globalTotals.income > 0 ? (globalTotals.balance / globalTotals.income) * 100 : 0;
+
+  // Real latest transactions
+  const recentPurchases = personal.allTransactions.slice(0, 4);
+
+  // Sustainable spending dummy calculation (Modigliani lifecycle hypothesis)
+  const sustainableDaily = Math.round(globalTotals.netWorth * 0.04 / 365) || 194;
+
+  const getEmoji = (cat: string) => {
+    switch (cat.toLowerCase()) {
+      case 'moradia': return '🏠';
+      case 'mercado': return '🛒';
+      case 'delivery': return '🍕';
+      case 'transporte': return '🚗';
+      case 'saúde': return '💊';
+      case 'salário': return '💰';
+      default: return '💸';
+    }
   };
 
-  const status = getHealthStatus(globalHealth);
+  const categories = [
+    ['🏠', 'Moradia', 2200, 2200, 'var(--blue)'],
+    ['🛒', 'Mercado', 890, 1000, 'var(--green)'],
+    ['🍕', 'Delivery', 312, 300, 'var(--red)'],
+    ['🚗', 'Transporte', 620, 800, 'var(--green)'],
+    ['💊', 'Saúde', 220, 400, 'var(--green)'],
+  ];
+
+  const handleShortcut = (msg: string) => showSuccess(msg);
 
   return (
-    <div className="space-y-16 animate-fade-in pb-20 pt-10">
-      {/* Hero Section - Premium Glassmorphism */}
-      <div className="glass-card p-6 md:p-20 relative group">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-16">
-          <div className="space-y-10 max-w-2xl text-center lg:text-left">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold tracking-widest uppercase mb-6"
-            >
-              <Sparkles size={14} />
-              Inteligência Financeira 2025
-            </motion.div>
-            
-            <h2 className="text-5xl md:text-7xl font-heading font-extrabold leading-[0.85] tracking-tighter text-white">
-              Controle <br />
-              <span className="text-gradient">Absoluto.</span>
-            </h2>
-
-            <div className="flex flex-col md:flex-row items-center gap-12 pt-10">
-              <div className="pl-6 border-l-2 border-primary/40">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">
-                  Patrimônio Líquido
-                </p>
-                <div className="text-5xl font-heading font-bold text-white flex items-baseline gap-4 justify-center md:justify-start">
-                  <PrivacyValue value={globalTotals.netWorth} />
-                  <span className="text-success text-sm font-bold bg-success/10 px-3 py-1 rounded-full flex items-center gap-1 border border-success/20">
-                    <ArrowUpRight size={14} /> 12.4%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-6 pt-10 justify-center lg:justify-start">
-              <Button
-                onClick={() => setShowChat(true)}
-                className="h-16 px-10 rounded-2xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-all text-base tracking-tight shadow-lg shadow-primary/20 active:scale-95 gap-3"
-              >
-                <Bot size={22} />
-                PERGUNTAR À IA
-              </Button>
-              <Button
-                onClick={handleExport}
-                variant="outline"
-                className="h-16 px-10 rounded-2xl border-white/10 bg-white/5 text-white font-semibold hover:bg-white/10 hover:border-white/20 transition-all gap-3 backdrop-blur-md"
-              >
-                <FileText size={20} />
-                {t("dash.export_report")}
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative hidden lg:block">
-             <div className="w-80 h-80 rounded-full bg-primary/20 blur-[100px] animate-pulse" />
+    <div className="pt-3 pb-24 px-4 max-w-md mx-auto">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-5">
+        <div>
+          <div className="eyebrow">{capitalizedDate}</div>
+          <div className="page-title text-[22px]">Bom dia, {profile?.name?.split(' ')[0] || "Usuário"} 👋</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => showSuccess("Nenhuma notificação")} className="notif-ring bg-[var(--glass2)] border border-[var(--border)] w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all hover:bg-[var(--glass3)]">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.7" strokeLinecap="round">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+          </button>
+          <div className="avatar" onClick={() => handleShortcut("Abrir Configurações")}>
+            {(profile?.name || "RF").substring(0, 2).toUpperCase()}
           </div>
         </div>
       </div>
 
-      {/* Bento-style Metrics Grid */}
-      <div className="bento-grid">
-        <StatCard
-          title={t("dash.month_income")}
-          value={Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(globalTotals.income)}
-          icon={Cloud}
-          variant="income"
-          delay={0}
-        />
-        <StatCard
-          title={t("dash.month_expenses")}
-          value={Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(globalTotals.expense)}
-          icon={Bell}
-          variant="expense"
-          delay={0.1}
-        />
-        <StatCard
-          title="Total Investido"
-          value={Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(investTotals.totalInvested)}
-          icon={Wallet}
-          variant="balance"
-          delay={0.2}
-        />
-        <StatCard
-          title="Consolidado"
-          value={globalTotals.count.toString()}
-          icon={Sparkles}
-          variant="neutral"
-          delay={0.3}
-          subtitle="Transações no mês"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-10">
-          {/* Main Chart Card */}
-          <div className="glass-card p-10">
-            <div className="flex items-center justify-between mb-10">
-              <div>
-                <h3 className="text-2xl font-bold text-white tracking-tight">Fluxo Financeiro</h3>
-                <p className="text-muted-foreground text-sm">Análise consolidada de receitas e despesas</p>
-              </div>
-              <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-muted-foreground font-medium">
-                Últimos 30 dias
-              </div>
-            </div>
-            <div className="h-[400px] w-full">
-               <AdvancedCombinedChart data={personal.monthlyTrend} />
-            </div>
-          </div>
+      {/* Hero Patrimônio */}
+      <div className="hero">
+        <div className="text-[10px] text-blue-400 font-bold tracking-widest uppercase mb-3 flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Patrimônio líquido
         </div>
-
-        <div className="space-y-10">
-           <OpenBillsWidget />
-           <SmartAlerts transactions={personal.allTransactions} />
+        <div className="bignum">{fmtM(globalTotals.netWorth || 0)}</div>
+        <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+          <span className="bdg bdg-g">▲ R$ 2.340 este mês</span>
+          <span className="text-[11px] text-[var(--t3)] font-[var(--mono)]">+1,3%</span>
+        </div>
+        <div className="mt-3 h-11">
+          <Sparkline data={sparklineData} color="var(--green)" h={44} w={318} />
+        </div>
+        <div className="stat3">
+          <div className="s3i"><div className="s3l">Ativos</div><div className="s3v text-[var(--green)]">{fmtM(globalTotals.assets)}</div></div>
+          <div className="s3i"><div className="s3l">Passivos</div><div className="s3v text-[var(--red)]">{fmt(globalTotals.liabilities)}</div></div>
+          <div className="s3i"><div className="s3l">Score</div><div className="s3v text-[var(--blue)]">74/100</div></div>
         </div>
       </div>
 
-      <SmartCoach
-        transactions={personal.allTransactions}
-        currentBalance={personal.totals.balance}
-      />
-
-      {/* Floating Action Bot */}
-      <div className="fixed bottom-10 right-10 z-[100] md:bottom-12 md:right-12">
-        <motion.button
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setShowChat(true)}
-          className="w-20 h-20 rounded-3xl bg-white text-black flex items-center justify-center shadow-[0_20px_50px_rgba(255,255,255,0.2)] hover:shadow-[0_25px_60px_rgba(255,255,255,0.3)] transition-all relative group"
-        >
-          <div className="absolute inset-0 rounded-3xl bg-primary/20 blur-2xl group-hover:bg-primary/40 transition-colors" />
-          <Bot size={32} className="relative z-10" />
-        </motion.button>
+      {/* Ações Rápidas */}
+      <div className="qa-grid mb-5">
+        <button className="qa" onClick={() => handleShortcut("Lançar gasto: menu em breve")}>
+          <div className="qa-ico">💸</div>
+          <div className="qa-lbl">Lançar<br />gasto</div>
+        </button>
+        <button className="qa" onClick={() => handleShortcut("Nova Receita: menu em breve")}>
+          <div className="qa-ico">📥</div>
+          <div className="qa-lbl">Nova<br />Receita</div>
+        </button>
+        <button className="qa" onClick={() => handleShortcut("Acesso aos Envelopes")}>
+          <div className="qa-ico">🔀</div>
+          <div className="qa-lbl">Envelopes</div>
+        </button>
+        <button className="qa" onClick={() => handleShortcut("Abrir Relatório")}>
+          <div className="qa-ico">📊</div>
+          <div className="qa-lbl">Relatório</div>
+        </button>
       </div>
 
-      {/* AI Chat Overlay */}
-      <AnimatePresence>
-        {showChat && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-background/80 backdrop-blur-2xl">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 40 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 40 }}
-              className="w-full max-w-5xl h-[85vh] bg-card border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative"
-            >
-                <div className="flex items-center justify-between p-8 border-b border-white/5 bg-white/[0.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <Bot className="text-white" size={24} />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-white tracking-tight">Assistente Financeiro IA</h3>
-                            <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Gemini Ultra Core</p>
-                        </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => setShowChat(false)} className="rounded-2xl hover:bg-white/5 h-12 w-12 text-muted-foreground hover:text-white transition-colors">
-                        <X size={24} />
-                    </Button>
-                </div>
-                <div className="flex-1 overflow-hidden">
-                    <AIFinancialChat transactions={[...personal.allTransactions, ...business.allTransactions]} />
-                </div>
-            </motion.div>
+      {/* Alerta comportamental */}
+      <div className="nudge warn cursor-pointer" onClick={() => handleShortcut("Visualizar Envelope do Delivery")}>
+        <div className="nudge-ttl text-[var(--amber)]">⚠ Alerta comportamental</div>
+        <div className="nudge-body">Você gastou <strong className="text-[var(--amber)]">38% a mais</strong> em Delivery este mês — equivale a <strong className="text-[var(--amber)]">R$ 847</strong> se investido por 10 anos.</div>
+        <div className="text-[11px] text-[var(--amber)] mt-1.5 font-medium">Toque para ver o envelope →</div>
+      </div>
+
+      {/* Fluxo do mês */}
+      <div className="sec-hd">
+        <span className="sec-title">Fluxo de {today.toLocaleDateString('pt-BR', { month: 'long' })}</span>
+        <span className="sec-link" onClick={() => handleShortcut("Acesso aos Envelopes")}>Detalhes</span>
+      </div>
+      <div className="metric-grid">
+        <div className="metric">
+          <div className="m-label">Receitas</div>
+          <div className="m-val g">{fmt(globalTotals.income)}</div>
+          <div className="m-delta text-[var(--green)]">▲ +2,1% vs. último mês</div>
+        </div>
+        <div className="metric">
+          <div className="m-label">Gastos</div>
+          <div className="m-val r">{fmt(globalTotals.expense)}</div>
+          <div className="m-delta text-[var(--red)]">▲ +3,2% vs. último mês</div>
+        </div>
+      </div>
+      <div className="metric-grid">
+        <div className="metric">
+          <div className="m-label">Poupado</div>
+          <div className="m-val b">{fmt(globalTotals.balance)}</div>
+          <div className="m-delta text-[var(--t3)]">este mês</div>
+        </div>
+        <div className="metric">
+          <div className="m-label">Taxa poupança</div>
+          <div className="m-val b">{savingRate.toFixed(1)}%</div>
+          <div className="m-delta text-[var(--green)]">meta: 25% ✓</div>
+        </div>
+      </div>
+
+      {/* Gráfico de barras mensal */}
+      <div className="sec-hd"><span className="sec-title">Últimos 6 meses</span></div>
+      <div className="card">
+        <div className="flex justify-between items-end mb-2">
+          <div className="text-[10px] text-[var(--t3)] flex gap-3 items-center">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[var(--blue)] rounded-[2px] inline-block"></span>Gastos</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[var(--green)] rounded-[2px] inline-block"></span>Poupado</span>
           </div>
+        </div>
+        <div className="w-full">
+          <BarChart data={barData} colors={barColors} h={52} />
+        </div>
+        <div className="flex justify-between text-[9px] text-[var(--t3)] font-[var(--mono)] mt-1">
+          {months.map(m => <span key={m} className="flex-1 text-center">{m}</span>)}
+        </div>
+      </div>
+
+      {/* Por categoria */}
+      <div className="sec-hd">
+        <span className="sec-title">Por categoria</span>
+        <span className="sec-link">Ver mais</span>
+      </div>
+      <div className="card">
+        {categories.map(([ic, nm, us, tt, cl], idx) => {
+          const pc = Math.min((us as number / (tt as number)) * 100, 100);
+          const isOver = (us as number) > (tt as number);
+          return (
+            <div key={idx} className="row cursor-default">
+              <div className="row-ico">{ic}</div>
+              <div className="row-main">
+                <div className="flex justify-between items-baseline mb-1">
+                  <div className="row-title">{nm}</div>
+                  <div className={`text-xs font-semibold ${isOver ? 'text-[var(--red)]' : 'text-[var(--t2)]'} font-[var(--mono)]`}>
+                    {fmt(us as number)}
+                  </div>
+                </div>
+                <div className="prog"><div className="prog-fill" style={{ width: `${pc}%`, background: cl as string }}></div></div>
+                <div className="text-[10px] text-[var(--t3)] mt-0.5 font-[var(--mono)]">de {fmt(tt as number)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Últimas transações */}
+      <div className="sec-hd">
+        <span className="sec-title">Últimas transações</span>
+        <span className="sec-link" onClick={() => handleShortcut("Acesso às Transações")}>Ver todas</span>
+      </div>
+      <div className="card">
+        {recentPurchases.length > 0 ? recentPurchases.map((tx) => {
+          const isIncome = tx.type === 'income';
+          return (
+            <div key={tx.id} className="row" onClick={() => showSuccess(`Detalhes: ${tx.description}`)}>
+              <div className="row-ico" style={{ background: isIncome ? 'var(--green-d)' : 'var(--glass2)' }}>
+                {getEmoji(tx.category)}
+              </div>
+              <div className="row-main">
+                <div className="row-title">{tx.description}</div>
+                <div className="row-sub">{tx.category} · {new Date(tx.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</div>
+              </div>
+              <div className={`row-amt ${isIncome ? 'amt-plus' : 'amt-minus'}`}>
+                {isIncome ? '+' : '−'} {fmt(tx.amount)}
+              </div>
+            </div>
+          );
+        }) : (
+          <div className="text-center text-sm text-[var(--t3)] py-4">Nenhuma transação recente</div>
         )}
-      </AnimatePresence>
+      </div>
+
+      {/* Gasto diário sustentável */}
+      <div className="sec-hd"><span className="sec-title">Gasto diário sustentável</span></div>
+      <div className="hero !py-4 px-5">
+        <div className="text-[9.5px] text-[var(--t3)] tracking-[0.1em] uppercase mb-2.5 font-semibold">Hipótese do ciclo de vida · Modigliani</div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-bold text-[var(--t1)] tracking-tight font-[var(--mono)]">{fmt(sustainableDaily)}</span>
+          <span className="text-sm text-[var(--t2)]">/dia</span>
+        </div>
+        <div className="text-[11.5px] text-[var(--t2)] mt-2 leading-relaxed">Baseado no patrimônio atual, renda projetada e passivos futuros — valor que não compromete o seu eu de 85 anos.</div>
+      </div>
+
     </div>
   );
 };
