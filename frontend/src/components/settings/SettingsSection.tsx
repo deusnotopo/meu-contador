@@ -1,6 +1,12 @@
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, Smartphone, ShieldCheck, CreditCard, X } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useInvestments } from "@/hooks/useInvestments";
+import { useDebts } from "@/hooks/useDebts";
+import { loadProfile } from "@/lib/storage";
+import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, Smartphone, ShieldCheck, CreditCard, X, Globe, HelpCircle, Bell, Trash2 } from "lucide-react";
 import { PluggyConnect } from "@/components/investments/PluggyConnect";
+import { HelpCenter } from "@/components/support/HelpCenter";
 import { useState, useEffect } from "react";
 import type { TabType } from "@/types/navigation";
 
@@ -10,12 +16,69 @@ interface SettingsSectionProps {
 
 export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   const { user, logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
+  const personal = useTransactions("personal");
+  const business = useTransactions("business");
+  const { totals: investTotals } = useInvestments();
+  const { totals: debtTotals } = useDebts();
+  const profile = loadProfile();
+
   const [showPluggy, setShowPluggy] = useState(false);
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [darkTheme, setDarkTheme] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
     return saved ? saved === 'dark' : true; // default dark
   });
   const [bioActive, setBioActive] = useState(true);
+  const [notifTransactions, setNotifTransactions] = useState(true);
+  const [notifBudgets, setNotifBudgets] = useState(true);
+  const [notifGoals, setNotifGoals] = useState(true);
+  const [notifReminders, setNotifReminders] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Calculate real financial data
+  const globalTotals = {
+    income: personal.totals.income + business.totals.income,
+    expense: personal.totals.expense + business.totals.expense,
+    balance: personal.totals.balance + business.totals.balance,
+    netWorth: (personal.totals.balance + business.totals.balance + investTotals.currentValue) - debtTotals.totalBalance,
+    assets: personal.totals.balance + business.totals.balance + investTotals.currentValue,
+    liabilities: debtTotals.totalBalance,
+  };
+
+  // Calculate score based on real data
+  const calculateScore = () => {
+    if (globalTotals.income === 0) return 0;
+    const savingsRatio = globalTotals.balance / globalTotals.income;
+    const debtRatio = globalTotals.liabilities / globalTotals.assets || 0;
+    const score = Math.min(100, Math.max(0, Math.round((savingsRatio * 50) + ((1 - debtRatio) * 50))));
+    return score;
+  };
+
+  const healthScore = calculateScore();
+
+  // Calculate saving rate
+  const savingRate = globalTotals.income > 0 ? (globalTotals.balance / globalTotals.income) * 100 : 0;
+
+  // Calculate FIRE progress (simplified: assuming 25x annual expenses as FIRE number)
+  const annualExpenses = globalTotals.expense * 12;
+  const fireNumber = annualExpenses * 25;
+  const fireProgress = fireNumber > 0 ? Math.min(100, Math.round((globalTotals.netWorth / fireNumber) * 100)) : 0;
+
+  // Calculate days in app (from user creation date or default)
+  const daysInApp = user?.createdAt 
+    ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  // Calculate net income (gross - taxes, simplified)
+  const grossIncome = globalTotals.income;
+  const netIncome = grossIncome * 0.84; // Simplified: 16% taxes
+
+  // Get user profile data
+  const userAge = profile?.age || 0;
+  const investorProfile = profile?.investorProfile || "Não definido";
+  const investmentHorizon = profile?.investmentHorizon || "Não definido";
+  const dependents = profile?.dependents || 0;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -65,14 +128,14 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
           <span className="bdg bdg-b">Premium</span>
           <span className="bdg bdg-g">IR modelo completo</span>
-          <span className="bdg bdg-p">Score 74</span>
+          {healthScore > 0 && <span className="bdg bdg-p">Score {healthScore}</span>}
         </div>
         
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 16 }}>
           {[
-            ["🗓️", "247", "dias no app"],
-            ["📊", "74", "score saúde"],
-            ["🎯", "28%", "rumo FIRE"]
+            ["🗓️", daysInApp > 0 ? daysInApp.toString() : "-", "dias no app"],
+            ["📊", healthScore > 0 ? healthScore.toString() : "-", "score saúde"],
+            ["🎯", fireProgress > 0 ? `${fireProgress}%` : "-", "rumo FIRE"]
           ].map(([em, vl, lb], i) => (
             <div key={i} style={{ textAlign: "center" }}>
               <div style={{ fontSize: 18, marginBottom: 4 }}>{em}</div>
@@ -86,12 +149,12 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       <div className="sec-hd"><span className="sec-title">Perfil financeiro</span></div>
       <div className="card">
         {[
-          ["Renda bruta mensal", "R$ 10.000", null],
-          ["Renda líquida", "R$ 8.400", null],
-          ["Faixa etária", "32 anos", null],
-          ["Perfil investidor", "Moderado", "b"],
-          ["Horizonte", "Longo prazo (20+ anos)", "g"],
-          ["Dependentes", "Nenhum", null]
+          ["Renda bruta mensal", grossIncome > 0 ? `R$ ${Math.round(grossIncome).toLocaleString('pt-BR')}` : "-", null],
+          ["Renda líquida", netIncome > 0 ? `R$ ${Math.round(netIncome).toLocaleString('pt-BR')}` : "-", null],
+          ["Faixa etária", userAge > 0 ? `${userAge} anos` : "-", null],
+          ["Perfil investidor", investorProfile, investorProfile !== "Não definido" ? "b" : null],
+          ["Horizonte", investmentHorizon, investmentHorizon !== "Não definido" ? "g" : null],
+          ["Dependentes", dependents > 0 ? dependents.toString() : "Nenhum", null]
         ].map(([lb, vl, badge], i) => (
           <div key={i} className="row" style={{ cursor: "default" }}>
             <div className="row-main"><div className="row-title">{lb}</div></div>
@@ -135,6 +198,53 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         )}
       </div>
 
+      <div className="sec-hd"><span className="sec-title">Notificações</span></div>
+      <div className="card">
+        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setNotifTransactions(!notifTransactions)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Bell size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Transações</div>
+              <div className="row-sub">Alertas de novas transações</div>
+            </div>
+          </div>
+          <div className={`tog ${notifTransactions ? "on" : ""}`}></div>
+        </div>
+
+        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setNotifBudgets(!notifBudgets)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Bell size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Orçamentos</div>
+              <div className="row-sub">Alertas de limite de gastos</div>
+            </div>
+          </div>
+          <div className={`tog ${notifBudgets ? "on" : ""}`}></div>
+        </div>
+
+        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setNotifGoals(!notifGoals)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Bell size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Metas</div>
+              <div className="row-sub">Progresso e conquistas</div>
+            </div>
+          </div>
+          <div className={`tog ${notifGoals ? "on" : ""}`}></div>
+        </div>
+
+        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setNotifReminders(!notifReminders)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Bell size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Lembretes</div>
+              <div className="row-sub">Contas a pagar e vencimentos</div>
+            </div>
+          </div>
+          <div className={`tog ${notifReminders ? "on" : ""}`}></div>
+        </div>
+      </div>
+
       <div className="sec-hd"><span className="sec-title">Configurações</span></div>
       <div className="card">
         <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setDarkTheme(!darkTheme)}>
@@ -161,6 +271,21 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
           <div className={`tog ${bioActive ? "on" : ""}`}></div>
         </div>
 
+        <div 
+          className="tog-row" 
+          style={{ cursor: "pointer" }} 
+          onClick={() => setLanguage(language === "pt-BR" ? "en" : "pt-BR")}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Globe size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Idioma</div>
+              <div className="row-sub">{language === "pt-BR" ? "Português (BR)" : "English (US)"}</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
+        </div>
+
         <div className="tog-row" style={{ cursor: "pointer" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Download size={18} /></div>
@@ -171,7 +296,20 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
           </div>
           <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
         </div>
+
+        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setShowHelpCenter(true)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><HelpCircle size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Central de Ajuda</div>
+              <div className="row-sub">FAQ, tutoriais e suporte</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
+        </div>
       </div>
+
+      {showHelpCenter && <HelpCenter onClose={() => setShowHelpCenter(false)} />}
 
       <button 
         className="btn-s" 
@@ -181,10 +319,44 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <LogOut size={16} /> Sair da conta
       </button>
 
+      <button 
+        className="btn-s" 
+        style={{ marginTop: 10, width: "100%", color: "var(--t3)", borderColor: "rgba(255,79,110,0.2)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: "11px" }}
+        onClick={() => setShowDeleteConfirm(true)}
+      >
+        <Trash2 size={14} /> Excluir minha conta
+      </button>
+
+      {showDeleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 24, maxWidth: 340, width: "100%", border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--t1)", marginBottom: 8, textAlign: "center" }}>Excluir conta?</div>
+            <div style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.5, textAlign: "center", marginBottom: 20 }}>
+              Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos.
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button 
+                className="btn-s" 
+                style={{ flex: 1, color: "var(--t2)", borderColor: "var(--border)" }}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-s" 
+                style={{ flex: 1, color: "var(--red)", borderColor: "rgba(255,79,110,0.3)" }}
+                onClick={() => { setShowDeleteConfirm(false); logout(); }}
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ textAlign: "center", margin: "24px 0 40px", fontSize: 10, color: "var(--t4)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
         Versão 3.0.0 — Silicon Valley Standard
       </div>
     </div>
   );
 };
-

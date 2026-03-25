@@ -125,7 +125,7 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
         {["1","2","3","4","5","6","7","8","9",",","0","⌫"].map((k) => (
           <div
             key={k}
-            className={`key${k === "⌫" ? " del-key" : k === "," ? " action-key" : ""}`}
+            className={`key${k === "⌫" ? " del" : k === "," ? " action" : ""}`}
             onClick={() => handleKey(k)}
           >
             {k}

@@ -52,6 +52,14 @@ const RetirementView = lazy(() =>
   import("./components/planning/RetirementView").then((m) => ({ default: m.RetirementView }))
 );
 
+const BusinessFinance = lazy(() =>
+  import("./components/business/BusinessFinance").then((m) => ({ default: m.BusinessFinance }))
+);
+
+const AnalyticsDashboard = lazy(() =>
+  import("./components/analytics/AnalyticsDashboard").then((m) => ({ default: m.AnalyticsDashboard }))
+);
+
 import LoadingSkeleton from "./components/ui/LoadingSkeleton";
 function LoadingFallback() { return <LoadingSkeleton />; }
 
@@ -97,18 +105,16 @@ export default function App() {
                 {activeTab === "investments" && <InvestmentsSection />}
                 {activeTab === "education" && <EducationSection />}
                 {activeTab === "health" && <HealthSection onBack={setActiveTab} />}
-                {activeTab === "launch" && (
-                  <LaunchScreen onBack={setActiveTab} />
-                )}
-                {activeTab === "personal" && (
-                  <TransactionsView onBack={setActiveTab} />
-                )}
-                {activeTab === "notifications" && (
-                  <NotificationsView onBack={setActiveTab} />
-                )}
+                {activeTab === "launch" && <LaunchScreen onBack={setActiveTab} />}
+                {activeTab === "personal" && <TransactionsView onBack={setActiveTab} />}
+                {activeTab === "notifications" && <NotificationsView onBack={setActiveTab} />}
                 {activeTab === "settings" && <SettingsSection onBack={setActiveTab} />}
                 {activeTab === "ai" && <AIAssistantView onBack={setActiveTab} />}
                 {activeTab === "retirement" && <RetirementView onBack={setActiveTab} />}
+                {activeTab === "business" && <BusinessFinance />}
+                {activeTab === "analytics" && <AnalyticsDashboard />}
+                {activeTab === "profile" && <SettingsSection onBack={setActiveTab} />}
+                {activeTab === "design" && <SettingsSection onBack={setActiveTab} />}
               </motion.div>
             </AnimatePresence>
           </Suspense>

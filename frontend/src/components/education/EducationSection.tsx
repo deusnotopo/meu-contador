@@ -1,65 +1,121 @@
+import React, { useState } from "react";
+import { EDUCATION_MODULES } from "@/data/educationData";
+import { useEducation } from "@/hooks/useEducation";
+import { LessonDetailView } from "./LessonDetailView";
+import { Flame, Star, Trophy, Lock } from "lucide-react";
+import { showSuccess } from "@/lib/toast";
+
 export const EducationSection = () => {
+  const { state, completeModule, isModuleCompleted, getProgressPct } = useEducation();
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+
+  const handleComplete = (lessonId: string, xpEarned: number) => {
+    completeModule(lessonId);
+    showSuccess(`Lição concluída! +${xpEarned} XP 🎉`);
+    setActiveLessonId(null);
+  };
+
+  const activeLesson = EDUCATION_MODULES.find(m => m.id === activeLessonId);
+
+  if (activeLesson) {
+    return (
+      <LessonDetailView
+        lesson={activeLesson}
+        onBack={() => setActiveLessonId(null)}
+        onComplete={(xp) => handleComplete(activeLesson.id, xp)}
+      />
+    );
+  }
+
   return (
     <div style={{ paddingTop: "10px", animation: "fsu 0.26s ease" }}>
       <div className="eyebrow">Aprenda a investir</div>
       <div className="page-title">Academia</div>
-      <div className="page-sub" style={{ marginBottom: "14px" }}>Trilhas de conhecimento financeiro</div>
-
-      {/* Featured video card */}
-      <div style={{ position: "relative", width: "100%", height: "180px", borderRadius: "var(--r3)", overflow: "hidden", background: "url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80') center/cover", marginBottom: "20px" }}>
-        {/* Dark gradient overlay */}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(4,7,15,0.9) 0%, rgba(4,7,15,0.2) 100%)", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "16px" }}>
-          {/* Play badge */}
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <div style={{ width: "32px", height: "32px", background: "var(--blue)", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "12px", flexShrink: 0 }}>▶</div>
-            <div>
-              <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, color: "var(--blue)", marginBottom: "4px" }}>Fundamentos</div>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>Como criar sua Reserva de Emergência</div>
-              <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)", marginTop: "4px" }}>4 min · Aula 1</div>
-            </div>
+      
+      {/* Gamification Header */}
+      <div style={{ display: "flex", gap: "10px", marginTop: "14px", marginBottom: "20px" }}>
+        <div className="mini-card" style={{ flex: 1, padding: "12px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: "36px", height: "36px", borderRadius: "12px", background: "var(--amber-d)", border: "1px solid rgba(255,173,59,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--amber)" }}>
+            <Flame size={20} fill="currentColor" />
+          </div>
+          <div>
+            <div style={{ fontSize: "10px", color: "var(--t3)", fontWeight: 600, textTransform: "uppercase" }}>Ofensiva</div>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{state.streak} dias</div>
           </div>
         </div>
+
+        <div className="mini-card" style={{ flex: 1, padding: "12px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: "36px", height: "36px", borderRadius: "12px", background: "var(--blue3)", border: "1px solid rgba(74,139,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--blue)" }}>
+            <Star size={20} fill="currentColor" />
+          </div>
+          <div>
+            <div style={{ fontSize: "10px", color: "var(--t3)", fontWeight: 600, textTransform: "uppercase" }}>Experiência</div>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{state.xp} XP</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="sec-hd">
+        <span className="sec-title">Progresso Geral</span>
+        <span style={{ fontSize: "12px", color: "var(--blue)", fontWeight: 700, fontFamily: "var(--mono)" }}>{getProgressPct()}%</span>
+      </div>
+      <div className="prog" style={{ marginBottom: "20px", height: "6px" }}>
+        <div className="prog-fill" style={{ width: `${getProgressPct()}%`, background: "var(--green)" }} />
       </div>
 
       <div className="sec-hd"><span className="sec-title">Módulos</span></div>
       
       <div className="card">
-        <div className="row" style={{ alignItems: "flex-start" }}>
-          <div className="row-ico" style={{ background: "var(--bg)", fontSize: "16px", marginTop: "2px" }}>📺</div>
-          <div className="row-main" style={{ flex: 1 }}>
-            <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, color: "var(--green)", marginBottom: "4px" }}>Iniciante</div>
-            <div className="row-title">Saindo das dívidas</div>
-            <div className="row-sub" style={{ fontSize: "11px", lineHeight: 1.4 }}>Aprenda a classificar, negociar e abater juros com a estratégia avalanche.</div>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-              <span style={{ fontSize: "10px", color: "var(--t3)", fontFamily: "var(--mono)" }}>100% concluído</span>
-              <div className="prog" style={{ width: "60px", height: "4px" }}><div className="prog-fill" style={{ width: "100%", background: "var(--green)" }}></div></div>
-            </div>
-          </div>
-        </div>
+        {EDUCATION_MODULES.map((mod, i) => {
+          const isCompleted = isModuleCompleted(mod.id);
+          // Unlock rule: first module always unlocked, others unlock if previous is completed.
+          const isUnlocked = i === 0 || isModuleCompleted(EDUCATION_MODULES[i-1].id);
+          
+          let statusText = "Bloqueado";
+          let statusColor = "var(--t3)";
+          if (isCompleted) {
+            statusText = "Concluído";
+            statusColor = "var(--green)";
+          } else if (isUnlocked) {
+            statusText = "Começar";
+            statusColor = "var(--blue)";
+          }
 
-        <div className="row" style={{ alignItems: "flex-start" }}>
-          <div className="row-ico" style={{ background: "var(--bg)", fontSize: "16px", marginTop: "2px" }}>📺</div>
-          <div className="row-main" style={{ flex: 1 }}>
-            <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, color: "var(--blue)", marginBottom: "4px" }}>Intermediário</div>
-            <div className="row-title">O que é a Selic?</div>
-            <div className="row-sub" style={{ fontSize: "11px", lineHeight: 1.4 }}>Juros, inflação e como o Tesouro Direto funciona na prática.</div>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-              <span style={{ fontSize: "10px", color: "var(--blue)", fontFamily: "var(--mono)", fontWeight: 700 }}>Continuar</span>
-              <div className="prog" style={{ width: "60px", height: "4px" }}><div className="prog-fill" style={{ width: "30%", background: "var(--blue)" }}></div></div>
+          return (
+            <div 
+              key={mod.id} 
+              className="row" 
+              style={{ alignItems: "flex-start", opacity: isUnlocked ? 1 : 0.5, cursor: isUnlocked ? "pointer" : "default" }}
+              onClick={() => {
+                if (isUnlocked) setActiveLessonId(mod.id);
+              }}
+            >
+              <div 
+                className="row-ico" 
+                style={{ background: isCompleted ? "var(--green-d)" : isUnlocked ? "var(--blue3)" : "var(--glass2)", fontSize: "16px", color: isCompleted ? "var(--green)" : isUnlocked ? "var(--blue)" : "var(--t3)", marginTop: "2px" }}
+              >
+                {isCompleted ? <Trophy size={16} /> : isUnlocked ? "▶" : <Lock size={16} />}
+              </div>
+              
+              <div className="row-main" style={{ flex: 1 }}>
+                <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, color: isCompleted ? "var(--green)" : "var(--blue)", marginBottom: "4px" }}>
+                  {mod.level} · {mod.duration} min
+                </div>
+                <div className="row-title">{mod.title}</div>
+                <div className="row-sub" style={{ fontSize: "11px", lineHeight: 1.4 }}>{mod.description}</div>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
+                  <span style={{ fontSize: "10px", color: statusColor, fontFamily: "var(--mono)", fontWeight: 700 }}>
+                    {statusText}
+                  </span>
+                  <div className="prog" style={{ width: "60px", height: "4px" }}>
+                    <div className="prog-fill" style={{ width: isCompleted ? "100%" : "0%", background: statusColor }}></div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="row" style={{ alignItems: "flex-start" }}>
-          <div className="row-ico" style={{ background: "var(--bg)", fontSize: "16px", marginTop: "2px" }}>🔒</div>
-          <div className="row-main" style={{ flex: 1, opacity: 0.5 }}>
-            <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, color: "var(--t3)", marginBottom: "4px" }}>Avançado</div>
-            <div className="row-title">CDB, LCI e LCA</div>
-            <div className="row-sub" style={{ fontSize: "11px", lineHeight: 1.4 }}>Tributação e garantias do FGC.</div>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
