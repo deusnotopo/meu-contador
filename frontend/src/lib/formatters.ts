@@ -8,13 +8,29 @@ export const formatCurrency = (
   }).format(value);
 };
 
-export const formatDate = (date: string | Date): string => {
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(date));
+export const safeDate = (date: string | Date | undefined | null): Date | null => {
+  if (!date) return null;
+  const d = new Date(date);
+  return isNaN(d.getTime()) ? null : d;
 };
 
-export const formatDateTime = (date: string | Date): string => {
+export const formatDate = (date: string | Date | undefined | null): string => {
+  const d = safeDate(date);
+  if (!d) return "Data inválida";
+  return new Intl.DateTimeFormat("pt-BR").format(d);
+};
+
+export const formatShortDate = (date: string | Date | undefined | null): string => {
+  const d = safeDate(date);
+  if (!d) return "Recente";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "");
+};
+
+export const formatDateTime = (date: string | Date | undefined | null): string => {
+  const d = safeDate(date);
+  if (!d) return "Data inválida";
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
-  }).format(new Date(date));
+  }).format(d);
 };

@@ -3,6 +3,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useDebts } from "@/hooks/useDebts";
 import { loadProfile } from "@/lib/storage";
+import { formatShortDate } from "@/lib/formatters";
 import type { TabType } from "@/types/navigation";
 
 const fmt = (n: number) =>
@@ -108,7 +109,7 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
     id: tx.id,
     ico: getEmoji(tx.category),
     ti: tx.description,
-    cat: `${tx.category} · ${new Date(tx.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}`,
+    cat: `${tx.category} · ${formatShortDate(tx.date)}`,
     am: tx.type === 'expense' ? -tx.amount : tx.amount
   }));
 

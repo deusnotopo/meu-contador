@@ -1,6 +1,6 @@
 import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions } from "@/hooks/useTransactions";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatShortDate } from "@/lib/formatters";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
@@ -108,7 +108,7 @@ const EnvelopeDetail = ({ category, limit, spent, transactions, onBack }: Envelo
               <div className="row-ico" style={{ background: "var(--glass2)" }}>{CATEGORY_ICONS[category] || "📦"}</div>
               <div className="row-main">
                 <div className="row-title">{tx.description}</div>
-                <div className="row-sub">{new Date(tx.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</div>
+                <div className="row-sub">{formatShortDate(tx.date)}</div>
               </div>
               <div className="row-amt amt-minus">− {formatCurrency(Math.abs(tx.amount))}</div>
             </div>
