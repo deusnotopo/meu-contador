@@ -1,6 +1,16 @@
-﻿src/App.tsx(190,24): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"ai"' have no overlap.
-src/components/settings/SettingsSection.tsx(5,17): error TS2339: Property 'signOut' does not exist on type 'AuthContextType'.
-src/components/transactions/LaunchScreen.tsx(51,7): error TS2322: Type 'number' is not assignable to type 'string'.
-src/components/transactions/TransactionsView.tsx(19,25): error TS2339: Property 'loading' does not exist on type '{ transactions: Transaction[]; allTransactions: Transaction[]; filteredTransactions: Transaction[]; isLoading: boolean; filter: "income" | "expense" | "all"; ... 11 more ...; monthlyTrend: MonthlyData[]; }'.
-src/features/personal/components/BudgetsTab.tsx(11,23): error TS2322: Type '{ transactions: Transaction[]; }' is not assignable to type 'IntrinsicAttributes'.
-  Property 'transactions' does not exist on type 'IntrinsicAttributes'.
+src/App.tsx(125,18): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"envelopes"' have no overlap.
+src/App.tsx(126,18): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"envelope_detail"' have no overlap.
+src/App.tsx(128,18): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"invest_compostos"' have no overlap.
+src/App.tsx(129,18): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"invest_dividas"' have no overlap.
+src/App.tsx(131,18): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"retire_fire"' have no overlap.
+src/App.tsx(132,18): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"retire_proj"' have no overlap.
+src/App.tsx(141,18): error TS2367: This comparison appears to be unintentional because the types 'TabType' and '"analytics"' have no overlap.
+src/App.tsx(141,48): error TS2741: Property 'transactions' is missing in type '{}' but required in type 'AnalyticsDashboardProps'.
+src/components/settings/SettingsSection.tsx(69,27): error TS2339: Property 'createdAt' does not exist on type 'AuthUser'.
+src/components/settings/SettingsSection.tsx(70,46): error TS2339: Property 'createdAt' does not exist on type 'AuthUser'.
+src/components/settings/SettingsSection.tsx(78,28): error TS2339: Property 'age' does not exist on type 'UserProfile'.
+src/components/settings/SettingsSection.tsx(79,36): error TS2339: Property 'investorProfile' does not exist on type 'UserProfile'.
+src/components/settings/SettingsSection.tsx(80,38): error TS2339: Property 'investmentHorizon' does not exist on type 'UserProfile'.
+src/components/settings/SettingsSection.tsx(81,31): error TS2339: Property 'dependents' does not exist on type 'UserProfile'.
+src/components/settings/SettingsSection.tsx(277,38): error TS2345: Argument of type '"pt-BR" | "en"' is not assignable to parameter of type 'Language'.
+  Type '"en"' is not assignable to type 'Language'.

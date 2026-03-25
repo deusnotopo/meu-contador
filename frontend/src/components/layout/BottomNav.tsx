@@ -16,7 +16,7 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
     { id: "ai" as TabType, icon: Bot, label: "Assistente IA" },
     { id: "analytics" as TabType, icon: BarChart3, label: "Analytics" },
     { id: "notifications" as TabType, icon: Bell, label: "Notificações" },
-    { id: "planning" as TabType, icon: Target, label: "Planejamento" },
+    { id: "envelopes" as TabType, icon: Target, label: "Envelopes" },
     { id: "settings" as TabType, icon: Settings, label: "Configurações" },
   ];
 
@@ -28,43 +28,74 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
           style={{ 
             position: "fixed", 
             inset: 0, 
-            background: "rgba(0,0,0,0.5)", 
+            background: "rgba(4,7,15,0.85)", 
             zIndex: 50,
             display: "flex",
             alignItems: "flex-end",
-            justifyContent: "center"
+            justifyContent: "center",
+            backdropFilter: "blur(8px)",
           }}
           onClick={() => setShowMoreMenu(false)}
         >
           <div 
             style={{
-              background: "var(--bg)",
-              borderRadius: "20px 20px 0 0",
+              background: "var(--bg3)",
+              borderRadius: "28px 28px 0 0",
               width: "100%",
               maxWidth: "400px",
-              padding: "20px",
-              paddingBottom: "100px",
-              animation: "slideUp 0.3s ease"
+              padding: "20px 16px 40px",
+              borderTop: "1px solid var(--border2)",
+              animation: "sheetUp 0.35s cubic-bezier(0.34, 1.1, 0.64, 1)"
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--t1)" }}>Mais opções</span>
+            {/* Handle */}
+            <div style={{ 
+              width: "40px", 
+              height: "4px", 
+              background: "var(--glass3)", 
+              borderRadius: "2px", 
+              margin: "0 auto 20px" 
+            }} />
+            
+            {/* Title */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              marginBottom: "20px" 
+            }}>
+              <span style={{ 
+                fontSize: "18px", 
+                fontWeight: 700, 
+                color: "var(--t1)" 
+              }}>
+                Mais opções
+              </span>
               <button 
                 onClick={() => setShowMoreMenu(false)}
                 style={{ 
                   background: "var(--glass2)", 
                   border: "none", 
-                  borderRadius: "8px", 
+                  borderRadius: "11px", 
                   padding: "8px",
                   cursor: "pointer",
-                  color: "var(--t2)"
+                  color: "var(--t2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
                 }}
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+
+            {/* Menu Items Grid */}
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "1fr 1fr", 
+              gap: "10px" 
+            }}>
               {moreMenuItems.map((item) => (
                 <button
                   key={item.id}
@@ -73,9 +104,9 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
                     setShowMoreMenu(false);
                   }}
                   style={{
-                    background: currentTab === item.id ? "var(--blue3)" : "var(--glass2)",
-                    border: currentTab === item.id ? "1px solid var(--blue)" : "1px solid var(--border)",
-                    borderRadius: "12px",
+                    background: currentTab === item.id ? "var(--blue3)" : "var(--glass)",
+                    border: currentTab === item.id ? "1px solid rgba(74,139,255,0.35)" : "1px solid var(--border)",
+                    borderRadius: "18px",
                     padding: "16px",
                     cursor: "pointer",
                     display: "flex",
@@ -83,22 +114,34 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
                     alignItems: "center",
                     gap: "8px",
                     transition: "all 0.15s",
-                    position: "relative"
+                    position: "relative",
+                    fontFamily: "var(--font)"
                   }}
                 >
-                  <item.icon size={24} style={{ color: currentTab === item.id ? "var(--blue)" : "var(--t2)" }} />
-                  <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--t1)" }}>{item.label}</span>
+                  <item.icon size={24} style={{ 
+                    color: currentTab === item.id ? "var(--blue)" : "var(--t2)" 
+                  }} />
+                  <span style={{ 
+                    fontSize: "10px", 
+                    fontWeight: 600, 
+                    color: "var(--t1)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em"
+                  }}>
+                    {item.label}
+                  </span>
                   {item.badge && (
                     <span style={{
                       position: "absolute",
-                      top: "8px",
-                      right: "8px",
+                      top: "10px",
+                      right: "10px",
                       background: "var(--blue)",
                       color: "#fff",
                       fontSize: "8px",
                       fontWeight: 700,
                       padding: "2px 6px",
-                      borderRadius: "4px"
+                      borderRadius: "6px",
+                      fontFamily: "var(--mono)"
                     }}>
                       {item.badge}
                     </span>
@@ -110,98 +153,98 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
         </div>
       )}
 
-      {/* Bottom Navigation */}
-      <div className="tabbar" style={{ display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+      {/* Bottom Navigation - EXACT from finapp_v3 */}
+      <div className="tabbar">
         {/* Início */}
-        <div 
-          className={cn("tab", currentTab === "overview" && "active")} 
+        <button 
+          className={`tab ${currentTab === "overview" ? "active" : ""}`}
           onClick={() => onTabChange("overview")}
-          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px" }}
         >
-          <div className="tab-pip"><Home size={22} strokeWidth={2.5} /></div>
-          <div className="tab-lbl">Início</div>
-        </div>
+          <div className="tab-pip">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/>
+              <path d="M9 21V12h6v9"/>
+            </svg>
+          </div>
+          <span className="tab-lbl">Início</span>
+        </button>
 
         {/* Pessoal */}
-        <div 
-          className={cn("tab", currentTab === "personal" && "active")} 
+        <button 
+          className={`tab ${currentTab === "personal" ? "active" : ""}`}
           onClick={() => onTabChange("personal")}
-          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px" }}
         >
-          <div className="tab-pip"><User size={22} strokeWidth={2.5} /></div>
-          <div className="tab-lbl">Pessoal</div>
-        </div>
-
-        {/* Empresa */}
-        <div 
-          className={cn("tab", currentTab === "business" && "active")} 
-          onClick={() => onTabChange("business")}
-          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px" }}
-        >
-          <div className="tab-pip"><Building2 size={22} strokeWidth={2.5} /></div>
-          <div className="tab-lbl">Empresa</div>
-        </div>
-        
-        {/* Lançar (Central FAB) */}
-        <div 
-          className={cn("tab", currentTab === "launch" && "active")} 
-          onClick={() => onTabChange("launch")}
-          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px" }}
-        >
-          <div 
-            className="tab-pip" 
-            style={{ 
-              background: "linear-gradient(135deg,#2F62D9,#5048E8)",
-              borderRadius: "16px",
-              width: "52px",
-              height: "52px",
-              marginTop: "-18px",
-              boxShadow: "0 4px 16px rgba(80,72,232,0.5), 0 0 0 3px rgba(4,7,15,1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            <Plus size={24} stroke="#fff" strokeWidth={2.5} />
+          <div className="tab-pip">
+            <svg viewBox="0 0 24 24">
+              <rect x="2" y="5" width="20" height="16" rx="2"/>
+              <path d="M2 10l10 6 10-6"/>
+            </svg>
           </div>
-          <div className="tab-lbl" style={{ marginTop: "6px" }}>Lançar</div>
-        </div>
+          <span className="tab-lbl">Budget</span>
+        </button>
+
+        {/* Lançar (FAB Center) - EXACT from finapp_v3 */}
+        <button 
+          className={`tab-fab ${currentTab === "launch" ? "active" : ""}`}
+          onClick={() => onTabChange("launch")}
+        >
+          <div className="tab-pip">
+            <svg viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </div>
+          <span className="tab-lbl">Lançar</span>
+        </button>
 
         {/* Patrimônio */}
-        <div 
-          className={cn("tab", currentTab === "investments" && "active")} 
+        <button 
+          className={`tab ${currentTab === "investments" ? "active" : ""}`}
           onClick={() => onTabChange("investments")}
-          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px" }}
         >
-          <div style={{ position: "relative" }}>
-            <div className="tab-pip"><TrendingUp size={22} strokeWidth={2.5} /></div>
+          <div className="tab-pip">
+            <svg viewBox="0 0 24 24">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+              <polyline points="16 7 22 7 22 13"/>
+            </svg>
           </div>
-          <div className="tab-lbl">Patrimônio</div>
-        </div>
+          <span className="tab-lbl">Patrimônio</span>
+        </button>
 
-        {/* Saúde */}
-        <div 
-          className={cn("tab", currentTab === "health" && "active")} 
-          onClick={() => onTabChange("health")}
-          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px" }}
+        {/* Academia */}
+        <button 
+          className={`tab ${currentTab === "education" ? "active" : ""}`}
+          onClick={() => onTabChange("education")}
+          style={{ position: "relative" }}
         >
-          <div className="tab-pip"><Heart size={22} strokeWidth={2.5} /></div>
-          <div className="tab-lbl">Saúde</div>
-        </div>
-
-        {/* Mais */}
-        <div 
-          className={cn("tab", showMoreMenu && "active")} 
-          onClick={() => setShowMoreMenu(true)}
-          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 4px" }}
-        >
-          <div className="tab-pip"><MoreHorizontal size={22} strokeWidth={2.5} /></div>
-          <div className="tab-lbl">Mais</div>
-        </div>
+          <div className="tab-pip">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span className="tab-lbl">Academia</span>
+          <span style={{
+            position: "absolute",
+            top: "4px",
+            right: "8px",
+            background: "var(--red)",
+            color: "#fff",
+            fontSize: "8px",
+            fontWeight: 700,
+            borderRadius: "6px",
+            padding: "1px 5px",
+            fontFamily: "var(--mono)",
+            lineHeight: "1.4"
+          }}>
+            3
+          </span>
+        </button>
       </div>
 
       <style>{`
-        @keyframes slideUp {
+        @keyframes sheetUp {
           from {
             transform: translateY(100%);
           }

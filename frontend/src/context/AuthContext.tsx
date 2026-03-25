@@ -13,6 +13,7 @@ export interface AuthUser extends UserProfile {
   businessName?: string;
   businessCnpj?: string;
   businessSector?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {

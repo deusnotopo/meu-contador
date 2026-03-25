@@ -274,7 +274,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <div 
           className="tog-row" 
           style={{ cursor: "pointer" }} 
-          onClick={() => setLanguage(language === "pt-BR" ? "en" : "pt-BR")}
+          onClick={() => setLanguage(language === "pt-BR" ? "en-US" : "pt-BR")}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Globe size={18} /></div>

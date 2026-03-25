@@ -161,6 +161,10 @@ export interface UserProfile {
   workspaceRoles?: Record<string, WorkspaceRole>; // Map of workspaceId -> role
   isPro?: boolean;
   subscriptionPlan?: "free" | "pro";
+  age?: number;
+  investorProfile?: string;
+  investmentHorizon?: string;
+  dependents?: number;
 }
 
 export interface OnboardingBudget {

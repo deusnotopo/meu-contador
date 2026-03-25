@@ -3,7 +3,11 @@ export type TabType =
   | "personal" 
   | "business" 
   | "planning"
+  | "envelopes"
+  | "envelope_detail"
   | "investments" 
+  | "invest_compostos"
+  | "invest_dividas"
   | "education" 
   | "health"
   | "launch"
@@ -12,4 +16,7 @@ export type TabType =
   | "settings"
   | "ai"
   | "design"
-  | "retirement";
+  | "retirement"
+  | "retire_fire"
+  | "retire_proj"
+  | "analytics";

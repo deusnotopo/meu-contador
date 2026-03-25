@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useDebts } from "@/hooks/useDebts";
 import { useInvestments } from "@/hooks/useInvestments";
 import { MarketDataWidget } from "./MarketDataWidget";
+import { RealTimeQuotes } from "./RealTimeQuotes";
+import { TesouroDiretoRates } from "./TesouroDiretoRates";
 import { ShieldAlert, Trash2, Plus } from "lucide-react";
 import type { Investment } from "@/types";
 
@@ -231,6 +233,12 @@ export const InvestmentsSection = () => {
 
           <div className="sec-hd"><span className="sec-title">Mercado Aberto</span></div>
           <MarketDataWidget />
+
+          <div className="sec-hd"><span className="sec-title">Cotações ao vivo</span></div>
+          <RealTimeQuotes />
+
+          <div className="sec-hd"><span className="sec-title">Tesouro Direto</span></div>
+          <TesouroDiretoRates />
         </>
       )}
 

@@ -14,12 +14,14 @@ import { SkipToContent, ScreenReaderAnnouncer } from "./lib/accessibility";
 import { useTour } from "./hooks/useTour";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MonitoringService } from "./lib/monitoring";
+import { useTransactions } from "./hooks/useTransactions";
 import { LaunchScreen } from "./components/transactions/LaunchScreen";
 import { TransactionsView } from "./components/transactions/TransactionsView";
 import { NotificationsView } from "./components/notifications/NotificationsView";
 import { HealthSection } from "./components/health/HealthSection";
 import { PhoneShell } from "./components/layout/PhoneShell";
 import type { TabType } from "./types/navigation";
+import "./styles/finapp-v3.css";
 
 // Initialize monitoring
 MonitoringService.init();
@@ -30,6 +32,26 @@ const GlobalDashboard = lazy(() =>
 
 const PlanningView = lazy(() =>
   import("./components/planning/PlanningView").then((m) => ({ default: m.PlanningView }))
+);
+
+const EnvelopesView = lazy(() =>
+  import("./components/planning/EnvelopesView").then((m) => ({ default: m.EnvelopesView }))
+);
+
+const InvestCompostosView = lazy(() =>
+  import("./components/investments/InvestCompostosView").then((m) => ({ default: m.InvestCompostosView }))
+);
+
+const InvestDividasView = lazy(() =>
+  import("./components/investments/InvestDividasView").then((m) => ({ default: m.InvestDividasView }))
+);
+
+const RetireFireView = lazy(() =>
+  import("./components/planning/RetireFireView").then((m) => ({ default: m.RetireFireView }))
+);
+
+const RetireProjView = lazy(() =>
+  import("./components/planning/RetireProjView").then((m) => ({ default: m.RetireProjView }))
 );
 
 const InvestmentsSection = lazy(() =>
@@ -68,6 +90,7 @@ export default function App() {
   useLanguage();
   const { user, loading } = useAuth();
   const { startTour } = useTour();
+  const { transactions } = useTransactions();
 
   React.useEffect(() => {
     if (user && !loading) {
@@ -101,8 +124,14 @@ export default function App() {
                 className="w-full"
               >
                 {activeTab === "overview" && <GlobalDashboard onNavigate={setActiveTab} />}
-                {activeTab === "planning" && <PlanningView />}
+                {activeTab === "envelopes" && <EnvelopesView onBack={(t) => setActiveTab(t)} onNavigate={(t) => setActiveTab(t)} />}
+                {activeTab === "envelope_detail" && <EnvelopesView onBack={(t) => setActiveTab(t)} onNavigate={(t) => setActiveTab(t)} />}
                 {activeTab === "investments" && <InvestmentsSection />}
+                {activeTab === "invest_compostos" && <InvestCompostosView onBack={(t) => setActiveTab(t)} />}
+                {activeTab === "invest_dividas" && <InvestDividasView onBack={(t) => setActiveTab(t)} />}
+                {activeTab === "retirement" && <RetirementView onBack={(t) => setActiveTab(t)} />}
+                {activeTab === "retire_fire" && <RetireFireView onBack={(t) => setActiveTab(t)} />}
+                {activeTab === "retire_proj" && <RetireProjView onBack={(t) => setActiveTab(t)} />}
                 {activeTab === "education" && <EducationSection />}
                 {activeTab === "health" && <HealthSection onBack={setActiveTab} />}
                 {activeTab === "launch" && <LaunchScreen onBack={setActiveTab} />}
@@ -110,9 +139,8 @@ export default function App() {
                 {activeTab === "notifications" && <NotificationsView onBack={setActiveTab} />}
                 {activeTab === "settings" && <SettingsSection onBack={setActiveTab} />}
                 {activeTab === "ai" && <AIAssistantView onBack={setActiveTab} />}
-                {activeTab === "retirement" && <RetirementView onBack={setActiveTab} />}
                 {activeTab === "business" && <BusinessFinance />}
-                {activeTab === "analytics" && <AnalyticsDashboard />}
+                {activeTab === "analytics" && <AnalyticsDashboard transactions={transactions} />}
                 {activeTab === "profile" && <SettingsSection onBack={setActiveTab} />}
                 {activeTab === "design" && <SettingsSection onBack={setActiveTab} />}
               </motion.div>
