@@ -11,4 +11,5 @@ export type TabType =
   | "profile"
   | "settings"
   | "ai"
-  | "design";
+  | "design"
+  | "retirement";

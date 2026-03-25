@@ -2,8 +2,62 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../lib/db";
 import { parseOfx } from "../utils/ofxParser";
+import { PluggyService } from "../services/pluggy";
 
 export async function bankingRoutes(app: FastifyInstance) {
+  // Pluggy Connect Token
+  app.post("/banking/pluggy/connect-token", { preHandler: [(app as any).authenticate] }, async (request, reply) => {
+    const user = request.user as { id: string };
+    try {
+      const token = await PluggyService.createConnectToken(user.id);
+      return token;
+    } catch (error: any) {
+      return reply.status(500).send({ message: error.message });
+    }
+  });
+
+  // Pluggy Sync (fetch accounts and transactions for a new item)
+  app.post("/banking/pluggy/sync", { preHandler: [(app as any).authenticate] }, async (request, reply) => {
+    const user = request.user as { id: string };
+    const schema = z.object({
+      itemId: z.string(),
+    });
+
+    const { itemId } = schema.parse(request.body);
+
+    try {
+      const accounts = await PluggyService.getAccounts(itemId);
+      let totalImported = 0;
+
+      for (const account of accounts) {
+        const transactions = await PluggyService.getTransactions(account.id);
+        
+        const insertData = transactions.map((t) => ({
+          userId: user.id,
+          description: t.description,
+          amount: t.amount,
+          type: t.amount >= 0 ? "income" : "expense",
+          category: t.category || "Outros",
+          date: new Date(t.date),
+          paymentMethod: "Pluggy",
+          scope: "personal",
+          fitid: t.id, // Use Pluggy transaction ID for dedup
+        }));
+
+        const result = await db.transaction.createMany({
+          data: insertData as any,
+          skipDuplicates: true,
+        });
+
+        totalImported += result.count;
+      }
+
+      return { success: true, importedCount: totalImported };
+    } catch (error: any) {
+      return reply.status(500).send({ message: error.message });
+    }
+  });
+
   app.get("/banking/institutions", { preHandler: [(app as any).authenticate] }, async (request, reply) => {
     // Return mock supported institutions
     return [

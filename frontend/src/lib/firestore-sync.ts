@@ -30,7 +30,7 @@ export const syncToCloud = async (
 };
 
 /**
- * Loads a specific key from Firestore.
+ * Loads a specific key from Firestore with a timeout to prevent infinite hanging.
  * @param userId - The Firebase user ID
  * @param key - The storage key
  */
@@ -42,8 +42,18 @@ export const loadFromCloud = async (
   if (!userId) return null;
   try {
     const userRef = doc(db, collectionName, userId, "data", key);
-    const snap = await getDoc(userRef);
-    if (snap.exists()) {
+    
+    // Add a 10s timeout because getDoc can hang indefinitely if Firebase is blocked or offline
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Firestore getDoc timeout")), 10000)
+    );
+    
+    const snap = await Promise.race([
+      getDoc(userRef),
+      timeoutPromise
+    ]) as any;
+
+    if (snap && snap.exists && snap.exists()) {
       return snap.data().payload;
     }
     return null;

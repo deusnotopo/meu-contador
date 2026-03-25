@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Search, Upload } from "lucide-react";
+import { ArrowLeft, Search, Upload, Trash2 } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -18,10 +18,23 @@ interface TransactionsViewProps {
 }
 
 export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
-  const { transactions, isLoading, refresh } = useTransactions();
+  const { transactions, isLoading, refresh, deleteTransaction } = useTransactions();
   const [activePeriod, setActivePeriod] = useState("Mar");
   const [search, setSearch] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await deleteTransaction(id);
+      showSuccess("Transação removida.");
+    } catch {
+      showError("Erro ao remover transação.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleOfxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -144,7 +157,7 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
             </div>
             <div className="card">
               {txns.map((tx) => (
-                <div key={tx.id} className="row">
+                <div key={tx.id} className="row" style={{ alignItems: "center" }}>
                   <div
                     className="row-ico"
                     style={{ background: tx.amount > 0 ? "var(--green-d)" : "var(--glass2)" }}
@@ -155,9 +168,17 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
                     <div className="row-title">{tx.description}</div>
                     <div className="row-sub">{tx.category} · {new Date(tx.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</div>
                   </div>
-                  <div className={`row-amt ${tx.amount > 0 ? "amt-plus" : "amt-minus"}`}>
+                  <div className={`row-amt ${tx.amount > 0 ? "amt-plus" : "amt-minus"}`} style={{ marginRight: 8 }}>
                     {tx.amount > 0 ? "+" : "−"}&nbsp;{formatCurrency(Math.abs(tx.amount))}
                   </div>
+                  <button
+                    onClick={() => handleDelete(tx.id)}
+                    disabled={deletingId === tx.id}
+                    style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer", padding: "4px", opacity: deletingId === tx.id ? 0.4 : 0.6, flexShrink: 0 }}
+                    title="Excluir"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               ))}
             </div>

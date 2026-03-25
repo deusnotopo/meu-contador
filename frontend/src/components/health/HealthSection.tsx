@@ -1,31 +1,92 @@
-import { useState } from "react";
-
-const DIMS = [
-  { em: "💧", nm: "Liquidez", ds: "8,4 meses de reserva", sc: 92, cl: "g" },
-  { em: "💰", nm: "Poupança", ds: "Taxa 30,7%", sc: 88, cl: "g" },
-  { em: "📉", nm: "Dívidas", ds: "5,8% do patrimônio", sc: 82, cl: "g" },
-  { em: "🌐", nm: "Diversificação", ds: "4 classes de ativos", sc: 70, cl: "b" },
-  { em: "🛡️", nm: "Proteção", ds: "Seguro de vida ausente", sc: 45, cl: "a" },
-  { em: "🎯", nm: "Trajetória", ds: "71% probabilidade FIRE", sc: 60, cl: "b" },
-  { em: "🧠", nm: "Bem-estar", ds: "Estresse moderado", sc: 55, cl: "a" },
-];
-
-const COLOR_MAP: Record<string, string> = { g: "var(--green)", b: "var(--blue)", a: "var(--amber)", r: "var(--red)" };
-const BG_MAP: Record<string, string> = { g: "var(--green-d)", b: "var(--blue3)", a: "var(--amber-d)", r: "var(--red-d)" };
+import { useState, useMemo } from "react";
+import type { TabType } from "@/types/navigation";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useDebts } from "@/hooks/useDebts";
+import { useInvestments } from "@/hooks/useInvestments";
 
 const STRESS = ["😰", "😟", "😐", "🙂", "😄"];
 const STRESS_LABELS = ["Muito alto", "Alto", "Médio", "Baixo", "Nenhum"];
+const COLOR_MAP: Record<string, string> = { g: "var(--green)", b: "var(--blue)", a: "var(--amber)", r: "var(--red)" };
+const BG_MAP: Record<string, string> = { g: "var(--green-d)", b: "var(--blue3)", a: "var(--amber-d)", r: "var(--red-d)" };
 
-export const HealthSection = () => {
-  const [selectedStress, setSelectedStress] = useState<number | null>(2);
+function scoreColor(s: number) {
+  if (s >= 80) return "g";
+  if (s >= 60) return "b";
+  if (s >= 40) return "a";
+  return "r";
+}
 
-  const score = 74;
+interface HealthSectionProps {
+  onBack?: (tab: TabType) => void;
+}
+
+export const HealthSection = ({ onBack }: HealthSectionProps = {}) => {
+  const [selectedStress, setSelectedStress] = useState<number | null>(null);
+  const { totals: txTotals, transactions } = useTransactions("personal");
+  const { totals: debtTotals, debts } = useDebts();
+  const { totals: investTotals } = useInvestments();
+
+  // --- Real financial metric calculations ---
+  const monthlyExpenses = txTotals.expense || 1;
+  const monthlyIncome = txTotals.income || 1;
+  const netWorth = txTotals.balance + investTotals.currentValue - debtTotals.totalBalance;
+
+  // 1. Liquidez: reserva de emergência em meses (investimentos / gastos mensais)
+  const reserva = investTotals.currentValue;
+  const liquidezMeses = reserva > 0 ? Math.min(12, reserva / monthlyExpenses) : 0;
+  const liquidezScore = Math.min(100, Math.round(liquidezMeses / 6 * 100));
+
+  // 2. Poupança: % da renda poupada
+  const savingRate = monthlyIncome > 0 ? ((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100 : 0;
+  const poupancaScore = Math.min(100, Math.round(savingRate * 3)); // 33% saving = 100 score
+
+  // 3. Dívidas: dívidas como % do patrimônio (menor = melhor)
+  const debtRatio = netWorth > 0 ? (debtTotals.totalBalance / netWorth) * 100 : 0;
+  const dividaScore = Math.max(0, Math.round(100 - debtRatio * 5));
+
+  // 4. Diversificação: número de tipos de ativo
+  const assetTypesCount = investTotals.currentValue > 0 ? 3 : 0; // simplified
+  const diversScore = Math.min(100, assetTypesCount * 25);
+
+  // 5. Proteção: assume 45 unless user has insurance
+  const protecaoScore = 45;
+
+  // 6. Trajetória FIRE: taxa de poupança sugere % de probabilidade
+  const fireProb = Math.min(100, Math.round(savingRate * 2.5));
+  const trajetoriaScore = Math.max(10, Math.round(fireProb * 0.8));
+
+  // 7. Bem-estar: based on selected stress (if answered)
+  const bemEstarScore = selectedStress !== null ? [20, 35, 55, 75, 95][selectedStress] : 55;
+
+  const DIMS = [
+    { em: "💧", nm: "Liquidez", ds: liquidezMeses > 0 ? `${liquidezMeses.toFixed(1)} meses de reserva` : "Sem reserva registrada", sc: liquidezScore, cl: scoreColor(liquidezScore) },
+    { em: "💰", nm: "Poupança", ds: savingRate > 0 ? `Taxa ${savingRate.toFixed(1)}%` : "Sem dados de renda", sc: poupancaScore, cl: scoreColor(poupancaScore) },
+    { em: "📉", nm: "Dívidas", ds: debts.length > 0 ? `${debtRatio.toFixed(1)}% do patrimônio` : "Sem dívidas ✓", sc: dividaScore, cl: scoreColor(dividaScore) },
+    { em: "🌐", nm: "Diversificação", ds: `${assetTypesCount} classes de ativos`, sc: diversScore, cl: scoreColor(diversScore) },
+    { em: "🛡️", nm: "Proteção", ds: "Seguro de vida ausente", sc: protecaoScore, cl: scoreColor(protecaoScore) },
+    { em: "🎯", nm: "Trajetória", ds: `${fireProb}% probabilidade FIRE`, sc: trajetoriaScore, cl: scoreColor(trajetoriaScore) },
+    { em: "🧠", nm: "Bem-estar", ds: selectedStress !== null ? STRESS_LABELS[selectedStress] : "Não avaliado", sc: bemEstarScore, cl: scoreColor(bemEstarScore) },
+  ];
+
+  const score = Math.round(DIMS.reduce((s, d) => s + d.sc, 0) / DIMS.length);
   const r = 56;
   const circumference = 2 * Math.PI * r;
   const offset = circumference * (1 - score / 100);
 
+  const scoreLabel = score >= 80 ? "Excelente" : score >= 65 ? "Boa" : score >= 50 ? "Regular" : "Precisa melhorar";
+  const scoreColor2 = score >= 80 ? "var(--green)" : score >= 65 ? "var(--blue)" : score >= 50 ? "var(--amber)" : "var(--red)";
+
   return (
-    <div className="space-y-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div style={{ animation: "fsu 0.26s ease" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingTop: "10px" }}>
+        {onBack && (
+          <button className="back-btn" onClick={() => onBack("overview")}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+        )}
+        <div className="page-title" style={{ margin: 0 }}>Saúde Financeira</div>
+      </div>
+
       {/* Score ring hero */}
       <div className="hero" style={{ textAlign: "center", padding: "28px 20px 22px" }}>
         <svg style={{ width: 140, height: 140, margin: "0 auto 16px" }} viewBox="0 0 140 140">
@@ -53,11 +114,12 @@ export const HealthSection = () => {
             de 100
           </text>
         </svg>
-        <div style={{ fontSize: 17, fontWeight: 700, color: "var(--t1)" }}>Saúde financeira boa</div>
-        <div style={{ fontSize: 12, color: "var(--green)", marginTop: 4 }}>▲ +2 pontos vs. mês passado</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: "var(--t1)" }}>Saúde financeira {scoreLabel.toLowerCase()}</div>
+        <div style={{ fontSize: 12, color: scoreColor2, marginTop: 4 }}>Score calculado com seus dados reais</div>
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <span className="bdg bdg-g">Liquidez: 8 meses</span>
-          <span className="bdg bdg-b">Poupança: 30,7%</span>
+          {liquidezMeses > 0 && <span className="bdg bdg-g">Liquidez: {liquidezMeses.toFixed(0)}m</span>}
+          {savingRate > 0 && <span className="bdg bdg-b">Poupança: {savingRate.toFixed(0)}%</span>}
+          {debts.length === 0 && <span className="bdg bdg-g">Sem dívidas ✓</span>}
         </div>
       </div>
 
@@ -85,23 +147,32 @@ export const HealthSection = () => {
         ))}
       </div>
 
-      {/* Alert */}
-      <div className="nudge warn" style={{ marginTop: 12 }}>
-        <div className="nudge-ttl" style={{ color: "var(--amber)" }}>⚠ Gap de proteção</div>
-        <div className="nudge-body">Você não tem seguro de vida. Custo estimado: <strong>R$ 80–150/mês</strong>.</div>
-      </div>
+      {/* Advice */}
+      {debtTotals.totalBalance > 0 && (
+        <div className="nudge warn" style={{ marginTop: 12 }}>
+          <div className="nudge-ttl" style={{ color: "var(--amber)" }}>⚠ Dívidas impactando o score</div>
+          <div className="nudge-body">Você tem <strong>R$ {Math.round(debtTotals.totalBalance).toLocaleString('pt-BR')}</strong> em dívidas. Quitar melhora a saúde financeira.</div>
+        </div>
+      )}
 
-      {/* Inflação */}
+      {savingRate < 10 && (
+        <div className="nudge warn" style={{ marginTop: 12 }}>
+          <div className="nudge-ttl" style={{ color: "var(--amber)" }}>⚠ Taxa de poupança baixa</div>
+          <div className="nudge-body">Tente poupar pelo menos <strong>20%</strong> da renda. Você está em <strong>{savingRate.toFixed(0)}%</strong>.</div>
+        </div>
+      )}
+
+      {/* Inflação pessoal */}
       <div className="metric-grid" style={{ marginTop: 12 }}>
         <div className="metric">
-          <div className="m-label">Sua inflação (mar)</div>
-          <div className="m-val r">6,8%</div>
-          <div className="m-delta">↑ delivery pesa</div>
+          <div className="m-label">Sua taxa de poupança</div>
+          <div className="m-val" style={{ color: savingRate >= 20 ? "var(--green)" : "var(--amber)" }}>{savingRate.toFixed(1)}%</div>
+          <div className="m-delta">{savingRate >= 20 ? "✓ Meta atingida" : "Meta: 20%+"}</div>
         </div>
         <div className="metric">
-          <div className="m-label">IPCA oficial</div>
-          <div className="m-val">4,2%</div>
-          <div className="m-delta">cesta nacional</div>
+          <div className="m-label">FIRE estimado</div>
+          <div className="m-val">{fireProb}%</div>
+          <div className="m-delta">probabilidade</div>
         </div>
       </div>
 
@@ -134,9 +205,11 @@ export const HealthSection = () => {
             </div>
           ))}
         </div>
-        <button className="btn-s" style={{ marginTop: 12, fontSize: 12, padding: 9 }}>
-          Registrar check-in
-        </button>
+        {selectedStress !== null && (
+          <div style={{ marginTop: 12, fontSize: 12, color: "var(--t2)", textAlign: "center" }}>
+            ✓ Check-in registrado: <strong>{STRESS_LABELS[selectedStress]}</strong>
+          </div>
+        )}
       </div>
     </div>
   );
