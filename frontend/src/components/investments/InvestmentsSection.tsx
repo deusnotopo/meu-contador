@@ -65,7 +65,14 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
   const hasError = investError || debtError;
 
   const [showAddDebt, setShowAddDebt] = useState(false);
-  const [newDebt, setNewDebt] = useState({ name: "", balance: 0, interestRate: 0, minPayment: 0, category: "credit_card" as any });
+  const [newDebt, setNewDebt] = useState({ 
+    name: "", 
+    balance: 0, 
+    interestRate: 0, 
+    minPayment: 0, 
+    category: "credit_card",
+    dueDate: null as string | null
+  });
 
   // Juros compostos slider state
   const [aporte, setAporte] = useState(1200);
@@ -319,10 +326,27 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
             <div className="card" style={{ marginBottom: "14px", padding: "14px" }}>
               <input type="text" placeholder="Nome (ex: Cartão Nubank)" style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px", fontSize: "13px", color: "var(--t1)", outline: "none", marginBottom: "8px", boxSizing: "border-box" }} value={newDebt.name} onChange={e => setNewDebt({ ...newDebt, name: e.target.value })} />
               <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-                <input type="number" placeholder="Saldo (R$)" style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px", fontSize: "13px", color: "var(--t1)", outline: "none" }} value={newDebt.balance || ""} onChange={e => setNewDebt({ ...newDebt, balance: parseFloat(e.target.value) || 0 })} />
-                <input type="number" step="0.1" placeholder="Juros (% a.m.)" style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px", fontSize: "13px", color: "var(--t1)", outline: "none" }} value={newDebt.interestRate || ""} onChange={e => setNewDebt({ ...newDebt, interestRate: parseFloat(e.target.value) || 0 })} />
+                <input type="number" placeholder="Saldo (R$) *" style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px", fontSize: "13px", color: "var(--t1)", outline: "none" }} value={newDebt.balance || ""} onChange={e => setNewDebt({ ...newDebt, balance: parseFloat(e.target.value) || 0 })} />
+                <input type="number" step="0.1" placeholder="Juros (% a.m.) *" style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px", fontSize: "13px", color: "var(--t1)", outline: "none" }} value={newDebt.interestRate || ""} onChange={e => setNewDebt({ ...newDebt, interestRate: parseFloat(e.target.value) || 0 })} />
               </div>
-              <button onClick={() => { if (newDebt.name) { addDebt(newDebt); setShowAddDebt(false); setNewDebt({ name: "", balance: 0, interestRate: 0, minPayment: 0, category: "credit_card" }); } }} style={{ background: "var(--blue)", color: "#fff", padding: "10px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 700, width: "100%", border: "none", cursor: "pointer" }}>
+              <input type="number" placeholder="Pagamento mínimo (R$) *" style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px", fontSize: "13px", color: "var(--t1)", outline: "none", marginBottom: "12px", boxSizing: "border-box" }} value={newDebt.minPayment || ""} onChange={e => setNewDebt({ ...newDebt, minPayment: parseFloat(e.target.value) || 0 })} />
+              <button onClick={() => { 
+                if (newDebt.name && newDebt.balance > 0 && newDebt.minPayment > 0) { 
+                  const debtToSubmit = {
+                    name: newDebt.name,
+                    balance: newDebt.balance,
+                    interestRate: newDebt.interestRate || 0,
+                    minPayment: newDebt.minPayment,
+                    category: newDebt.category,
+                    dueDate: newDebt.dueDate
+                  };
+                  addDebt(debtToSubmit); 
+                  setShowAddDebt(false); 
+                  setNewDebt({ name: "", balance: 0, interestRate: 0, minPayment: 0, category: "credit_card", dueDate: null }); 
+                } else {
+                  showError("Preencha todos os campos obrigatórios com valores válidos.");
+                }
+              }} style={{ background: "var(--blue)", color: "#fff", padding: "10px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 700, width: "100%", border: "none", cursor: "pointer" }}>
                 Salvar
               </button>
             </div>

@@ -1,20 +1,32 @@
 import React from "react";
 
+// Helper to validate and sanitize numbers
+const safeNumber = (n: number, fallback: number = 0): number => {
+  return typeof n === 'number' && !isNaN(n) && isFinite(n) ? n : fallback;
+};
+
 // SVG Sparkline Component matching finapp_v3.html exactly
 export const Sparkline = ({ data, color = "var(--blue)", h = 44, w = 318 }: { data: number[], color?: string, h?: number, w?: number }) => {
   if (!data || data.length === 0) return null;
-  const max = Math.max(...data);
-  const min = Math.min(...data);
+  
+  // Filter out invalid values and ensure we have valid numbers
+  const validData = data.map(v => safeNumber(v, 0));
+  if (validData.length === 0 || validData.every(v => v === 0)) return null;
+  
+  const max = Math.max(...validData);
+  const min = Math.min(...validData);
   const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 6) - 3;
+  
+  const pts = validData.map((v, i) => {
+    const x = safeNumber((i / (validData.length - 1)) * w, 0);
+    const y = safeNumber(h - ((v - min) / range) * (h - 6) - 3, h / 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
 
   const fp = `0,${h} ${pts} ${w},${h}`;
-  const lx = (((data.length - 1) / (data.length - 1)) * w).toFixed(1);
-  const ly = (h - ((data[data.length - 1] - min) / range) * (h - 6) - 3).toFixed(1);
+  const lastValue = validData[validData.length - 1] || 0;
+  const lx = safeNumber(((validData.length - 1) / (validData.length - 1)) * w, w);
+  const ly = safeNumber(h - ((lastValue - min) / range) * (h - 6) - 3, h / 2);
   const gradId = "sg" + Math.random().toString(36).slice(2, 6);
 
   return (
@@ -35,13 +47,19 @@ export const Sparkline = ({ data, color = "var(--blue)", h = 44, w = 318 }: { da
 // SVG BarChart Component matching finapp_v3.html exactly
 export const BarChart = ({ data, colors, h = 50, w = 318 }: { data: number[], colors: string | string[], h?: number, w?: number }) => {
   if (!data || data.length === 0) return null;
-  const max = Math.max(...data) || 1;
-  const bw = Math.floor((w - data.length * 3) / data.length);
+  
+  // Filter out invalid values
+  const validData = data.map(v => safeNumber(v, 0));
+  if (validData.length === 0 || validData.every(v => v === 0)) return null;
+  
+  const max = Math.max(...validData) || 1;
+  const bw = Math.max(2, Math.floor((w - validData.length * 3) / validData.length));
+  
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      {data.map((v, i) => {
-        const bh = Math.max(4, (v / max) * h);
-        const x = i * (bw + 3);
+      {validData.map((v, i) => {
+        const bh = Math.max(4, safeNumber((v / max) * h, 4));
+        const x = safeNumber(i * (bw + 3), 0);
         const fill = Array.isArray(colors) ? colors[i % colors.length] : colors;
         return (
           <rect key={i} x={x} y={h - bh} width={bw} height={bh} rx="3" fill={fill} opacity="0.85" />

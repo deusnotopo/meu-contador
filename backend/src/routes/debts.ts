@@ -17,29 +17,39 @@ export async function debtRoutes(app: FastifyInstance) {
   // Create a new debt
   app.post('/debts', async (request, reply) => {
     const bodySchema = z.object({
-      name: z.string(),
-      balance: z.number(),
-      interestRate: z.number(),
-      minPayment: z.number(),
+      name: z.string().min(1, "Nome é obrigatório"),
+      balance: z.number().positive("Saldo deve ser positivo"),
+      interestRate: z.number().min(0, "Taxa de juros deve ser maior ou igual a zero"),
+      minPayment: z.number().positive("Pagamento mínimo deve ser positivo"),
       dueDate: z.string().optional().nullable(),
-      category: z.string(),
+      category: z.string().default("credit_card"),
     });
 
-    const { name, balance, interestRate, minPayment, dueDate, category } = bodySchema.parse(request.body);
+    try {
+      const validatedData = bodySchema.parse(request.body);
+      
+      const debt = await db.debt.create({
+        data: {
+          name: validatedData.name,
+          balance: validatedData.balance,
+          interestRate: validatedData.interestRate,
+          minPayment: validatedData.minPayment,
+          dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
+          category: validatedData.category,
+          userId: request.user.id,
+        },
+      });
 
-    const debt = await db.debt.create({
-      data: {
-        name,
-        balance,
-        interestRate,
-        minPayment,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        category,
-        userId: request.user.id,
-      },
-    });
-
-    return debt;
+      return debt;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({
+          error: "Dados inválidos",
+          details: error.errors,
+        });
+      }
+      throw error;
+    }
   });
 
   // Update a debt
