@@ -24,13 +24,25 @@ export const RealTimeQuotes = ({ tickers = ["BOVA11", "IVVB11", "HGLG11", "PETR4
     const loadQuotes = async () => {
       setLoading(true);
       try {
-        const results = await Promise.all(
-          tickers.map(async (ticker) => {
-            const quote = await fetchStockQuote(ticker);
-            return quote || { symbol: ticker, price: 0, name: ticker };
-          })
-        );
-        setQuotes(results.filter(Boolean) as StockQuote[]);
+        // Buscar em lotes para evitar rate limiting
+        const results: StockQuote[] = [];
+        for (let i = 0; i < tickers.length; i += 2) {
+          const batch = tickers.slice(i, i + 2);
+          const batchResults = await Promise.all(
+            batch.map(async (ticker) => {
+              const quote = await fetchStockQuote(ticker);
+              return quote || { symbol: ticker, price: 0, name: ticker };
+            })
+          );
+          results.push(...batchResults.filter(Boolean) as StockQuote[]);
+          
+          // Aguardar entre lotes
+          if (i + 2 < tickers.length) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        
+        setQuotes(results);
         setLastUpdate(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
       } catch (error) {
         console.error("Error loading quotes:", error);
@@ -40,7 +52,7 @@ export const RealTimeQuotes = ({ tickers = ["BOVA11", "IVVB11", "HGLG11", "PETR4
     };
 
     loadQuotes();
-    const interval = setInterval(loadQuotes, 5 * 60 * 1000); // Atualiza a cada 5 minutos
+    const interval = setInterval(loadQuotes, 10 * 60 * 1000); // Atualiza a cada 10 minutos (aumentado de 5)
     return () => clearInterval(interval);
   }, [tickers]);
 
@@ -111,7 +123,7 @@ export const RealTimeQuotes = ({ tickers = ["BOVA11", "IVVB11", "HGLG11", "PETR4
       </div>
 
       <div style={{ marginTop: "12px", padding: "8px", background: "var(--surface)", borderRadius: "8px", fontSize: "10px", color: "var(--text3)", textAlign: "center" }}>
-        Dados: brapi.dev · Atualização a cada 5 min
+        Dados: brapi.dev · Atualização a cada 10 min
       </div>
     </div>
   );

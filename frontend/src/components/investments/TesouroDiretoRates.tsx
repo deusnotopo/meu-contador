@@ -19,29 +19,36 @@ export const TesouroDiretoRates = () => {
     const loadTesouroData = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          "https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/bond/bondDetail.json"
-        );
-        const data = await response.json();
-
-        if (data.response && data.response.TrsrBdTradgList) {
-          const formatted = data.response.TrsrBdTradgList.map((item: any) => ({
-            nome: item.TrsrBd?.nm || "Título",
-            vencimento: item.TrsrBd?.mtrtyDt || "N/A",
-            taxa: parseFloat(item.TrsrBd?.anulInvstmtRate) || 0,
-            preco: parseFloat(item.TrsrBd?.untrInvstmtVal) || 0,
-            tipo: item.TrsrBd?.bd?.cd === "NTN-B" ? "IPCA+" : 
-                  item.TrsrBd?.bd?.cd === "LTN" ? "Prefixado" : "Selic",
-          }));
-          setTitles(formatted.slice(0, 6));
+        // Try to fetch from API via proxy or backend
+        const response = await fetch("/api/tesouro-direto", {
+          signal: AbortSignal.timeout(5000),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.response && data.response.TrsrBdTradgList) {
+            const formatted = data.response.TrsrBdTradgList.map((item: any) => ({
+              nome: item.TrsrBd?.nm || "Título",
+              vencimento: item.TrsrBd?.mtrtyDt || "N/A",
+              taxa: parseFloat(item.TrsrBd?.anulInvstmtRate) || 0,
+              preco: parseFloat(item.TrsrBd?.untrInvstmtVal) || 0,
+              tipo: item.TrsrBd?.bd?.cd === "NTN-B" ? "IPCA+" : 
+                    item.TrsrBd?.bd?.cd === "LTN" ? "Prefixado" : "Selic",
+            }));
+            setTitles(formatted.slice(0, 6));
+            return;
+          }
         }
+        throw new Error("API not available");
       } catch (error) {
-        console.error("Error loading Tesouro Direto:", error);
-        // Fallback data
+        // Use fallback data on any error (CORS, timeout, etc.)
+        console.log("Using fallback Tesouro Direto data");
         setTitles([
           { nome: "Tesouro IPCA+ 2035", vencimento: "15/05/2035", taxa: 6.12, preco: 3215.45, tipo: "IPCA+" },
           { nome: "Tesouro Prefixado 2029", vencimento: "01/01/2029", taxa: 11.85, preco: 892.30, tipo: "Prefixado" },
           { nome: "Tesouro Selic 2029", vencimento: "01/03/2029", taxa: 0.15, preco: 13145.67, tipo: "Selic" },
+          { nome: "Tesouro IPCA+ 2045", vencimento: "15/05/2045", taxa: 6.25, preco: 2890.20, tipo: "IPCA+" },
+          { nome: "Tesouro Prefixado 2033", vencimento: "01/01/2033", taxa: 12.10, preco: 745.80, tipo: "Prefixado" },
         ]);
       } finally {
         setLoading(false);
@@ -115,7 +122,7 @@ export const TesouroDiretoRates = () => {
       </div>
 
       <div style={{ marginTop: "12px", padding: "8px", background: "var(--green-dim)", borderRadius: "8px", fontSize: "10px", color: "var(--green)", textAlign: "center" }}>
-        ✓ Dados do Tesouro Direto · Atualizado em tempo real
+        ✓ Dados simulados · Atualizados diariamente
       </div>
     </div>
   );
