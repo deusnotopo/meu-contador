@@ -58,7 +58,7 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
       recurring: false,
       scope: "personal",
     });
-    onBack("overview");
+    onBack("inicio");
   };
 
   return (

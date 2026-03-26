@@ -8,7 +8,7 @@ export async function debtRoutes(app: FastifyInstance) {
   // List all debts
   app.get('/debts', async (request, reply) => {
     const debts = await db.debt.findMany({
-      where: { userId: request.user.uid },
+      where: { userId: request.user.id },
       orderBy: { name: 'asc' },
     });
     return debts;
@@ -35,7 +35,7 @@ export async function debtRoutes(app: FastifyInstance) {
         minPayment,
         dueDate: dueDate ? new Date(dueDate) : null,
         category,
-        userId: request.user.uid,
+        userId: request.user.id,
       },
     });
 
@@ -60,7 +60,7 @@ export async function debtRoutes(app: FastifyInstance) {
     const debt = await db.debt.update({
       where: {
         id,
-        userId: request.user.uid,
+        userId: request.user.id,
       },
       data: {
         ...data,
@@ -79,7 +79,7 @@ export async function debtRoutes(app: FastifyInstance) {
     await db.debt.delete({
       where: {
         id,
-        userId: request.user.uid,
+        userId: request.user.id,
       },
     });
 

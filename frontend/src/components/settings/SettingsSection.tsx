@@ -92,7 +92,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   }, [darkTheme]);
   
   const handleBack = () => {
-    if (onBack) onBack("overview");
+    if (onBack) onBack("inicio");
     else window.history.back();
   };
   

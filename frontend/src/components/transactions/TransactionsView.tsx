@@ -90,7 +90,7 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
     <div style={{ padding: "10px 0", animation: "fsu 0.26s ease" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <button className="back-btn" onClick={() => onBack("overview")}>
+        <button className="back-btn" onClick={() => onBack("inicio")}>
           <ArrowLeft size={16} />
         </button>
         <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px", flex: 1 }}>

@@ -1,8 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  LayoutDashboard,
-  Settings,
-} from "lucide-react";
+import { Settings } from "lucide-react";
 import React, { lazy, Suspense, useState } from "react";
 import { useLanguage } from "./context/LanguageContext";
 import { useAuth } from "./context/AuthContext";
@@ -26,58 +23,43 @@ import "./styles/finapp-v3.css";
 // Initialize monitoring
 MonitoringService.init();
 
+// ─── Lazy Views ────────────────────────────────────────────
 const GlobalDashboard = lazy(() =>
   import("./components/GlobalDashboard").then((m) => ({ default: m.GlobalDashboard }))
 );
-
 const PlanningView = lazy(() =>
   import("./components/planning/PlanningView").then((m) => ({ default: m.PlanningView }))
 );
-
 const EnvelopesView = lazy(() =>
   import("./components/planning/EnvelopesView").then((m) => ({ default: m.EnvelopesView }))
 );
-
 const InvestCompostosView = lazy(() =>
   import("./components/investments/InvestCompostosView").then((m) => ({ default: m.InvestCompostosView }))
 );
-
 const InvestDividasView = lazy(() =>
   import("./components/investments/InvestDividasView").then((m) => ({ default: m.InvestDividasView }))
 );
-
 const RetireFireView = lazy(() =>
   import("./components/planning/RetireFireView").then((m) => ({ default: m.RetireFireView }))
 );
-
 const RetireProjView = lazy(() =>
   import("./components/planning/RetireProjView").then((m) => ({ default: m.RetireProjView }))
 );
-
 const InvestmentsSection = lazy(() =>
   import("./components/investments/InvestmentsSection").then((m) => ({ default: m.InvestmentsSection }))
 );
-
 const EducationSection = lazy(() =>
   import("./components/education/EducationSection").then((m) => ({ default: m.EducationSection }))
 );
-
 const AIAssistantView = lazy(() =>
   import("./components/ai/AIAssistantView").then((m) => ({ default: m.AIAssistantView }))
 );
-
 const SettingsSection = lazy(() =>
   import("./components/settings/SettingsSection").then((m) => ({ default: m.SettingsSection }))
 );
-
 const RetirementView = lazy(() =>
   import("./components/planning/RetirementView").then((m) => ({ default: m.RetirementView }))
 );
-
-const BusinessFinance = lazy(() =>
-  import("./components/business/BusinessFinance").then((m) => ({ default: m.BusinessFinance }))
-);
-
 const AnalyticsDashboard = lazy(() =>
   import("./components/analytics/AnalyticsDashboard").then((m) => ({ default: m.AnalyticsDashboard }))
 );
@@ -85,8 +67,9 @@ const AnalyticsDashboard = lazy(() =>
 import LoadingSkeleton from "./components/ui/LoadingSkeleton";
 function LoadingFallback() { return <LoadingSkeleton />; }
 
+// ─── App Root ──────────────────────────────────────────────
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [activeTab, setActiveTab] = useState<TabType>("inicio");
   useLanguage();
   const { user, loading } = useAuth();
   const { startTour } = useTour();
@@ -102,7 +85,9 @@ export default function App() {
   if (loading) return <LoadingFallback />;
   if (!user) return <LoginForm />;
 
-  const handleBack = () => setActiveTab("overview");
+  const goHome = () => setActiveTab("inicio");
+  const navTo = (t: TabType) => setActiveTab(t);
+  const goBack = (to: TabType = "inicio") => setActiveTab(to);
 
   return (
     <>
@@ -110,14 +95,37 @@ export default function App() {
       <ScreenReaderAnnouncer />
       <ToastProvider />
       <GlobalLoadingProgress />
-      
-      {/* Universal Mobile-First Layout for All Devices (Maintaining FinApp Essence) */}
-      <div 
-         style={{ height: '100dvh', background: 'var(--bg)', display: 'flex', justifyContent: 'center' }}
-      >
+
+      {/* Universal Mobile-First Layout */}
+      <div style={{ height: "100dvh", background: "var(--bg)", display: "flex", justifyContent: "center" }}>
         <PhoneShell
           tabBar={<BottomNav currentTab={activeTab} onTabChange={setActiveTab} />}
         >
+          {/* Settings shortcut header button (always accessible) */}
+          {activeTab === "inicio" && (
+            <button
+              onClick={() => setActiveTab("settings")}
+              aria-label="Configurações"
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                zIndex: 10,
+                background: "var(--glass)",
+                border: "1px solid var(--border)",
+                borderRadius: "11px",
+                padding: "8px",
+                cursor: "pointer",
+                color: "var(--t2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Settings size={18} />
+            </button>
+          )}
+
           <ErrorBoundary featureName="Main Content">
             <Suspense fallback={<LoadingFallback />}>
               <AnimatePresence mode="wait">
@@ -129,27 +137,39 @@ export default function App() {
                   transition={{ duration: 0.22, ease: "easeOut" }}
                   className="w-full"
                 >
-                  {activeTab === "overview" && <GlobalDashboard onNavigate={setActiveTab} />}
-                  {activeTab === "envelopes" && <EnvelopesView onBack={handleBack} onNavigate={(t) => setActiveTab(t)} />}
-                  {activeTab === "envelope_detail" && <EnvelopesView onBack={handleBack} onNavigate={(t) => setActiveTab(t)} />}
-                  {activeTab === "investments" && <InvestmentsSection onBack={handleBack} />}
-                  {activeTab === "invest_compostos" && <InvestCompostosView onBack={() => setActiveTab("investments")} />}
-                  {activeTab === "invest_dividas" && <InvestDividasView onBack={() => setActiveTab("investments")} />}
-                  {activeTab === "retirement" && <RetirementView onBack={handleBack} />}
-                  {activeTab === "retire_fire" && <RetireFireView onBack={() => setActiveTab("retirement")} />}
-                  {activeTab === "retire_proj" && <RetireProjView onBack={() => setActiveTab("retirement")} />}
-                  {activeTab === "education" && <EducationSection onBack={handleBack} />}
-                  {activeTab === "health" && <HealthSection onBack={handleBack} />}
-                  {activeTab === "launch" && <LaunchScreen onBack={handleBack} />}
-                  {activeTab === "personal" && <TransactionsView onBack={handleBack} />}
-                  {activeTab === "notifications" && <NotificationsView onBack={handleBack} />}
-                  {activeTab === "settings" && <SettingsSection onBack={handleBack} />}
-                  {activeTab === "ai" && <AIAssistantView onBack={handleBack} />}
-                  {activeTab === "business" && <BusinessFinance />}
-                  {activeTab === "analytics" && <AnalyticsDashboard transactions={transactions} />}
-                  {activeTab === "profile" && <SettingsSection onBack={handleBack} />}
-                  {activeTab === "design" && <SettingsSection onBack={handleBack} />}
-                  {activeTab === "planning" && <PlanningView onBack={handleBack} onNavigate={(t) => setActiveTab(t)} />}
+                  {/* ── Pilar 1: Início ── */}
+                  {activeTab === "inicio"        && <GlobalDashboard onNavigate={navTo} />}
+                  {activeTab === "health"        && <HealthSection onBack={goHome} />}
+                  {activeTab === "notifications" && <NotificationsView onBack={goHome} />}
+
+                  {/* ── Pilar 2: Budget / Caixa ── */}
+                  {activeTab === "budget"          && <EnvelopesView onBack={goHome} onNavigate={navTo} />}
+                  {activeTab === "caixa"           && <TransactionsView onBack={goHome} />}
+                  {activeTab === "personal"        && <TransactionsView onBack={() => goBack("budget")} />}
+                  {activeTab === "analytics"       && <AnalyticsDashboard transactions={transactions} />}
+                  {activeTab === "envelopes"       && <EnvelopesView onBack={() => goBack("budget")} onNavigate={navTo} />}
+                  {activeTab === "envelope_detail" && <EnvelopesView onBack={() => goBack("budget")} onNavigate={navTo} />}
+                  {activeTab === "planos"          && <PlanningView onBack={goHome} onNavigate={navTo} />}
+                  {activeTab === "planning"        && <PlanningView onBack={() => goBack("budget")} onNavigate={navTo} />}
+                  {activeTab === "retirement"      && <RetirementView onBack={() => goBack("budget")} />}
+                  {activeTab === "retire_fire"     && <RetireFireView onBack={() => goBack("retirement")} />}
+                  {activeTab === "retire_proj"     && <RetireProjView onBack={() => goBack("retirement")} />}
+
+                  {/* ── Pilar 4: Patrimônio / Investir ── */}
+                  {activeTab === "investir"         && <InvestmentsSection onBack={goHome} />}
+                  {activeTab === "investments"      && <InvestmentsSection onBack={() => goBack("investir")} />}
+                  {activeTab === "invest_compostos" && <InvestCompostosView onBack={() => goBack("investir")} />}
+                  {activeTab === "invest_dividas"   && <InvestDividasView onBack={() => goBack("investir")} />}
+
+                  {/* ── Pilar 5: Academia ── */}
+                  {activeTab === "academia"   && <EducationSection onBack={goHome} />}
+                  {activeTab === "education"  && <EducationSection onBack={() => goBack("academia")} />}
+                  {activeTab === "ai"         && <AIAssistantView onBack={() => goBack("academia")} />}
+
+                  {/* ── Global / Modal ── */}
+                  {activeTab === "launch"   && <LaunchScreen onBack={goHome} />}
+                  {activeTab === "settings" && <SettingsSection onBack={goHome} />}
+                  {activeTab === "profile"  && <SettingsSection onBack={goHome} />}
                 </motion.div>
               </AnimatePresence>
             </Suspense>
@@ -158,6 +178,4 @@ export default function App() {
       </div>
     </>
   );
-
 }
-
