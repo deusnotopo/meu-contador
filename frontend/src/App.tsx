@@ -102,6 +102,8 @@ export default function App() {
   if (loading) return <LoadingFallback />;
   if (!user) return <LoginForm />;
 
+  const handleBack = () => setActiveTab("overview");
+
   return (
     <>
       <SkipToContent />
@@ -109,46 +111,53 @@ export default function App() {
       <ToastProvider />
       <GlobalLoadingProgress />
       
-      <PhoneShell
-        tabBar={<BottomNav currentTab={activeTab} onTabChange={setActiveTab} />}
+      {/* Universal Mobile-First Layout for All Devices (Maintaining FinApp Essence) */}
+      <div 
+         style={{ height: '100dvh', background: 'var(--bg)', display: 'flex', justifyContent: 'center' }}
       >
-        <ErrorBoundary featureName="Main Content">
-          <Suspense fallback={<LoadingFallback />}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.26, ease: "easeOut" }}
-                className="w-full"
-              >
-                {activeTab === "overview" && <GlobalDashboard onNavigate={setActiveTab} />}
-                {activeTab === "envelopes" && <EnvelopesView onBack={(t) => setActiveTab(t)} onNavigate={(t) => setActiveTab(t)} />}
-                {activeTab === "envelope_detail" && <EnvelopesView onBack={(t) => setActiveTab(t)} onNavigate={(t) => setActiveTab(t)} />}
-                {activeTab === "investments" && <InvestmentsSection />}
-                {activeTab === "invest_compostos" && <InvestCompostosView onBack={(t) => setActiveTab(t)} />}
-                {activeTab === "invest_dividas" && <InvestDividasView onBack={(t) => setActiveTab(t)} />}
-                {activeTab === "retirement" && <RetirementView onBack={(t) => setActiveTab(t)} />}
-                {activeTab === "retire_fire" && <RetireFireView onBack={(t) => setActiveTab(t)} />}
-                {activeTab === "retire_proj" && <RetireProjView onBack={(t) => setActiveTab(t)} />}
-                {activeTab === "education" && <EducationSection />}
-                {activeTab === "health" && <HealthSection onBack={setActiveTab} />}
-                {activeTab === "launch" && <LaunchScreen onBack={setActiveTab} />}
-                {activeTab === "personal" && <TransactionsView onBack={setActiveTab} />}
-                {activeTab === "notifications" && <NotificationsView onBack={setActiveTab} />}
-                {activeTab === "settings" && <SettingsSection onBack={setActiveTab} />}
-                {activeTab === "ai" && <AIAssistantView onBack={setActiveTab} />}
-                {activeTab === "business" && <BusinessFinance />}
-                {activeTab === "analytics" && <AnalyticsDashboard transactions={transactions} />}
-                {activeTab === "profile" && <SettingsSection onBack={setActiveTab} />}
-                {activeTab === "design" && <SettingsSection onBack={setActiveTab} />}
-              </motion.div>
-            </AnimatePresence>
-          </Suspense>
-        </ErrorBoundary>
-      </PhoneShell>
+        <PhoneShell
+          tabBar={<BottomNav currentTab={activeTab} onTabChange={setActiveTab} />}
+        >
+          <ErrorBoundary featureName="Main Content">
+            <Suspense fallback={<LoadingFallback />}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.02 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  className="w-full"
+                >
+                  {activeTab === "overview" && <GlobalDashboard onNavigate={setActiveTab} />}
+                  {activeTab === "envelopes" && <EnvelopesView onBack={handleBack} onNavigate={(t) => setActiveTab(t)} />}
+                  {activeTab === "envelope_detail" && <EnvelopesView onBack={handleBack} onNavigate={(t) => setActiveTab(t)} />}
+                  {activeTab === "investments" && <InvestmentsSection onBack={handleBack} />}
+                  {activeTab === "invest_compostos" && <InvestCompostosView onBack={() => setActiveTab("investments")} />}
+                  {activeTab === "invest_dividas" && <InvestDividasView onBack={() => setActiveTab("investments")} />}
+                  {activeTab === "retirement" && <RetirementView onBack={handleBack} />}
+                  {activeTab === "retire_fire" && <RetireFireView onBack={() => setActiveTab("retirement")} />}
+                  {activeTab === "retire_proj" && <RetireProjView onBack={() => setActiveTab("retirement")} />}
+                  {activeTab === "education" && <EducationSection onBack={handleBack} />}
+                  {activeTab === "health" && <HealthSection onBack={handleBack} />}
+                  {activeTab === "launch" && <LaunchScreen onBack={handleBack} />}
+                  {activeTab === "personal" && <TransactionsView onBack={handleBack} />}
+                  {activeTab === "notifications" && <NotificationsView onBack={handleBack} />}
+                  {activeTab === "settings" && <SettingsSection onBack={handleBack} />}
+                  {activeTab === "ai" && <AIAssistantView onBack={handleBack} />}
+                  {activeTab === "business" && <BusinessFinance />}
+                  {activeTab === "analytics" && <AnalyticsDashboard transactions={transactions} />}
+                  {activeTab === "profile" && <SettingsSection onBack={handleBack} />}
+                  {activeTab === "design" && <SettingsSection onBack={handleBack} />}
+                  {activeTab === "planning" && <PlanningView onBack={handleBack} onNavigate={(t) => setActiveTab(t)} />}
+                </motion.div>
+              </AnimatePresence>
+            </Suspense>
+          </ErrorBoundary>
+        </PhoneShell>
+      </div>
     </>
   );
+
 }
 

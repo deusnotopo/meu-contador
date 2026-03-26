@@ -84,7 +84,7 @@ app.decorate('authenticate', async (request: import('fastify').FastifyRequest, r
   try {
     await request.jwtVerify();
   } catch (err) {
-    reply.send(err);
+    reply.status(401).send({ message: 'Unauthorized' });
   }
 });
 

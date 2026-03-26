@@ -6,14 +6,16 @@ import { useEffect, useState } from "react";
 export const useBudgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchBudgets = async () => {
     setLoading(true);
     try {
       const data = await api.get<Budget[]>("/budgets");
       setBudgets(data);
-    } catch (error) {
-      console.warn("Backend API not available for budgets.");
+      setError(null);
+    } catch (err) {
+      setError("Orçamentos indisponíveis. Verifique sua conexão.");
     } finally {
       setLoading(false);
     }
@@ -60,6 +62,7 @@ export const useBudgets = () => {
   return {
     budgets,
     loading,
+    error,
     addBudget,
     updateBudget,
     deleteBudget,

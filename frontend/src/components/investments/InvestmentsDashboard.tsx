@@ -23,6 +23,7 @@ import {
   Plus,
   RefreshCcw,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { AssetAllocationChart } from "./AssetAllocationChart";
@@ -60,8 +61,10 @@ export const InvestmentsDashboard = () => {
   const {
     assets,
     loading,
+    error,
     addAsset,
     deleteAsset,
+    updateAsset,
     addSale,
     getTaxIndicators,
     syncPrices,
@@ -109,9 +112,16 @@ export const InvestmentsDashboard = () => {
   const profitPercentage =
     totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
 
-  // State for Sell Dialog
+  // State for Edit/Sell Dialogs
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Investment | null>(null);
+  const [editingAsset, setEditingAsset] = useState<Investment | null>(null);
+  
+  const [editName, setEditName] = useState("");
+  const [editTicker, setEditTicker] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editPrice, setEditPrice] = useState("");
 
   const handleOpenSell = (asset: Investment) => {
     setSelectedAsset(asset);
@@ -283,6 +293,55 @@ export const InvestmentsDashboard = () => {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Edit Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogContent className="glass-premium border-white/10 text-white">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-black">
+                    Editar Ativo
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">Ticker</Label>
+                      <Input value={editTicker} onChange={e => setEditTicker(e.target.value)} className="bg-white/5" />
+                    </div>
+                    <div className="space-y-2">
+                       <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">Nome</Label>
+                       <Input value={editName} onChange={e => setEditName(e.target.value)} className="bg-white/5" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                       <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">Quantidade</Label>
+                       <Input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} className="bg-white/5" />
+                    </div>
+                    <div className="space-y-2">
+                       <Label className="text-slate-400 uppercase text-[10px] font-black tracking-widest">P. Médio</Label>
+                       <Input type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)} className="bg-white/5" />
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black"
+                    onClick={() => {
+                        if (editingAsset && editAmount && editPrice) {
+                          updateAsset(editingAsset.id, {
+                            name: editName,
+                            ticker: editTicker,
+                            amount: parseFloat(editAmount),
+                            averagePrice: parseFloat(editPrice)
+                          });
+                          setEditDialogOpen(false);
+                        }
+                    }}
+                  >
+                    Salvar Alterações
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
       </motion.div>
 
         <motion.div
@@ -407,11 +466,25 @@ export const InvestmentsDashboard = () => {
                          <Skeleton className="h-20 w-full rounded-2xl" />
                          <Skeleton className="h-20 w-full rounded-2xl" />
                     </div>
+                ) : error ? (
+                    <div className="p-8 text-center text-rose-300 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+                      <AlertCircle className="mx-auto mb-2 text-rose-400" size={24} />
+                      <h4 className="font-bold">Falha de Conexão</h4>
+                      <p className="text-xs opacity-80">{error}</p>
+                    </div>
                 ) : (
                     <PortfolioTable 
                         assets={assets} 
                         onDelete={deleteAsset}
-                        onEdit={(asset) => isViewer ? showError("Somente leitura") : console.log('Edit asset not implemented yet', asset)}
+                        onEdit={(asset) => {
+                          if (isViewer) return showError("Somente leitura");
+                          setEditingAsset(asset);
+                          setEditName(asset.name);
+                          setEditTicker(asset.ticker);
+                          setEditAmount(asset.amount.toString());
+                          setEditPrice(asset.averagePrice.toString());
+                          setEditDialogOpen(true);
+                        }}
                         onSell={handleOpenSell}
                         isViewer={isViewer}
                     />

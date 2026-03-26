@@ -19,29 +19,62 @@ export const EmptyState = ({
   tips,
 }: EmptyStateProps) => {
   return (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-white/5 rounded-3xl border border-white/10 border-dashed animate-fade-in">
-      <div className="p-4 bg-indigo-500/10 rounded-2xl mb-4 text-indigo-400">
+    <div 
+      className="card" 
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: '32px 24px', 
+        textAlign: 'center',
+        borderStyle: 'dashed',
+        background: 'rgba(255,255,255,0.02)',
+        animation: 'fsu 0.4s ease-out'
+      }}
+    >
+      <div 
+        style={{ 
+          padding: '16px', 
+          background: 'var(--purple-d)', 
+          borderRadius: '16px', 
+          marginBottom: '16px', 
+          color: 'var(--purple)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
         <Icon size={32} />
       </div>
-      <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-      <p className="text-slate-400 max-w-md mb-6">{description}</p>
+      
+      <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--t1)', marginBottom: '8px' }}>
+        {title}
+      </h3>
+      
+      <p style={{ fontSize: '13px', color: 'var(--t2)', lineHeight: 1.5, maxWidth: '240px', marginBottom: '20px' }}>
+        {description}
+      </p>
 
       {onAction && actionLabel && (
-        <Button
+        <button
           onClick={onAction}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl px-6"
+          className="btn-p"
+          style={{ width: 'auto', padding: '10px 24px', fontSize: '13px' }}
         >
           {actionLabel}
-        </Button>
+        </button>
       )}
 
       {tips && tips.length > 0 && (
-        <div className="mt-8 pt-6 border-t border-white/5 w-full max-w-md">
-          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">
-            Dica de Mestre
-          </p>
-          <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 text-left">
-            <p className="text-sm text-emerald-100 font-medium">💡 {tips[0]}</p>
+        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)', width: '100%' }}>
+          <div className="eyebrow" style={{ textAlign: 'center', marginBottom: '8px' }}>
+            💡 Dica de Mestre
+          </div>
+          <div className="nudge good" style={{ textAlign: 'left', margin: 0, padding: '12px' }}>
+            <div className="nudge-body" style={{ fontSize: '12px' }}>
+              {tips[0]}
+            </div>
           </div>
         </div>
       )}

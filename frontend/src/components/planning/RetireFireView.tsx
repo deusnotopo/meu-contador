@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import type { TabType } from "@/types/navigation";
 
 interface RetireFireViewProps {
-  onBack?: (tab: TabType) => void;
+  onBack?: (tab?: TabType) => void;
 }
 
 export const RetireFireView = ({ onBack }: RetireFireViewProps) => {
@@ -31,9 +31,9 @@ export const RetireFireView = ({ onBack }: RetireFireViewProps) => {
       </div>
 
       <div className="tab-nav" style={{ marginTop: '4px' }}>
-        <div className="tab-nav-item" onClick={() => onBack?.('retirement')}>Aposentadoria</div>
+        <div className="tab-nav-item" onClick={() => onBack?.()}>Aposentadoria</div>
         <div className="tab-nav-item active">FIRE</div>
-        <div className="tab-nav-item" onClick={() => onBack?.('retirement')}>Projeções</div>
+        <div className="tab-nav-item" onClick={() => onBack?.()}>Projeções</div>
       </div>
 
       <div className="hero-card" style={{ textAlign: 'center', padding: '28px 20px' }}>

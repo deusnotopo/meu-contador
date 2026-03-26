@@ -62,6 +62,12 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
     if (step < STEPS.length - 1) setStep(step + 1);
     else {
       // Finalize
+      const allocationNum = Number(data.targetAllocation) || 0;
+      if (allocationNum > 100) {
+        alert("A alocação não pode ser maior que 100%");
+        return;
+      }
+
       onComplete({
         name: data.name!,
         ticker: data.ticker!.toUpperCase(),
@@ -71,7 +77,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
         currentPrice: Number(data.averagePrice), // Start with same price
         currency: data.currency!,
         sector: data.sector || "Geral",
-        targetAllocation: Number(data.targetAllocation) || 0,
+        targetAllocation: allocationNum,
       } as any);
     }
   };

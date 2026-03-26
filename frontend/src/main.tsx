@@ -22,13 +22,13 @@ if (savedTheme === 'light') {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <GlobalErrorBoundary>
-      <FeatureFlagsProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <FeatureFlagsProvider>
           <LanguageProvider>
             <App />
           </LanguageProvider>
-        </AuthProvider>
-      </FeatureFlagsProvider>
+        </FeatureFlagsProvider>
+      </AuthProvider>
     </GlobalErrorBoundary>
   </StrictMode>
 );

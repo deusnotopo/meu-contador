@@ -37,7 +37,10 @@ function sendToAnalytics(metric: WebVitalsMetric) {
     });
   }
 
-  // TODO: Send to analytics service (Google Analytics, etc.)
+  if (!import.meta.env.DEV) {
+    // Simulated Google Analytics / Mixpanel event
+    console.debug(`[Analytics] Web Vital: ${metric.name}`, metric.value);
+  }
   // gtag('event', metric.name, {
   //   value: Math.round(metric.value),
   //   metric_rating: metric.rating,

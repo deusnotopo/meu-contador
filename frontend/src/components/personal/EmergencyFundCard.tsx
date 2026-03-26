@@ -61,7 +61,25 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
     };
   }, [transactions]);
 
-  if (stats.avgMonthlyExpense === 0 && stats.currentSavings === 0) return null;
+  if (stats.avgMonthlyExpense === 0 && stats.currentSavings === 0) {
+    return (
+      <div className="premium-card p-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+            <ShieldCheck size={20} />
+          </div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+            Reserva de <span className="text-white">Emergência</span>
+          </h3>
+        </div>
+        <div style={{ padding: "20px 0", textAlign: "center" }}>
+          <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.5 }}>
+            Registre seus gastos e investimentos para calcular sua reserva de emergência e autonomia financeira.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="premium-card group hover:scale-[1.02] transition-all duration-500 overflow-hidden">

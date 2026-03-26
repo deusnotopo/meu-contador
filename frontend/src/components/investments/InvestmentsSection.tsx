@@ -4,7 +4,8 @@ import { useInvestments } from "@/hooks/useInvestments";
 import { MarketDataWidget } from "./MarketDataWidget";
 import { RealTimeQuotes } from "./RealTimeQuotes";
 import { TesouroDiretoRates } from "./TesouroDiretoRates";
-import { ShieldAlert, Trash2, Plus } from "lucide-react";
+import { ShieldAlert, Trash2, Plus, AlertCircle, Briefcase, CreditCard } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { Investment } from "@/types";
 
 const fmt = (n: number) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
@@ -56,10 +57,12 @@ function allocationByType(assets: Investment[]) {
   }));
 }
 
-export const InvestmentsSection = () => {
+export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
   const [tab, setTab] = useState<"geral" | "juros" | "dividas">("geral");
-  const { debts, totals: debtTotals, deleteDebt, addDebt } = useDebts();
-  const { assets, loading: assetsLoading, totals: investTotals, deleteAsset } = useInvestments();
+  const { debts, totals: debtTotals, deleteDebt, addDebt, error: debtError, isLoading: debtLoading } = useDebts();
+  const { assets, loading: assetsLoading, totals: investTotals, deleteAsset, error: investError } = useInvestments();
+  
+  const hasError = investError || debtError;
 
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [newDebt, setNewDebt] = useState({ name: "", balance: 0, interestRate: 0, minPayment: 0, category: "credit_card" as any });
@@ -89,8 +92,17 @@ export const InvestmentsSection = () => {
       {/* Dynamic Header */}
       {tab === "geral" && (
         <>
-          <div className="eyebrow">Visão consolidada</div>
-          <div className="page-title">Patrimônio</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
+            {onBack && (
+              <button className="back-btn" onClick={onBack} style={{ marginBottom: "8px" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+            )}
+            <div>
+              <div className="eyebrow">Visão consolidada</div>
+              <div className="page-title" style={{ margin: 0 }}>Patrimônio</div>
+            </div>
+          </div>
           <div className="page-sub" style={{ marginBottom: "14px" }}>Ativos, dívidas e alocação</div>
         </>
       )}
@@ -106,10 +118,15 @@ export const InvestmentsSection = () => {
       {tab === "dividas" && (
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
           <button className="back-btn" onClick={() => setTab("geral")}>←</button>
-          <div>
+          <div style={{ flex: 1 }}>
             <div className="eyebrow">Gestão</div>
             <div className="page-title" style={{ fontSize: "22px", margin: 0 }}>Dívidas</div>
           </div>
+          {debtError && (
+            <div className="bdg bdg-r" style={{ animation: 'pulse 2s infinite' }}>
+              <AlertCircle size={10} /> Sync Error
+            </div>
+          )}
         </div>
       )}
 
@@ -169,10 +186,13 @@ export const InvestmentsSection = () => {
             {assetsLoading ? (
               [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 52, marginBottom: 8 }} />)
             ) : assets.length === 0 ? (
-              <div style={{ padding: "20px 0", textAlign: "center", color: "var(--t3)", fontSize: 13 }}>
-                Nenhum ativo cadastrado ainda.<br />
-                <span style={{ color: "var(--blue)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Use o botão abaixo para adicionar</span>
-              </div>
+              <EmptyState 
+                icon={Briefcase}
+                title="Sem ativos"
+                description="Sua carteira está vazia. Comece a monitorar seu patrimônio agora."
+                actionLabel="Adicionar ativo"
+                onAction={() => {/* TODO: Open add modal if integrated */}}
+              />
             ) : (
               assets.map((a, i) => {
                 const currentVal = (a.currentPrice || a.averagePrice) * a.amount;
@@ -309,10 +329,16 @@ export const InvestmentsSection = () => {
           )}
 
           <div className="card">
-            {debts.length === 0 ? (
-              <div style={{ padding: "20px 0", textAlign: "center", color: "var(--t3)", fontSize: 13 }}>
-                Nenhuma dívida cadastrada. Ótimo! 🎉
-              </div>
+            {debtLoading ? (
+              [1,2].map(i => <div key={i} className="skeleton" style={{ height: 60, marginBottom: 8 }} />)
+            ) : debts.length === 0 ? (
+              <EmptyState 
+                icon={CreditCard}
+                title="Sem dívidas"
+                description="Parabéns! Você não possui dívidas cadastradas."
+                actionLabel="Nova dívida"
+                onAction={() => setShowAddDebt(true)}
+              />
             ) : debts.map((d, i) => (
               <div key={d.id || i} className="row" style={{ alignItems: "flex-start", padding: "14px 0" }}>
                 <div className="row-ico" style={{ background: "var(--red-d)", marginTop: "2px", color: "var(--red)" }}><ShieldAlert size={16} /></div>

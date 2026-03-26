@@ -2,7 +2,7 @@ import React from "react";
 import type { TabType } from "@/types/navigation";
 
 interface InvestDividasViewProps {
-  onBack?: (tab: TabType) => void;
+  onBack?: (tab?: TabType) => void;
 }
 
 export const InvestDividasView = ({ onBack }: InvestDividasViewProps) => {
@@ -17,8 +17,8 @@ export const InvestDividasView = ({ onBack }: InvestDividasViewProps) => {
       </div>
 
       <div className="tab-nav" style={{ marginTop: '4px' }}>
-        <div className="tab-nav-item" onClick={() => onBack?.('investments')}>Visão geral</div>
-        <div className="tab-nav-item" onClick={() => onBack?.('investments')}>Juros compostos</div>
+        <div className="tab-nav-item" onClick={() => onBack?.()}>Visão geral</div>
+        <div className="tab-nav-item" onClick={() => onBack?.()}>Juros compostos</div>
         <div className="tab-nav-item active">Dívidas</div>
       </div>
 

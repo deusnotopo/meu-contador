@@ -7,6 +7,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { showError, showSuccess } from "@/lib/toast";
 import { formatCurrency } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useGoals } from "@/hooks/useGoals";
@@ -37,7 +38,20 @@ export const GoalsSection = () => {
   });
 
   const handleSave = async () => {
-    if (!formData.name || formData.targetAmount <= 0) return;
+    if (!formData.name || formData.targetAmount <= 0) {
+      showError("Nome e valor alvo são obrigatórios.");
+      return;
+    }
+
+    if (formData.deadline) {
+      const selectedDate = new Date(formData.deadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        showError("O prazo deve ser uma data futura.");
+        return;
+      }
+    }
 
     if (editingGoal) {
       await editGoal(editingGoal.id, {

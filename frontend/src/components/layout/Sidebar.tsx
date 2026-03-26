@@ -37,7 +37,7 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       className={cn(
-        "sidebar-nav h-screen fixed left-0 top-0 z-50 flex flex-col transition-all duration-300 border-r border-sidebar-border",
+        "sidebar-nav h-screen flex-shrink-0 flex flex-col transition-all duration-300 border-r border-sidebar-border",
         collapsed ? "w-20" : "w-64"
       )}
     >

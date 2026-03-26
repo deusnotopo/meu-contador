@@ -1,20 +1,22 @@
 import { useState, useMemo } from "react";
 import type { TabType } from "@/types/navigation";
 import { useInvestments } from "@/hooks/useInvestments";
+import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatters";
 
 interface RetirementViewProps {
-  onBack: (tab: TabType) => void;
+  onBack?: (tab?: TabType) => void;
 }
 
 export const RetirementView = ({ onBack }: RetirementViewProps) => {
+  const { user } = useAuth();
   const { totals } = useInvestments();
 
-  const [currentAge, setCurrentAge] = useState(30);
-  const [retireAge, setRetireAge] = useState(60);
-  const [monthlyContribution, setMonthlyContribution] = useState(1500);
+  const [currentAge, setCurrentAge] = useState(user?.age || 30);
+  const [retireAge, setRetireAge] = useState(user?.retirementAge || 60);
+  const [monthlyContribution, setMonthlyContribution] = useState(Math.round((user?.monthlyIncome || 0) * 0.15) || 1500);
   const [expectedReturnPct, setExpectedReturnPct] = useState(7); // Real return above inflation
-  const [targetMonthlyIncome, setTargetMonthlyIncome] = useState(10000);
+  const [targetMonthlyIncome, setTargetMonthlyIncome] = useState(Math.round((user?.monthlyIncome || 0) * 0.8) || 10000);
 
   // 1. Calculate the FIRE Target (Safe Withdrawal Rate of 4% per year)
   // Annual expenses = Monthly * 12
@@ -63,7 +65,7 @@ export const RetirementView = ({ onBack }: RetirementViewProps) => {
   return (
     <div style={{ paddingTop: "10px", animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <button className="back-btn" onClick={() => onBack("overview")}>
+        <button className="back-btn" onClick={() => onBack?.()}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         </button>
         <div>

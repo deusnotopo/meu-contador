@@ -6,14 +6,16 @@ import { useEffect, useState } from "react";
 export const useGoals = () => {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchGoals = async () => {
     setLoading(true);
     try {
       const data = await api.get<SavingsGoal[]>("/goals");
       setGoals(data);
-    } catch (error) {
-      console.warn("Backend API not available for goals.");
+      setError(null);
+    } catch (err) {
+      setError("Metas de economia indisponíveis. Verifique sua conexão.");
     } finally {
       setLoading(false);
     }
@@ -69,6 +71,7 @@ export const useGoals = () => {
   return {
     goals,
     loading,
+    error,
     addGoal,
     updateGoalProgress,
     editGoal,

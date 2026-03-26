@@ -162,6 +162,7 @@ export interface UserProfile {
   isPro?: boolean;
   subscriptionPlan?: "free" | "pro";
   age?: number;
+  retirementAge?: number;
   investorProfile?: string;
   investmentHorizon?: string;
   dependents?: number;

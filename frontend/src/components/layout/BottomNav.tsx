@@ -157,7 +157,7 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
       <div className="tabbar">
         {/* Início */}
         <button 
-          className={`tab ${currentTab === "overview" ? "active" : ""}`}
+          className={`tab ${["overview", "health", "retirement", "notifications", "settings", "analytics", "ai", "profile", "design"].includes(currentTab) ? "active" : ""}`}
           onClick={() => onTabChange("overview")}
         >
           <div className="tab-pip">
@@ -171,7 +171,7 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
 
         {/* Pessoal */}
         <button 
-          className={`tab ${currentTab === "personal" ? "active" : ""}`}
+          className={`tab ${["personal", "envelopes", "envelope_detail"].includes(currentTab) ? "active" : ""}`}
           onClick={() => onTabChange("personal")}
         >
           <div className="tab-pip">
@@ -199,7 +199,7 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
 
         {/* Patrimônio */}
         <button 
-          className={`tab ${currentTab === "investments" ? "active" : ""}`}
+          className={`tab ${["investments", "invest_compostos", "invest_dividas"].includes(currentTab) ? "active" : ""}`}
           onClick={() => onTabChange("investments")}
         >
           <div className="tab-pip">

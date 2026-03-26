@@ -1,0 +1,4 @@
+﻿src/components/personal/GoalsSection.tsx(41,7): error TS2304: Cannot find name 'showError'.
+src/components/personal/GoalsSection.tsx(50,9): error TS2304: Cannot find name 'showError'.
+src/lib/ai/action-executor.ts(32,12): error TS2678: Type '"goal"' is not comparable to type '"budget" | "transaction" | "reminder" | "query" | "unknown"'.
+src/lib/ai/action-executor.ts(35,12): error TS2678: Type '"asset"' is not comparable to type '"budget" | "transaction" | "reminder" | "query" | "unknown"'.

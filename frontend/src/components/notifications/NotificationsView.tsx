@@ -4,7 +4,7 @@ import { useFinancialAlerts } from "@/hooks/useFinancialAlerts";
 import { useState } from "react";
 
 interface NotificationsViewProps {
-  onBack: (tab: TabType) => void;
+  onBack?: (tab?: TabType) => void;
 }
 
 export const NotificationsView = ({ onBack }: NotificationsViewProps) => {
@@ -51,7 +51,7 @@ export const NotificationsView = ({ onBack }: NotificationsViewProps) => {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button className="back-btn" onClick={() => onBack("overview")}>
+          <button className="back-btn" onClick={() => onBack?.()}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
           <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px" }}>

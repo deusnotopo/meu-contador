@@ -33,6 +33,7 @@ interface AuthContextType {
   setLanguage: (lang: string) => void;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
+  upgradeToPro: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -351,6 +352,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const upgradeToPro = async () => {
+    try {
+      setIsSyncing(true);
+      const res = await api.post<{ success: boolean; user: any }>("/auth/upgrade", {});
+      if (res.success) {
+        setIsPro(true);
+        if (user) {
+          setUser({ ...user, isPro: true });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to upgrade:", error);
+      throw error;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -369,6 +388,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setLanguage,
         theme,
         setTheme,
+        upgradeToPro,
         setGlobalLoading: setIsSyncing,
       }}
     >

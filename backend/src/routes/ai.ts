@@ -27,6 +27,18 @@ export async function aiRoutes(app: FastifyInstance) {
         };
       }
 
+      // Phase 9: PRO Enforcement
+      const user = await (app as any).db.user.findUnique({
+        where: { id: (request.user as any).id },
+        select: { isPro: true }
+      });
+
+      if (!user?.isPro) {
+        return {
+          response: '👑 RECURSO PREMIUM: O Centro de Inteligência Financeira está disponível apenas para assinantes PRO. Faça o upgrade agora para desbloquear auditorias ilimitadas e projeções de capital.'
+        };
+      }
+
       // Simple real integration logic calling OpenAI API
       const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',

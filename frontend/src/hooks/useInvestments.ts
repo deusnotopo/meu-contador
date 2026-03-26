@@ -16,6 +16,7 @@ export const useInvestments = () => {
   const currentWorkspaceId = user?.currentWorkspaceId || user?.uid || "";
   const [assets, setAssets] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchInvestments = async () => {
     setLoading(true);
@@ -23,8 +24,10 @@ export const useInvestments = () => {
     try {
       const data = await api.get<Investment[]>("/investments");
       setAssets(data);
-    } catch (error) {
-      console.warn("Backend API not available for investments.");
+      setError(null);
+    } catch (err) {
+      console.error("Investments API Error:", err);
+      setError("Investimentos indisponíveis no momento. Tente novamente mais tarde.");
     } finally {
       setLoading(false);
       setGlobalLoading(false);
@@ -113,6 +116,16 @@ export const useInvestments = () => {
     }));
   };
 
+  const updateAsset = async (id: string, updates: Partial<Investment>) => {
+    try {
+      const updated = await api.put<Investment>(`/investments/${id}`, updates);
+      setAssets((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      showSuccess("Ativo atualizado!");
+    } catch (error) {
+      showError("Erro ao atualizar ativo.");
+    }
+  };
+
   const syncPrices = async (
     token: string = ""
   ) => {
@@ -168,11 +181,13 @@ export const useInvestments = () => {
   return {
     assets,
     loading,
+    error,
     totals,
     addAsset,
     deleteAsset,
     addDividend,
     addSale,
+    updateAsset,
     getTaxIndicators,
     syncPrices,
   };

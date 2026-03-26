@@ -21,15 +21,18 @@ export const useTransactions = (
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [dateFilter, setDateFilter] = useState<string>("month");
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTransactions = async () => {
+    if (!user) return; // Don't fetch if not logged in
     setIsLoading(true);
     try {
       const data = await api.get<Transaction[]>(`/transactions?scope=${scope}`);
       setTransactions(data);
-    } catch (error) {
-      // Silently fail or show warning if backend isn't up yet
-      console.warn("Backend API not available, using empty state.");
+      setError(null);
+    } catch (err) {
+      console.error("Transactions API Error:", err);
+      setError("Não foi possível conectar ao servidor. Verifique sua conexão.");
     } finally {
       setIsLoading(false);
     }
@@ -37,7 +40,7 @@ export const useTransactions = (
 
   useEffect(() => {
     fetchTransactions();
-  }, [scope]);
+  }, [scope, user?.uid]);
 
   const addTransaction = async (formData: TransactionFormData) => {
     try {
@@ -223,6 +226,7 @@ export const useTransactions = (
     categoryData,
     getPieChartData,
     monthlyTrend,
+    error,
     refresh: fetchTransactions,
   };
 };

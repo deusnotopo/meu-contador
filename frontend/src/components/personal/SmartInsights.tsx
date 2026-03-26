@@ -13,9 +13,10 @@ import { PrivacyValue } from "../ui/PrivacyValue";
 interface Props {
   transactions: Transaction[];
   goals: SavingsGoal[];
+  onNavigate?: (tab: any) => void;
 }
 
-export const SmartInsights = ({ transactions, goals }: Props) => {
+export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
   const [reminders, setReminders] = useState(() => loadReminders());
   const { assets } = useInvestments();
   
@@ -270,7 +271,10 @@ export const SmartInsights = ({ transactions, goals }: Props) => {
             </div>
 
             <div className="space-y-2">
-              <Button className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-xs uppercase tracking-widest">
+              <Button 
+                onClick={() => onNavigate?.("ai")}
+                className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-xs uppercase tracking-widest"
+              >
                 Otimizar Gastos Agora
               </Button>
               <Button

@@ -3,6 +3,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency, formatShortDate } from "@/lib/formatters";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import type { TabType } from "@/types/navigation";
 
 const CATEGORY_ICONS: Record<string, string> = {
   Moradia: "🏠", Mercado: "🛒", Delivery: "🍕", Transporte: "🚗",
@@ -120,7 +121,12 @@ const EnvelopeDetail = ({ category, limit, spent, transactions, onBack }: Envelo
 };
 
 // ---- Main PlanningView ----
-export const PlanningView = () => {
+interface PlanningViewProps {
+  onBack?: (tab: TabType) => void;
+  onNavigate?: (tab: TabType) => void;
+}
+
+export const PlanningView = ({ onBack, onNavigate }: PlanningViewProps = {}) => {
   const { budgets } = useBudgets();
   const { transactions } = useTransactions();
   const [selectedEnvelope, setSelectedEnvelope] = useState<string | null>(null);
@@ -187,7 +193,17 @@ export const PlanningView = () => {
 
       {GROUPS.map(group => {
         const groupBudgets = budgets.filter((b) => group.categories.includes(b.category));
-        if (groupBudgets.length === 0 && budgets.length > 0) return null;
+        if (groupBudgets.length === 0) {
+          if (budgets.length === 0) return null;
+          return (
+            <div key={group.name} style={{ marginBottom: 10 }}>
+              <div className="sec-hd"><span className="sec-title">{group.name}</span></div>
+              <div className="card" style={{ padding: "16px", textAlign: "center", color: "var(--t3)", fontSize: 11, borderStyle: "dashed" }}>
+                Nenhum envelope em {group.name.split(' · ')[0]}
+              </div>
+            </div>
+          );
+        }
 
         const displayItems = groupBudgets.length > 0 ? groupBudgets.map(b => {
           const spent = spentByCategory[b.category] || 0;

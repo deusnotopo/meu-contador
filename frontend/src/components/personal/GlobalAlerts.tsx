@@ -6,7 +6,13 @@ import { AlertCircle, CheckCircle2, Info, AlertTriangle } from "lucide-react";
 export const GlobalAlerts = () => {
   const { alerts } = useFinancialAlerts();
 
-  if (alerts.length === 0) return null;
+  if (alerts.length === 0) {
+    return (
+      <div className="card" style={{ padding: "16px", textAlign: "center", borderStyle: "dashed", opacity: 0.7, marginBottom: "40px" }}>
+        <div style={{ fontSize: 13, color: "var(--t3)", fontWeight: 600 }}>Nenhum alerta crítico no momento ✓</div>
+      </div>
+    );
+  }
 
   const getIcon = (type: string) => {
     switch (type) {

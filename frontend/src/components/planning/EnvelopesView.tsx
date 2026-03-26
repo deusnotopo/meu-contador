@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import type { TabType } from "@/types/navigation";
 
 interface EnvelopesViewProps {
-  onBack?: (tab: TabType) => void;
+  onBack?: (tab?: TabType) => void;
   onNavigate?: (tab: TabType) => void;
 }
 
@@ -182,8 +182,20 @@ export const EnvelopesView = ({ onBack, onNavigate }: EnvelopesViewProps) => {
 
   return (
     <div style={{ paddingTop: '10px' }}>
-      <div className="page-eyebrow">Orçamento mensal</div>
-      <div className="page-title">Envelopes</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+        {onBack && (
+          <button
+            className="back-btn"
+            onClick={() => onBack()}
+          >
+            ←
+          </button>
+        )}
+        <div>
+          <div className="page-eyebrow">Orçamento mensal</div>
+          <div className="page-title" style={{ margin: 0 }}>Envelopes</div>
+        </div>
+      </div>
       <div className="page-sub" style={{ marginBottom: '14px' }}>
         Zero-based — cada real tem um emprego
       </div>

@@ -223,4 +223,32 @@ export async function authRoutes(app: FastifyInstance) {
     const { passwordHash, ...userProfile } = user;
     return userProfile;
   });
+
+  // POST /auth/upgrade - Simulate Payment / Upgrade to PRO
+  app.post('/auth/upgrade', {
+    schema: {
+      tags: ['Auth'],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: z.object({
+          success: z.boolean(),
+          user: z.any()
+        })
+      }
+    },
+    preHandler: [(app as any).authenticate]
+  }, async (request) => {
+    const userId = (request.user as any).id;
+    
+    const user = await db.user.update({
+      where: { id: userId },
+      data: { isPro: true }
+    });
+    
+    const { passwordHash, ...userProfile } = user;
+    
+    // We don't necessarily need to sign a new JWT here if the client
+    // just needs the updated user object or will re-verify via auth/me.
+    return { success: true, user: userProfile };
+  });
 }

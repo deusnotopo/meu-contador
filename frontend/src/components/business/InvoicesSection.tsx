@@ -260,6 +260,8 @@ export const InvoicesSection = () => {
                 onAction={() => setIsOpen(true)}
                 tips={[
                   "A organização das notas fiscais é o segredo para uma DRE saudável.",
+                  "Mantenha os dados do faturamento em dia para facilitar sua declaração de IR anual.",
+                  "Notas pendentes de recebimento são ativos circulantes; monitore o fluxo de caixa.",
                 ]}
               />
             </div>

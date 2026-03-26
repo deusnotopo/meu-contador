@@ -2,7 +2,7 @@ import React from "react";
 import type { TabType } from "@/types/navigation";
 
 interface RetireProjViewProps {
-  onBack?: (tab: TabType) => void;
+  onBack?: (tab?: TabType) => void;
 }
 
 export const RetireProjView = ({ onBack }: RetireProjViewProps) => {
@@ -17,8 +17,8 @@ export const RetireProjView = ({ onBack }: RetireProjViewProps) => {
       </div>
 
       <div className="tab-nav" style={{ marginTop: '4px' }}>
-        <div className="tab-nav-item" onClick={() => onBack?.('retirement')}>Aposentadoria</div>
-        <div className="tab-nav-item" onClick={() => onBack?.('retirement')}>FIRE</div>
+        <div className="tab-nav-item" onClick={() => onBack?.()}>Aposentadoria</div>
+        <div className="tab-nav-item" onClick={() => onBack?.()}>FIRE</div>
         <div className="tab-nav-item active">Projeções</div>
       </div>
 

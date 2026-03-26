@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { ArrowLeft, Search, Upload, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, Upload, Trash2, Home, ShoppingCart, Utensils, Car, Pill, Film, Shirt, Package, DollarSign, TrendingUp, Receipt } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Receipt } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 import { api } from "@/lib/api";
 import { showSuccess, showError } from "@/lib/toast";
@@ -81,10 +80,10 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
     groups[label].push(t);
   });
 
-  const CATEGORY_ICONS: Record<string, string> = {
-    moradia: "🏠", mercado: "🛒", delivery: "🍕", transporte: "🚗",
-    saude: "💊", lazer: "🎬", roupas: "👕", outros: "📦",
-    salario: "💰", investimentos: "📈", receita: "💰", income: "💰",
+  const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+    moradia: <Home size={16} />, mercado: <ShoppingCart size={16} />, delivery: <Utensils size={16} />, transporte: <Car size={16} />,
+    saude: <Pill size={16} />, lazer: <Film size={16} />, roupas: <Shirt size={16} />, outros: <Package size={16} />,
+    salario: <DollarSign size={16} />, investimentos: <TrendingUp size={16} />, receita: <DollarSign size={16} />, income: <DollarSign size={16} />,
   };
 
   return (
@@ -159,10 +158,10 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
               {txns.map((tx) => (
                 <div key={tx.id} className="row" style={{ alignItems: "center" }}>
                   <div
-                    className="row-ico"
-                    style={{ background: tx.amount > 0 ? "var(--green-d)" : "var(--glass2)" }}
+                    className="row-ico flex items-center justify-center text-[var(--t2)]"
+                    style={{ background: tx.amount > 0 ? "var(--green-d)" : "var(--glass2)", color: tx.amount > 0 ? "var(--green)" : undefined }}
                   >
-                    {CATEGORY_ICONS[tx.category] ?? "📦"}
+                    {CATEGORY_ICONS[tx.category.toLowerCase()] ?? <Package size={16} />}
                   </div>
                   <div className="row-main">
                     <div className="row-title">{tx.description}</div>

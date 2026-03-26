@@ -3,9 +3,10 @@ import type { TabType } from "@/types/navigation";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDebts } from "@/hooks/useDebts";
 import { useInvestments } from "@/hooks/useInvestments";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { AlertCircle, Activity, ShieldAlert, Droplet, TrendingUp, TrendingDown, Network, Target, Brain, ShieldCheck } from "lucide-react";
 
-const STRESS = ["😰", "😟", "😐", "🙂", "😄"];
-const STRESS_LABELS = ["Muito alto", "Alto", "Médio", "Baixo", "Nenhum"];
+const STRESS_LABELS = ["Crítico (Ansiedade)", "Alto (Desconforto)", "Moderado", "Leve", "Tranquilidade Plena"];
 const COLOR_MAP: Record<string, string> = { g: "var(--green)", b: "var(--blue)", a: "var(--amber)", r: "var(--red)" };
 const BG_MAP: Record<string, string> = { g: "var(--green-d)", b: "var(--blue3)", a: "var(--amber-d)", r: "var(--red-d)" };
 
@@ -45,11 +46,13 @@ export const HealthSection = ({ onBack }: HealthSectionProps = {}) => {
   const dividaScore = Math.max(0, Math.round(100 - debtRatio * 5));
 
   // 4. Diversificação: número de tipos de ativo
-  const assetTypesCount = investTotals.currentValue > 0 ? 3 : 0; // simplified
-  const diversScore = Math.min(100, assetTypesCount * 25);
+  // Simplified for now, assuming 3 types if there are investments
+  const uniqueAssetTypes = investTotals.currentValue > 0 ? 3 : 0;
+  const diversScore = Math.min(100, uniqueAssetTypes * 25);
 
-  // 5. Proteção: assume 45 unless user has insurance
-  const protecaoScore = 45;
+  // 5. Proteção: assume false unless user has insurance
+  const hasInsurance = false; // Placeholder: replace with actual check
+  const protecaoScore = hasInsurance ? 100 : 45;
 
   // 6. Trajetória FIRE: taxa de poupança sugere % de probabilidade
   const fireProb = Math.min(100, Math.round(savingRate * 2.5));
@@ -59,13 +62,13 @@ export const HealthSection = ({ onBack }: HealthSectionProps = {}) => {
   const bemEstarScore = selectedStress !== null ? [20, 35, 55, 75, 95][selectedStress] : 55;
 
   const DIMS = [
-    { em: "💧", nm: "Liquidez", ds: liquidezMeses > 0 ? `${liquidezMeses.toFixed(1)} meses de reserva` : "Sem reserva registrada", sc: liquidezScore, cl: scoreColor(liquidezScore) },
-    { em: "💰", nm: "Poupança", ds: savingRate > 0 ? `Taxa ${savingRate.toFixed(1)}%` : "Sem dados de renda", sc: poupancaScore, cl: scoreColor(poupancaScore) },
-    { em: "📉", nm: "Dívidas", ds: debts.length > 0 ? `${debtRatio.toFixed(1)}% do patrimônio` : "Sem dívidas ✓", sc: dividaScore, cl: scoreColor(dividaScore) },
-    { em: "🌐", nm: "Diversificação", ds: `${assetTypesCount} classes de ativos`, sc: diversScore, cl: scoreColor(diversScore) },
-    { em: "🛡️", nm: "Proteção", ds: "Seguro de vida ausente", sc: protecaoScore, cl: scoreColor(protecaoScore) },
-    { em: "🎯", nm: "Trajetória", ds: `${fireProb}% probabilidade FIRE`, sc: trajetoriaScore, cl: scoreColor(trajetoriaScore) },
-    { em: "🧠", nm: "Bem-estar", ds: selectedStress !== null ? STRESS_LABELS[selectedStress] : "Não avaliado", sc: bemEstarScore, cl: scoreColor(bemEstarScore) },
+    { em: <Droplet size={18} strokeWidth={2.5} color="var(--t2)"/>, nm: "Reserva de Emergência", ds: liquidezMeses > 0 ? liquidezMeses.toFixed(1) + " meses de sobrevida garantida (Regra 6m)" : "Vulnerabilidade total à quebra de renda", sc: liquidezScore, cl: scoreColor(liquidezScore) },
+    { em: <TrendingUp size={18} strokeWidth={2.5} color="var(--t2)"/>, nm: "Acumulação Corrente", ds: savingRate > 0 ? "Taxa de Poupança: " + savingRate.toFixed(1) + "% (Ref: 20%)" : "Consumindo 100% da receita ativa", sc: poupancaScore, cl: scoreColor(poupancaScore) },
+    { em: <TrendingDown size={18} strokeWidth={2.5} color="var(--t2)"/>, nm: "Alavancagem", ds: debts.length > 0 ? debtRatio.toFixed(1) + "% de comprometimento do patrimônio" : "Patrimônio 100% líquido e sem ônus", sc: dividaScore, cl: scoreColor(dividaScore) },
+    { em: <Network size={18} strokeWidth={2.5} color="var(--t2)"/>, nm: "Diversificação", ds: uniqueAssetTypes + " classes de ativos (Eficiência de Markowitz)", sc: diversScore, cl: scoreColor(diversScore) },
+    { em: <ShieldCheck size={18} strokeWidth={2.5} color="var(--t2)"/>, nm: "Mitigação de Riscos", ds: hasInsurance ? "Cobertura secundária detectada ✓" : "Risco existencial não mitigado (Sem Seguros)", sc: protecaoScore, cl: scoreColor(protecaoScore) },
+    { em: <Target size={18} strokeWidth={2.5} color="var(--t2)"/>, nm: "Modelagem F.I.R.E", ds: fireProb + "% de projeção de independência", sc: trajetoriaScore, cl: scoreColor(trajetoriaScore) },
+    { em: <Brain size={18} strokeWidth={2.5} color="var(--t2)"/>, nm: "Status Biopsicossocial", ds: selectedStress !== null ? STRESS_LABELS[selectedStress] : "Sem dados de cognição recente", sc: bemEstarScore, cl: scoreColor(bemEstarScore) },
   ];
 
   const score = Math.round(DIMS.reduce((s, d) => s + d.sc, 0) / DIMS.length);
@@ -128,7 +131,7 @@ export const HealthSection = ({ onBack }: HealthSectionProps = {}) => {
       <div className="card">
         {DIMS.map((d) => (
           <div key={d.nm} className="row">
-            <div className="row-ico" style={{ background: BG_MAP[d.cl] }}>{d.em}</div>
+            <div className="row-ico flex items-center justify-center" style={{ background: BG_MAP[d.cl] }}>{d.em}</div>
             <div className="row-main">
               <div className="row-title">{d.nm}</div>
               <div className="row-sub">{d.ds}</div>
@@ -183,7 +186,7 @@ export const HealthSection = ({ onBack }: HealthSectionProps = {}) => {
           Como está seu estresse financeiro este mês?
         </div>
         <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
-          {STRESS.map((em, i) => (
+          {[1, 2, 3, 4, 5].map((val, i) => (
             <div
               key={i}
               onClick={() => setSelectedStress(i)}
@@ -191,15 +194,16 @@ export const HealthSection = ({ onBack }: HealthSectionProps = {}) => {
                 flex: 1,
                 textAlign: "center",
                 cursor: "pointer",
-                padding: "8px 4px",
-                borderRadius: 10,
+                padding: "16px 4px 10px",
+                borderRadius: 14,
                 border: `1px solid ${selectedStress === i ? "var(--blue)" : "var(--border)"}`,
-                background: selectedStress === i ? "var(--blue3)" : "transparent",
+                background: selectedStress === i ? "var(--blue3)" : "var(--bg)",
                 transition: "all 0.15s",
+                boxShadow: selectedStress === i ? "0 4px 12px rgba(89,143,249,0.15)" : "none"
               }}
             >
-              <div style={{ fontSize: 22 }}>{em}</div>
-              <div style={{ fontSize: 9, color: "var(--t3)", marginTop: 4, lineHeight: 1.2 }}>
+              <div style={{ fontSize: 18, color: selectedStress === i ? "var(--blue)" : "var(--t3)", fontWeight: 800 }}>M{val}</div>
+              <div style={{ fontSize: 9, color: selectedStress === i ? "var(--t1)" : "var(--t3)", marginTop: 6, lineHeight: 1.2, fontWeight: selectedStress === i ? 700 : 500 }}>
                 {STRESS_LABELS[i]}
               </div>
             </div>

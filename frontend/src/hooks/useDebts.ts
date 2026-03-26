@@ -6,14 +6,17 @@ import { useEffect, useMemo, useState } from "react";
 export const useDebts = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchDebts = async () => {
     setIsLoading(true);
     try {
       const data = await api.get<Debt[]>("/debts");
       setDebts(data);
-    } catch (error) {
-      console.warn("Could not fetch debts, using empty state.");
+      setError(null);
+    } catch (err) {
+      console.error("Debts API Error:", err);
+      setError("Dívidas indisponíveis no momento. Verifique sua conexão.");
     } finally {
       setIsLoading(false);
     }
@@ -64,6 +67,7 @@ export const useDebts = () => {
   return {
     debts,
     isLoading,
+    error,
     addDebt,
     updateDebt,
     deleteDebt,

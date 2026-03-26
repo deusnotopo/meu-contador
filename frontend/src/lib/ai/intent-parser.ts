@@ -1,5 +1,5 @@
 export interface ParsedIntent {
-  type: "transaction" | "reminder" | "budget" | "query" | "unknown";
+  type: "transaction" | "reminder" | "budget" | "goal" | "asset" | "query" | "unknown";
   action?: "create" | "list" | "delete" | "update";
   data?: {
     amount?: number;
@@ -37,6 +37,18 @@ export const parseIntent = (text: string): ParsedIntent => {
   // Budget patterns
   const budgetPatterns = [
     /(?:criar|definir|estabelecer)\s+(?:um\s+)?orçamento\s+(?:de\s+)?(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:reais?)?\s+(?:para|em)\s+(.+)/i,
+    /limite\s+(?:de\s+)?(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:em|para)\s+(.+)/i,
+  ];
+
+  // Asset patterns
+  const assetPatterns = [
+    /(?:adicionar|comprei|tenho)\s+(?:a\s+ação|o\s+ativo|crypto)\s+(.+?)\s+(?:quantidade|qtd)\s+(\d+)\s+(?:preço|por)\s+(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)/i,
+    /(?:adicionar|novo)\s+ativo\s+(.+)/i,
+  ];
+
+  // Goal patterns
+  const goalPatterns = [
+    /(?:quero\s+poupar|meta\s+de)\s+(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:reais?)?\s+(?:para|de)\s+(.+)/i,
   ];
 
   // Check expense patterns
@@ -132,6 +144,19 @@ export const parseIntent = (text: string): ParsedIntent => {
           category: capitalizeCategory(category),
         },
         confidence: 0.85,
+        originalText: text,
+      };
+    }
+  }
+
+  // Check asset patterns
+  for (const pattern of assetPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      // Simplified for now - will need better mapping in executor
+      return {
+        type: "query", // or "unknown" until executor is ready
+        confidence: 0.6,
         originalText: text,
       };
     }

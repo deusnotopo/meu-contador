@@ -33,15 +33,28 @@ export const fetchMarketData = async (): Promise<MarketData> => {
       }
     }
 
-    // 3. Selic e CDI (mantidos como placeholder - API pública seria necessária)
-    // Para produção, integrar com API do Banco Central
+    // 3. Selic e CDI via API do Banco Central (SGS)
+    // 11 = SELIC, 4389 = CDI
+    let selic = 11.25;
+    let cdi = 11.15;
+    try {
+      const [selicRes, cdiRes] = await Promise.all([
+        fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json"),
+        fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json")
+      ]);
+      const [selicData, cdiData] = await Promise.all([selicRes.json(), cdiRes.json()]);
+      if (selicData && selicData[0]) selic = parseFloat(selicData[0].valor);
+      if (cdiData && cdiData[0]) cdi = parseFloat(cdiData[0].valor);
+    } catch (e) {
+      console.warn("Failed to fetch BCB rates, using fallbacks");
+    }
     
     return {
       btc: cryptoData.bitcoin?.brl || 520000,
       eth: cryptoData.ethereum?.brl || 17000,
       usd: usdRate,
-      selic: 11.25, // Placeholder - integrar com API BC
-      cdi: 11.15, // Placeholder - integrar com API BC
+      selic,
+      cdi,
     };
   } catch (error) {
     console.error("Failed to fetch market data:", error);

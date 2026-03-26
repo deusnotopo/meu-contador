@@ -42,6 +42,29 @@ export async function investmentRoutes(app: FastifyInstance) {
     return investment;
   });
 
+  // PUT update investment
+  app.put('/investments/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const schema = z.object({
+      name: z.string().optional(),
+      ticker: z.string().optional(),
+      type: z.enum(['stock', 'fii', 'crypto', 'fixed_income', 'etf']).optional(),
+      amount: z.number().optional(),
+      averagePrice: z.number().optional(),
+      currentPrice: z.number().optional(),
+      currency: z.string().optional(),
+      sector: z.string().optional(),
+    });
+
+    const body = schema.parse(request.body);
+    const investment = await db.investment.update({
+      where: { id },
+      data: body,
+    });
+
+    return investment;
+  });
+
   // DELETE investment
   app.delete('/investments/:id', async (request, reply) => {
     const { id } = request.params as { id: string };

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Bot, Check, Crown, Star, Zap } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export const PremiumPlans = ({
   onClose,
@@ -10,6 +11,7 @@ export const PremiumPlans = ({
   onClose: () => void;
   userEmail?: string | null;
 }) => {
+  const { upgradeToPro } = useAuth();
   const CHECKOUT_URL = `https://pay.finaliza.shop/checkout/dados?pl=422c50ed69&email=${
     userEmail || ""
   }`;
@@ -131,6 +133,32 @@ export const PremiumPlans = ({
                 QUERO MEU ACESSO AGORA
                 <Zap className="ml-3 fill-indigo-950 animate-pulse" size={24} />
               </Button>
+
+              <button 
+                onClick={async () => {
+                  try {
+                    await upgradeToPro();
+                    onClose();
+                  } catch (e) {
+                    alert("Erro ao simular upgrade");
+                  }
+                }}
+                style={{ 
+                  marginTop: "12px", 
+                  background: "none", 
+                  border: "1px dashed rgba(255,255,255,0.2)", 
+                  color: "rgba(255,255,255,0.4)", 
+                  padding: "8px", 
+                  borderRadius: "12px", 
+                  fontSize: "10px", 
+                  fontWeight: 900, 
+                  width: "100%",
+                  cursor: "pointer",
+                  letterSpacing: "0.1em"
+                }}
+              >
+                MODO DEV: SIMULAR UPGRADE VIA API
+              </button>
 
               <div className="mt-8 flex items-center justify-center gap-4 text-[10px] text-indigo-300/40 font-black uppercase tracking-widest">
                 <span className="flex items-center gap-1">

@@ -5,7 +5,7 @@ import { LessonDetailView } from "./LessonDetailView";
 import { Flame, Star, Trophy, Lock } from "lucide-react";
 import { showSuccess } from "@/lib/toast";
 
-export const EducationSection = () => {
+export const EducationSection = ({ onBack }: { onBack?: () => void }) => {
   const { state, completeModule, isModuleCompleted, getProgressPct } = useEducation();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
 
@@ -29,8 +29,17 @@ export const EducationSection = () => {
 
   return (
     <div style={{ paddingTop: "10px", animation: "fsu 0.26s ease" }}>
-      <div className="eyebrow">Aprenda a investir</div>
-      <div className="page-title">Academia</div>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
+        {onBack && (
+          <button className="back-btn" onClick={onBack} style={{ marginBottom: "8px" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+        )}
+        <div>
+          <div className="eyebrow">Aprenda a investir</div>
+          <div className="page-title" style={{ margin: 0 }}>Academia</div>
+        </div>
+      </div>
       
       {/* Gamification Header */}
       <div style={{ display: "flex", gap: "10px", marginTop: "14px", marginBottom: "20px" }}>

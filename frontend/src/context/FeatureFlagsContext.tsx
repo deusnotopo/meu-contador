@@ -1,4 +1,5 @@
 import { createContext, useContext, ReactNode, useState } from 'react';
+import { useAuth } from './AuthContext';
 
 type FeatureFlag = 'premium_analytics' | 'ai_advisor' | 'multi_currency';
 
@@ -10,6 +11,7 @@ interface FeatureFlagsContextType {
 const FeatureFlagsContext = createContext<FeatureFlagsContextType | null>(null);
 
 export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
+  const { isPro } = useAuth();
   // Can be connected to remote configuration (Firebase Remote Config, LaunchDarkly, etc.)
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
 
@@ -18,8 +20,8 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
     
     // Default flags configuration
     const flags: Record<FeatureFlag, boolean> = {
-      premium_analytics: true, // Enabled for demo
-      ai_advisor: true,
+      premium_analytics: isPro,
+      ai_advisor: isPro,
       multi_currency: false,
     };
 

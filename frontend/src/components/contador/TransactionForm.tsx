@@ -60,6 +60,17 @@ export const TransactionForm = ({
       showError("Por favor, preencha todos os campos obrigatórios");
       return;
     }
+
+    const amountNum = parseFloat(formData.amount);
+    if (amountNum <= 0) {
+      showError("O valor deve ser maior que zero");
+      return;
+    }
+
+    if (amountNum > 1000000000) {
+      showError("Valor muito alto. Verifique se está correto.");
+      return;
+    }
     // Convert Amount if needed (Base is BRL)
     const finalAmount = currencyService.convertToBRL(
       parseFloat(formData.amount),
