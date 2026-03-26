@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import type { Lesson, Passo } from "@/data/educationData";
-import { showToast } from "@/lib/toast";
+import { showSuccess } from "@/lib/toast";
 
 interface LessonDetailViewProps {
   lesson: Lesson;
@@ -41,7 +41,7 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
     const acertou = idx === passo.correta;
     setQuizAcertou(acertou);
     if (acertou) {
-      showToast('🎯 Correto! +10 XP bônus');
+      showSuccess('🎯 Correto! +10 XP bônus');
     }
   };
 
