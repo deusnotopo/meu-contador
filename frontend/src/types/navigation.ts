@@ -1,10 +1,11 @@
 // Navigation Types — DNA Original (V2/V3 Prototype Fidelity)
 
-/** 5 abas primárias do BottomNav — exatamente como no protótipo */
+/** 5 abas primárias do BottomNav — exatamente como no protótipo V3 */
 export type PrimaryTab =
   | "inicio"     // Início (Home)
   | "budget"     // Budget (Envelopes/Caixa)
   | "investir"   // Patrimônio (Investimentos)
+  | "futuro"     // Futuro (Aposentadoria/FIRE) — da V3
   | "academia"   // Academia (Educação Financeira)
   | "launch"     // FAB Lançar (botão central)
 
@@ -21,7 +22,8 @@ export type TabType =
   | "analytics"
   | "envelopes"
   | "envelope_detail"
-  // Pilar 3: Planos / Futuro
+  // Pilar 3: Futuro
+  | "futuro"
   | "planos"
   | "planning"
   | "retirement"
@@ -41,6 +43,7 @@ export type TabType =
   | "profile"
   | "launch";
 
+
 /** Mapeamento de qualquer TabType para o ícone ativo no BottomNav */
 export const TAB_TO_PILLAR: Record<TabType, PrimaryTab> = {
   // Início
@@ -48,8 +51,8 @@ export const TAB_TO_PILLAR: Record<TabType, PrimaryTab> = {
   // Budget
   budget: "budget", caixa: "budget", personal: "budget",
   analytics: "budget", envelopes: "budget", envelope_detail: "budget",
-  planos: "budget", planning: "budget",
-  retirement: "budget", retire_fire: "budget", retire_proj: "budget",
+  planos: "futuro", planning: "futuro",
+  retirement: "futuro", retire_fire: "futuro", retire_proj: "futuro",
   // Patrimônio
   investir: "investir", investments: "investir",
   invest_compostos: "investir", invest_dividas: "investir",
@@ -57,4 +60,6 @@ export const TAB_TO_PILLAR: Record<TabType, PrimaryTab> = {
   academia: "academia", education: "academia", ai: "academia",
   // Global — fallback
   settings: "inicio", profile: "inicio", launch: "launch",
+  // Futuro tab explicit mapping (guaranteed)
+  futuro: "futuro",
 };

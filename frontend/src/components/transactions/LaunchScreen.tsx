@@ -4,16 +4,16 @@ import { useTransactions } from "@/hooks/useTransactions";
 import type { TabType } from "@/types/navigation";
 
 const CATEGORIES = [
-  { id: "moradia", ico: "🏠", nm: "Moradia" },
-  { id: "mercado", ico: "🛒", nm: "Mercado" },
-  { id: "delivery", ico: "🍕", nm: "Delivery" },
-  { id: "transporte", ico: "🚗", nm: "Transp." },
-  { id: "saude", ico: "💊", nm: "Saúde" },
-  { id: "lazer", ico: "🎬", nm: "Lazer" },
-  { id: "roupas", ico: "👕", nm: "Roupas" },
-  { id: "outros", ico: "📦", nm: "Outros" },
-  { id: "salario", ico: "💰", nm: "Salário" },
-  { id: "investimentos", ico: "📈", nm: "Investir" },
+  { id: "Moradia", ico: "🏠", nm: "Moradia" },
+  { id: "Mercado", ico: "🛒", nm: "Mercado" },
+  { id: "Delivery", ico: "🍕", nm: "Delivery" },
+  { id: "Transporte", ico: "🚗", nm: "Transp." },
+  { id: "Saúde", ico: "💊", nm: "Saúde" },
+  { id: "Lazer", ico: "🎬", nm: "Lazer" },
+  { id: "Roupas", ico: "👕", nm: "Roupas" },
+  { id: "Outros", ico: "📦", nm: "Outros" },
+  { id: "Salário", ico: "💰", nm: "Salário" },
+  { id: "Investimentos", ico: "📈", nm: "Investir" },
 ];
 
 interface LaunchScreenProps {
@@ -22,9 +22,9 @@ interface LaunchScreenProps {
 
 export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
   const { addTransaction } = useTransactions();
-  const [tipo, setTipo] = useState<"expense" | "income" | "transfer">("expense");
+  const [tipo, setTipo] = useState<"expense" | "income">("expense");
   const [amtStr, setAmtStr] = useState("0");
-  const [catId, setCatId] = useState("mercado");
+  const [catId, setCatId] = useState("Mercado");
   const [description, setDescription] = useState("");
 
   const fmtAmt = (v: string) => {
@@ -48,7 +48,7 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
     const amount = cents / 100;
     const cat = CATEGORIES.find((c) => c.id === catId);
     await addTransaction({
-      amount: (tipo === "expense" ? -amount : amount).toString(),
+      amount: amount.toString(), // The framework forces absolute modules for transactions regardless of expense or income. Let 'type' handle logical reductions.
       description: description || (cat?.nm ?? catId),
       category: catId,
       type: tipo === "expense" ? "expense" : "income",
@@ -75,13 +75,13 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
 
       {/* Segmented control */}
       <div className="seg-ctrl">
-        {(["expense", "income", "transfer"] as const).map((t) => (
+        {(["expense", "income"] as const).map((t) => (
           <div
             key={t}
             className={`seg-opt${tipo === t ? " active" : ""}`}
             onClick={() => setTipo(t)}
           >
-            {t === "expense" ? "💸 Gasto" : t === "income" ? "💰 Receita" : "🔀 Transferência"}
+            {t === "expense" ? "💸 Gasto" : "💰 Receita"}
           </div>
         ))}
       </div>

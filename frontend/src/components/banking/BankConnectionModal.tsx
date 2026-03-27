@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { showSuccess, showError } from "@/lib/toast";
-import { Building2, ShieldCheck, Loader2, Link2, ArrowRight, FileUp } from "lucide-react";
+import { Link2, FileUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { OFXImportModal } from "./OFXImportModal";
+import { PluggyConnect } from "react-pluggy-connect";
 
 interface BankConnectionModalProps {
   isOpen: boolean;
@@ -14,203 +14,125 @@ interface BankConnectionModalProps {
 }
 
 export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnectionModalProps) => {
-  const [step, setStep] = useState<"select" | "auth" | "sync">("select");
-  const [selectedBank, setSelectedBank] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showOFX, setShowOFX] = useState(false);
+  const [mode, setMode] = useState<"select" | "pluggy" | "ofx">("select");
+  const [connectToken, setConnectToken] = useState<string | null>(null);
 
-  const [institutions, setInstitutions] = useState<any[]>([]);
-  
   useEffect(() => {
     if (isOpen) {
-      api.get("/banking/institutions")
-        .then(res => setInstitutions(res as any[]))
-        .catch(console.error);
+      setMode("select");
+      // Solicita o Token oficial da Pluggy logo no início para aquecimento
+      api.get("/open-finance/token")
+        .then((res: any) => setConnectToken(res.accessToken))
+        .catch((err) => {
+          console.error("Open Finance Token Error:", err);
+          showError("Falhas na malha bancária segura. Tente mais tarde.");
+        });
+    } else {
+      setConnectToken(null);
     }
   }, [isOpen]);
 
-  const handleBankSelect = (bank: any) => {
-    setSelectedBank(bank);
-    setStep("auth");
-  };
-
-  const handleAuth = async () => {
-    setIsLoading(true);
+  const handlePluggySuccess = async (itemData: any) => {
+    showSuccess("Banco Conectado! Baixando seu histórico...");
     try {
-      // Simulate auth process
-      await new Promise(r => setTimeout(r, 1500));
-      setStep("sync");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSync = async () => {
-    setIsLoading(true);
-    try {
-      const accounts = await api.get(`/banking/accounts/${selectedBank.id}`) as any[];
-      if (accounts.length > 0) {
-        const transactions = await api.post("/banking/sync", { accountId: accounts[0].id }) as any[];
-        onSuccess(transactions);
-        showSuccess(`Conectado ao ${selectedBank.name} com sucesso!`);
-        onClose();
-      }
-    } catch (error) {
-      showError("Erro ao sincronizar dados bancários.");
-    } finally {
-      setIsLoading(false);
+      await api.post(`/open-finance/sync/${itemData.item.id}`);
+      showSuccess("Sincronização concluída com sucesso!");
+      onSuccess([]); // Força reload de transactions na tela principal
+      onClose();
+    } catch (err) {
+      showError("Sem transações recentes ou erro ao sincronizar.");
+      onClose();
     }
   };
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-[#020617] border-white/5 rounded-[2.5rem] p-0 overflow-hidden">
-        <div className="p-8">
-          <AnimatePresence mode="wait">
-            {step === "select" && (
-              <motion.div
-                key="select"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-6"
-              >
-                <DialogHeader className="space-y-3">
-                  <div className="flex items-center gap-3">
-                     <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
-                        <Link2 size={24} />
-                     </div>
-                     <DialogTitle className="text-2xl font-black text-white uppercase tracking-tighter">
-                       Conectar <span className="text-indigo-400">Banco</span>
-                     </DialogTitle>
-                  </div>
-                  <p className="text-sm text-slate-400 font-medium">
-                    Selecione sua instituição para importar transações automaticamente via Open Finance.
-                  </p>
-                </DialogHeader>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {institutions.map((bank) => (
-                    <button
-                      key={bank.id}
-                      onClick={() => handleBankSelect(bank)}
-                      className="p-6 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all flex flex-col items-center gap-4 group"
-                    >
-                      <div 
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform"
-                        style={{ backgroundColor: bank.color }}
-                      >
-                        <Building2 size={24} />
-                      </div>
-                      <span className="text-xs font-black text-white uppercase tracking-widest">
-                        {bank.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* OFX Manual Import */}
-                <div className="mt-2 pt-4 border-t border-white/5">
-                  <button
-                    onClick={() => setShowOFX(true)}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all text-slate-400 hover:text-white text-sm font-bold"
-                  >
-                    <FileUp size={18} className="text-indigo-400" />
-                    Importar extrato manual (.ofx / .qfx)
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {step === "auth" && (
-              <motion.div
-                key="auth"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                className="space-y-8 py-4 text-center"
-              >
-                <div className="flex flex-col items-center gap-4">
-                  <div 
-                    className="w-20 h-20 rounded-3xl flex items-center justify-center text-white shadow-2xl"
-                    style={{ backgroundColor: selectedBank.color }}
-                  >
-                    <Building2 size={40} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                      Autenticação Segura
-                    </h3>
-                    <p className="text-sm text-slate-400 mt-2">
-                      Você será redirecionado para o ambiente seguro do **{selectedBank.name}**.
+      <Dialog open={isOpen && mode === "select"} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md bg-[#020617] border-white/5 rounded-[2.5rem] p-0 overflow-hidden">
+          <div className="p-8">
+            <AnimatePresence mode="wait">
+              {mode === "select" && (
+                <motion.div
+                  key="select"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-6"
+                >
+                  <DialogHeader className="space-y-3">
+                    <div className="flex items-center gap-3">
+                       <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                          <Link2 size={24} />
+                       </div>
+                       <DialogTitle className="text-2xl font-black text-white uppercase tracking-tighter">
+                         Sincronizar <span className="text-indigo-400">Dados</span>
+                       </DialogTitle>
+                    </div>
+                    <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                      Sincronize com máxima segurança. Suas credenciais bancárias são encriptadas (TLS 256) e nunca armazenadas.
                     </p>
+                  </DialogHeader>
+
+                  <div className="flex flex-col gap-3">
+                     <button 
+                        onClick={() => {
+                          if (!connectToken) {
+                            showError("Gerando Token SEED 256-bit, aguarde 2 segundos...");
+                            return;
+                          }
+                          setMode("pluggy");
+                        }} 
+                        className="p-6 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/30 transition-all flex flex-col items-center gap-3 group"
+                     >
+                        <span className="text-[15px] font-black text-white uppercase tracking-widest text-center leading-tight">
+                           Conexão Automática
+                           <br />(Open Finance)
+                        </span>
+                        <span className="text-xs text-indigo-300/80 font-medium text-center">Integração oficial Pluggy (Nubank, Itaú, BB).</span>
+                     </button>
+
+                     <button 
+                        onClick={() => setMode("ofx")} 
+                        className="p-5 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 shadow-lg transition-all flex flex-col items-center gap-2 mt-2 group"
+                     >
+                        <span className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 group-hover:text-indigo-200 transition-colors">
+                           <FileUp size={16} className="text-indigo-400" />
+                           Arquivo Manual (.OFX)
+                        </span>
+                     </button>
                   </div>
-                </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-                <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl flex items-start gap-3 text-left">
-                  <ShieldCheck className="text-emerald-400 shrink-0 mt-0.5" size={18} />
-                  <p className="text-[10px] text-emerald-100/70 leading-relaxed font-bold uppercase tracking-wider">
-                    Conexão criptografada de ponta a ponta. Seus dados de acesso nunca são armazenados por nós.
-                  </p>
-                </div>
+      {/* Widget Externo da API do Open Finance */}
+      {mode === "pluggy" && connectToken && (
+        <PluggyConnect
+          connectToken={connectToken}
+          includeSandbox={true}
+          onSuccess={handlePluggySuccess}
+          onError={(error: any) => {
+             console.error("Pluggy Connect Error:", error);
+             showError("Autorização bancária cancelada ou negada.");
+             setMode("select");
+          }}
+          {...({ onClose: () => setMode("select") } as any)}
+        />
+      )}
 
-                <Button
-                  onClick={handleAuth}
-                  disabled={isLoading}
-                  className="w-full h-14 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:bg-white/90 shadow-xl"
-                >
-                  {isLoading ? <Loader2 className="animate-spin" /> : "Continuar para o Banco"}
-                  {!isLoading && <ArrowRight size={18} className="ml-2" />}
-                </Button>
-              </motion.div>
-            )}
-
-            {step === "sync" && (
-              <motion.div
-                key="sync"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-8 py-10 text-center"
-              >
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin mx-auto" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="text-indigo-400" size={32} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                    Sincronizando Dados
-                  </h3>
-                  <p className="text-sm text-slate-500 font-bold uppercase tracking-widest animate-pulse">
-                    Importando transações recentes...
-                  </p>
-                </div>
-
-                <Button
-                  onClick={handleSync}
-                  disabled={isLoading}
-                  className="w-full h-14 bg-indigo-500 text-white font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-600 shadow-xl shadow-indigo-500/20"
-                >
-                  {isLoading ? "Processando..." : "Confirmar Importação"}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </DialogContent>
-    </Dialog>
-
-    <OFXImportModal
-      isOpen={showOFX}
-      onClose={() => setShowOFX(false)}
-      onSuccess={(imported) => {
-        setShowOFX(false);
-        onSuccess([]);
-      }}
-    />
-  </>
+      {/* Rota Manual Segura de OFX via Web */}
+      <OFXImportModal
+        isOpen={mode === "ofx"}
+        onClose={() => setMode("select")}
+        onSuccess={(imported) => {
+          setMode("select");
+          onSuccess([]);
+          onClose(); // Auto-fecha a UI
+        }}
+      />
+    </>
   );
 };

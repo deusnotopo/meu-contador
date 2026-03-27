@@ -146,7 +146,7 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
         </h3>
         <div className="space-y-3">
           {categoryData.map(([category, amount], index) => {
-            const percentage = (amount / totals.expenses) * 100;
+            const percentage = totals.expenses > 0 ? (amount / totals.expenses) * 100 : 0;
             return (
               <div key={category} className="space-y-1">
                 <div className="flex justify-between text-sm">

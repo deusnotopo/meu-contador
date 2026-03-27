@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { fetchStockQuote, fetchMarketData } from "@/lib/market-data";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { fetchStockQuote } from "@/lib/market-data";
 
 interface StockQuote {
   symbol: string;
@@ -12,38 +12,49 @@ interface RealTimeQuotesProps {
   tickers?: string[];
 }
 
-export const RealTimeQuotes = ({ tickers = ["BOVA11", "IVVB11", "HGLG11", "PETR4", "VALE3"] }: RealTimeQuotesProps) => {
+// Constante fora do componente para evitar array novo a cada render
+const DEFAULT_TICKERS = ["BOVA11", "IVVB11", "HGLG11"];
+
+export const RealTimeQuotes = ({ tickers = DEFAULT_TICKERS }: RealTimeQuotesProps) => {
   const [quotes, setQuotes] = useState<StockQuote[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<string>("");
+  // Guard anti-StrictMode: garante que o effect não execute duas vezes em dev
+  const didFetch = useRef(false);
 
   const fmt = (n: number) => "R$\u00a0" + n.toFixed(2).replace(".", ",");
-  const fmtPct = (n: number) => (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
+
+  // Memoizar chave para que arrays inline não causem re-fetch
+  const tickerKey = tickers.join(",");
+  const stableTickers = useMemo(() => tickers, [tickerKey]);
 
   useEffect(() => {
+    if (didFetch.current) return;
+    didFetch.current = true;
+
     const loadQuotes = async () => {
       setLoading(true);
       try {
-        // Buscar em lotes para evitar rate limiting
         const results: StockQuote[] = [];
-        for (let i = 0; i < tickers.length; i += 2) {
-          const batch = tickers.slice(i, i + 2);
+        for (let i = 0; i < stableTickers.length; i += 2) {
+          const batch = stableTickers.slice(i, i + 2);
           const batchResults = await Promise.all(
             batch.map(async (ticker) => {
               const quote = await fetchStockQuote(ticker);
               return quote || { symbol: ticker, price: 0, name: ticker };
             })
           );
-          results.push(...batchResults.filter(Boolean) as StockQuote[]);
-          
-          // Aguardar entre lotes
-          if (i + 2 < tickers.length) {
-            await new Promise(resolve => setTimeout(resolve, 500));
+          results.push(...(batchResults.filter(Boolean) as StockQuote[]));
+
+          if (i + 2 < stableTickers.length) {
+            await new Promise((resolve) => setTimeout(resolve, 600));
           }
         }
-        
+
         setQuotes(results);
-        setLastUpdate(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+        setLastUpdate(
+          new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+        );
       } catch (error) {
         console.error("Error loading quotes:", error);
       } finally {
@@ -52,9 +63,13 @@ export const RealTimeQuotes = ({ tickers = ["BOVA11", "IVVB11", "HGLG11", "PETR4
     };
 
     loadQuotes();
-    const interval = setInterval(loadQuotes, 10 * 60 * 1000); // Atualiza a cada 10 minutos (aumentado de 5)
+    // Atualizar a cada 15 min; resetar flag para permitir próxima busca
+    const interval = setInterval(() => {
+      didFetch.current = false;
+      loadQuotes();
+    }, 15 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [tickers]);
+  }, [stableTickers]);
 
   if (loading && quotes.length === 0) {
     return (
@@ -66,7 +81,7 @@ export const RealTimeQuotes = ({ tickers = ["BOVA11", "IVVB11", "HGLG11", "PETR4
           </span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3].map((i) => (
             <div key={i} style={{ height: "60px", background: "var(--surface)", borderRadius: "10px", animation: "pulse 1.5s infinite" }} />
           ))}
         </div>
@@ -123,7 +138,7 @@ export const RealTimeQuotes = ({ tickers = ["BOVA11", "IVVB11", "HGLG11", "PETR4
       </div>
 
       <div style={{ marginTop: "12px", padding: "8px", background: "var(--surface)", borderRadius: "8px", fontSize: "10px", color: "var(--text3)", textAlign: "center" }}>
-        Dados: brapi.dev · Atualização a cada 10 min
+        Dados: brapi.dev · Atualização a cada 15 min
       </div>
     </div>
   );

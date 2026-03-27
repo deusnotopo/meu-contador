@@ -60,6 +60,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
+    "react-pluggy-connect": "^2.12.0",
     "recharts": "^2.10.4",
     "resend": "^6.9.4",
     "rollup": "^4.55.1",

@@ -19,6 +19,9 @@ import { userRoutes } from './routes/user';
 import { aiRoutes } from './routes/ai';
 import { bankingRoutes } from './routes/banking';
 import { debtRoutes } from './routes/debts';
+import { openFinanceRoutes } from './routes/openFinance';
+import { pushRoutes } from './routes/push';
+import { startWorkers } from './workers/notifier';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 declare module 'fastify' {
@@ -121,6 +124,8 @@ app.register(goalRoutes);
 app.register(aiRoutes);
 app.register(bankingRoutes);
 app.register(debtRoutes);
+app.register(openFinanceRoutes);
+app.register(pushRoutes);
 
 // --- Bootstrap ---
 async function bootstrap() {
@@ -128,6 +133,10 @@ async function bootstrap() {
     const port = Number(process.env.PORT) || 3000;
     await app.listen({ port, host: '0.0.0.0' });
     console.log(`🚀 Server running at http://localhost:${port}`);
+    
+    // Inicia os Jobs de fundo
+    startWorkers();
+    
   } catch (err) {
     app.log.error(err);
     process.exit(1);

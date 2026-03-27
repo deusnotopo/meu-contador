@@ -79,10 +79,8 @@ export const OFXImportModal = ({
       // Read file as text in the browser
       const rawText = await file.text();
 
-      // Send as plain text body — no multipart needed
-      const data = (await api.post("/banking/import-ofx", rawText, {
-        headers: { "Content-Type": "text/plain" },
-      })) as ImportResult;
+      // Send as standard JSON
+      const data = (await api.post("/banking/import-ofx", { ofxContent: rawText })) as ImportResult;
 
       setResult(data);
       setStage("success");

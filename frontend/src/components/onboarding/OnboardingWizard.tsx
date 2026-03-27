@@ -178,7 +178,6 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
 
   const renderStep = () => {
     const commonProps = {
-      key: currentStep,
       custom: direction,
       variants: variants,
       initial: "enter",
@@ -193,25 +192,25 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
     switch (STEPS[currentStep].id) {
       case "welcome":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <WelcomeStep profile={profile} onChange={handleProfileChange} />
           </motion.div>
         );
       case "profile":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <ProfileStep profile={profile} onChange={handleProfileChange} />
           </motion.div>
         );
       case "balance":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <BalanceStep profile={profile} onChange={handleProfileChange} />
           </motion.div>
         );
       case "expenses":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <ExpensesStep
               expenses={historicalExpenses}
               setExpenses={setHistoricalExpenses}
@@ -220,7 +219,7 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
         );
       case "investments":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <InvestmentsStep
               investments={investments}
               setInvestments={setInvestments}
@@ -229,13 +228,13 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
         );
       case "business":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <BusinessStep profile={profile} setProfile={setProfile} />
           </motion.div>
         );
       case "budgets":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <BudgetsStep
               budgets={budgets}
               setBudgets={setBudgets}
@@ -245,19 +244,19 @@ export const OnboardingWizard = ({ onComplete }: Props) => {
         );
       case "goals":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <GoalsStep goals={goals} setGoals={setGoals} />
           </motion.div>
         );
       case "reminders":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <RemindersStep reminders={reminders} setReminders={setReminders} />
           </motion.div>
         );
       case "preferences":
         return (
-          <motion.div {...commonProps} className="w-full">
+          <motion.div key={currentStep} {...commonProps} className="w-full">
             <PreferencesStep
               preferences={preferences}
               setPreferences={setPreferences}

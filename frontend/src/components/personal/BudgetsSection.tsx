@@ -12,6 +12,7 @@ import { Target } from "lucide-react";
 const CATEGORY_ICONS: Record<string, string> = {
   Moradia: "🏠", Mercado: "🛒", Delivery: "🍕", Transporte: "🚗",
   Saúde: "💊", Lazer: "🎬", Roupas: "👕", Outros: "📦",
+  Investimentos: "📈", Educação: "📚", Reserva: "🏦", Salário: "💰"
 };
 
 // 50/30/20 groupings
@@ -22,7 +23,7 @@ const GROUPS = {
 };
 
 export const BudgetsSection = () => {
-  const { budgets, loading, addBudget } = useBudgets();
+  const { budgets, loading, addBudget, updateBudget } = useBudgets();
   const { transactions } = useTransactions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ category: "", limit: 0 });
@@ -32,12 +33,23 @@ export const BudgetsSection = () => {
 
   const spentByCategory: Record<string, number> = {};
   monthExpenses.forEach((t) => {
-    spentByCategory[t.category] = (spentByCategory[t.category] || 0) + Math.abs(t.amount);
+    // Normalização Universal: para cruzar strings antigas lowercase 'mercado' com 'Mercado'
+    const catNorm = t.category.charAt(0).toUpperCase() + t.category.slice(1).toLowerCase();
+    spentByCategory[catNorm] = (spentByCategory[catNorm] || 0) + Math.abs(t.amount);
   });
 
   const handleSave = async () => {
     if (!formData.category || formData.limit <= 0) return;
-    await addBudget({ category: formData.category, limit: formData.limit, month: currentMonth });
+    
+    // Evita duplicatas para a mesma categoria
+    const existingBudget = budgets.find((b) => b.category === formData.category && b.month === currentMonth);
+    
+    if (existingBudget) {
+      await updateBudget(existingBudget.id, { limit: formData.limit });
+    } else {
+      await addBudget({ category: formData.category, limit: formData.limit, month: currentMonth });
+    }
+    
     setIsDialogOpen(false);
     setFormData({ category: "", limit: 0 });
   };

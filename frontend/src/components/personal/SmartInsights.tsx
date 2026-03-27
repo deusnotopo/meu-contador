@@ -60,8 +60,8 @@ export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
   // FIRE Calculation (4% Rule)
   // Required Capital = Monthly Expenses * 12 / 0.04
   const annualExpenses = monthlyExpenses * 12;
-  const fireTarget = annualExpenses / 0.04;
-  const firePercentage = Math.min((totalInvested / fireTarget) * 100, 100);
+  const fireTarget = annualExpenses > 0 ? annualExpenses / 0.04 : 1;
+  const firePercentage = fireTarget > 0 ? Math.min((totalInvested / fireTarget) * 100, 100) : 0;
 
   // Years to FIRE (Simplified simple interest/no growth for conservative estimate)
   const monthlySaving = Math.max(monthlySurplus, 0);

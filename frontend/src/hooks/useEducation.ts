@@ -59,7 +59,7 @@ export const useEducation = () => {
       if (prev.completedModules.includes(moduleId)) return prev;
 
       const mod = EDUCATION_MODULES.find(m => m.id === moduleId);
-      const reward = mod?.xpReward || 50;
+      const reward = mod?.xp || 50;
 
       const newState = {
         ...prev,

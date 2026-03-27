@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Settings } from "lucide-react";
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import { useLanguage } from "./context/LanguageContext";
 import { useAuth } from "./context/AuthContext";
 import { BottomNav } from "./components/layout/BottomNav";
@@ -8,7 +7,6 @@ import { LoginForm } from "./components/auth/LoginForm";
 import { ToastProvider } from "./lib/toast";
 import { GlobalLoadingProgress } from "./components/ui/GlobalLoadingProgress";
 import { SkipToContent, ScreenReaderAnnouncer } from "./lib/accessibility";
-import { useTour } from "./hooks/useTour";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MonitoringService } from "./lib/monitoring";
 import { useTransactions } from "./hooks/useTransactions";
@@ -63,6 +61,12 @@ const RetirementView = lazy(() =>
 const AnalyticsDashboard = lazy(() =>
   import("./components/analytics/AnalyticsDashboard").then((m) => ({ default: m.AnalyticsDashboard }))
 );
+const FunctionsHub = lazy(() =>
+  import("./components/FunctionsHub").then((m) => ({ default: m.FunctionsHub }))
+);
+const OnboardingWizard = lazy(() =>
+  import("./components/onboarding/OnboardingWizard").then((m) => ({ default: m.OnboardingWizard }))
+);
 
 import LoadingSkeleton from "./components/ui/LoadingSkeleton";
 function LoadingFallback() { return <LoadingSkeleton />; }
@@ -70,24 +74,40 @@ function LoadingFallback() { return <LoadingSkeleton />; }
 // ─── App Root ──────────────────────────────────────────────
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>("inicio");
+  const [showFunctions, setShowFunctions] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   useLanguage();
   const { user, loading } = useAuth();
-  const { startTour } = useTour();
   const { transactions } = useTransactions();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (user && !loading) {
-      const timer = setTimeout(() => startTour(), 1000);
-      return () => clearTimeout(timer);
+      const doneKey = `onboarding_done_${user.id}`;
+      const done = localStorage.getItem(doneKey);
+      const profileCompleted = (user as any).onboardingCompleted;
+
+      if (!done && !profileCompleted) {
+        setShowWizard(true);
+      }
     }
-  }, [user, loading, startTour]);
+  }, [user, loading]);
 
   if (loading) return <LoadingFallback />;
   if (!user) return <LoginForm />;
 
   const goHome = () => setActiveTab("inicio");
-  const navTo = (t: TabType) => setActiveTab(t);
+  const navTo = (t: TabType) => { setActiveTab(t); setShowFunctions(false); };
   const goBack = (to: TabType = "inicio") => setActiveTab(to);
+
+  const handleWizardComplete = () => {
+    localStorage.setItem(`onboarding_done_${user.id}`, 'true');
+    setShowWizard(false);
+  };
+
+  const handleWizardSkip = () => {
+    localStorage.setItem(`onboarding_done_${user.id}`, 'skipped');
+    setShowWizard(false);
+  };
 
   return (
     <>
@@ -96,35 +116,86 @@ export default function App() {
       <ToastProvider />
       <GlobalLoadingProgress />
 
-      {/* Universal Mobile-First Layout */}
-      <div style={{ height: "100dvh", background: "var(--bg)", display: "flex", justifyContent: "center" }}>
-        <PhoneShell
-          tabBar={<BottomNav currentTab={activeTab} onTabChange={setActiveTab} />}
-        >
-          {/* Settings shortcut header button (always accessible) */}
-          {activeTab === "inicio" && (
+      {/* ─── Onboarding Wizard overlay ─────────────────────── */}
+      {showWizard && (
+        <Suspense fallback={<LoadingFallback />}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 100 }}>
+            {/* Skip button — top right corner */}
             <button
-              onClick={() => setActiveTab("settings")}
-              aria-label="Configurações"
+              onClick={handleWizardSkip}
               style={{
-                position: "absolute",
-                top: "16px",
-                right: "16px",
-                zIndex: 10,
-                background: "var(--glass)",
-                border: "1px solid var(--border)",
-                borderRadius: "11px",
-                padding: "8px",
-                cursor: "pointer",
-                color: "var(--t2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                position: "absolute", top: 16, right: 16, zIndex: 101,
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: "20px",
+                padding: "8px 14px",
+                fontSize: "12px", fontWeight: 600, color: "rgba(255,255,255,0.5)",
+                cursor: "pointer", fontFamily: "var(--font)",
               }}
             >
-              <Settings size={18} />
+              Pular por agora →
             </button>
-          )}
+            <OnboardingWizard onComplete={handleWizardComplete} />
+          </div>
+        </Suspense>
+      )}
+
+      {/* ─── Main App Layout ────────────────────────────────── */}
+      <div style={{ width: "100%", height: "100dvh", background: "var(--bg)", display: "flex", justifyContent: "center" }}>
+        <PhoneShell
+          tabBar={
+            <BottomNav
+              currentTab={activeTab}
+              onTabChange={setActiveTab}
+              onOpenFunctions={() => setShowFunctions(true)}
+            />
+          }
+        >
+          {/* ─── FunctionsHub Bottom Sheet Modal ───────────────── */}
+          <AnimatePresence>
+            {showFunctions && (
+              <>
+                {/* Backdrop */}
+                <motion.div
+                  key="fn-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowFunctions(false)}
+                  style={{
+                    position: "absolute", inset: 0, zIndex: 49,
+                    background: "rgba(0,0,0,0.6)",
+                    backdropFilter: "blur(4px)",
+                  }}
+                />
+                {/* Sheet */}
+                <motion.div
+                  key="fn-sheet"
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                  style={{
+                    position: "absolute", bottom: 0, left: 0,
+                    width: "100%",
+                    maxHeight: "85dvh",
+                    zIndex: 50,
+                    borderRadius: "28px 28px 0 0",
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                  }}
+                  className="no-scrollbar"
+                >
+                  <Suspense fallback={<LoadingFallback />}>
+                    <FunctionsHub
+                      onNavigate={navTo}
+                      onBack={() => setShowFunctions(false)}
+                    />
+                  </Suspense>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
 
           <ErrorBoundary featureName="Main Content">
             <Suspense fallback={<LoadingFallback />}>
@@ -149,11 +220,14 @@ export default function App() {
                   {activeTab === "analytics"       && <AnalyticsDashboard transactions={transactions} />}
                   {activeTab === "envelopes"       && <EnvelopesView onBack={() => goBack("budget")} onNavigate={navTo} />}
                   {activeTab === "envelope_detail" && <EnvelopesView onBack={() => goBack("budget")} onNavigate={navTo} />}
-                  {activeTab === "planos"          && <PlanningView onBack={goHome} onNavigate={navTo} />}
-                  {activeTab === "planning"        && <PlanningView onBack={() => goBack("budget")} onNavigate={navTo} />}
-                  {activeTab === "retirement"      && <RetirementView onBack={() => goBack("budget")} />}
-                  {activeTab === "retire_fire"     && <RetireFireView onBack={() => goBack("retirement")} />}
-                  {activeTab === "retire_proj"     && <RetireProjView onBack={() => goBack("retirement")} />}
+
+                  {/* ── Pilar 3: Futuro ── */}
+                  {activeTab === "futuro"       && <RetirementView onBack={goHome} />}
+                  {activeTab === "planos"        && <PlanningView onBack={() => goBack("futuro")} onNavigate={navTo} />}
+                  {activeTab === "planning"      && <PlanningView onBack={() => goBack("futuro")} onNavigate={navTo} />}
+                  {activeTab === "retirement"    && <RetirementView onBack={() => goBack("futuro")} />}
+                  {activeTab === "retire_fire"   && <RetireFireView onBack={() => goBack("futuro")} />}
+                  {activeTab === "retire_proj"   && <RetireProjView onBack={() => goBack("futuro")} />}
 
                   {/* ── Pilar 4: Patrimônio / Investir ── */}
                   {activeTab === "investir"         && <InvestmentsSection onBack={goHome} />}

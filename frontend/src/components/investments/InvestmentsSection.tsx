@@ -6,6 +6,7 @@ import { RealTimeQuotes } from "./RealTimeQuotes";
 import { TesouroDiretoRates } from "./TesouroDiretoRates";
 import { ShieldAlert, Trash2, Plus, AlertCircle, Briefcase, CreditCard } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { showError } from "@/lib/toast";
 import type { Investment } from "@/types";
 
 const fmt = (n: number) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
@@ -337,7 +338,7 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                     balance: newDebt.balance,
                     interestRate: newDebt.interestRate || 0,
                     minPayment: newDebt.minPayment,
-                    category: newDebt.category,
+                    category: newDebt.category as 'credit_card' | 'loan' | 'overdraft' | 'other',
                     dueDate: newDebt.dueDate
                   };
                   addDebt(debtToSubmit); 

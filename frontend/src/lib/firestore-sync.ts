@@ -1,5 +1,5 @@
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
-import { db } from "./firebase";
+import { db, auth } from "./firebase";
 
 /**
  * Syncs a specific key-value pair to Firestore user document.
@@ -13,7 +13,11 @@ export const syncToCloud = async (
   data: unknown,
   collectionName: string = "users"
 ) => {
-  if (!userId) return;
+  // Skip Firestore sync if Firebase Auth is not authenticated
+  if (!userId || !auth.currentUser) {
+    console.debug(`Skipping Firestore sync for ${key}: Firebase Auth not authenticated`);
+    return;
+  }
   try {
     const userRef = doc(db, collectionName, userId, "data", key);
     await setDoc(
@@ -39,7 +43,12 @@ export const loadFromCloud = async (
   key: string,
   collectionName: string = "users"
 ) => {
-  if (!userId) return null;
+  // Skip Firestore sync if Firebase Auth is not authenticated
+  // This prevents timeout errors when using custom backend auth
+  if (!userId || !auth.currentUser) {
+    console.debug(`Skipping Firestore load for ${key}: Firebase Auth not authenticated`);
+    return null;
+  }
   try {
     const userRef = doc(db, collectionName, userId, "data", key);
     
@@ -73,7 +82,11 @@ export const subscribeToCloud = (
   onUpdate: (data: unknown) => void,
   collectionName: string = "users"
 ) => {
-  if (!userId) return () => {};
+  // Skip Firestore subscription if Firebase Auth is not authenticated
+  if (!userId || !auth.currentUser) {
+    console.debug(`Skipping Firestore subscription for ${key}: Firebase Auth not authenticated`);
+    return () => {};
+  }
 
   const userRef = doc(db, collectionName, userId, "data", key);
   return onSnapshot(userRef, (snap) => {

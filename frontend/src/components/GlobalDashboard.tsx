@@ -4,7 +4,7 @@ import { useInvestments } from "@/hooks/useInvestments";
 import { useDebts } from "@/hooks/useDebts";
 import { useGoals } from "@/hooks/useGoals";
 import { SmartInsights } from "@/components/personal/SmartInsights";
-import { loadProfile } from "@/lib/storage";
+import { useAuth } from "@/context/AuthContext";
 import { formatShortDate } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AlertCircle, BarChart3 as ChartBarIcon } from "lucide-react";
@@ -15,6 +15,7 @@ import { HeroPatrimonio } from "./dashboard/HeroPatrimonio";
 import { ActionGrid } from "./dashboard/ActionGrid";
 import { FluxoMensal } from "./dashboard/FluxoMensal";
 import { RecentTransactions } from "./dashboard/RecentTransactions";
+import { UserNav } from "./layout/UserNav";
 
 const fmt = (n: number) => 'R$\u00a0' + Math.round(n).toLocaleString('pt-BR');
 const fmtM = (n: number) => n >= 1e6 ? 'R$\u00a0' + (n / 1e6).toFixed(2).replace('.', ',') + ' M' : fmt(n);
@@ -27,7 +28,11 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   const { goals } = useGoals();
   
   const hasError = personal.error || business.error || investError || debtError;
-  const profile = loadProfile();
+  const { user } = useAuth();
+  // Prefer the backend user name, fall back gracefully
+  const firstName = (user as any)?.name?.split(' ')[0]
+    || (user as any)?.username?.split(' ')[0]
+    || 'Você';
 
   const globalTotals = {
     income: personal.totals.income + business.totals.income,
@@ -122,23 +127,25 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   return (
     <div style={{ paddingTop: "10px" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <div>
-          <div className="eyebrow">{capitalizedDate}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className="page-title" style={{ fontSize: "22px" }}>Bom dia, {profile?.name?.split(' ')[0] || "Usuário"} 👋</div>
+          <div className="eyebrow" style={{ color: "var(--t3)", letterSpacing: "1px", fontSize: "11px" }}>{capitalizedDate}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: "4px" }}>
+            <div className="page-title" style={{ fontSize: "24px", letterSpacing: "-0.5px", background: "linear-gradient(90deg, var(--t1) 0%, var(--t2) 100%)", WebkitBackgroundClip: "text", color: "transparent" }}>
+              Bom dia, {firstName} 👋
+            </div>
             {hasError && (
-              <div className="bdg bdg-r" style={{ animation: 'pulse 2s infinite' }}>
+              <div className="bdg bdg-r shadow-glow" style={{ animation: 'pulse 2s infinite' }}>
                 <AlertCircle size={10} /> Offline
               </div>
             )}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <button onClick={() => onNavigate?.('notifications')} className="notif-ring" style={{ background: "var(--glass2)", border: "1px solid var(--border)", width: "38px", height: "38px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.15s" }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.7" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <button onClick={() => onNavigate?.('notifications')} className="notif-ring hover-glow" style={{ background: "var(--glass2)", border: "1px solid var(--border)", width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.8" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
           </button>
-          <div className="avatar" onClick={() => onNavigate?.('settings')} style={{ cursor: "pointer" }}>{(profile?.name || "US").substring(0, 2).toUpperCase()}</div>
+          <UserNav onNavigate={onNavigate} collapsed={true} />
         </div>
       </div>
 
@@ -211,14 +218,15 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
           />
         ) : categorySpending.length > 0 ? (
           categorySpending.slice(0, 5).map((cat, idx) => {
-            const pc = cat.budget > 0 ? Math.min((cat.spent / cat.budget) * 100, 100) : 0;
+            const safeSpent = isNaN(cat.spent) ? 0 : cat.spent;
+            const pc = cat.budget > 0 ? Math.min((safeSpent / cat.budget) * 100, 100) : 0;
             return (
               <div key={idx} className="row" style={{ cursor: "default" }}>
                 <div className="row-ico">{getEmoji(cat.name)}</div>
                 <div className="row-main">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" }}>
                     <div className="row-title">{cat.name}</div>
-                    <div style={{ fontSize: "12px", fontWeight: 600, color: cat.spent > cat.budget ? "var(--red)" : "var(--t2)", fontFamily: "var(--mono)" }}>{fmt(cat.spent)}</div>
+                    <div style={{ fontSize: "12px", fontWeight: 600, color: safeSpent > cat.budget ? "var(--red)" : "var(--t2)", fontFamily: "var(--mono)" }}>{fmt(safeSpent)}</div>
                   </div>
                   <div className="prog">
                     <div className="prog-fill" style={{ width: `${pc}%`, background: cat.spent > cat.budget ? "var(--red)" : "var(--blue)" }}></div>

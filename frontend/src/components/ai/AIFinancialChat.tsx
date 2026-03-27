@@ -104,7 +104,7 @@ export const AIFinancialChat = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [
+          conversation: [
             {
               role: "system",
               content:
@@ -128,7 +128,7 @@ ${getCategoryPredictions(transactions)
   .map(
     (p) =>
       `  • ${p.category}: R$ ${p.predictedAmount.toFixed(2)} (${
-        p.trend === "up" ? "🔺 AUMENTO" : "🔻 QUESA"
+        p.trend === "up" ? "🔺 AUMENTO" : "🔻 QUEDA"
       } de ${p.percentChange.toFixed(0)}%)`
   )
   .join("\n")}

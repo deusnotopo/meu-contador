@@ -1,6 +1,7 @@
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, Webhook } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 import { useFinancialAlerts } from "@/hooks/useFinancialAlerts";
+import { useWebPush } from "@/hooks/useWebPush";
 import { useState } from "react";
 
 interface NotificationsViewProps {
@@ -9,6 +10,7 @@ interface NotificationsViewProps {
 
 export const NotificationsView = ({ onBack }: NotificationsViewProps) => {
   const { alerts } = useFinancialAlerts();
+  const { isSupported, isSubscribed, loading, subscribe } = useWebPush();
   const [clearedAlerts, setClearedAlerts] = useState<Set<string>>(new Set());
 
   // Filter out cleared alerts
@@ -68,6 +70,31 @@ export const NotificationsView = ({ onBack }: NotificationsViewProps) => {
           </button>
         )}
       </div>
+
+      {/* Opt-In WebPush Banner */}
+      {isSupported && !isSubscribed && (
+        <div style={{ background: "var(--blue-dim)", border: "1px solid var(--border)", borderRadius: "var(--r2)", padding: 15, marginBottom: 20 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{ background: "rgba(74, 139, 255, 0.2)", width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--blue)", flexShrink: 0 }}>
+              <Webhook size={20} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)" }}>Ativar Alertas Inteligentes</div>
+              <div style={{ fontSize: 12, color: "var(--t2)", marginTop: 2, marginBottom: 10, lineHeight: 1.4 }}>
+                Receba notificações importantes mesmo com o app fechado sobre orçamentos e vencimentos.
+              </div>
+              <button 
+                onClick={subscribe}
+                disabled={loading}
+                className="btn-primary" 
+                style={{ fontSize: 12, padding: "8px 16px", borderRadius: 20, width: "auto" }}
+              >
+                {loading ? "Ativando..." : "Habilitar Agora"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeAlerts.length > 0 ? (
         <>

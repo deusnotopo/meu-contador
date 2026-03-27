@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import type { TabType } from "@/types/navigation";
 import { useInvestments } from "@/hooks/useInvestments";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useDebts } from "@/hooks/useDebts";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -10,7 +12,10 @@ interface RetirementViewProps {
 
 export const RetirementView = ({ onBack }: RetirementViewProps) => {
   const { user } = useAuth();
-  const { totals } = useInvestments();
+  const { totals: invTotals } = useInvestments();
+  const personal = useTransactions("personal");
+  const business = useTransactions("business");
+  const { totals: debtTotals } = useDebts();
 
   const [currentAge, setCurrentAge] = useState(user?.age || 30);
   const [retireAge, setRetireAge] = useState(user?.retirementAge || 60);
@@ -23,8 +28,9 @@ export const RetirementView = ({ onBack }: RetirementViewProps) => {
   // Target = Annual Expenses * 25 (which is 100/4)
   const fireTarget = targetMonthlyIncome * 12 * 25;
 
-  // 2. Project future growth
-  const initialCapital = totals.currentValue;
+  // 2. Project future growth using True Net Worth (Cash + Investments - Debts)
+  const trueNetWorth = (personal.totals.balance + business.totals.balance + invTotals.currentValue) - debtTotals.totalBalance;
+  const initialCapital = Math.max(0, trueNetWorth); // Ignora patrimônio negativo na base do compound
   const yearsToRetire = Math.max(0, retireAge - currentAge);
   const monthsToRetire = yearsToRetire * 12;
   const monthlyRate = Math.pow(1 + expectedReturnPct / 100, 1 / 12) - 1;

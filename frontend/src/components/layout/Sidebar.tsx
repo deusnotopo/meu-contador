@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TabType } from "@/types/navigation";
+import { UserNav } from "./UserNav";
 
 interface SidebarProps {
   currentTab: string;
@@ -96,62 +97,13 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
       </nav>
 
       {/* Bottom section */}
-      <div className="p-3 space-y-1">
-        <button
-          onClick={() => onTabChange("settings")}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-            currentTab === "settings"
-                ? "bg-primary text-primary-foreground shadow-glow"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          )}
-        >
-          <Settings className="w-5 h-5 flex-shrink-0" />
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="font-medium whitespace-nowrap overflow-hidden"
-              >
-                Configurações
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </button>
-
-        {/* Profile button */}
-        <button
-          onClick={() => onTabChange("settings")}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-            currentTab === "settings" // Reuse settings tab context for profile
-                ? "bg-slate-800 text-white shadow-glow"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          )}
-        >
-          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shrink-0">
-             <User size={12} className="text-white" />
-          </div>
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="font-medium whitespace-nowrap overflow-hidden text-sm"
-              >
-                Meu Perfil
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </button>
+      <div className="p-3 space-y-2 mt-auto border-t border-sidebar-border/10 flex flex-col justify-end pt-4">
+        <UserNav onNavigate={onTabChange} collapsed={collapsed} />
 
         {/* Collapse button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center py-3 text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"
+          className="w-full flex items-center justify-center py-2.5 mt-2 rounded-xl text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-all duration-200"
         >
           {collapsed ? (
             <ChevronRight className="w-5 h-5" />

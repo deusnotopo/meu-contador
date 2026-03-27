@@ -5,11 +5,11 @@ import type { TabType, PrimaryTab } from "@/types/navigation";
 interface BottomNavProps {
   currentTab: TabType;
   onTabChange: (tab: TabType) => void;
+  onOpenFunctions?: () => void;
 }
 
-export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
+export const BottomNav = ({ currentTab, onTabChange, onOpenFunctions }: BottomNavProps) => {
   const activePillar = TAB_TO_PILLAR[currentTab] ?? "inicio";
-
   const isActive = (pillar: PrimaryTab) => activePillar === pillar;
 
   return (
@@ -45,45 +45,39 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
         <span className="tab-lbl">Budget</span>
       </button>
 
-      {/* 3. FAB Central — Lançar (estilo elevado do protótipo V3) */}
+      {/* 3. Lançar (FAB Transbordante) */}
       <button
         className={`tab ${currentTab === "launch" ? "active" : ""}`}
         onClick={() => onTabChange("launch")}
         aria-label="Lançar"
+        style={{ zIndex: 10 }}
       >
-        <div
-          className="tab-pip"
-          style={{
-            background: "linear-gradient(135deg,#2F62D9,#5048E8)",
-            borderRadius: "16px",
-            width: "52px",
-            height: "52px",
-            marginTop: "-18px",
-            boxShadow: "0 4px 16px rgba(80,72,232,0.5), 0 0 0 3px rgba(4,7,15,1)",
-          }}
-        >
-          <svg viewBox="0 0 24 24" style={{ stroke: "#fff" }}>
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
+        <div style={{ position: "relative", width: "52px", height: "30px", display: "flex", justifyContent: "center" }}>
+          <div
+            className="tab-pip"
+            style={{
+              position: "absolute",
+              bottom: "4px", /* Emerge acima do menu */
+              background: "linear-gradient(135deg, #2F62D9, #5048E8)",
+              color: "#fff",
+              width: "56px",
+              height: "56px",
+              borderRadius: "50%",
+              boxShadow: "0 8px 24px rgba(80,72,232,0.45), inset 0 2px 4px rgba(255,255,255,0.2)",
+              display: "flex", alignContent: "center", justifyContent: "center"
+            }}
+          >
+            <svg viewBox="0 0 24 24" style={{ stroke: "#fff", strokeWidth: 2, width: "26px", height: "26px", alignSelf: "center" }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+          </div>
         </div>
-        <span className="tab-lbl" style={{ marginTop: "6px" }}>Lançar</span>
+        <span className="tab-lbl" style={{ marginTop: "4px" }}>Lançar</span>
       </button>
 
-      {/* 4. Patrimônio (Investimentos) */}
-      <button
-        className={`tab ${isActive("investir") ? "active" : ""}`}
-        onClick={() => onTabChange("investir")}
-        aria-label="Patrimônio"
-      >
-        <div className="tab-pip">
-          <svg viewBox="0 0 24 24">
-            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-            <polyline points="16 7 22 7 22 13"/>
-          </svg>
-        </div>
-        <span className="tab-lbl">Patrimônio</span>
-      </button>
+
 
       {/* 5. Academia */}
       <button
@@ -100,7 +94,24 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
           </svg>
         </div>
         <span className="tab-lbl">Academia</span>
-        <span className="tab-badge">3</span>
+        <span className="tab-badge">9</span>
+      </button>
+
+      {/* 6. Funções — ícone grid que abre o hub como modal */}
+      <button
+        className="tab"
+        onClick={onOpenFunctions}
+        aria-label="Funções"
+      >
+        <div className="tab-pip">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </div>
+        <span className="tab-lbl">Mais</span>
       </button>
 
     </div>
