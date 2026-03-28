@@ -207,7 +207,13 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                 title="Sem ativos"
                 description="Sua carteira está vazia. Comece a monitorar seu patrimônio agora."
                 actionLabel="Adicionar ativo"
-                onAction={() => {/* TODO: Open add modal if integrated */}}
+                onAction={() => {
+                  // Navigate to investments tab which has add functionality
+                  if (onBack) {
+                    // If we have a navigation callback, use it
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: 'investments' }));
+                  }
+                }}
               />
             ) : (
               assets.map((a, i) => {
