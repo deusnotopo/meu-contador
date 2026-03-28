@@ -1,28 +1,62 @@
 import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
 import type { Budget } from "@/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export const useBudgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBudgets = async () => {
+  const fetchBudgets = useCallback(async () => {
+    let cancelled = false; // ← Flag para cleanup
     setLoading(true);
+    setError(null);
+    
     try {
       const data = await api.get<Budget[]>("/budgets");
-      setBudgets(data);
-      setError(null);
+      if (!cancelled) { // ← Verifica se componente ainda está montado
+        setBudgets(data);
+      }
     } catch (err) {
-      setError("Orçamentos indisponíveis. Verifique sua conexão.");
+      if (!cancelled) {
+        setError("Orçamentos indisponíveis. Verifique sua conexão.");
+      }
     } finally {
-      setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
-  };
+    
+    return () => { cancelled = true; }; // ← Cleanup function
+  }, []);
 
   useEffect(() => {
-    fetchBudgets();
+    let cancelled = false;
+    
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const data = await api.get<Budget[]>("/budgets");
+        if (!cancelled) {
+          setBudgets(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError("Orçamentos indisponíveis. Verifique sua conexão.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadData();
+    
+    return () => { cancelled = true; }; // ← Cleanup!
   }, []);
 
   const addBudget = async (budget: Omit<Budget, "id" | "spent">) => {

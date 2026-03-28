@@ -1,4 +1,5 @@
 import { showSuccess, showError } from "./toast";
+import { cryptoCircuitBreaker, stockCircuitBreaker, bcbCircuitBreaker } from "./circuit-breaker";
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3";
 const BRAPI_BASE_URL = "https://brapi.dev/api";
@@ -6,6 +7,15 @@ const BRAPI_BASE_URL = "https://brapi.dev/api";
 // Cache para evitar rate limiting
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+// Fallback data for when APIs are down
+const FALLBACK_MARKET_DATA: MarketData = {
+  btc: 520000,
+  eth: 17000,
+  usd: 5.75,
+  selic: 11.25,
+  cdi: 11.15
+};
 
 const getFromCache = <T>(key: string): T | null => {
   const cached = cache.get(key);
@@ -41,61 +51,74 @@ export const fetchMarketData = async (): Promise<MarketData> => {
   };
 
   try {
-    // 1. Fetch Crypto do CoinGecko (Public API - No auth required)
+    // 1. Fetch Crypto do CoinGecko with circuit breaker
     let cryptoData: any = {};
     try {
-      const cryptoRes = await fetch(
-        `${COINGECKO_API}/simple/price?ids=bitcoin,ethereum&vs_currencies=brl`,
-        { signal: AbortSignal.timeout(10000) }
+      const cryptoDataResult = await cryptoCircuitBreaker.call(
+        async () => {
+          const cryptoRes = await fetch(
+            `${COINGECKO_API}/simple/price?ids=bitcoin,ethereum&vs_currencies=brl`,
+            { signal: AbortSignal.timeout(10000) }
+          );
+          if (!cryptoRes.ok) throw new Error(`CoinGecko API failed: ${cryptoRes.status}`);
+          return cryptoRes.json();
+        },
+        () => ({ bitcoin: { brl: FALLBACK_MARKET_DATA.btc }, ethereum: { brl: FALLBACK_MARKET_DATA.eth } })
       );
-      if (cryptoRes.ok) {
-        cryptoData = await cryptoRes.json();
-      }
+      cryptoData = cryptoDataResult;
     } catch (e) {
       console.warn("Failed to fetch crypto, using fallback");
     }
 
-    // 2. Fetch Dólar via BRAPI
+    // 2. Fetch Dólar via BRAPI with circuit breaker
     const brapiToken = import.meta.env.VITE_BRAPI_TOKEN;
-    let usdRate = fallback.usd;
+    let usdRate = FALLBACK_MARKET_DATA.usd;
     
     if (brapiToken) {
       try {
-        const usdRes = await fetch(
-          `${BRAPI_BASE_URL}/quote/USDBRL=X?token=${brapiToken}`,
-          { signal: AbortSignal.timeout(10000) }
+        const usdData = await stockCircuitBreaker.call(
+          async () => {
+            const usdRes = await fetch(
+              `${BRAPI_BASE_URL}/quote/USDBRL=X?token=${brapiToken}`,
+              { signal: AbortSignal.timeout(10000) }
+            );
+            if (!usdRes.ok) throw new Error(`BRAPI API failed: ${usdRes.status}`);
+            return usdRes.json();
+          },
+          () => ({ results: [{ regularMarketPrice: FALLBACK_MARKET_DATA.usd }] })
         );
-        if (usdRes.ok) {
-          const usdData = await usdRes.json();
-          if (usdData.results && usdData.results[0]) {
-            usdRate = usdData.results[0].regularMarketPrice || fallback.usd;
-          }
+        if (usdData.results && usdData.results[0]) {
+          usdRate = usdData.results[0].regularMarketPrice || FALLBACK_MARKET_DATA.usd;
         }
       } catch (e) {
         console.warn("Failed to fetch USD from BRAPI, using fallback");
       }
     }
 
-    // 3. Selic e CDI via API do Banco Central (SGS)
-    let selic = fallback.selic;
-    let cdi = fallback.cdi;
+    // 3. Selic e CDI via API do Banco Central (SGS) with circuit breaker
+    let selic = FALLBACK_MARKET_DATA.selic;
+    let cdi = FALLBACK_MARKET_DATA.cdi;
     try {
-      const [selicRes, cdiRes] = await Promise.all([
-        fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json", 
-          { signal: AbortSignal.timeout(10000) }),
-        fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json",
-          { signal: AbortSignal.timeout(10000) })
-      ]);
+      const bcbData = await bcbCircuitBreaker.call(
+        async () => {
+          const [selicRes, cdiRes] = await Promise.all([
+            fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json", 
+              { signal: AbortSignal.timeout(10000) }),
+            fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json",
+              { signal: AbortSignal.timeout(10000) })
+          ]);
+          
+          if (!selicRes.ok) throw new Error(`BCB Selic API failed: ${selicRes.status}`);
+          if (!cdiRes.ok) throw new Error(`BCB CDI API failed: ${cdiRes.status}`);
+          
+          const [selicData, cdiData] = await Promise.all([selicRes.json(), cdiRes.json()]);
+          return { selicData, cdiData };
+        },
+        () => ({ selicData: [{ valor: FALLBACK_MARKET_DATA.selic }], cdiData: [{ valor: FALLBACK_MARKET_DATA.cdi }] })
+      );
       
-      if (selicRes.ok) {
-        const selicData = await selicRes.json();
-        if (selicData && selicData[0]) selic = parseFloat(selicData[0].valor);
-      }
-      
-      if (cdiRes.ok) {
-        const cdiData = await cdiRes.json();
-        if (cdiData && cdiData[0]) cdi = parseFloat(cdiData[0].valor);
-      }
+      if (bcbData.selicData && bcbData.selicData[0]) selic = parseFloat(bcbData.selicData[0].valor);
+      if (bcbData.cdiData && bcbData.cdiData[0]) cdi = parseFloat(bcbData.cdiData[0].valor);
     } catch (e) {
       console.warn("Failed to fetch BCB rates, using fallbacks");
     }

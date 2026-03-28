@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useFeatureFlags } from '@/context/FeatureFlagsContext';
 import { UpgradeModal } from '../ui/UpgradeModal';
 import { Zap, Lock } from 'lucide-react';
+import { useTour } from '@/hooks/useTour';
 import type { TabType } from '@/types/navigation';
 
 interface AIAssistantViewProps {
@@ -19,6 +20,11 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
   const { user } = useAuth();
   const { isEnabled } = useFeatureFlags();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const { startTour } = useTour();
+  
+  React.useEffect(() => {
+    startTour('ai');
+  }, [startTour]);
   
   const isAiEnabled = isEnabled('ai_advisor');
   

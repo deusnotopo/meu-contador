@@ -7,8 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { loadProfile } from "@/lib/storage";
-import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 interface UserNavProps {
   onNavigate?: (tab: TabType) => void;
@@ -16,9 +15,19 @@ interface UserNavProps {
 }
 
 export function UserNav({ onNavigate, collapsed = false }: UserNavProps) {
-  const profile = loadProfile();
-  
-  const handleLogout = () => {
+  const { user, logout } = useAuth() as any;
+
+  // Derive display name and initials from auth context (always up-to-date)
+  const displayName: string = (user as any)?.name || (user as any)?.username || "Usuário";
+  const displayEmail: string = (user as any)?.email || "";
+  const initials = displayName.substring(0, 2).toUpperCase();
+
+  const handleLogout = async () => {
+    try {
+      if (logout) await logout();
+    } catch {
+      // Fallback: clear session manually
+    }
     localStorage.removeItem("auth_session");
     window.location.reload();
   };
@@ -27,54 +36,98 @@ export function UserNav({ onNavigate, collapsed = false }: UserNavProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className={cn(
-            "flex items-center gap-3 px-2 py-1.5 rounded-xl transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground group outline-none border border-transparent hover:border-sidebar-border/50",
-            collapsed ? "justify-center w-full" : "justify-start"
-          )}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "4px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            outline: "none",
+            borderRadius: "50%",
+          }}
+          aria-label="Menu do usuário"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-glow transition-all">
-            <span className="text-white text-xs font-bold leading-none tracking-tight">
-              {(profile?.name || "US").substring(0, 2).toUpperCase()}
-            </span>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #4A8BFF, #9B7FFF)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            boxShadow: "0 0 0 2px rgba(74,139,255,0.25), 0 4px 12px rgba(74,139,255,0.2)",
+            transition: "box-shadow 0.2s",
+            fontSize: 13,
+            fontWeight: 700,
+            color: "#fff",
+            letterSpacing: "-0.3px",
+            fontFamily: "var(--font)",
+          }}>
+            {initials}
           </div>
           {!collapsed && (
-            <div className="flex flex-col items-start overflow-hidden whitespace-nowrap">
-              <span className="font-medium text-sm leading-none text-foreground">{profile?.name?.split(' ')[0] || "Usuário"}</span>
-            </div>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--t1)", fontFamily: "var(--font)" }}>
+              {displayName.split(" ")[0]}
+            </span>
           )}
         </button>
       </DropdownMenuTrigger>
-      
-      <DropdownMenuContent className="w-56 z-[100] bg-[#020617]/95 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-indigo-500/10 rounded-2xl p-1" align="end" forceMount>
-        <div className="flex items-center justify-start gap-2 p-3">
-          <div className="flex flex-col space-y-1">
-            <p className="font-medium text-sm text-foreground">{profile?.name || "Usuário"}</p>
-            <p className="text-xs text-muted-foreground truncate">{(profile as any)?.email || "Sem e-mail cadastrado"}</p>
+
+      <DropdownMenuContent
+        style={{
+          width: 220,
+          zIndex: 100,
+          background: "rgba(11,18,32,0.97)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 20,
+          padding: "6px",
+          boxShadow: "0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)",
+        }}
+        align="end"
+        forceMount
+      >
+        {/* User info header */}
+        <div style={{ padding: "10px 12px 8px" }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)", marginBottom: 2 }}>
+            {displayName}
           </div>
+          {displayEmail && (
+            <div style={{ fontSize: 11, color: "var(--t3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {displayEmail}
+            </div>
+          )}
         </div>
-        <DropdownMenuSeparator className="bg-border/50" />
-        <DropdownMenuItem 
-          onClick={() => onNavigate?.('personal')}
-          className="cursor-pointer gap-2 py-2 focus:bg-primary/10 transition-colors"
+
+        <DropdownMenuSeparator style={{ background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
+
+        <DropdownMenuItem
+          onClick={() => onNavigate?.("profile")}
+          style={{ cursor: "pointer", borderRadius: 12, padding: "9px 12px", gap: 10, fontSize: 13, color: "var(--t1)", display: "flex", alignItems: "center" }}
         >
-          <User className="h-4 w-4 text-primary" />
-          <span>Meu Perfil</span>
+          <User size={15} style={{ color: "var(--blue)", flexShrink: 0 }} />
+          Meu Perfil
         </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={() => onNavigate?.('settings')}
-          className="cursor-pointer gap-2 py-2 focus:bg-primary/10 transition-colors"
+
+        <DropdownMenuItem
+          onClick={() => onNavigate?.("settings")}
+          style={{ cursor: "pointer", borderRadius: 12, padding: "9px 12px", gap: 10, fontSize: 13, color: "var(--t1)", display: "flex", alignItems: "center" }}
         >
-          <Settings className="h-4 w-4 text-primary" />
-          <span>Configurações</span>
+          <Settings size={15} style={{ color: "var(--blue)", flexShrink: 0 }} />
+          Configurações
         </DropdownMenuItem>
-        
-        <DropdownMenuSeparator className="bg-border/50" />
-        <DropdownMenuItem 
+
+        <DropdownMenuSeparator style={{ background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
+
+        <DropdownMenuItem
           onClick={handleLogout}
-          className="cursor-pointer gap-2 py-2 text-red-500 focus:bg-red-500/10 focus:text-red-600 transition-colors"
+          style={{ cursor: "pointer", borderRadius: 12, padding: "9px 12px", gap: 10, fontSize: 13, color: "var(--red)", display: "flex", alignItems: "center" }}
         >
-          <LogOut className="h-4 w-4" />
-          <span>Sair da conta</span>
+          <LogOut size={15} style={{ flexShrink: 0 }} />
+          Sair da conta
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

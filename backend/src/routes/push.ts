@@ -21,7 +21,7 @@ export async function pushRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { sub } = request.user as { sub: string };
+      const userId = request.user.id;
       const { endpoint, keys } = request.body as any;
 
       try {
@@ -30,13 +30,13 @@ export async function pushRoutes(app: FastifyInstance) {
           update: {
             p256dh: keys.p256dh,
             auth: keys.auth,
-            userId: sub,
+            userId,
           },
           create: {
             endpoint,
             p256dh: keys.p256dh,
             auth: keys.auth,
-            userId: sub,
+            userId,
           },
         });
 
@@ -77,11 +77,11 @@ export async function pushRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { sub } = request.user as { sub: string };
+      const userId = request.user.id;
       const bodyParams = request.body as any || {};
 
       const subscriptions = await db.pushSubscription.findMany({
-        where: { userId: sub },
+        where: { userId },
       });
 
       if (subscriptions.length === 0) {

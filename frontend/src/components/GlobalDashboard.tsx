@@ -7,6 +7,7 @@ import { SmartInsights } from "@/components/personal/SmartInsights";
 import { useAuth } from "@/context/AuthContext";
 import { formatShortDate } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useTour } from "@/hooks/useTour";
 import { AlertCircle, BarChart3 as ChartBarIcon } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 
@@ -16,6 +17,7 @@ import { ActionGrid } from "./dashboard/ActionGrid";
 import { FluxoMensal } from "./dashboard/FluxoMensal";
 import { RecentTransactions } from "./dashboard/RecentTransactions";
 import { UserNav } from "./layout/UserNav";
+import { AreaTutorialButton } from "./ui/AreaTutorialButton";
 
 const fmt = (n: number) => 'R$\u00a0' + Math.round(n).toLocaleString('pt-BR');
 const fmtM = (n: number) => n >= 1e6 ? 'R$\u00a0' + (n / 1e6).toFixed(2).replace('.', ',') + ' M' : fmt(n);
@@ -26,6 +28,11 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   const { totals: investTotals, error: investError } = useInvestments();
   const { totals: debtTotals, error: debtError } = useDebts();
   const { goals } = useGoals();
+  const { startTour } = useTour();
+  
+  React.useEffect(() => {
+    startTour('dashboard');
+  }, [startTour]);
   
   const hasError = personal.error || business.error || investError || debtError;
   const { user } = useAuth();
@@ -47,6 +54,10 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   const formattedDate = today.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
   const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1).replace('.', '');
   const monthName = today.toLocaleDateString('pt-BR', { month: 'long' });
+
+  const hour = today.getHours();
+  const greeting = hour >= 5 && hour < 12 ? 'Bom dia' : hour >= 12 && hour < 18 ? 'Boa tarde' : 'Boa noite';
+  const greetingEmoji = hour >= 5 && hour < 12 ? '☀️' : hour >= 12 && hour < 18 ? '🌤️' : '🌙';
 
   const barData = personal.monthlyTrend.length > 0 ? personal.monthlyTrend.map(d => d.despesas) : [];
   const barColors = barData.map((_, i) => i === barData.length - 1 ? 'rgba(74,139,255,1)' : 'rgba(74,139,255,0.6)');
@@ -87,9 +98,9 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
 
   const calculateMonthlyVariation = () => {
     if (personal.monthlyTrend.length < 2) return { amount: 0, percentage: 0 };
-    const current = personal.monthlyTrend[personal.monthlyTrend.length - 1];
-    const previous = personal.monthlyTrend[personal.monthlyTrend.length - 2];
-    const variation = current.receitas - current.despesas - (previous.receitas - previous.despesas);
+    const current = personal.monthlyTrend[personal.monthlyTrend.length - 1]!;
+    const previous = personal.monthlyTrend[personal.monthlyTrend.length - 2]!;
+    const variation = (current.receitas - current.despesas) - (previous.receitas - previous.despesas);
     const percentage = previous.receitas > 0 ? (variation / previous.receitas) * 100 : 0;
     return { amount: variation, percentage };
   };
@@ -100,7 +111,7 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
     const categories: { [key: string]: { spent: number; budget: number } } = {};
     personal.allTransactions.filter(tx => tx.type === 'expense').forEach(tx => {
       if (!categories[tx.category]) categories[tx.category] = { spent: 0, budget: 0 };
-      categories[tx.category].spent += tx.amount;
+      categories[tx.category]!.spent += tx.amount;
     });
     return Object.entries(categories).map(([name, data]) => ({
       name, spent: data.spent, budget: data.budget || data.spent * 1.2,
@@ -111,28 +122,28 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
 
   const calculateBehavioralAlert = () => {
     if (personal.monthlyTrend.length < 2) return null;
-    const current = personal.monthlyTrend[personal.monthlyTrend.length - 1];
-    const previous = personal.monthlyTrend[personal.monthlyTrend.length - 2];
+    const current = personal.monthlyTrend[personal.monthlyTrend.length - 1]!;
+    const previous = personal.monthlyTrend[personal.monthlyTrend.length - 2]!;
     const alerts: string[] = [];
     if (current.despesas > previous.despesas * 1.1) {
       const increase = ((current.despesas - previous.despesas) / previous.despesas) * 100;
       const wasted = current.despesas - previous.despesas;
       alerts.push(`Você gastou ${increase.toFixed(0)}% a mais este mês — equivale a R$ ${Math.round(wasted)} se investido por 10 anos.`);
     }
-    return alerts.length > 0 ? alerts[0] : null;
+    return alerts.length > 0 ? alerts[0] ?? null : null;
   };
 
   const behavioralAlert = calculateBehavioralAlert();
 
   return (
-    <div style={{ paddingTop: "10px" }}>
+    <div style={{ paddingTop: "10px" }} id="dashboard-overview">
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--t3)", letterSpacing: "1px", fontSize: "11px" }}>{capitalizedDate}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: "4px" }}>
             <div className="page-title" style={{ fontSize: "24px", letterSpacing: "-0.5px", background: "linear-gradient(90deg, var(--t1) 0%, var(--t2) 100%)", WebkitBackgroundClip: "text", color: "transparent" }}>
-              Bom dia, {firstName} 👋
+              {greeting}, {firstName} {greetingEmoji}
             </div>
             {hasError && (
               <div className="bdg bdg-r shadow-glow" style={{ animation: 'pulse 2s infinite' }}>
@@ -141,7 +152,8 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
             )}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <AreaTutorialButton area="inicio" onNavigate={onNavigate} />
           <button onClick={() => onNavigate?.('notifications')} className="notif-ring hover-glow" style={{ background: "var(--glass2)", border: "1px solid var(--border)", width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.8" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
           </button>

@@ -1,28 +1,62 @@
 import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
 import type { SavingsGoal } from "@/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export const useGoals = () => {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
+    let cancelled = false; // ← Flag para cleanup
     setLoading(true);
+    setError(null);
+    
     try {
       const data = await api.get<SavingsGoal[]>("/goals");
-      setGoals(data);
-      setError(null);
+      if (!cancelled) { // ← Verifica se componente ainda está montado
+        setGoals(data);
+      }
     } catch (err) {
-      setError("Metas de economia indisponíveis. Verifique sua conexão.");
+      if (!cancelled) {
+        setError("Metas de economia indisponíveis. Verifique sua conexão.");
+      }
     } finally {
-      setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
-  };
+    
+    return () => { cancelled = true; }; // ← Cleanup function
+  }, []);
 
   useEffect(() => {
-    fetchGoals();
+    let cancelled = false;
+    
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const data = await api.get<SavingsGoal[]>("/goals");
+        if (!cancelled) {
+          setGoals(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError("Metas de economia indisponíveis. Verifique sua conexão.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadData();
+    
+    return () => { cancelled = true; }; // ← Cleanup!
   }, []);
 
   const addGoal = async (goal: Omit<SavingsGoal, "id">) => {

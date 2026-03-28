@@ -215,46 +215,51 @@ export const LoginForm = () => {
           justifyContent: "center",
           padding: "32px 16px",
           fontFamily: "'DM Sans', sans-serif",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        {/* Floating orbs */}
+        {/* Floating orbs — position:absolute so they don't overflow when keyboard opens */}
         <div
           style={{
-            position: "fixed",
-            top: "15%",
-            left: "8%",
+            position: "absolute",
+            top: "10%",
+            left: "5%",
             width: 320,
             height: 320,
             borderRadius: "50%",
             background: "radial-gradient(circle, rgba(74,139,255,0.07) 0%, transparent 70%)",
             animation: "loginPulse 6s ease-in-out infinite",
             pointerEvents: "none",
+            zIndex: 0,
           }}
         />
         <div
           style={{
-            position: "fixed",
-            bottom: "10%",
-            right: "5%",
+            position: "absolute",
+            bottom: "8%",
+            right: "3%",
             width: 260,
             height: 260,
             borderRadius: "50%",
             background: "radial-gradient(circle, rgba(155,127,255,0.05) 0%, transparent 70%)",
             animation: "loginPulse 8s ease-in-out infinite 1s",
             pointerEvents: "none",
+            zIndex: 0,
           }}
         />
         <div
           style={{
-            position: "fixed",
-            top: "50%",
-            right: "15%",
+            position: "absolute",
+            top: "45%",
+            right: "12%",
             width: 180,
             height: 180,
             borderRadius: "50%",
             background: "radial-gradient(circle, rgba(0,217,145,0.04) 0%, transparent 70%)",
             animation: "loginPulse 7s ease-in-out infinite 2s",
             pointerEvents: "none",
+            zIndex: 0,
           }}
         />
 
@@ -454,7 +459,7 @@ export const LoginForm = () => {
                   >
                     <label style={labelStyle}>Nome completo</label>
                     <div style={{ position: "relative" }}>
-                      <span style={iconStyle}>👤</span>
+                      <svg style={{ ...iconStyle, width: 16, height: 16 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                       <input
                         className="login-input"
                         type="text"
@@ -475,7 +480,7 @@ export const LoginForm = () => {
               <div style={{ marginBottom: 16 }}>
                 <label style={labelStyle}>E-mail</label>
                 <div style={{ position: "relative" }}>
-                  <span style={iconStyle}>✉️</span>
+                  <svg style={{ ...iconStyle, width: 16, height: 16 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
                   <input
                     ref={emailRef}
                     className="login-input"
@@ -496,7 +501,7 @@ export const LoginForm = () => {
               <div style={{ marginBottom: 24 }}>
                 <label style={labelStyle}>Senha</label>
                 <div style={{ position: "relative" }}>
-                  <span style={iconStyle}>🔒</span>
+                  <svg style={{ ...iconStyle, width: 16, height: 16 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   <input
                     className="login-input"
                     type="password"

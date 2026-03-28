@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { PieChart, Sparkles, TrendingUp, Zap } from "lucide-react";
 import { useState } from "react";
 import { PrivacyValue } from "../ui/PrivacyValue";
+import { EmptyState } from "../ui/EmptyState";
 
 interface Props {
   transactions: Transaction[];
@@ -21,6 +22,16 @@ export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
   const { assets } = useInvestments();
   
   const patterns = detectPatterns(transactions, reminders);
+
+  if (!transactions || transactions.length === 0) {
+    return (
+      <EmptyState
+        icon={Zap}
+        title="Insights Congelados ❄️"
+        description="A inteligência artificial precisa de dados. Registre movimentos financeiros para que possamos traçar seus padrões, linha do tempo de riqueza e metas FIRE."
+      />
+    );
+  }
 
   const handleAddReminder = async (p: any) => {
     // Set next month as default due date

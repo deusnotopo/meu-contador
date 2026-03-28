@@ -3,17 +3,30 @@ import { ArrowLeft } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
 import type { TabType } from "@/types/navigation";
 
-const CATEGORIES = [
-  { id: "Moradia", ico: "🏠", nm: "Moradia" },
-  { id: "Mercado", ico: "🛒", nm: "Mercado" },
-  { id: "Delivery", ico: "🍕", nm: "Delivery" },
-  { id: "Transporte", ico: "🚗", nm: "Transp." },
-  { id: "Saúde", ico: "💊", nm: "Saúde" },
-  { id: "Lazer", ico: "🎬", nm: "Lazer" },
-  { id: "Roupas", ico: "👕", nm: "Roupas" },
-  { id: "Outros", ico: "📦", nm: "Outros" },
-  { id: "Salário", ico: "💰", nm: "Salário" },
-  { id: "Investimentos", ico: "📈", nm: "Investir" },
+// ── Expense categories ──────────────────────────────────
+const EXPENSE_CATS = [
+  { id: "Moradia",       ico: "🏠", nm: "Moradia" },
+  { id: "Mercado",       ico: "🛒", nm: "Mercado" },
+  { id: "Delivery",      ico: "🍕", nm: "Delivery" },
+  { id: "Transporte",    ico: "🚗", nm: "Transp." },
+  { id: "Saúde",         ico: "💊", nm: "Saúde" },
+  { id: "Lazer",         ico: "🎬", nm: "Lazer" },
+  { id: "Roupas",        ico: "👕", nm: "Roupas" },
+  { id: "Educação",      ico: "📚", nm: "Educação" },
+  { id: "Assinaturas",   ico: "📱", nm: "Assina." },
+  { id: "Outros",        ico: "📦", nm: "Outros" },
+];
+
+// ── Income categories ───────────────────────────────────
+const INCOME_CATS = [
+  { id: "Salário",       ico: "💼", nm: "Salário" },
+  { id: "Freelance",     ico: "💻", nm: "Freelance" },
+  { id: "Aluguel",       ico: "🏘️",  nm: "Aluguel" },
+  { id: "Investimentos", ico: "📈", nm: "Investim." },
+  { id: "Dividendos",    ico: "💰", nm: "Dividendos" },
+  { id: "Bônus",         ico: "🎁", nm: "Bônus" },
+  { id: "Reembolso",     ico: "🔄", nm: "Reembolso" },
+  { id: "Outros",        ico: "✨", nm: "Outros" },
 ];
 
 interface LaunchScreenProps {
@@ -26,11 +39,23 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
   const [amtStr, setAmtStr] = useState("0");
   const [catId, setCatId] = useState("Mercado");
   const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const categories = tipo === "expense" ? EXPENSE_CATS : INCOME_CATS;
+
+  // Reset category when type changes
+  const handleTipoChange = (t: "expense" | "income") => {
+    setTipo(t);
+    setCatId(t === "expense" ? "Mercado" : "Salário");
+  };
 
   const fmtAmt = (v: string) => {
     const num = parseInt(v.replace(/\D/g, ""), 10) || 0;
     return `R$ ${(num / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
   };
+
+  const amountRaw = parseInt(amtStr, 10) / 100;
+  const isZero = amountRaw === 0;
 
   const handleKey = (k: string) => {
     if (k === "⌫") {
@@ -43,23 +68,32 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
   };
 
   const handleConfirm = async () => {
-    const cents = parseInt(amtStr, 10) || 0;
-    if (cents === 0) return;
-    const amount = cents / 100;
-    const cat = CATEGORIES.find((c) => c.id === catId);
-    await addTransaction({
-      amount: amount.toString(), // The framework forces absolute modules for transactions regardless of expense or income. Let 'type' handle logical reductions.
-      description: description || (cat?.nm ?? catId),
-      category: catId,
-      type: tipo === "expense" ? "expense" : "income",
-      date: new Date().toISOString().split("T")[0],
-      paymentMethod: "pix",
-      notes: "",
-      recurring: false,
-      scope: "personal",
-    });
-    onBack("inicio");
+    if (isZero || loading) return;
+    setLoading(true);
+    try {
+      const cat = categories.find((c) => c.id === catId);
+      await addTransaction({
+        amount: amountRaw.toString(),
+        description: description || (cat?.nm ?? catId),
+        category: catId,
+        type: tipo,
+        date: new Date().toISOString().split("T")[0] ?? new Date().toISOString().substring(0, 10),
+        paymentMethod: "pix",
+        notes: "",
+        recurring: false,
+        scope: "personal",
+      });
+      onBack?.("inicio");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const isExpense = tipo === "expense";
+  const accentColor = isExpense ? "#F05A7E" : "#00D991";
+  const gradientBtn = isExpense
+    ? "linear-gradient(135deg, #d9294e, #F05A7E)"
+    : "linear-gradient(135deg, #00b377, #00D991)";
 
   return (
     <div style={{ padding: "10px 0", animation: "fsu 0.26s ease" }}>
@@ -73,13 +107,17 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
         </div>
       </div>
 
-      {/* Segmented control */}
-      <div className="seg-ctrl">
+      {/* Segmented control — Gasto / Receita */}
+      <div className="seg-ctrl" style={{ marginBottom: 16 }}>
         {(["expense", "income"] as const).map((t) => (
           <div
             key={t}
             className={`seg-opt${tipo === t ? " active" : ""}`}
-            onClick={() => setTipo(t)}
+            onClick={() => handleTipoChange(t)}
+            style={tipo === t ? {
+              color: t === "expense" ? "#F05A7E" : "#00D991",
+              borderBottom: `2px solid ${t === "expense" ? "#F05A7E" : "#00D991"}`,
+            } : {}}
           >
             {t === "expense" ? "💸 Gasto" : "💰 Receita"}
           </div>
@@ -87,25 +125,43 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
       </div>
 
       {/* Amount display */}
-      <div className="launch-amount">
-        <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 6 }}>Valor</div>
-        <div style={{ fontSize: 42, fontWeight: 700, color: "var(--t1)", letterSpacing: "-2px", fontFamily: "var(--mono)", minHeight: 52 }}>
+      <div className="launch-amount" style={{ borderLeft: `3px solid ${accentColor}`, paddingLeft: 12, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 4 }}>
+          {isExpense ? "Valor do gasto" : "Valor recebido"}
+        </div>
+        <div
+          style={{
+            fontSize: 38,
+            fontWeight: 700,
+            color: isZero ? "var(--t3)" : "var(--t1)",
+            letterSpacing: "-2px",
+            fontFamily: "var(--mono)",
+            minHeight: 48,
+            transition: "color 0.2s",
+          }}
+        >
           {fmtAmt(amtStr)}
         </div>
       </div>
 
-      {/* Category scroll */}
-      <div className="launch-cats">
-        {CATEGORIES.map((c) => (
-          <div
-            key={c.id}
-            className={`lcat${catId === c.id ? " active" : ""}`}
-            onClick={() => setCatId(c.id)}
-          >
-            <span className="lcat-ico">{c.ico}</span>
-            <span className="lcat-nm">{c.nm}</span>
-          </div>
-        ))}
+      {/* Category scroll — dinâmico por tipo */}
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 8 }}>
+          {isExpense ? "Categoria do gasto" : "Origem da receita"}
+        </div>
+        <div className="launch-cats">
+          {categories.map((c) => (
+            <div
+              key={c.id}
+              className={`lcat${catId === c.id ? " active" : ""}`}
+              onClick={() => setCatId(c.id)}
+              style={catId === c.id ? { borderColor: accentColor, color: accentColor } : {}}
+            >
+              <span className="lcat-ico">{c.ico}</span>
+              <span className="lcat-nm">{c.nm}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Description */}
@@ -113,7 +169,11 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
         <input
           className="input-field"
           type="text"
-          placeholder="Descrição (ex: iFood — Pizza)"
+          placeholder={
+            isExpense
+              ? "Descrição (ex: iFood — Pizza)"
+              : "Descrição (ex: Salário — Março)"
+          }
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           style={{ fontSize: 13 }}
@@ -136,23 +196,34 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
       {/* Confirm */}
       <button
         onClick={handleConfirm}
+        disabled={isZero || loading}
         style={{
-          background: "linear-gradient(135deg,#2F62D9,#5048E8)",
+          background: isZero ? "var(--glass2)" : gradientBtn,
           border: "none",
           borderRadius: 14,
           padding: 14,
           fontSize: 14,
           fontWeight: 600,
-          color: "#fff",
-          cursor: "pointer",
+          color: isZero ? "var(--t3)" : "#fff",
+          cursor: isZero ? "not-allowed" : "pointer",
           fontFamily: "var(--font)",
           width: "100%",
-          boxShadow: "0 4px 16px rgba(80,72,232,0.35)",
+          boxShadow: isZero ? "none" : `0 4px 16px ${accentColor}55`,
           marginTop: 12,
-          transition: "all 0.15s",
+          transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
         }}
       >
-        Confirmar lançamento ✓
+        {loading ? (
+          <span style={{ opacity: 0.7 }}>Salvando...</span>
+        ) : isExpense ? (
+          "Confirmar gasto ✓"
+        ) : (
+          "Confirmar receita ✓"
+        )}
       </button>
     </div>
   );

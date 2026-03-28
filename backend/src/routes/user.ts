@@ -14,6 +14,7 @@ export async function userRoutes(app: FastifyInstance) {
           theme: z.string(),
           language: z.string(),
           privacyMode: z.boolean(),
+          completedTours: z.array(z.string()).optional(),
         }),
       },
     },
@@ -27,8 +28,19 @@ export async function userRoutes(app: FastifyInstance) {
     if (!user) {
       throw new Error('User not found');
     }
-
-    return user.preferences as any;
+    
+    let prefs = { theme: 'dark', language: 'pt', privacyMode: false };
+    try {
+      if (typeof user.preferences === 'string') {
+        prefs = JSON.parse(user.preferences);
+      } else {
+        prefs = user.preferences as any;
+      }
+    } catch (e) {
+      console.error('Failed to parse user preferences:', e);
+    }
+ 
+    return prefs;
   });
 
   // PATCH /users/preferences
@@ -41,6 +53,7 @@ export async function userRoutes(app: FastifyInstance) {
         theme: z.string().optional(),
         language: z.string().optional(),
         privacyMode: z.boolean().optional(),
+        completedTours: z.array(z.string()).optional(),
       }),
       response: {
         200: z.object({
@@ -49,6 +62,7 @@ export async function userRoutes(app: FastifyInstance) {
             theme: z.string(),
             language: z.string(),
             privacyMode: z.boolean(),
+            completedTours: z.array(z.string()).optional(),
           }),
         }),
       },
@@ -66,17 +80,27 @@ export async function userRoutes(app: FastifyInstance) {
       throw new Error('User not found');
     }
 
-    const currentPreferences = user.preferences as any;
+    let currentPreferences = { theme: 'dark', language: 'pt', privacyMode: false };
+    try {
+      if (typeof user.preferences === 'string') {
+        currentPreferences = JSON.parse(user.preferences);
+      } else {
+        currentPreferences = user.preferences as any;
+      }
+    } catch (e) {
+      console.error('Failed to parse current user preferences:', e);
+    }
+
     const newPreferences = {
       ...currentPreferences,
       ...preferences,
     };
-
+ 
     console.log(`Updating preferences for user ${request.user.id}:`, newPreferences);
-
+ 
     await db.user.update({
       where: { id: request.user.id },
-      data: { preferences: newPreferences },
+      data: { preferences: JSON.stringify(newPreferences) },
     });
 
     return {

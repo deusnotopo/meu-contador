@@ -9,7 +9,7 @@ import type {
   Transaction,
   TransactionFormData,
 } from "@/types";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 export const useTransactions = (
   scope: "personal" | "business" = "personal"
@@ -23,23 +23,64 @@ export const useTransactions = (
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!user) return; // Don't fetch if not logged in
+    
+    let cancelled = false; // ← Flag para cleanup
     setIsLoading(true);
+    setError(null);
+    
     try {
       const data = await api.get<Transaction[]>(`/transactions?scope=${scope}`);
-      setTransactions(data);
-      setError(null);
+      if (!cancelled) { // ← Verifica se componente ainda está montado
+        setTransactions(data);
+      }
     } catch (err) {
-      console.error("Transactions API Error:", err);
-      setError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+      if (!cancelled) {
+        console.error("Transactions API Error:", err);
+        setError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!cancelled) {
+        setIsLoading(false);
+      }
     }
-  };
+    
+    return () => { cancelled = true; }; // ← Cleanup function
+  }, [scope, user]);
 
   useEffect(() => {
-    fetchTransactions();
+    let cancelled = false;
+    
+    const loadData = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const data = await api.get<Transaction[]>(`/transactions?scope=${scope}`);
+        if (!cancelled) {
+          setTransactions(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Transactions API Error:", err);
+          setError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadData();
+    
+    return () => { cancelled = true; }; // ← Cleanup!
   }, [scope, user?.uid]);
 
   const addTransaction = async (formData: TransactionFormData) => {

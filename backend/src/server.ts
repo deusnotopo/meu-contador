@@ -42,7 +42,8 @@ app.setSerializerCompiler(serializerCompiler);
 
 app.register(helmet);
 app.register(cors, {
-  origin: true, // In production, define specific origins
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
 });
 app.register(rateLimit, {
   max: 100,

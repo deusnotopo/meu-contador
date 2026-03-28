@@ -6,6 +6,7 @@ import {
   predictEndOfMonthBalance,
 } from "@/lib/prediction-engine";
 import type { Transaction } from "@/types";
+import { fetchWithCircuitBreaker } from "@/lib/circuitBreaker";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Loader2, Send, User as LucideUser, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -98,7 +99,7 @@ export const AIFinancialChat = ({
         .filter((t) => t.type === "expense")
         .reduce((sum, t) => sum + t.amount, 0);
 
-      const response = await fetch("/api/ai-proxy", {
+      const response = await fetchWithCircuitBreaker("/api/ai-proxy", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,6 +148,10 @@ AUDITORIA SOLICITADA: ${input}`,
             },
           ],
         }),
+      }, {
+        maxRetries: 3,
+        initialDelay: 1200,
+        fallbackMessage: "A detecção de anomalias no servidor excedeu o recuo, estou processando seu histórico local. Tente perguntar novamente enquanto reinicio os nós de IA."
       });
 
       if (!response.ok) {
@@ -154,7 +159,7 @@ AUDITORIA SOLICITADA: ${input}`,
       }
 
       const data = await response.json();
-      const aiResponse = data.choices[0].message.content;
+      const aiResponse = data.choices?.[0]?.message?.content ?? "Não foi possível obter resposta da IA";
       
       
       // const aiResponse = "Simulação de Resposta IA (Módulo Desativado temporariamente para Build)";
@@ -229,7 +234,7 @@ AUDITORIA SOLICITADA: ${input}`,
       </div>
 
       {/* Messages - Immersive Layout */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar" id="ai-chat-window">
         <AnimatePresence initial={false}>
           {messages.map((message) => (
             <motion.div
@@ -303,7 +308,7 @@ AUDITORIA SOLICITADA: ${input}`,
       </div>
 
       {/* Suggested & Input */}
-      <div className="p-6 border-t border-white/10 bg-white/[0.02]">
+      <div className="p-6 border-t border-white/10 bg-white/[0.02]" id="ai-input-area">
         {messages.length === 1 && (
           <div className="flex flex-wrap gap-2 mb-6">
             {suggestedQuestions.map((q) => (

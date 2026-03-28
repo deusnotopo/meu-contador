@@ -1,5 +1,5 @@
-import React from "react";
 import { TAB_TO_PILLAR } from "@/types/navigation";
+
 import type { TabType, PrimaryTab } from "@/types/navigation";
 
 interface BottomNavProps {
@@ -13,7 +13,7 @@ export const BottomNav = ({ currentTab, onTabChange, onOpenFunctions }: BottomNa
   const isActive = (pillar: PrimaryTab) => activePillar === pillar;
 
   return (
-    <div className="tabbar">
+    <div className="tabbar" id="main-navigation">
 
       {/* 1. Início */}
       <button
@@ -50,31 +50,33 @@ export const BottomNav = ({ currentTab, onTabChange, onOpenFunctions }: BottomNa
         className={`tab ${currentTab === "launch" ? "active" : ""}`}
         onClick={() => onTabChange("launch")}
         aria-label="Lançar"
-        style={{ zIndex: 10 }}
+        id="quick-actions-fab"
+        style={{ zIndex: 10, position: "relative" }}
       >
-        <div style={{ position: "relative", width: "52px", height: "30px", display: "flex", justifyContent: "center" }}>
-          <div
-            className="tab-pip"
-            style={{
-              position: "absolute",
-              bottom: "4px", /* Emerge acima do menu */
-              background: "linear-gradient(135deg, #2F62D9, #5048E8)",
-              color: "#fff",
-              width: "56px",
-              height: "56px",
-              borderRadius: "50%",
-              boxShadow: "0 8px 24px rgba(80,72,232,0.45), inset 0 2px 4px rgba(255,255,255,0.2)",
-              display: "flex", alignContent: "center", justifyContent: "center"
-            }}
-          >
-            <svg viewBox="0 0 24 24" style={{ stroke: "#fff", strokeWidth: 2, width: "26px", height: "26px", alignSelf: "center" }}>
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-          </div>
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            background: currentTab === "launch"
+              ? "linear-gradient(135deg, #5048E8, #2F62D9)"
+              : "linear-gradient(135deg, #2F62D9, #5048E8)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 8px 24px rgba(80,72,232,0.45), inset 0 2px 4px rgba(255,255,255,0.2)",
+            transform: "translateY(-10px)",
+            transition: "all 0.25s cubic-bezier(0.34,1.4,0.64,1)",
+            flexShrink: 0,
+          }}
+        >
+          <svg viewBox="0 0 24 24" style={{ stroke: "#fff", strokeWidth: 2.2, width: 24, height: 24, fill: "none", strokeLinecap: "round" }}>
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
         </div>
-        <span className="tab-lbl" style={{ marginTop: "4px" }}>Lançar</span>
+        <span className="tab-lbl" style={{ marginTop: "2px" }}>Lançar</span>
       </button>
 
 
@@ -94,7 +96,6 @@ export const BottomNav = ({ currentTab, onTabChange, onOpenFunctions }: BottomNa
           </svg>
         </div>
         <span className="tab-lbl">Academia</span>
-        <span className="tab-badge">9</span>
       </button>
 
       {/* 6. Funções — ícone grid que abre o hub como modal */}

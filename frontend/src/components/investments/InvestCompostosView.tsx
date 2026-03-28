@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import type { TabType } from "@/types/navigation";
+import { useCompoundInterest } from "@/hooks/useCompoundInterest";
 
 interface InvestCompostosViewProps {
   onBack?: (tab?: TabType) => void;
@@ -12,39 +13,23 @@ export const InvestCompostosView = ({ onBack }: InvestCompostosViewProps) => {
 
   const fmt = (n: number) => 'R\u00a0' + Math.round(n).toLocaleString('pt-BR');
 
-  const taxaMes = Math.pow(1 + taxa / 100, 1 / 12) - 1;
-  const meses = anos * 12;
-  const total = aporte * ((Math.pow(1 + taxaMes, meses) - 1) / taxaMes);
-  const invested = aporte * meses;
-  const yld = total - invested;
+  // All math is now in the hook
+  const { total, invested, yield: yld, chartPoints, yearlyBreakdown } = useCompoundInterest({
+    monthlyDeposit: aporte,
+    annualRate: taxa,
+    years: anos,
+  });
 
-  const pts: number[] = [];
-  for (let a = 1; a <= anos; a++) {
-    const m = a * 12;
-    pts.push(aporte * ((Math.pow(1 + taxaMes, m) - 1) / taxaMes));
-  }
-  const maxVal = pts[pts.length - 1];
+  // Chart rendering (visual only)
+  const maxVal = chartPoints[chartPoints.length - 1] ?? 1;
   const W = 310, H = 60, barW = Math.max(2, W / anos - 2);
 
-  const bars = pts.map((v, i) => {
+  const bars = chartPoints.map((v, i) => {
     const h = Math.max(2, (v / maxVal) * H);
     const x = i * (W / anos);
     const color = i < anos * 0.33 ? '#4F9BFF' : i < anos * 0.66 ? '#7B6FFF' : '#22D397';
     return `<rect x="${x.toFixed(1)}" y="${(H - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${color}" opacity="0.8"/>`;
   }).join('');
-
-  const yearRows = [5, 10, 15, 20, 25, 30].filter((y) => y <= anos).map((y) => {
-    const m = y * 12;
-    const v = aporte * ((Math.pow(1 + taxaMes, m) - 1) / taxaMes);
-    return (
-      <div key={y} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-        <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Ano {y}</span>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text1)', fontFamily: 'var(--mono)' }}>
-          R$\u00a0{Math.round(v).toLocaleString('pt-BR')}
-        </span>
-      </div>
-    );
-  });
 
   return (
     <div style={{ paddingTop: '10px' }}>
@@ -144,7 +129,18 @@ export const InvestCompostosView = ({ onBack }: InvestCompostosViewProps) => {
         <span className="section-title">Evolução ano a ano</span>
       </div>
       <div className="card" id="comp-table" style={{ padding: '14px 16px' }}>
-        {yearRows.length > 0 ? yearRows : <span style={{ color: 'var(--text3)', fontSize: '12px' }}>Selecione mais de 5 anos</span>}
+        {yearlyBreakdown.length > 0 ? (
+          yearlyBreakdown.map(({ year, value }) => (
+            <div key={year} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text2)' }}>Ano {year}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text1)', fontFamily: 'var(--mono)' }}>
+                R$\u00a0{Math.round(value).toLocaleString('pt-BR')}
+              </span>
+            </div>
+          ))
+        ) : (
+          <span style={{ color: 'var(--text3)', fontSize: '12px' }}>Selecione mais de 5 anos</span>
+        )}
       </div>
     </div>
   );

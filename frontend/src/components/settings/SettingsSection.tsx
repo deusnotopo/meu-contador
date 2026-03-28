@@ -4,9 +4,12 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useDebts } from "@/hooks/useDebts";
 import { loadProfile } from "@/lib/storage";
-import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, Smartphone, ShieldCheck, CreditCard, X, Globe, HelpCircle, Bell, Trash2 } from "lucide-react";
+import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, Smartphone, ShieldCheck, CreditCard, X, Globe, HelpCircle, Bell, Trash2, Users, History } from "lucide-react";
 import { BankConnectionsView } from "@/components/banking/BankConnectionsView";
 import { HelpCenter } from "@/components/support/HelpCenter";
+import { CollaborationPanel } from "@/components/profile/CollaborationPanel";
+import { AuditLogViewer } from "@/components/profile/AuditLogViewer";
+import { MFASetup } from "@/components/security/MFASetup";
 import { useState, useEffect } from "react";
 import type { TabType } from "@/types/navigation";
 
@@ -35,6 +38,9 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   const [notifGoals, setNotifGoals] = useState(true);
   const [notifReminders, setNotifReminders] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCollaboration, setShowCollaboration] = useState(false);
+  const [showMFA, setShowMFA] = useState(false);
+  const [showAuditLog, setShowAuditLog] = useState(false);
 
   // Calculate real financial data
   const globalTotals = {
@@ -283,7 +289,92 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         </div>
       </div>
 
+      <div className="sec-hd"><span className="sec-title">Segurança</span></div>
+      <div className="card">
+        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setShowMFA(true)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--green-d)", color: "var(--green)" }}><ShieldCheck size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Autenticação 2FA</div>
+              <div className="row-sub">Proteção adicional com SMS</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
+        </div>
+      </div>
+
+      <div className="sec-hd"><span className="sec-title">Colaboração</span></div>
+      <div className="card">
+        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setShowCollaboration(true)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--pink-d)", color: "var(--pink)" }}><Users size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Espaços Colaborativos</div>
+              <div className="row-sub">Compartilhe dados com familiares</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
+        </div>
+      </div>
+
+      <div className="sec-hd"><span className="sec-title">Auditoria</span></div>
+      <div className="card">
+        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setShowAuditLog(true)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="row-ico" style={{ background: "var(--amber-d)", color: "var(--amber)" }}><History size={18} /></div>
+            <div className="row-main">
+              <div className="row-title">Histórico de Atividades</div>
+              <div className="row-sub">Log de ações do workspace</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
+        </div>
+      </div>
+
       {showHelpCenter && <HelpCenter onClose={() => setShowHelpCenter(false)} />}
+      {showCollaboration && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, overflow: "auto", padding: 20 }}>
+          <div style={{ maxWidth: 600, margin: "0 auto", position: "relative" }}>
+            <button 
+              onClick={() => setShowCollaboration(false)}
+              style={{ position: "absolute", top: 16, right: 16, zIndex: 101, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "8px 12px", color: "white", cursor: "pointer" }}
+            >
+              ✕ Fechar
+            </button>
+            <CollaborationPanel 
+              profile={profile || {}} 
+              onUpdate={(updatedProfile) => {/* Handle profile update */}}
+              userId={user?.id || ""}
+            />
+          </div>
+        </div>
+      )}
+      {showMFA && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, overflow: "auto", padding: 20 }}>
+          <div style={{ maxWidth: 500, margin: "0 auto", position: "relative" }}>
+            <button 
+              onClick={() => setShowMFA(false)}
+              style={{ position: "absolute", top: 16, right: 16, zIndex: 101, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "8px 12px", color: "white", cursor: "pointer" }}
+            >
+              ✕ Fechar
+            </button>
+            <MFASetup />
+          </div>
+        </div>
+      )}
+      {showAuditLog && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, overflow: "auto", padding: 20 }}>
+          <div style={{ maxWidth: 600, margin: "0 auto", position: "relative" }}>
+            <button 
+              onClick={() => setShowAuditLog(false)}
+              style={{ position: "absolute", top: 16, right: 16, zIndex: 101, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "8px 12px", color: "white", cursor: "pointer" }}
+            >
+              ✕ Fechar
+            </button>
+            <AuditLogViewer workspaceId={profile?.currentWorkspaceId || user?.id || ""} />
+          </div>
+        </div>
+      )}
 
       <button 
         className="btn-s" 

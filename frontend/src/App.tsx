@@ -14,8 +14,11 @@ import { LaunchScreen } from "./components/transactions/LaunchScreen";
 import { TransactionsView } from "./components/transactions/TransactionsView";
 import { NotificationsView } from "./components/notifications/NotificationsView";
 import { HealthSection } from "./components/health/HealthSection";
+import { PersonalInflation } from "./components/health/PersonalInflation";
+import { FinancialCheckin } from "./components/health/FinancialCheckin";
 import { PhoneShell } from "./components/layout/PhoneShell";
 import type { TabType } from "./types/navigation";
+import { TourProvider } from "./context/TourContext";
 import "./styles/finapp-v3.css";
 
 // Initialize monitoring
@@ -110,7 +113,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <TourProvider>
       <SkipToContent />
       <ScreenReaderAnnouncer />
       <ToastProvider />
@@ -210,7 +213,9 @@ export default function App() {
                 >
                   {/* ── Pilar 1: Início ── */}
                   {activeTab === "inicio"        && <GlobalDashboard onNavigate={navTo} />}
-                  {activeTab === "health"        && <HealthSection onBack={goHome} />}
+                  {activeTab === "health"        && <HealthSection onBack={goHome} onNavigate={navTo} />}
+                  {activeTab === "personal_inflation" && <PersonalInflation onBack={() => goBack("health")} />}
+                  {activeTab === "financial_checkin" && <FinancialCheckin onBack={() => goBack("health")} />}
                   {activeTab === "notifications" && <NotificationsView onBack={goHome} />}
 
                   {/* ── Pilar 2: Budget / Caixa ── */}
@@ -250,6 +255,6 @@ export default function App() {
           </ErrorBoundary>
         </PhoneShell>
       </div>
-    </>
+    </TourProvider>
   );
 }

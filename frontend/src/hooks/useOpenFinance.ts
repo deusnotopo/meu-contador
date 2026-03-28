@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { pluggyCircuitBreaker } from '@/lib/circuit-breaker';
 
 export interface BankAccount {
   id: string;
@@ -25,23 +26,39 @@ export const useOpenFinance = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchConnections = useCallback(async () => {
+    let cancelled = false; // ← Flag para cleanup
     setIsLoading(true);
     setError(null);
+    
     try {
-      const data = await api.get<BankConnection[]>('/open-finance/connections');
-      setConnections(data);
+      const data = await pluggyCircuitBreaker.call(
+        async () => api.get<BankConnection[]>('/open-finance/connections'),
+        () => [] // Fallback: return empty array if Pluggy is down
+      );
+      if (!cancelled) { // ← Verifica se componente ainda está montado
+        setConnections(data);
+      }
     } catch (err: any) {
-      console.error('Error fetching bank connections:', err);
-      setError(err.message || 'Erro ao carregar conexões bancárias');
+      if (!cancelled) {
+        console.error('Error fetching bank connections:', err);
+        setError(err.message || 'Erro ao carregar conexões bancárias');
+      }
     } finally {
-      setIsLoading(false);
+      if (!cancelled) {
+        setIsLoading(false);
+      }
     }
+    
+    return () => { cancelled = true; }; // ← Cleanup function
   }, []);
 
   const getConnectToken = async (itemId?: string) => {
     try {
       const url = itemId ? `/open-finance/token?itemId=${itemId}` : '/open-finance/token';
-      const data = await api.get<{ accessToken: string }>(url);
+      const data = await pluggyCircuitBreaker.call(
+        async () => api.get<{ accessToken: string }>(url),
+        () => { throw new Error('Pluggy temporariamente indisponível'); }
+      );
       return data.accessToken;
     } catch (err: any) {
       console.error('Error getting connect token:', err);

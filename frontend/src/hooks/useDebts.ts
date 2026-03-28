@@ -1,29 +1,64 @@
 import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
 import { Debt } from "@/types";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 export const useDebts = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDebts = async () => {
+  const fetchDebts = useCallback(async () => {
+    let cancelled = false; // ← Flag para cleanup
     setIsLoading(true);
+    setError(null);
+    
     try {
       const data = await api.get<Debt[]>("/debts");
-      setDebts(data);
-      setError(null);
+      if (!cancelled) { // ← Verifica se componente ainda está montado
+        setDebts(data);
+      }
     } catch (err) {
-      console.error("Debts API Error:", err);
-      setError("Dívidas indisponíveis no momento. Verifique sua conexão.");
+      if (!cancelled) {
+        console.error("Debts API Error:", err);
+        setError("Dívidas indisponíveis no momento. Verifique sua conexão.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!cancelled) {
+        setIsLoading(false);
+      }
     }
-  };
+    
+    return () => { cancelled = true; }; // ← Cleanup function
+  }, []);
 
   useEffect(() => {
-    fetchDebts();
+    let cancelled = false;
+    
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const data = await api.get<Debt[]>("/debts");
+        if (!cancelled) {
+          setDebts(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Debts API Error:", err);
+          setError("Dívidas indisponíveis no momento. Verifique sua conexão.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadData();
+    
+    return () => { cancelled = true; }; // ← Cleanup!
   }, []);
 
   const addDebt = async (debtData: Omit<Debt, "id">) => {

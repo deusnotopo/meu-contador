@@ -3,20 +3,24 @@ import { z } from 'zod';
 import { db } from '../lib/db';
 
 export async function investmentRoutes(app: FastifyInstance) {
-  // GET all investments for user
-  app.get('/investments', async (request, reply) => {
-    const user = await db.user.findFirst();
-    if (!user) return reply.status(404).send({ message: 'User not found' });
+  // GET all investments for authenticated user
+  app.get('/investments', {
+    preHandler: [app.authenticate]
+  }, async (request, reply) => {
+    const userId = (request.user as any).id;
+    if (!userId) return reply.status(401).send({ message: 'Unauthorized' });
 
     const investments = await db.investment.findMany({
-      where: { userId: user.id },
+      where: { userId },
       include: { dividends: true, sales: true },
     });
     return investments;
   });
 
   // POST create new investment
-  app.post('/investments', async (request, reply) => {
+  app.post('/investments', {
+    preHandler: [app.authenticate]
+  }, async (request, reply) => {
     const schema = z.object({
       name: z.string(),
       ticker: z.string(),
@@ -29,13 +33,13 @@ export async function investmentRoutes(app: FastifyInstance) {
     });
 
     const body = schema.parse(request.body);
-    const user = await db.user.findFirst();
-    if (!user) return reply.status(404).send({ message: 'User not found' });
+    const userId = (request.user as any).id;
+    if (!userId) return reply.status(401).send({ message: 'Unauthorized' });
 
     const investment = await db.investment.create({
       data: {
         ...body,
-        userId: user.id,
+        userId,
       },
     });
 
@@ -43,7 +47,9 @@ export async function investmentRoutes(app: FastifyInstance) {
   });
 
   // PUT update investment
-  app.put('/investments/:id', async (request, reply) => {
+  app.put('/investments/:id', {
+    preHandler: [app.authenticate]
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const schema = z.object({
       name: z.string().optional(),
@@ -66,14 +72,18 @@ export async function investmentRoutes(app: FastifyInstance) {
   });
 
   // DELETE investment
-  app.delete('/investments/:id', async (request, reply) => {
+  app.delete('/investments/:id', {
+    preHandler: [app.authenticate]
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     await db.investment.delete({ where: { id } });
     return reply.status(204).send();
   });
 
   // POST add dividend
-  app.post('/investments/:id/dividends', async (request, reply) => {
+  app.post('/investments/:id/dividends', {
+    preHandler: [app.authenticate]
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const schema = z.object({
       amount: z.number(),
@@ -94,7 +104,9 @@ export async function investmentRoutes(app: FastifyInstance) {
   });
 
   // POST add sale
-  app.post('/investments/:id/sales', async (request, reply) => {
+  app.post('/investments/:id/sales', {
+    preHandler: [app.authenticate]
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const schema = z.object({
       amount: z.number(),

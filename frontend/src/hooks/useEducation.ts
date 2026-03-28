@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { EDUCATION_MODULES } from "@/data/educationData";
+import { showError } from "@/lib/toast";
 
 export interface EducationState {
   completedModules: string[];
@@ -17,8 +18,12 @@ const DEFAULT_STATE: EducationState = {
 
 export const useEducation = () => {
   const [state, setState] = useState<EducationState>(DEFAULT_STATE);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    setIsLoading(true);
+    setError(null);
     try {
       const saved = localStorage.getItem("mc_education");
       if (saved) {
@@ -49,35 +54,55 @@ export const useEducation = () => {
         setState(init);
         localStorage.setItem("mc_education", JSON.stringify(init));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError("Erro interno ao carregar o seu avanço educacional: " + e.message);
+      showError("Não foi possível carregar as aulas.");
+      setState(DEFAULT_STATE);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const completeModule = (moduleId: string) => {
-    setState((prev) => {
-      if (prev.completedModules.includes(moduleId)) return prev;
+  const completeModule = useCallback((moduleId: string) => {
+    try {
+      setError(null);
+      setState((prev) => {
+        if (prev.completedModules.includes(moduleId)) return prev;
 
-      const mod = EDUCATION_MODULES.find(m => m.id === moduleId);
-      const reward = mod?.xp || 50;
+        const mod = EDUCATION_MODULES.find(m => m.id === moduleId);
+        const reward = mod?.xp || 50;
 
-      const newState = {
-        ...prev,
-        completedModules: [...prev.completedModules, moduleId],
-        xp: prev.xp + reward,
-        lastActiveDate: new Date().toISOString()
-      };
-      
-      localStorage.setItem("mc_education", JSON.stringify(newState));
-      return newState;
-    });
-  };
+        const newState = {
+          ...prev,
+          completedModules: [...prev.completedModules, moduleId],
+          xp: prev.xp + reward,
+          lastActiveDate: new Date().toISOString()
+        };
+        
+        localStorage.setItem("mc_education", JSON.stringify(newState));
+        return newState;
+      });
+    } catch (e: any) {
+      const msg = "Erro crítico ao tentar aprovar sua aula: " + e.message;
+      console.error(msg);
+      setError(msg);
+      showError("Falha ao salvar progresso educativo!");
+    }
+  }, []);
 
-  const isModuleCompleted = (moduleId: string) => state.completedModules.includes(moduleId);
-  const getProgressPct = () => state.completedModules.length === 0 ? 0 : Math.round((state.completedModules.length / EDUCATION_MODULES.length) * 100);
+  const isModuleCompleted = useCallback((moduleId: string) => state.completedModules.includes(moduleId), [state.completedModules]);
+  
+  const getProgressPct = useCallback(() => {
+    return state.completedModules.length === 0 
+      ? 0 
+      : Math.round((state.completedModules.length / EDUCATION_MODULES.length) * 100);
+  }, [state.completedModules]);
 
   return {
     state,
+    error,
+    isLoading,
     completeModule,
     isModuleCompleted,
     getProgressPct

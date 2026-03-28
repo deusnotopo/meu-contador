@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Sparkline } from "@/components/ui/Charts";
 import type { TabType } from "@/types/navigation";
 
@@ -12,6 +12,32 @@ interface HeroPatrimonioProps {
   onNavigate?: (tab: TabType) => void;
   fmtM: (n: number) => string;
   fmt: (n: number) => string;
+}
+
+/** Animates a number from 0 to target over ~900ms */
+function useCountUp(target: number, duration = 900) {
+  const [value, setValue] = useState(0);
+  const prev = useRef(0);
+
+  useEffect(() => {
+    if (target === 0) { setValue(0); return; }
+    const start = prev.current;
+    const diff = target - start;
+    const startTime = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(start + diff * eased);
+      if (progress < 1) requestAnimationFrame(tick);
+      else { setValue(target); prev.current = target; }
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration]);
+
+  return value;
 }
 
 const ScoreDot = ({ score }: { score: number }) => {
@@ -37,6 +63,9 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
   fmt
 }) => {
   const isEmpty = assets === 0 && liabilities === 0;
+  const animatedNetWorth = useCountUp(netWorth);
+  const animatedAssets = useCountUp(assets);
+  const animatedLiabilities = useCountUp(liabilities);
 
   return (
     <div className="hero" style={{ marginBottom: 14 }}>
@@ -75,7 +104,10 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
       ) : (
         /* ── Data state ───────────────────────────── */
         <>
-          <div className="bignum">{fmtM(netWorth)}</div>
+          {/* Animated net worth number */}
+          <div className="bignum" style={{ transition: "color 0.3s" }}>
+            {fmtM(animatedNetWorth)}
+          </div>
 
           {monthlyVariation.amount !== 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
@@ -100,19 +132,25 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
       {!isEmpty && (
         <div className="stat3" style={{ marginTop: 14 }}>
           <div className="s3i">
-            <div className="s3l">Ativos</div>
-            <div className="s3v" style={{ color: "var(--green)" }}>{fmtM(assets)}</div>
+            <div className="s3l">
+              <span style={{ fontSize: "9px", marginRight: 3 }}>📈</span>Ativos
+            </div>
+            <div className="s3v" style={{ color: "var(--green)" }}>{fmtM(animatedAssets)}</div>
           </div>
           <div className="s3i">
-            <div className="s3l">Passivos</div>
-            <div className="s3v" style={{ color: "var(--red)" }}>{fmt(liabilities)}</div>
+            <div className="s3l">
+              <span style={{ fontSize: "9px", marginRight: 3 }}>📉</span>Passivos
+            </div>
+            <div className="s3v" style={{ color: "var(--red)" }}>{fmt(animatedLiabilities)}</div>
           </div>
           <div
             className="s3i"
             onClick={() => onNavigate?.('health')}
             style={{ cursor: 'pointer' }}
           >
-            <div className="s3l">Score</div>
+            <div className="s3l">
+              <span style={{ fontSize: "9px", marginRight: 3 }}>❤️</span>Score
+            </div>
             <div className="s3v" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
               {healthScore === 0 ? (
                 <span

@@ -10,6 +10,7 @@ interface AnalyticsDashboardProps {
 
 import { PremiumGate } from '../ui/PremiumGate';
 import { MFAGate } from '../security/MFAGate';
+import { EmptyState } from '../ui/EmptyState';
 
 export function AnalyticsDashboard({ transactions }: AnalyticsDashboardProps) {
   return (
@@ -22,6 +23,16 @@ export function AnalyticsDashboard({ transactions }: AnalyticsDashboardProps) {
 }
 
 function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
+  if (!transactions || transactions.length === 0) {
+    return (
+      <EmptyState
+        icon={BarChart3}
+        title="Nenhum dado analítico"
+        description="Adicione transações no painel para visualizar o dashboard de performance."
+      />
+    );
+  }
+
   // Calculate monthly data
   const monthlyData = useMemo(() => {
     const last6Months = Array.from({ length: 6 }, (_, i) => {

@@ -479,13 +479,13 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
           {[
-            { icon: '📉', name: 'Inflação pessoal', desc: 'Sua inflação real vs. IPCA oficial.', color: 'red' },
-            { icon: '🧘', name: 'Check-in', desc: 'Estresse financeiro subjetivo mensal.', color: 'purple' },
-            { icon: '🔔', name: 'Notificações', desc: 'Alertas, nudges e oportunidades.', color: 'blue' }
+            { icon: '📉', name: 'Inflação pessoal', desc: 'Sua inflação real vs. IPCA oficial.', color: 'red', tab: 'personal_inflation' as TabType },
+            { icon: '🧘', name: 'Check-in', desc: 'Estresse financeiro subjetivo mensal.', color: 'purple', tab: 'financial_checkin' as TabType },
+            { icon: '🔔', name: 'Notificações', desc: 'Alertas, nudges e oportunidades.', color: 'blue', tab: 'notifications' as TabType }
           ].map((item, i) => (
             <div 
               key={i}
-              onClick={() => handleCardClick(`${item.icon} ${item.name} aberto`)}
+              onClick={() => onNavigate?.(item.tab)}
               className={`fn-card fn-card-${item.color}`}
               style={{ padding: '14px' }}
             >

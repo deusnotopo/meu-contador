@@ -1,256 +1,356 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import type { TabType } from "@/types/navigation";
+import { useTour } from "@/hooks/useTour";
+import { useBudgets } from "@/hooks/useBudgets";
+import { useTransactions } from "@/hooks/useTransactions";
+import { formatCurrency, formatShortDate } from "@/lib/formatters";
+import { ArrowLeft, Plus, Edit2, Trash2 } from "lucide-react";
+
+import { AreaTutorialButton } from "@/components/ui/AreaTutorialButton";
 
 interface EnvelopesViewProps {
   onBack?: (tab?: TabType) => void;
   onNavigate?: (tab: TabType) => void;
 }
 
+const CATEGORY_ICONS: Record<string, string> = {
+  Moradia: "🏠", Mercado: "🛒", Delivery: "🍕", Transporte: "🚗",
+  Saúde: "💊", Lazer: "🎬", Roupas: "👕", Outros: "📦", Viagem: "✈️",
+  Emergência: "🛡️", Investimentos: "📈", Educação: "🎓", Imóvel: "🏡", Poupança: "💰",
+};
+
+const CATEGORY_TABS = ["Necessidades", "Desejos", "Poupança"];
+
 export const EnvelopesView = ({ onBack, onNavigate }: EnvelopesViewProps) => {
   const [selectedEnvelope, setSelectedEnvelope] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editLimit, setEditLimit] = useState("");
+  
+  // Create Modal
+  const [isCreating, setIsCreating] = useState(false);
+  const [createCategory, setCreateCategory] = useState("");
+  const [createLimit, setCreateLimit] = useState("");
 
-  const fmt = (n: number) => 'R\u00a0' + Math.round(n).toLocaleString('pt-BR');
+  const { budgets, addBudget, updateBudget, deleteBudget } = useBudgets();
+  const { transactions } = useTransactions();
+  const { startTour } = useTour();
 
-  const necessidades = [
-    { id: 'moradia', ico: '🏠', name: 'Moradia', spent: 2200, budget: 2200 },
-    { id: 'transporte', ico: '🚗', name: 'Transporte', spent: 620, budget: 800 },
-    { id: 'mercado', ico: '🛒', name: 'Mercado', spent: 890, budget: 1000 },
-    { id: 'saude', ico: '💊', name: 'Saúde', spent: 220, budget: 400 },
-  ];
+  React.useEffect(() => {
+    if (!selectedEnvelope && budgets.length > 0) {
+      startTour('budgets');
+    }
+  }, [startTour, selectedEnvelope, budgets.length]);
 
-  const desejos = [
-    { id: 'delivery', ico: '🍕', name: 'Delivery', spent: 312, budget: 300 },
-    { id: 'lazer', ico: '🎬', name: 'Lazer', spent: 180, budget: 400 },
-    { id: 'roupas', ico: '👕', name: 'Roupas', spent: 0, budget: 200 },
-    { id: 'viagem', ico: '✈️', name: 'Viagem', spent: 450, budget: 600 },
-  ];
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  
+  const spentByCategory = useMemo(() => {
+    const expenses = transactions.filter(t => t.type === "expense" && t.date.startsWith(currentMonth));
+    const totals: Record<string, number> = {};
+    expenses.forEach(t => {
+      const cat = t.category.trim();
+      const capCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+      totals[capCat] = (totals[capCat] || 0) + Math.abs(t.amount);
+    });
+    return totals;
+  }, [transactions, currentMonth]);
 
-  const poupanca = [
-    { id: 'emergencia', ico: '🛡️', name: 'Emergência', spent: 800, budget: 800 },
-    { id: 'investimentos', ico: '📈', name: 'Investimentos', spent: 1200, budget: 1200 },
-    { id: 'educacao', ico: '🎓', name: 'Educação', spent: 0, budget: 200 },
-    { id: 'imovel', ico: '🏡', name: 'Imóvel', spent: 200, budget: 200 },
-  ];
+  // Derived budget info
+  const mappedEnvelopes = budgets.map(b => {
+    const cat = b.category.charAt(0).toUpperCase() + b.category.slice(1);
+    return {
+      id: b.id,
+      category: cat,
+      icon: CATEGORY_ICONS[cat] || "📦",
+      limit: b.limit,
+      spent: spentByCategory[cat] || 0
+    };
+  });
 
-  const totalAlocado = necessidades.reduce((s, e) => s + e.spent, 0) +
-                       desejos.reduce((s, e) => s + e.spent, 0) +
-                       poupanca.reduce((s, e) => s + e.spent, 0);
+  const totalLimit = mappedEnvelopes.reduce((acc, e) => acc + e.limit, 0);
+  const totalSpent = mappedEnvelopes.reduce((acc, e) => acc + e.spent, 0);
+  const totalAvail = Math.max(0, totalLimit - totalSpent);
+  const totalPct = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;
 
-  const totalBudget = necessidades.reduce((s, e) => s + e.budget, 0) +
-                      desejos.reduce((s, e) => s + e.budget, 0) +
-                      poupanca.reduce((s, e) => s + e.budget, 0);
+  // Sorting envelopes into groups pseudo-intelligently based on common Brazil categories
+  const necessidadesCats = ["Moradia", "Transporte", "Mercado", "Saúde", "Educação"];
+  const poupancaCats = ["Emergência", "Investimentos", "Imóvel", "Poupança"];
 
-  const disponivel = totalBudget - totalAlocado;
+  const getGroup = (cat: string) => {
+    if (necessidadesCats.includes(cat)) return "Necessidades";
+    if (poupancaCats.includes(cat)) return "Poupança";
+    return "Desejos"; // default fallback
+  };
 
-  const renderEnvelope = (env: typeof necessidades[0]) => {
-    const pct = Math.min((env.spent / env.budget) * 100, 100);
-    const isOver = env.spent > env.budget;
+  const handleSaveEdit = async (id: string) => {
+    if (!editLimit) return;
+    await updateBudget(id, { limit: Number(editLimit) });
+    setIsEditing(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Remover este envelope?")) {
+      await deleteBudget(id);
+      setSelectedEnvelope(null);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!createCategory || !createLimit) return;
+    const catFormatted = createCategory.charAt(0).toUpperCase() + createCategory.slice(1);
+    // Check if duplicate
+    if (budgets.some(b => b.category.toLowerCase() === createCategory.toLowerCase())) {
+      alert("Envelope para esta categoria já existe!");
+      return;
+    }
+    await addBudget({ category: catFormatted, limit: Number(createLimit), month: currentMonth });
+    setIsCreating(false);
+    setCreateCategory("");
+    setCreateLimit("");
+  };
+
+  const renderEnvelopeCard = (env: typeof mappedEnvelopes[0]) => {
+    const pct = Math.min((env.spent / env.limit) * 100, 100);
+    const isOver = env.spent > env.limit;
     return (
-      <div
-        key={env.id}
-        className="envelope"
-        onClick={() => setSelectedEnvelope(env.id)}
-      >
-        <div className="env-emoji">{env.ico}</div>
-        <div className="env-name">{env.name}</div>
+      <div key={env.id} className="envelope" onClick={() => setSelectedEnvelope(env.id)}>
+        <div className="env-emoji">{env.icon}</div>
+        <div className="env-name">{env.category}</div>
         <div className="env-val" style={isOver ? { color: 'var(--red)' } : {}}>
-          {fmt(env.spent)}
+          {formatCurrency(env.spent).replace(',00','')}
         </div>
         <div className="progress-bar" style={{ height: '4px' }}>
-          <div
-            className="progress-fill"
-            style={{
-              width: `${pct}%`,
-              background: isOver ? 'var(--red)' : pct > 80 ? 'var(--amber)' : 'var(--green)',
-            }}
-          />
+          <div className="progress-fill" style={{ width: `${pct}%`, background: isOver ? 'var(--red)' : pct > 80 ? 'var(--amber)' : 'var(--green)' }} />
         </div>
         <div className="env-sub" style={isOver ? { color: 'var(--red)' } : {}}>
-          {isOver ? `⚠ Estourou em R$ ${Math.abs(env.spent - env.budget)}` : `${fmt(env.spent)} de ${fmt(env.budget)}`}
+          {isOver ? `⚠ +${formatCurrency(env.spent - env.limit).replace(',00','')}` : `de ${formatCurrency(env.limit).replace(',00','')}`}
         </div>
       </div>
     );
   };
 
+  // --- DETAIL VIEW ---
   if (selectedEnvelope) {
-    const allEnvs = [...necessidades, ...desejos, ...poupanca];
-    const env = allEnvs.find((e) => e.id === selectedEnvelope)!;
-    const isOver = env.spent > env.budget;
-    const pct = Math.min((env.spent / env.budget) * 100, 100);
+    const env = mappedEnvelopes.find(e => e.id === selectedEnvelope);
+    if (!env) { setSelectedEnvelope(null); return null; }
+
+    const isOver = env.spent > env.limit;
+    const pct = Math.min((env.spent / env.limit) * 100, 100);
+    const catTransactions = transactions
+      .filter(t => t.type === "expense" && t.date.startsWith(currentMonth) && t.category.toLowerCase() === env.category.toLowerCase())
+      .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return (
-      <div style={{ paddingTop: '10px' }}>
+      <div style={{ paddingTop: '10px', paddingBottom: '100px', animation: 'fsu 0.26s ease' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-          <button
-            onClick={() => setSelectedEnvelope(null)}
-            style={{
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
-              fontSize: '16px',
-              cursor: 'pointer',
-              color: 'var(--text2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
+          <button className="back-btn" onClick={() => { setSelectedEnvelope(null); setIsEditing(false); }}>
+            <ArrowLeft size={16} />
           </button>
-          <div style={{ fontSize: '28px' }}>{env.ico}</div>
-          <div>
-            <div className="page-title" style={{ fontSize: '22px', margin: 0 }}>
-              {env.name}
-            </div>
-            {isOver && <span className="badge badge-red">⚠ Estourou em R$ {Math.abs(env.spent - env.budget)}</span>}
+          <div style={{ fontSize: '28px' }}>{env.icon}</div>
+          <div style={{ flex: 1 }}>
+            <div className="page-title" style={{ fontSize: '22px', margin: 0 }}>{env.category}</div>
+            {isOver && <span className="badge badge-red" style={{ marginTop: 4, display: 'inline-block' }}>Estourou {formatCurrency(Math.abs(env.spent - env.limit))}</span>}
           </div>
+          <button className="btn-ghost" style={{ width: 40, height: 40, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setIsEditing(!isEditing); setEditLimit(env.limit.toString()); }}>
+            <Edit2 size={16} color="var(--t2)" />
+          </button>
         </div>
 
-        <div className="hero-card">
-          <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
-            Gasto vs. limite
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '10px' }}>
-            <span style={{ fontSize: '34px', fontWeight: 700, color: isOver ? 'var(--red)' : 'var(--text1)' }} className="mono">
-              {fmt(env.spent)}
-            </span>
-            <span style={{ fontSize: '13px', color: 'var(--text2)' }}>de {fmt(env.budget)}</span>
-          </div>
-          <div className="progress-bar" style={{ height: '6px' }}>
-            <div
-              className="progress-fill"
-              style={{ width: `${pct}%`, background: isOver ? 'var(--red)' : 'var(--green)' }}
-            />
-          </div>
-          {isOver && (
-            <div className="info-strip" style={{ background: 'var(--red-dim)', marginTop: '12px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--red)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Custo de oportunidade
-              </div>
-              Esse extra de R$ {Math.abs(env.spent - env.budget)}/mês = <strong style={{ color: 'var(--text1)' }}>R$ {(Math.abs(env.spent - env.budget) * 12 * 10).toLocaleString('pt-BR')}</strong> em 10 anos investido a 10% a.a.
+        {isEditing ? (
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="form-group">
+              <label>Novo Limite (R$)</label>
+              <input type="number" className="input" value={editLimit} onChange={e => setEditLimit(e.target.value)} />
             </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn-primary" style={{ flex: 1 }} onClick={() => handleSaveEdit(env.id)}>Salvar</button>
+              <button className="btn-ghost" style={{ padding: '0 16px', color: 'var(--red)' }} onClick={() => handleDelete(env.id)}>
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="hero" style={{ padding: 18, marginBottom: 20 }}>
+            <div style={{ fontSize: '11px', color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px', fontWeight: 600 }}>
+              Gasto no mês atual
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '10px' }}>
+              <span style={{ fontSize: '34px', fontWeight: 700, color: isOver ? 'var(--red)' : 'var(--t1)' }} className="mono">
+                {formatCurrency(env.spent)}
+              </span>
+              <span style={{ fontSize: '13px', color: 'var(--t2)' }}>de {formatCurrency(env.limit)}</span>
+            </div>
+            <div className="progress-bar" style={{ height: '6px' }}>
+              <div className="progress-fill" style={{ width: `${pct}%`, background: isOver ? 'var(--red)' : 'var(--green)' }} />
+            </div>
+            {isOver && (
+              <div className="nudge warn" style={{ marginTop: '14px', background: 'var(--red-dim)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--red)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Atenção
+                </div>
+                Esse extra mensal de {formatCurrency(Math.abs(env.spent - env.limit))} poderia render <strong>R$ {(Math.abs(env.spent - env.limit) * 12 * 10).toLocaleString('pt-BR')}</strong> em 10 anos investido a 10% a.a.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Possible reallocation - visual representation only for now in MVP */}
+        {isOver && (
+          <>
+            <div className="sec-hd"><span className="sec-title">Realocação possível</span></div>
+            <div className="card" style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: '13px', color: 'var(--t1)', marginBottom: '14px', lineHeight: 1.4 }}>
+                De qual envelope você quer remover os <strong>{formatCurrency(Math.abs(env.spent - env.limit))}</strong> que faltam?
+              </div>
+              {mappedEnvelopes.filter(e => e.id !== env.id && e.spent < e.limit).slice(0,3).map(e => (
+                <div key={e.id} className="row" style={{ cursor: 'pointer' }}>
+                  <div className="row-ico" style={{ background: 'var(--glass2)' }}>{e.icon}</div>
+                  <div className="row-main">
+                    <div className="row-title">{e.category}</div>
+                    <div className="row-sub">Sobra {formatCurrency(e.limit - e.spent)}</div>
+                  </div>
+                  <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 11, background: 'var(--bg)' }}>Cobrir</button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="sec-hd"><span className="sec-title">Transações no mês</span></div>
+        <div className="card">
+          {catTransactions.length === 0 ? (
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
+              Nenhum gasto em {env.category} este mês.
+            </div>
+          ) : (
+            catTransactions.map(tx => (
+              <div key={tx.id} className="row">
+                <div className="row-ico" style={{ background: 'var(--glass2)' }}>{env.icon}</div>
+                <div className="row-main">
+                  <div className="row-title">{tx.description}</div>
+                  <div className="row-sub">{formatShortDate(tx.date)}</div>
+                </div>
+                <div className="row-amount" style={{ color: 'var(--red)' }}>− {formatCurrency(Math.abs(tx.amount))}</div>
+              </div>
+            ))
           )}
-        </div>
-
-        <div className="section-header">
-          <span className="section-title">Realocação proativa</span>
-        </div>
-        <div className="card">
-          <div style={{ fontSize: '13px', color: 'var(--text1)', marginBottom: '14px', lineHeight: 1.4 }}>
-            Para qual envelope mover os R$ {Math.abs(env.spent - env.budget)} que faltam?
-          </div>
-          {desejos.filter((e) => e.id !== env.id && e.spent < e.budget).slice(0, 3).map((e) => (
-            <div key={e.id} className="row-item" style={{ cursor: 'pointer' }}>
-              <div className="row-icon">{e.ico}</div>
-              <div className="row-main">
-                <div className="row-title">{e.name}</div>
-                <div className="row-sub">Sobra R$ {e.budget - e.spent}</div>
-              </div>
-              <div style={{ width: '22px', height: '22px', borderRadius: '50%', border: '1.5px solid var(--border2)' }} />
-            </div>
-          ))}
-          <button className="btn-primary" style={{ marginTop: '14px' }}>
-            Confirmar realocação
-          </button>
-        </div>
-
-        <div className="section-header">
-          <span className="section-title">Transações</span>
-        </div>
-        <div className="card">
-          {[
-            ['iFood — Pizza', '12/06', '− R$ 89'],
-            ['iFood — Japonês', '08/06', '− R$ 124'],
-            ['Rappi', '03/06', '− R$ 67'],
-            ['iFood — Hamburguer', '01/06', '− R$ 32'],
-          ].map(([ti, dt, am]) => (
-            <div key={ti} className="row-item">
-              <div className="row-icon" style={{ background: 'var(--amber-dim)' }}>{env.ico}</div>
-              <div className="row-main">
-                <div className="row-title">{ti}</div>
-                <div className="row-sub">{dt}</div>
-              </div>
-              <div className="row-amount" style={{ color: 'var(--red)' }}>{am}</div>
-            </div>
-          ))}
         </div>
       </div>
     );
   }
 
+  // --- MAIN VIEW ---
   return (
-    <div style={{ paddingTop: '10px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+    <div style={{ paddingTop: '10px', paddingBottom: '110px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
         {onBack && (
-          <button
-            className="back-btn"
-            onClick={() => onBack()}
-          >
-            ←
+          <button className="back-btn" onClick={() => onBack()}>
+            <ArrowLeft size={16} />
           </button>
         )}
-        <div>
-          <div className="page-eyebrow">Orçamento mensal</div>
-          <div className="page-title" style={{ margin: 0 }}>Envelopes</div>
+        <div style={{ flex: 1 }}>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>Orçamento mensal</div>
+          <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Envelopes</div>
         </div>
-      </div>
-      <div className="page-sub" style={{ marginBottom: '14px' }}>
-        Zero-based — cada real tem um emprego
+        <button className="btn-ghost" style={{ width: 36, height: 36, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsCreating(true)}>
+          <Plus size={18} color="var(--t1)" />
+        </button>
+        <AreaTutorialButton area="budget" onNavigate={onNavigate} />
       </div>
 
-      <div className="card" style={{ marginBottom: '14px' }}>
+      <div className="page-sub" style={{ marginBottom: '14px' }}>
+        Zero-based — cada real tem um destino certo
+      </div>
+
+      <div className="hero" style={{ padding: 18, marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <div style={{ fontSize: '13px', color: 'var(--text2)' }}>Disponível para alocar</div>
-          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--green)' }} className="mono">
-            {fmt(disponivel)}
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 4 }}>
+              Disponível para alocar
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--green)' }} className="mono">
+              {formatCurrency(totalAvail)}
+            </div>
           </div>
         </div>
-        <div className="progress-bar" style={{ height: '6px' }}>
+        <div className="prog" style={{ height: '8px' }}>
           <div
-            className="progress-fill"
-            style={{
-              width: `${(totalAlocado / totalBudget) * 100}%`,
-              background: 'linear-gradient(90deg, #22D397, #4F9BFF)',
-            }}
+            className="prog-fill"
+            style={{ width: `${Math.min(totalPct, 100)}%`, background: 'linear-gradient(90deg, #00D991, #4A8BFF)', }}
           />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>
-          <span className="mono">Alocado: {fmt(totalAlocado)}</span>
-          <span className="mono">Total: {fmt(totalBudget)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--t3)', marginTop: '4px' }}>
+          <span className="mono">Consumido: {formatCurrency(totalSpent)}</span>
+          <span className="mono">Total dos envelopes: {formatCurrency(totalLimit)}</span>
         </div>
       </div>
 
-      <div className="section-header">
-        <span className="section-title">Necessidades · 50%</span>
-      </div>
-      <div className="envelope-grid">{necessidades.map(renderEnvelope)}</div>
-
-      <div className="section-header">
-        <span className="section-title">Desejos · 30%</span>
-      </div>
-      <div className="envelope-grid">{desejos.map(renderEnvelope)}</div>
-
-      <div className="section-header">
-        <span className="section-title">Poupança · 20%</span>
-      </div>
-      <div className="envelope-grid">{poupanca.map(renderEnvelope)}</div>
-
-      <div className="section-header">
-        <span className="section-title">Ulysses Contract</span>
-      </div>
-      <div className="nudge-card good">
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--green)', marginBottom: '4px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-          ✓ Regra ativa
+      {/* Creation form */}
+      {isCreating && (
+        <div className="card" style={{ marginBottom: 20, borderColor: 'var(--blue)', background: 'var(--blue3)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 12 }}>Novo Envelope</div>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <div style={{ flex: 2 }}>
+              <input 
+                type="text" 
+                className="input" 
+                placeholder="Ex: Supermercado" 
+                value={createCategory} 
+                onChange={e => setCreateCategory(e.target.value)}
+                style={{ background: 'var(--bg)' }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <input 
+                type="number" 
+                className="input" 
+                placeholder="Limite R$" 
+                value={createLimit} 
+                onChange={e => setCreateLimit(e.target.value)}
+                style={{ background: 'var(--bg)' }}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn-primary" style={{ flex: 1, padding: 10 }} onClick={handleCreate}>Crair</button>
+            <button className="btn-ghost" style={{ flex: 1, padding: 10 }} onClick={() => setIsCreating(false)}>Cancelar</button>
+          </div>
         </div>
-        <div style={{ fontSize: '13px', color: 'var(--text1)', lineHeight: 1.5 }}>
-          Se conta-corrente superar <strong>R$ 5.000</strong> no dia 10 → mover excedente para Investimentos automaticamente.
+      )}
+
+      {budgets.length === 0 && !isCreating ? (
+        <div className="card" style={{ padding: "40px 20px", textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 10 }}>✉️</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 6 }}>Nenhum envelope definido</div>
+          <div style={{ fontSize: 13, color: "var(--t3)", marginBottom: 20 }}>
+            Divida sua renda em "envelopes" (categorias) para criar limites e controlar exatamente para onde seu dinheiro vai.
+          </div>
+          <button className="btn-primary" onClick={() => setIsCreating(true)}>Criar meu primeiro envelope</button>
         </div>
-        <button className="btn-secondary" style={{ marginTop: '10px', padding: '9px', fontSize: '12px' }}>
-          Editar regra (48h carência)
-        </button>
-      </div>
+      ) : (
+        CATEGORY_TABS.map(groupName => {
+          const envsInGroup = mappedEnvelopes.filter(e => getGroup(e.category) === groupName);
+          if (envsInGroup.length === 0) return null;
+          
+          return (
+            <div key={groupName} style={{ marginBottom: 20 }}>
+              <div className="sec-hd"><span className="sec-title">{groupName}</span></div>
+              <div className="env-grid">
+                {envsInGroup.map(renderEnvelopeCard)}
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      {/* Orphane envelopes that don't fit the main categories */}
+      {mappedEnvelopes.filter(e => !CATEGORY_TABS.includes(getGroup(e.category))).length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div className="sec-hd"><span className="sec-title">Outros</span></div>
+          <div className="env-grid">
+            {mappedEnvelopes.filter(e => !CATEGORY_TABS.includes(getGroup(e.category))).map(renderEnvelopeCard)}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

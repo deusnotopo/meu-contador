@@ -9,7 +9,7 @@ import type {
   Currency,
 } from "@/types";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export const useInvestments = () => {
   const { setGlobalLoading, user } = useAuth();
@@ -18,25 +18,62 @@ export const useInvestments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchInvestments = async () => {
+  const fetchInvestments = useCallback(async () => {
+    let cancelled = false; // ← Flag para cleanup
     setLoading(true);
     setGlobalLoading(true);
+    setError(null);
+    
     try {
       const data = await api.get<Investment[]>("/investments");
-      setAssets(data);
-      setError(null);
+      if (!cancelled) { // ← Verifica se componente ainda está montado
+        setAssets(data);
+      }
     } catch (err) {
-      console.error("Investments API Error:", err);
-      setError("Investimentos indisponíveis no momento. Tente novamente mais tarde.");
+      if (!cancelled) {
+        console.error("Investments API Error:", err);
+        setError("Investimentos indisponíveis no momento. Tente novamente mais tarde.");
+      }
     } finally {
-      setLoading(false);
-      setGlobalLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+        setGlobalLoading(false);
+      }
     }
-  };
+    
+    return () => { cancelled = true; }; // ← Cleanup function
+  }, [setGlobalLoading]);
 
   useEffect(() => {
-    fetchInvestments();
-  }, []);
+    let cancelled = false;
+    
+    const loadData = async () => {
+      setLoading(true);
+      setGlobalLoading(true);
+      setError(null);
+      
+      try {
+        const data = await api.get<Investment[]>("/investments");
+        if (!cancelled) {
+          setAssets(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Investments API Error:", err);
+          setError("Investimentos indisponíveis no momento. Tente novamente mais tarde.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setGlobalLoading(false);
+        }
+      }
+    };
+    
+    loadData();
+    
+    return () => { cancelled = true; }; // ← Cleanup!
+  }, [setGlobalLoading]);
 
   const addAsset = async (asset: Omit<Investment, "id" | "lastUpdate">) => {
     try {

@@ -7,6 +7,7 @@ import { TesouroDiretoRates } from "./TesouroDiretoRates";
 import { ShieldAlert, Trash2, Plus, AlertCircle, Briefcase, CreditCard } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { showError } from "@/lib/toast";
+import { useTour } from "@/hooks/useTour";
 import type { Investment } from "@/types";
 
 const fmt = (n: number) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
@@ -62,6 +63,13 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
   const [tab, setTab] = useState<"geral" | "juros" | "dividas">("geral");
   const { debts, totals: debtTotals, deleteDebt, addDebt, error: debtError, isLoading: debtLoading } = useDebts();
   const { assets, loading: assetsLoading, totals: investTotals, deleteAsset, error: investError } = useInvestments();
+  const { startTour } = useTour();
+
+  React.useEffect(() => {
+    if (tab === "geral") {
+      startTour('investments');
+    }
+  }, [startTour, tab]);
   
   const hasError = investError || debtError;
 
@@ -150,7 +158,7 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
       {/* TAB: GERAL */}
       {tab === "geral" && (
         <>
-          <div className="hero">
+          <div className="hero" id="investments-summary">
             <div style={{ fontSize: "10px", color: "rgba(74,139,255,0.9)", textTransform: "uppercase", letterSpacing: "0.14em", fontWeight: 700, marginBottom: "10px" }}>Total investido</div>
             <div className="bignum">
               {assetsLoading ? <span style={{ color: "var(--t3)" }}>Carregando...</span> : fmtM(totalInvested)}
@@ -168,7 +176,7 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
 
             {/* Allocation bar */}
             {allocation.length > 0 && (
-              <>
+              <div id="asset-allocation-chart">
                 <div style={{ marginTop: "16px", fontSize: "9.5px", color: "var(--t3)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Alocação atual</div>
                 <div className="alloc">
                   {allocation.map((a, i) => (
@@ -184,7 +192,7 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                     </div>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </div>
 
