@@ -16,6 +16,7 @@ import { NotificationsView } from "./components/notifications/NotificationsView"
 import { HealthSection } from "./components/health/HealthSection";
 import { PersonalInflation } from "./components/health/PersonalInflation";
 import { FinancialCheckin } from "./components/health/FinancialCheckin";
+import { InsurancePlanner } from "./components/planning/InsurancePlanner";
 import { PhoneShell } from "./components/layout/PhoneShell";
 import type { TabType } from "./types/navigation";
 import { TourProvider } from "./context/TourContext";
@@ -216,6 +217,7 @@ export default function App() {
                   {activeTab === "health"        && <HealthSection onBack={goHome} onNavigate={navTo} />}
                   {activeTab === "personal_inflation" && <PersonalInflation onBack={() => goBack("health")} />}
                   {activeTab === "financial_checkin" && <FinancialCheckin onBack={() => goBack("health")} />}
+                  {activeTab === "insurance_planner" && <InsurancePlanner onBack={() => goBack("health")} />}
                   {activeTab === "notifications" && <NotificationsView onBack={goHome} />}
 
                   {/* ── Pilar 2: Budget / Caixa ── */}

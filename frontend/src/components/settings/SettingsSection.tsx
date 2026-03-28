@@ -10,6 +10,7 @@ import { HelpCenter } from "@/components/support/HelpCenter";
 import { CollaborationPanel } from "@/components/profile/CollaborationPanel";
 import { AuditLogViewer } from "@/components/profile/AuditLogViewer";
 import { MFASetup } from "@/components/security/MFASetup";
+import { WorkspaceManager } from "@/components/settings/WorkspaceManager";
 import { useState, useEffect } from "react";
 import type { TabType } from "@/types/navigation";
 
@@ -301,6 +302,11 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
           </div>
           <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
         </div>
+      </div>
+
+      <div className="sec-hd"><span className="sec-title">Workspaces</span></div>
+      <div className="card">
+        <WorkspaceManager />
       </div>
 
       <div className="sec-hd"><span className="sec-title">Colaboração</span></div>

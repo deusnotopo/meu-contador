@@ -80,7 +80,7 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
       case "Diversificação":
         return { title: "Espalhe o risco", text: "Sua carteira está concentrada. Busque alocar em renda fixa, ETFs globais e fundos imobiliários.", act: "investments", actText: "Explorar Ativos" };
       case "Mitigação de Riscos":
-        return { title: "Seguro de vida e saúde", text: "Proteger seu patrimônio contra imprevistos de saúde ou fatalidades é essencial para não quebrar.", act: "planning", actText: "Planejar Seguros (Breve)" };
+        return { title: "Seguro de vida e saúde", text: "Proteger seu patrimônio contra imprevistos de saúde ou fatalidades é essencial para não quebrar.", act: "insurance_planner", actText: "Planejar Seguros" };
       case "Modelagem F.I.R.E":
         return { title: "Rever matemática da aposentadoria", text: "Com o ritmo atual, sua aposentadoria não está garantida. Faça simulações para ver onde cortar.", act: "retire_fire", actText: "Calculadora F.I.R.E" };
       case "Status Biopsicossocial":

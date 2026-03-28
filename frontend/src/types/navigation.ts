@@ -16,6 +16,7 @@ export type TabType =
   | "health"
   | "personal_inflation"
   | "financial_checkin"
+  | "insurance_planner"
   | "notifications"
   // Pilar 2: Budget / Caixa
   | "budget"
@@ -49,7 +50,7 @@ export type TabType =
 /** Mapeamento de qualquer TabType para o ícone ativo no BottomNav */
 export const TAB_TO_PILLAR: Record<TabType, PrimaryTab> = {
   // Início
-  inicio: "inicio", health: "inicio", personal_inflation: "inicio", financial_checkin: "inicio", notifications: "inicio",
+  inicio: "inicio", health: "inicio", personal_inflation: "inicio", financial_checkin: "inicio", insurance_planner: "inicio", notifications: "inicio",
   // Budget
   budget: "budget", caixa: "budget", personal: "budget",
   analytics: "budget", envelopes: "budget", envelope_detail: "budget",
