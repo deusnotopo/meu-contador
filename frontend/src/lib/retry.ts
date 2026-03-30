@@ -20,10 +20,10 @@ export async function withRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {}
 ): Promise<T> {
-  const { maxRetries, baseDelay, maxDelay, onRetry } = {
-    ...defaultOptions,
-    ...options,
-  };
+  const maxRetries = options.maxRetries ?? defaultOptions.maxRetries ?? 3;
+  const baseDelay = options.baseDelay ?? defaultOptions.baseDelay ?? 1000;
+  const maxDelay = options.maxDelay ?? defaultOptions.maxDelay ?? 10000;
+  const onRetry = options.onRetry;
 
   let lastError: Error | null = null;
 

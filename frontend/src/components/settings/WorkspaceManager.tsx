@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { loadProfile } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showSuccess, showError } from "@/lib/toast";
@@ -8,11 +7,9 @@ import {
   Users, 
   Plus, 
   UserPlus, 
-  Settings, 
   Trash2, 
   Copy, 
   CheckCircle,
-  Shield,
   Eye,
   Edit,
   Crown
@@ -35,7 +32,6 @@ interface Workspace {
 
 export const WorkspaceManager = () => {
   const { user } = useAuth();
-  const profile = loadProfile();
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([
     {
@@ -100,7 +96,7 @@ export const WorkspaceManager = () => {
 
     const newMember: WorkspaceMember = {
       id: crypto.randomUUID(),
-      name: inviteEmail.split("@")[0],
+      name: inviteEmail.split("@")[0] || "",
       email: inviteEmail,
       role: inviteRole,
       addedAt: new Date().toISOString()
@@ -162,14 +158,7 @@ export const WorkspaceManager = () => {
     }
   };
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case "owner": return "Proprietário";
-      case "editor": return "Editor";
-      case "viewer": return "Visualizador";
-      default: return role;
-    }
-  };
+
 
   return (
     <div className="space-y-6">

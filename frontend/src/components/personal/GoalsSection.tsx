@@ -7,7 +7,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { showError, showSuccess } from "@/lib/toast";
+import { showError } from "@/lib/toast";
 import { formatCurrency } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useGoals } from "@/hooks/useGoals";
@@ -58,7 +58,7 @@ export const GoalsSection = () => {
         name: formData.name,
         targetAmount: formData.targetAmount,
         currentAmount: formData.currentAmount,
-        deadline: formData.deadline,
+        deadline: formData.deadline || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         icon: formData.icon,
       });
     } else {
@@ -72,7 +72,7 @@ export const GoalsSection = () => {
             .toISOString()
             .split("T")[0],
         icon: formData.icon,
-        color: GOAL_COLORS[goals.length % GOAL_COLORS.length],
+        color: GOAL_COLORS[goals.length % GOAL_COLORS.length] ?? "from-blue-500 to-blue-600",
       });
     }
 
@@ -90,11 +90,11 @@ export const GoalsSection = () => {
   const handleEdit = (goal: SavingsGoal) => {
     setEditingGoal(goal);
     setFormData({
-      name: goal.name,
+      name: goal.name ?? "",
       targetAmount: goal.targetAmount,
       currentAmount: goal.currentAmount,
-      deadline: String(goal.deadline).split('T')[0], // ensure proper format for input type="date"
-      icon: goal.icon,
+      deadline: ((goal.deadline || "").split('T')[0] || "") as string, // ensure proper format for input type="date"
+      icon: goal.icon || "🎯",
     });
     setIsDialogOpen(true);
   };
@@ -365,7 +365,7 @@ export const GoalsSection = () => {
                           Prazo
                         </span>
                         <span className="text-xs font-bold text-white/80">
-                          {new Date(goal.deadline).toLocaleDateString()}
+                          {goal.deadline ? new Date(goal.deadline).toLocaleDateString() : "Sem prazo"}
                         </span>
                       </div>
                     </div>

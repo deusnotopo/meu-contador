@@ -25,6 +25,7 @@ export type TabType =
   | "analytics"
   | "envelopes"
   | "envelope_detail"
+  | "cash_flow"
   // Pilar 3: Futuro
   | "futuro"
   | "planos"
@@ -44,7 +45,10 @@ export type TabType =
   // Global
   | "settings"
   | "profile"
-  | "launch";
+  | "launch"
+  // Ferramentas Financeiras Brasileiras
+  | "provisoes"
+  | "debt_payoff";
 
 
 /** Mapeamento de qualquer TabType para o ícone ativo no BottomNav */
@@ -54,6 +58,7 @@ export const TAB_TO_PILLAR: Record<TabType, PrimaryTab> = {
   // Budget
   budget: "budget", caixa: "budget", personal: "budget",
   analytics: "budget", envelopes: "budget", envelope_detail: "budget",
+  cash_flow: "budget",
   planos: "futuro", planning: "futuro",
   retirement: "futuro", retire_fire: "futuro", retire_proj: "futuro",
   // Patrimônio
@@ -65,4 +70,6 @@ export const TAB_TO_PILLAR: Record<TabType, PrimaryTab> = {
   settings: "inicio", profile: "inicio", launch: "launch",
   // Futuro tab explicit mapping (guaranteed)
   futuro: "futuro",
+  // Ferramentas BR
+  provisoes: "budget", debt_payoff: "budget",
 };

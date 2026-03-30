@@ -1,6 +1,5 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "./button";
+import { motion } from "framer-motion";
 import { Sparkles, GraduationCap, Briefcase, Wallet, Check, ArrowRight } from "lucide-react";
 import { showSuccess } from "@/lib/toast";
 

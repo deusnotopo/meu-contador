@@ -12,6 +12,7 @@ import {
 import type {
   BillReminder,
   Budget,
+  Investment,
   OnboardingData,
   SavingsGoal,
   Transaction,
@@ -54,7 +55,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
       description: "Saldo Inicial (Onboarding)",
       amount: data.profile.initialBalance,
       category: "Outros",
-      date: new Date().toISOString().split("T")[0],
+      date: new Date().toISOString().split("T")[0] || "",
       paymentMethod: "Outro",
       notes: "Saldo inicial configurado no setup",
       recurring: false,
@@ -80,15 +81,15 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
     .filter((g) => g.enabled)
     .map((g, i) => ({
       id: String(Date.now() + i + 100),
-      name: g.name,
-      targetAmount: g.targetAmount,
+      name: g.name ?? "Meta",
+      targetAmount: g.targetAmount ?? 0,
       currentAmount: 0,
       deadline:
         g.deadline ||
-        new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        (new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
           .toISOString()
-          .split("T")[0],
-      icon: g.icon,
+          .split("T")[0] || ""),
+      icon: g.icon ?? "🎯",
       color: [
         "from-blue-500 to-blue-600",
         "from-purple-500 to-purple-600",
@@ -100,16 +101,16 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
   // Save reminders
   const now = new Date();
   const reminders: BillReminder[] = data.reminders
-    .filter((r) => r.enabled && r.amount > 0)
+    .filter((r) => r.enabled && (r.amount ?? 0) > 0)
     .map((r, i) => {
-      const dueDate = new Date(now.getFullYear(), now.getMonth(), r.dueDay);
+      const dueDate = new Date(now.getFullYear(), now.getMonth(), r.dueDay ?? 1);
       if (dueDate < now) dueDate.setMonth(dueDate.getMonth() + 1);
       return {
         id: String(Date.now() + i + 200),
-        name: r.name,
-        amount: r.amount,
-        dueDate: dueDate.toISOString().split("T")[0],
-        category: r.category,
+        name: r.name ?? "Lembrete",
+        amount: r.amount ?? 0,
+        dueDate: dueDate.toISOString().split("T")[0] || "",
+        category: r.category ?? "Outros",
         isPaid: false,
         recurring: "monthly" as const,
       };
@@ -138,6 +139,10 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
 
   // Save investments
   if (data.investments && data.investments.length > 0) {
-    saveInvestments(data.investments);
+    const finalInvestments: Investment[] = data.investments.map((inv) => ({
+      ...inv,
+      id: String(inv.id),
+    }));
+    saveInvestments(finalInvestments);
   }
 };

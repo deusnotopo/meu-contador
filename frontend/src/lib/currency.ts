@@ -36,8 +36,9 @@ export const currencyService = {
     currentRates = { ...currentRates, ...newRates };
     // Update display rates (inverse)
     Object.keys(newRates).forEach((code) => {
-      if (newRates[code] > 0) {
-        displayRates[code] = 1 / newRates[code];
+      const rate = newRates[code] || 0;
+      if (rate > 0) {
+        displayRates[code] = 1 / rate;
       }
     });
   },

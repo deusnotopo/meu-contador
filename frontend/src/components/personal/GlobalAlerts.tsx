@@ -27,16 +27,6 @@ export const GlobalAlerts = () => {
     }
   };
 
-  const getVariant = (type: string) => {
-    switch (type) {
-      case "danger":
-        return "destructive";
-      case "success":
-        return "default"; // Custom success style would be better but shadcn alert is limited
-      default:
-        return "default";
-    }
-  };
 
   return (
     <div className="space-y-4 mb-10">

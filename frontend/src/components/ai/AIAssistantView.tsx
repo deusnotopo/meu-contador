@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+
 import { useAuth } from '@/context/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Bot, Sparkles, ArrowLeft } from 'lucide-react';
@@ -95,7 +95,7 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
                  </button>
                </div>
              )}
-             <AIFinancialChat transactions={transactions} />
+             <AIFinancialChat />
           </div>
         </TabsContent>
         

@@ -1,6 +1,15 @@
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db, auth } from "./firebase";
 
+const FIRESTORE_SYNC_ENABLED =
+  import.meta.env.VITE_ENABLE_FIRESTORE_SYNC === "true" || import.meta.env.PROD;
+
+const canUseFirestoreSync = (userId?: string | null) => {
+  if (!FIRESTORE_SYNC_ENABLED) return false;
+  if (!userId || !auth.currentUser) return false;
+  return true;
+};
+
 /**
  * Syncs a specific key-value pair to Firestore user document.
  * @param userId - The Firebase user ID
@@ -13,9 +22,9 @@ export const syncToCloud = async (
   data: unknown,
   collectionName: string = "users"
 ) => {
-  // Skip Firestore sync if Firebase Auth is not authenticated
-  if (!userId || !auth.currentUser) {
-    console.debug(`Skipping Firestore sync for ${key}: Firebase Auth not authenticated`);
+  // Em desenvolvimento local, o sync com Firestore fica desabilitado por padrão
+  // para evitar timeouts e ruído no console. Ative com VITE_ENABLE_FIRESTORE_SYNC=true.
+  if (!canUseFirestoreSync(userId)) {
     return;
   }
   try {
@@ -43,10 +52,8 @@ export const loadFromCloud = async (
   key: string,
   collectionName: string = "users"
 ) => {
-  // Skip Firestore sync if Firebase Auth is not authenticated
-  // This prevents timeout errors when using custom backend auth
-  if (!userId || !auth.currentUser) {
-    console.debug(`Skipping Firestore load for ${key}: Firebase Auth not authenticated`);
+  // Em desenvolvimento local, o sync com Firestore fica desabilitado por padrão.
+  if (!canUseFirestoreSync(userId)) {
     return null;
   }
   try {
@@ -82,16 +89,18 @@ export const subscribeToCloud = (
   onUpdate: (data: unknown) => void,
   collectionName: string = "users"
 ) => {
-  // Skip Firestore subscription if Firebase Auth is not authenticated
-  if (!userId || !auth.currentUser) {
-    console.debug(`Skipping Firestore subscription for ${key}: Firebase Auth not authenticated`);
+  if (!canUseFirestoreSync(userId)) {
     return () => {};
   }
 
   const userRef = doc(db, collectionName, userId, "data", key);
-  return onSnapshot(userRef, (snap) => {
-    if (snap.exists()) {
-      onUpdate(snap.data().payload);
-    }
-  });
+  return onSnapshot(
+    userRef,
+    (snap) => {
+      if (snap.exists()) {
+        onUpdate(snap.data().payload);
+      }
+    },
+    (err) => console.warn(`Firestore snapshot error for ${key}:`, err)
+  );
 };

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
+import { EmotionalCheckIn } from "@/components/emotional/EmotionalCheckIn";
 import type { TabType } from "@/types/navigation";
 
 // ── Expense categories ──────────────────────────────────
@@ -40,6 +41,8 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
   const [catId, setCatId] = useState("Mercado");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showEmotional, setShowEmotional] = useState(false);
+  const [savedTransaction, setSavedTransaction] = useState<{ amount: number; category: string } | null>(null);
 
   const categories = tipo === "expense" ? EXPENSE_CATS : INCOME_CATS;
 
@@ -83,10 +86,23 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
         recurring: false,
         scope: "personal",
       });
-      onBack?.("inicio");
+
+      // Show emotional check-in for expenses
+      if (tipo === "expense") {
+        setSavedTransaction({ amount: amountRaw, category: catId });
+        setShowEmotional(true);
+      } else {
+        onBack?.("inicio");
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEmotionalComplete = () => {
+    setShowEmotional(false);
+    setSavedTransaction(null);
+    onBack?.("inicio");
   };
 
   const isExpense = tipo === "expense";
@@ -225,6 +241,15 @@ export const LaunchScreen = ({ onBack }: LaunchScreenProps) => {
           "Confirmar receita ✓"
         )}
       </button>
+
+      {/* Emotional Check-in Modal */}
+      <EmotionalCheckIn
+        isOpen={showEmotional}
+        onClose={() => setShowEmotional(false)}
+        transactionAmount={savedTransaction?.amount}
+        transactionCategory={savedTransaction?.category}
+        onComplete={handleEmotionalComplete}
+      />
     </div>
   );
 };

@@ -1,18 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDebts } from "@/hooks/useDebts";
 import { useInvestments } from "@/hooks/useInvestments";
 import { MarketDataWidget } from "./MarketDataWidget";
 import { RealTimeQuotes } from "./RealTimeQuotes";
 import { TesouroDiretoRates } from "./TesouroDiretoRates";
-import { ShieldAlert, Trash2, Plus, AlertCircle, Briefcase, CreditCard } from "lucide-react";
+import { ShieldAlert, Trash2, Plus, AlertCircle, Briefcase, CreditCard, Pencil } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { showError } from "@/lib/toast";
 import { useTour } from "@/hooks/useTour";
+import { WizardTrigger } from "@/components/onboarding/WizardTrigger";
+import { EditInvestmentModal } from "./EditInvestmentModal";
 import type { Investment } from "@/types";
 
 const fmt = (n: number) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
 const fmtM = (n: number) => n >= 1e6 ? 'R$ ' + (n / 1e6).toFixed(2).replace('.', ',') + ' M' : fmt(n);
-const fmtCurr = (n: number) => 'R$\u00a0' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function assetIcon(type: string) {
   switch (type) {
@@ -61,17 +62,18 @@ function allocationByType(assets: Investment[]) {
 
 export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
   const [tab, setTab] = useState<"geral" | "juros" | "dividas">("geral");
+  const [editingAsset, setEditingAsset] = useState<Investment | null>(null);
   const { debts, totals: debtTotals, deleteDebt, addDebt, error: debtError, isLoading: debtLoading } = useDebts();
-  const { assets, loading: assetsLoading, totals: investTotals, deleteAsset, error: investError } = useInvestments();
+  const { assets, loading: assetsLoading, totals: investTotals, deleteAsset, updateAsset, error: _investError } = useInvestments();
   const { startTour } = useTour();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (tab === "geral") {
       startTour('investments');
     }
   }, [startTour, tab]);
   
-  const hasError = investError || debtError;
+
 
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [newDebt, setNewDebt] = useState({ 
@@ -80,7 +82,7 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
     interestRate: 0, 
     minPayment: 0, 
     category: "credit_card",
-    dueDate: null as string | null
+    dueDate: undefined as string | undefined
   });
 
   // Juros compostos slider state
@@ -116,7 +118,10 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
             )}
             <div>
               <div className="eyebrow">Visão consolidada</div>
-              <div className="page-title" style={{ margin: 0 }}>Patrimônio</div>
+              <div className="page-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Patrimônio
+                <WizardTrigger label="Ajustar" />
+              </div>
             </div>
           </div>
           <div className="page-sub" style={{ marginBottom: "14px" }}>Ativos, dívidas e alocação</div>
@@ -234,7 +239,10 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                         {retPct >= 0 ? '▲' : '▼'} {Math.abs(retPct).toFixed(1)}%
                       </div>
                     </div>
-                    <button onClick={() => deleteAsset(a.id)} style={{ background: "none", border: "none", color: "var(--t3)", cursor: "pointer", padding: "4px", marginLeft: 6, opacity: 0.6 }}>
+                    <button onClick={() => setEditingAsset(a)} style={{ background: "none", border: "none", color: "var(--blue)", cursor: "pointer", padding: "4px", marginLeft: 4, opacity: 0.7 }} title="Editar">
+                      <Pencil size={13} />
+                    </button>
+                    <button onClick={() => deleteAsset(a.id)} style={{ background: "none", border: "none", color: "var(--t3)", cursor: "pointer", padding: "4px", marginLeft: 2, opacity: 0.6 }}>
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -357,7 +365,7 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                   };
                   addDebt(debtToSubmit); 
                   setShowAddDebt(false); 
-                  setNewDebt({ name: "", balance: 0, interestRate: 0, minPayment: 0, category: "credit_card", dueDate: null }); 
+                  setNewDebt({ name: "", balance: 0, interestRate: 0, minPayment: 0, category: "credit_card", dueDate: undefined }); 
                 } else {
                   showError("Preencha todos os campos obrigatórios com valores válidos.");
                 }
@@ -408,6 +416,14 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
             </div>
           )}
         </>
+      )}
+
+      {editingAsset && (
+        <EditInvestmentModal
+          asset={editingAsset}
+          onSave={async (id, updates) => { await updateAsset(id, updates); }}
+          onClose={() => setEditingAsset(null)}
+        />
       )}
     </div>
   );

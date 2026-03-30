@@ -274,23 +274,49 @@ export const LoginForm = () => {
             {/* Icon mark */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 20 }}
+              animate={{ 
+                scale: 1, 
+                opacity: 1,
+                y: [0, -4, 0]
+              }}
+              transition={{ 
+                delay: 0.1, 
+                type: "spring", 
+                stiffness: 260, 
+                damping: 20,
+                y: {
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }
+              }}
               style={{
-                width: 72,
-                height: 72,
-                borderRadius: 24,
-                background: "linear-gradient(135deg, #0D2060, #1A3A8F)",
-                border: "1px solid rgba(74,139,255,0.3)",
-                boxShadow: "0 0 0 8px rgba(74,139,255,0.06), 0 16px 48px rgba(74,139,255,0.2)",
+                width: 80,
+                height: 80,
+                borderRadius: 22,
+                background: "rgba(255,255,255,0.03)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                margin: "0 auto 20px",
-                fontSize: 32,
+                margin: "0 auto 24px",
+                overflow: "hidden",
+                position: "relative"
               }}
             >
-              💰
+              <img 
+                src="/logo-new.png" 
+                alt="Meu Contador" 
+                style={{ 
+                  width: "100%", 
+                  height: "100%", 
+                  objectFit: "contain",
+                  padding: "8px",
+                  filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.5))"
+                }} 
+              />
             </motion.div>
 
             <motion.h1

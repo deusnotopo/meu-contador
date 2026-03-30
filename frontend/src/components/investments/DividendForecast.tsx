@@ -108,7 +108,7 @@ export const DividendForecast: React.FC<Props> = ({ assets, dividends }) => {
               <RechartsTooltip
                 cursor={{ fill: "#ffffff05" }}
                 content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
+                  if (active && payload && payload.length && payload[0]) {
                     const data = payload[0].payload;
                     return (
                       <div className="glass-premium p-4 border border-white/10 rounded-2xl shadow-2xl">

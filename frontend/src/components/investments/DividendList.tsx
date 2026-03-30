@@ -23,12 +23,12 @@ import { useMemo, useState } from "react";
 import { PrivacyValue } from "../ui/PrivacyValue";
 
 export const DividendList = () => {
-  const { assets, dividends, addDividend, deleteDividend } = useInvestments() as any;
+  const { assets, dividends, addDividend, deleteDividend } = useInvestments();
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     assetId: "",
     amount: "",
-    date: new Date().toISOString().split("T")[0],
+    date: new Date().toISOString().substring(0, 10),
     type: "dividend" as "dividend" | "jcp",
   });
 
@@ -51,23 +51,21 @@ export const DividendList = () => {
     const assetId = formData.assetId;
     const amount = parseFloat(formData.amount.replace(",", "."));
 
-    const selectedAsset = assets.find((a: any) => a.id.toString() === assetId);
+    const selectedAsset = assets.find((a) => a.id === assetId);
 
     if (!selectedAsset || isNaN(amount) || amount <= 0) return;
 
-    (addDividend as any)({
-      assetId,
-      assetTicker: selectedAsset.ticker,
+    addDividend(assetId, {
       amount,
-      date: formData.date,
-      type: formData.type,
+      date: (formData.date || new Date().toISOString().substring(0, 10)) as string,
+      type: formData.type as "dividend" | "jcp",
     });
 
     setIsOpen(false);
     setFormData({
       assetId: "",
       amount: "",
-      date: new Date().toISOString().split("T")[0],
+      date: new Date().toISOString().substring(0, 10),
       type: "dividend",
     });
   };
@@ -224,9 +222,6 @@ export const DividendList = () => {
             <div className="space-y-8">
               {Object.entries(
                 dividends.reduce((acc, curr) => {
-                  const date = new Date(curr.date);
-                  // Ensure date parsing works correctly with timezone or simple string split
-                  // Assuming YYYY-MM-DD string, splitting is safer for local display without timezone shifts
                   const [year, month] = curr.date.split("-");
                   const key = `${year}-${month}`;
                   if (!acc[key]) acc[key] = [];
@@ -238,11 +233,11 @@ export const DividendList = () => {
                 .map(([monthKey, monthDividends]) => {
                   const [year, month] = monthKey.split("-");
                   const monthName = new Date(
-                    parseInt(year),
-                    parseInt(month) - 1
+                    parseInt(year || "0"),
+                    parseInt(month || "1") - 1
                   ).toLocaleString("pt-BR", { month: "long", year: "numeric" });
 
-                  const monthTotal = (monthDividends as any[]).reduce(
+                  const monthTotal = monthDividends.reduce(
                     (sum, d) => sum + d.amount,
                     0
                   );
@@ -258,7 +253,7 @@ export const DividendList = () => {
                         </span>
                       </div>
                       <div className="space-y-3 pl-2 border-l-2 border-white/5 ml-3">
-                        {(monthDividends as any[])
+                        {monthDividends
                           .sort(
                             (a, b) =>
                               new Date(b.date).getTime() -
@@ -297,7 +292,7 @@ export const DividendList = () => {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400"
-                                  onClick={() => deleteDividend(dividend.id)}
+                                  onClick={() => deleteDividend(dividend.assetId, dividend.id)}
                                 >
                                   <Trash2 size={14} />
                                 </Button>
@@ -316,6 +311,4 @@ export const DividendList = () => {
   );
 };
 
-const indicators = {
-  yield: 0, // Placeholder
-};
+

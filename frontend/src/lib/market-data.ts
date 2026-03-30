@@ -1,4 +1,3 @@
-import { showSuccess, showError } from "./toast";
 import { cryptoCircuitBreaker, stockCircuitBreaker, bcbCircuitBreaker } from "./circuit-breaker";
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3";
@@ -82,6 +81,9 @@ export const fetchMarketData = async (): Promise<MarketData> => {
               `${BRAPI_BASE_URL}/quote/USDBRL=X?token=${brapiToken}`,
               { signal: AbortSignal.timeout(10000) }
             );
+            if (usdRes.status === 429) {
+              return { results: [{ regularMarketPrice: FALLBACK_MARKET_DATA.usd }] };
+            }
             if (!usdRes.ok) throw new Error(`BRAPI API failed: ${usdRes.status}`);
             return usdRes.json();
           },
@@ -161,8 +163,7 @@ export const fetchStockQuote = async (ticker: string) => {
     );
     
     if (response.status === 429) {
-      console.warn(`Rate limited for ${ticker}, using cached data if available`);
-      return null;
+      return cached;
     }
     
     if (!response.ok) throw new Error("Failed to fetch stock quote");
@@ -183,7 +184,9 @@ export const fetchStockQuote = async (ticker: string) => {
     }
     return null;
   } catch (error) {
-    console.error(`Error fetching ${ticker}:`, error);
+    if (error instanceof Error && error.message.includes("429")) {
+      return cached;
+    }
     return null;
   }
 };

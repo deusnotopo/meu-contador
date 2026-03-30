@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { EDUCATION_MODULES, AULAS_TRILHAS, AULAS_CONQUISTAS } from "@/data/educationData";
 import { useEducation } from "@/hooks/useEducation";
 import { LessonDetailView } from "./LessonDetailView";
@@ -122,7 +122,7 @@ export const EducationSection = ({ onBack: _onBack }: { onBack?: () => void } = 
         </div>
 
         {/* Impacto Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "14px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))", gap: "8px", marginBottom: "14px" }}>
           {PANORAMA_STATS.map((s, i) => (
             <div key={i} style={{
               background: "rgba(0,0,0,0.25)", borderRadius: "12px", padding: "10px 8px", textAlign: "center"
@@ -151,7 +151,7 @@ export const EducationSection = ({ onBack: _onBack }: { onBack?: () => void } = 
               em casa sem energia para estudar. Mas o conhecimento financeiro compõe exatamente como os juros:
               <strong style={{ color: "var(--green)" }}> pequenas doses constantes geram resultados monumentais</strong>.
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "8px" }}>
               {STUDY_TIPS.map((tip, i) => (
                 <div key={i} style={{
                   background: "rgba(0,0,0,0.3)", borderRadius: "14px", padding: "12px",
@@ -226,7 +226,7 @@ export const EducationSection = ({ onBack: _onBack }: { onBack?: () => void } = 
       {filteredLessons.map((l) => {
         const isCompleted = isModuleCompleted(l.id);
         const globalIdx = EDUCATION_MODULES.findIndex(m => m.id === l.id);
-        const prevCompleted = globalIdx === 0 || isModuleCompleted(EDUCATION_MODULES[globalIdx - 1].id);
+        const prevCompleted = globalIdx === 0 || (globalIdx > 0 && isModuleCompleted(EDUCATION_MODULES[globalIdx - 1]?.id || ""));
         const isLocked = !isCompleted && globalIdx > 0 && !prevCompleted && globalIdx > 1;
 
         const tr = AULAS_TRILHAS.find(t => t.id === l.trilha);
@@ -284,7 +284,7 @@ export const EducationSection = ({ onBack: _onBack }: { onBack?: () => void } = 
 
       {/* ── Conquistas ─────────────────────────── */}
       <div className="sec-hd"><span className="sec-title">Conquistas</span></div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px", marginBottom: "16px" }}>
         {AULAS_CONQUISTAS.map((c, idx) => (
           <div key={idx} className="card" style={{ opacity: c.ok ? 1 : 0.45, display: "flex", alignItems: "center", gap: "10px", padding: "12px" }}>
             <div className="ach" style={{ background: c.ok ? "rgba(255,173,59,0.12)" : "var(--glass2)" }}>{c.emoji}</div>

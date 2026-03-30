@@ -106,7 +106,7 @@ export const initialTransactionFormData = {
   description: "",
   amount: "",
   category: "",
-  date: new Date().toISOString().split("T")[0],
+  date: new Date().toISOString().substring(0, 10),
   paymentMethod: "pix",
   notes: "",
   recurring: false,

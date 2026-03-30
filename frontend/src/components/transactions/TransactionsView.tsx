@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { ArrowLeft, Search, Upload, Trash2, Home, ShoppingCart, Utensils, Car, Pill, Film, Shirt, Package, DollarSign, TrendingUp, Receipt } from "lucide-react";
+import { ArrowLeft, Search, Upload, Trash2, Pencil, Home, ShoppingCart, Utensils, Car, Pill, Film, Shirt, Package, DollarSign, TrendingUp, Receipt } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { TabType } from "@/types/navigation";
+import type { Transaction } from "@/types";
 import { api } from "@/lib/api";
 import { showSuccess, showError } from "@/lib/toast";
+import { WizardTrigger } from "@/components/onboarding/WizardTrigger";
+import { EditTransactionModal } from "./EditTransactionModal";
 
 const PERIODS = ["Mar", "Fev", "Jan", "Dez", "Nov", "Out"];
 
@@ -17,11 +20,12 @@ interface TransactionsViewProps {
 }
 
 export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
-  const { transactions, isLoading, refresh, deleteTransaction } = useTransactions();
+  const { transactions, isLoading, refresh, deleteTransaction, updateTransaction } = useTransactions();
   const [activePeriod, setActivePeriod] = useState("Mar");
   const [search, setSearch] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -93,8 +97,9 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
         <button className="back-btn" onClick={() => onBack("inicio")}>
           <ArrowLeft size={16} />
         </button>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px", flex: 1 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px", flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
           Transações
+          <WizardTrigger label="Guia" />
         </div>
         <input 
           type="file" 
@@ -171,6 +176,13 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
                     {tx.amount > 0 ? "+" : "−"}&nbsp;{formatCurrency(Math.abs(tx.amount))}
                   </div>
                   <button
+                    onClick={() => setEditingTx(tx)}
+                    style={{ background: "none", border: "none", color: "var(--blue)", cursor: "pointer", padding: "4px", opacity: 0.7, flexShrink: 0 }}
+                    title="Editar"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
                     onClick={() => handleDelete(tx.id)}
                     disabled={deletingId === tx.id}
                     style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer", padding: "4px", opacity: deletingId === tx.id ? 0.4 : 0.6, flexShrink: 0 }}
@@ -183,6 +195,26 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
             </div>
           </div>
         ))
+      )}
+
+      {editingTx && (
+        <EditTransactionModal
+          transaction={editingTx}
+          onSave={async (id, updates) => {
+            await updateTransaction(id, {
+              type: updates.type ?? editingTx.type,
+              description: updates.description ?? editingTx.description,
+              amount: String(updates.amount ?? editingTx.amount),
+              category: updates.category ?? editingTx.category,
+              date: updates.date ?? editingTx.date,
+              paymentMethod: editingTx.paymentMethod,
+              notes: editingTx.notes,
+              recurring: editingTx.recurring,
+              scope: editingTx.scope,
+            });
+          }}
+          onClose={() => setEditingTx(null)}
+        />
       )}
     </div>
   );

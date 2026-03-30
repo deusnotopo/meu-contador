@@ -5,7 +5,7 @@ interface BudgetsTabProps {
   transactions: Transaction[];
 }
 
-export const BudgetsTab = ({ transactions }: BudgetsTabProps) => {
+export const BudgetsTab = ({ transactions: _transactions }: BudgetsTabProps) => {
   return (
     <div className="animate-in fade-in slide-in-from-right-4 duration-500">
       <BudgetsSection />

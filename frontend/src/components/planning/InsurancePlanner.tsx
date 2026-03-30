@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useDebts } from "@/hooks/useDebts";
@@ -12,7 +11,6 @@ import {
   Car, 
   Briefcase,
   Calculator,
-  TrendingUp,
   AlertTriangle,
   CheckCircle,
   Info
@@ -35,7 +33,6 @@ interface InsuranceRecommendation {
 }
 
 export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
-  const { user } = useAuth();
   const { totals } = useTransactions("personal");
   const { totals: investTotals } = useInvestments();
   const { totals: debtTotals } = useDebts();

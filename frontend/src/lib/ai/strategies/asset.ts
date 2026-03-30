@@ -1,7 +1,7 @@
 import type { ParsedIntent } from "../intent-parser";
 import type { ActionResult } from "../types";
 
-export const executeAssetAction = async (intent: ParsedIntent): Promise<ActionResult> => {
+export const executeAssetAction = async (_intent: ParsedIntent): Promise<ActionResult> => {
   // Skeleton for asset creation
   return {
     success: true,

@@ -1,5 +1,9 @@
 # 📋 Next Steps & Recommendations
 
+> Atualização estratégica: foi adicionada uma análise aprofundada em `docs/STRATEGIC_FINANCE_BR_ANALYSIS.md` com recomendações de evolução do produto baseadas em finanças pessoais, contabilidade, tributos e comportamento financeiro na realidade brasileira.
+
+> Atualização executiva: foi adicionada também a auditoria sênior `docs/SENIOR_AUDIT_REPORT_2026.md`, com notas por área, principais erros/incompletudes/oportunidades e roadmap priorizado por impacto, esforço e risco.
+
 ## 🎯 Immediate Priorities (This Week)
 
 ### 1. Configure Vercel Deploy Preview ⚙️

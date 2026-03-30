@@ -46,4 +46,29 @@ export async function transactionRoutes(app: FastifyInstance) {
     await db.transaction.delete({ where: { id } });
     return reply.status(204).send();
   });
+
+  app.put('/transactions/:id', { preHandler: [(app as any).authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const schema = z.object({
+      description: z.string().optional(),
+      amount: z.number().optional(),
+      type: z.enum(['income', 'expense']).optional(),
+      category: z.string().optional(),
+      date: z.string().optional(),
+      scope: z.enum(['personal', 'business']).optional(),
+    });
+
+    const body = schema.parse(request.body);
+    const user = request.user as { id: string };
+
+    const transaction = await db.transaction.update({
+      where: { id, userId: user.id },
+      data: {
+        ...body,
+        ...(body.date ? { date: new Date(body.date) } : {}),
+      },
+    });
+
+    return transaction;
+  });
 }

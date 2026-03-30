@@ -107,7 +107,7 @@ export const NotificationsView = ({ onBack }: NotificationsViewProps) => {
               <div
                 key={n.id}
                 className={`notif-item ${getAlertClass(n.type)}`}
-                onClick={() => targetTab && onBack(targetTab)}
+                onClick={() => targetTab && onBack?.(targetTab)}
                 style={{ cursor: targetTab ? "pointer" : "default" }}
               >
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>

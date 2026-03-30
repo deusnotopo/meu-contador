@@ -108,7 +108,7 @@ export const RemindersSection = () => {
   const handleEdit = (reminder: BillReminder) => {
     setEditingReminder(reminder);
     setFormData({
-      name: reminder.name,
+      name: reminder.name ?? "",
       amount: reminder.amount,
       dueDate: reminder.dueDate,
       category: reminder.category,
@@ -139,7 +139,7 @@ export const RemindersSection = () => {
     setFormData({
       name: "",
       amount: 0,
-      dueDate: nextMonth.toISOString().split("T")[0],
+      dueDate: nextMonth.toISOString().split("T")[0] || "",
       category: "",
       recurring: "monthly",
     });

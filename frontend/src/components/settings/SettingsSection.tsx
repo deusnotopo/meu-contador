@@ -4,13 +4,14 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useDebts } from "@/hooks/useDebts";
 import { loadProfile } from "@/lib/storage";
-import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, Smartphone, ShieldCheck, CreditCard, X, Globe, HelpCircle, Bell, Trash2, Users, History } from "lucide-react";
+import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, ShieldCheck, Globe, HelpCircle, Bell, Trash2, Users, History, Edit2 } from "lucide-react";
 import { BankConnectionsView } from "@/components/banking/BankConnectionsView";
 import { HelpCenter } from "@/components/support/HelpCenter";
 import { CollaborationPanel } from "@/components/profile/CollaborationPanel";
 import { AuditLogViewer } from "@/components/profile/AuditLogViewer";
 import { MFASetup } from "@/components/security/MFASetup";
 import { WorkspaceManager } from "@/components/settings/WorkspaceManager";
+import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { useState, useEffect } from "react";
 import type { TabType } from "@/types/navigation";
 
@@ -27,7 +28,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   const { totals: debtTotals } = useDebts();
   const profile = loadProfile();
 
-  const [showPluggy, setShowPluggy] = useState(false);
+
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [darkTheme, setDarkTheme] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
@@ -42,6 +43,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   const [showCollaboration, setShowCollaboration] = useState(false);
   const [showMFA, setShowMFA] = useState(false);
   const [showAuditLog, setShowAuditLog] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   // Calculate real financial data
   const globalTotals = {
@@ -65,7 +67,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   const healthScore = calculateScore();
 
   // Calculate saving rate
-  const savingRate = globalTotals.income > 0 ? (globalTotals.balance / globalTotals.income) * 100 : 0;
+
 
   // Calculate FIRE progress (simplified: assuming 25x annual expenses as FIRE number)
   const annualExpenses = globalTotals.expense * 12;
@@ -110,9 +112,15 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <button className="back-btn" onClick={handleBack}>
           <ArrowLeft size={16} />
         </button>
-        <div className="page-title" style={{ margin: 0 }}>
+        <div className="page-title" style={{ margin: 0, flex: 1 }}>
           Perfil
         </div>
+        <button 
+          onClick={() => setShowEditProfile(true)} 
+          style={{ padding: "6px 12px", display: "flex", alignItems: "center", gap: 6, borderRadius: 20, background: "var(--glass)", border: "1px solid var(--border)", color: "var(--t1)", cursor: "pointer", fontSize: 13, fontWeight: 500 }}
+        >
+          <Edit2 size={14} /> Editar
+        </button>
       </div>
 
       <div className="hero" style={{ textAlign: "center", padding: 24 }}>
@@ -349,7 +357,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
             </button>
             <CollaborationPanel 
               profile={profile || {}} 
-              onUpdate={(updatedProfile) => {/* Handle profile update */}}
+              onUpdate={() => {/* Handle profile update */}}
               userId={user?.id || ""}
             />
           </div>
@@ -367,6 +375,9 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
             <MFASetup />
           </div>
         </div>
+      )}
+      {showEditProfile && (
+        <EditProfileModal onClose={() => setShowEditProfile(false)} />
       )}
       {showAuditLog && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, overflow: "auto", padding: 20 }}>

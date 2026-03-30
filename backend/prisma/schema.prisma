@@ -6,9 +6,15 @@ generator client {
 // Run with: npm run db:seed
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+}
+
+enum DataReliability {
+  REAL
+  ESTIMATED
+  HEURISTIC
+  BENCHMARK
+  EXTERNAL_SOURCE
 }
 
 model User {
@@ -24,9 +30,10 @@ model User {
   initialBalance  Float       @default(0)
   isPro           Boolean     @default(false)
   subscriptionPlan String     @default("free")
+  onboardingCompleted Boolean @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-  
+
   // Business Profile
   businessName    String?
   businessCnpj    String?
@@ -34,7 +41,7 @@ model User {
 
   workspaces      Workspace[] @relation("UserWorkspaces")
   currentWorkspaceId String?
-  
+
   transactions    Transaction[]
   budgets         Budget[]
   goals           SavingsGoal[]
@@ -55,7 +62,7 @@ model Workspace {
   members     User[]   @relation("UserWorkspaces")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   transactions Transaction[]
   invoices     Invoice[]
 }
@@ -82,13 +89,14 @@ model Transaction {
   user               User     @relation(fields: [userId], references: [id])
   workspaceId        String?
   workspace          Workspace? @relation(fields: [workspaceId], references: [id])
-  
+
   // Open Finance Integration
   bankAccountId      String?
   bankAccount        BankAccount? @relation(fields: [bankAccountId], references: [id])
   pluggyTransactionId String? @unique
-  
+
   createdAt          DateTime @default(now())
+  dataReliability   DataReliability @default(REAL)
 
   @@unique([userId, fitid], name: "unique_user_fitid")
 }
@@ -116,12 +124,12 @@ model BankAccount {
   subtype         String?
   bankName        String?
   bankImageUrl    String?
-  
+
   connectionId    String
   connection      BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   userId          String
   user            User     @relation(fields: [userId], references: [id])
-  
+
   transactions    Transaction[]
 }
 
@@ -184,9 +192,10 @@ model Investment {
   sector       String?
   targetAllocation Float?
   lastUpdate   DateTime @default(now())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  
+    userId       String
+    dataReliability DataReliability @default(REAL)
+    user         User     @relation(fields: [userId], references: [id])
+
   dividends    Dividend[]
   sales        InvestmentSale[]
 }
@@ -223,6 +232,7 @@ model Debt {
   dueDate      DateTime?
   category     String
   userId       String
+  dataReliability DataReliability @default(REAL)
   user         User     @relation(fields: [userId], references: [id])
 }
 

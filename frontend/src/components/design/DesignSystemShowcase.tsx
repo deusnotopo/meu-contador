@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 
 export const DesignSystemShowcase = () => {
@@ -16,18 +16,6 @@ export const DesignSystemShowcase = () => {
       { name: "700", hex: "#0369a1" },
       { name: "800", hex: "#075985" },
       { name: "900", hex: "#0c4a6e" },
-    ],
-    neutral: [
-      { name: "50", hex: "#fafafa" },
-      { name: "100", hex: "#f4f4f5" },
-      { name: "200", hex: "#e4e4e7" },
-      { name: "300", hex: "#d4d4d8" },
-      { name: "400", hex: "#a1a1aa" },
-      { name: "500", hex: "#71717a" },
-      { name: "600", hex: "#52525b" },
-      { name: "700", hex: "#3f3f46" },
-      { name: "800", hex: "#27272a" },
-      { name: "900", hex: "#18181b" },
     ],
   };
 

@@ -76,7 +76,7 @@ export const ReceiptScanner = ({
         amount: data.amount?.toString() || "",
         description: data.merchant || "",
         category: data.category || "Outros",
-        date: data.date || new Date().toISOString().split("T")[0],
+        date: data.date ?? new Date().toISOString().split("T")[0],
       });
       showSuccess(
         `Recibo processado! Confiança: ${Math.round(data.confidence)}%`
@@ -102,8 +102,8 @@ export const ReceiptScanner = ({
       currency: "BRL",
       description: formData.description,
       type: "expense",
-      category: formData.category,
-      date: formData.date,
+      category: formData.category || "Outros",
+      date: formData.date || (new Date().toISOString().split("T")[0] || ""),
       scope: "personal",
       paymentMethod: "pix",
       classification: "necessity",

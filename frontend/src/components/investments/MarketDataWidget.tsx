@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchMarketData, MarketData } from "@/lib/market-data";
-import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { TrendingUp, DollarSign } from "lucide-react";
 
 export const MarketDataWidget = () => {
   const [data, setData] = useState<MarketData | null>(null);

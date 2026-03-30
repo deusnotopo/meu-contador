@@ -14,14 +14,15 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
   const { isPro } = useAuth();
   // Can be connected to remote configuration (Firebase Remote Config, LaunchDarkly, etc.)
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const isDev = import.meta.env.DEV;
 
   const isEnabled = (feature: FeatureFlag): boolean => {
-    if (feature in overrides) return overrides[feature];
+    if (overrides[feature] !== undefined) return overrides[feature] ?? false;
     
     // Default flags configuration
     const flags: Record<FeatureFlag, boolean> = {
       premium_analytics: isPro,
-      ai_advisor: isPro,
+      ai_advisor: isPro || isDev,
       multi_currency: false,
     };
 

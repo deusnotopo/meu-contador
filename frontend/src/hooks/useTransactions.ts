@@ -199,9 +199,11 @@ export const useTransactions = (
         categoryTotals[t.category] = { income: 0, expense: 0 };
       }
       if (t.type === "income") {
-        categoryTotals[t.category].income += t.amount;
+        const entry = categoryTotals[t.category];
+        if (entry) entry.income += t.amount;
       } else {
-        categoryTotals[t.category].expense += t.amount;
+        const entry = categoryTotals[t.category];
+        if (entry) entry.expense += t.amount;
       }
     });
 
@@ -238,9 +240,11 @@ export const useTransactions = (
       }
 
       if (t.type === "income") {
-        monthlyData[monthKey].receitas += t.amount;
+        const entry = monthlyData[monthKey];
+        if (entry) entry.receitas += t.amount;
       } else {
-        monthlyData[monthKey].despesas += t.amount;
+        const entry = monthlyData[monthKey];
+        if (entry) entry.despesas += t.amount;
       }
     });
 

@@ -86,7 +86,7 @@ export const getFinancialInsights = async (
     const data = result.data as AIResponseData;
     
     // The Function returns the full OpenAI/Mistral response format
-    const contentString = data.choices[0].message.content;
+    const contentString = data.choices[0]?.message?.content || "";
 
     let content;
     try {

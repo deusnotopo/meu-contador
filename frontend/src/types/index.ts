@@ -49,9 +49,9 @@ export interface SavingsGoal {
   name: string;
   targetAmount: number;
   currentAmount: number;
-  deadline: string;
+  deadline?: string;
   icon: string;
-  color: string;
+  color?: string;
 }
 
 // ============= Bill Reminder Types =============
@@ -177,19 +177,19 @@ export interface OnboardingBudget {
 }
 
 export interface OnboardingGoal {
-  name: string;
-  icon: string;
-  targetAmount: number;
-  deadline: string;
-  priority: number;
+  name?: string;
+  icon?: string;
+  targetAmount?: number;
+  deadline?: string;
+  priority?: number;
   enabled: boolean;
 }
 
 export interface OnboardingReminder {
-  name: string;
-  amount: number;
-  dueDay: number;
-  category: string;
+  name?: string;
+  amount?: number;
+  dueDay?: number;
+  category?: string;
   enabled: boolean;
 }
 
@@ -211,12 +211,32 @@ export interface OnboardingData {
     weeklyReport: boolean;
     alerts: boolean;
   };
-  investments?: Investment[];
+  investments?: OnboardingInvestment[];
   completed: boolean;
   completedAt?: string;
 }
 
 // ============= Investment Types =============
+
+/** Ativo de investimento usado no wizard de onboarding (id temporário numérico) */
+export interface OnboardingInvestment {
+  id: number;
+  name: string;
+  ticker: string;
+  type: "stock" | "fii" | "crypto" | "fixed_income" | "etf";
+  amount: number;
+  averagePrice: number;
+  currentPrice: number;
+  sector: string;
+  lastUpdate: string;
+}
+
+/** Investment com relações carregadas (sales e dividends) retornadas pelo backend */
+export interface InvestmentWithRelations extends Investment {
+  sales?: InvestmentSale[];
+  dividends?: Dividend[];
+}
+
 export interface Investment {
   id: string;
   name: string;

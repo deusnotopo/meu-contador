@@ -1,0 +1,502 @@
+/* ============================================================
+   MOBILE.CSS — Single Source of Truth for Mobile Responsiveness
+   Loaded LAST to override all duplicate rules in finapp-v3.css / responsive.css
+   Targets: iPhone SE (375px) → iPhone 15 Pro Max (430px) → Galaxy S24 (412px)
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. APP SHELL — Full-screen native on every phone
+   ---------------------------------------------------------- */
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;          /* prevents pull-to-refresh bounce */
+  overscroll-behavior: none;
+  background: #04070F;
+}
+
+/* The real app container */
+.app-root {
+  width: 100%;
+  height: 100dvh;            /* dynamic viewport height respects browser chrome */
+  background: var(--bg, #04070F);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  /* Safe area for notch / punch hole / home bar */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  /* DO NOT pad bottom here — tabbar handles it */
+}
+
+/* Desktop: centered "phone" frame */
+@media (min-width: 768px) {
+  body {
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #060A14;
+    min-height: 100vh;
+  }
+  .app-root {
+    width: 430px;
+    max-width: 430px;
+    height: min(900px, 96vh);
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 60px 120px rgba(0,0,0,0.9),
+      0 0 80px rgba(74,139,255,0.07);
+    padding-top: 0;          /* no notch on desktop frame */
+  }
+}
+
+/* ----------------------------------------------------------
+   2. SCREEN + SCROLLABLE CONTENT AREA
+   ---------------------------------------------------------- */
+
+.screen {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;             /* critical for flex children to scroll correctly */
+}
+
+/* Single definition that wins — used by every page */
+.scontent {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  /* Bottom pad = tabbar height (~56px) + safe area + breathing room */
+  padding: 0 16px calc(72px + env(safe-area-inset-bottom, 0px));
+  scrollbar-width: none;
+  min-height: 0;
+}
+.scontent::-webkit-scrollbar { display: none; }
+
+/* Tiny phones (iPhone SE, Galaxy A03) */
+@media (max-width: 375px) {
+  .scontent { padding-left: 12px; padding-right: 12px; }
+}
+/* Most phones */
+@media (min-width: 376px) and (max-width: 430px) {
+  .scontent { padding-left: 16px; padding-right: 16px; }
+}
+/* Large phones / phablets */
+@media (min-width: 431px) and (max-width: 767px) {
+  .scontent { padding-left: 20px; padding-right: 20px; }
+}
+
+/* ----------------------------------------------------------
+   3. BOTTOM TAB BAR — Mobile-native, safe-area aware
+   ---------------------------------------------------------- */
+
+.tabbar {
+  /* Use auto height — adapts to content + safe area */
+  height: auto !important;
+  min-height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  padding: 8px 4px 0;
+  /* Home indicator (iPhone) and Android nav bar */
+  padding-bottom: max(env(safe-area-inset-bottom, 10px), 10px);
+  background: rgba(6, 9, 20, 0.98);
+  border-top: 1px solid rgba(255,255,255,0.065);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  /* Remove the position:sticky from responsive.css that breaks flex layout */
+  position: relative;
+  z-index: 40;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  /* Gradient accent line above */
+}
+.tabbar::-webkit-scrollbar { display: none; }
+.tabbar::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(74,139,255,0.25), transparent);
+  pointer-events: none;
+}
+
+/* Tab buttons */
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  /* Touch target minimum 44×44px */
+  min-width: 44px;
+  padding: 4px 0 2px;
+  border: none;
+  background: none;
+  font-family: var(--font, 'DM Sans', sans-serif);
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.tab:active { transform: scale(0.88); }
+
+/* Icon container pill */
+.tab-pip {
+  width: 46px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.34,1.4,0.64,1);
+}
+.tab.active .tab-pip {
+  background: rgba(74,139,255,0.14);
+}
+
+/* SVG icons inside tab */
+.tab svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: rgba(136,153,196,0.5);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.2s;
+}
+.tab.active svg { stroke: #4A8BFF; }
+
+/* Label */
+.tab-lbl {
+  font-size: 9px;
+  color: rgba(61,79,114,0.9);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+  line-height: 1;
+}
+.tab.active .tab-lbl { color: #4A8BFF; }
+
+/* ----------------------------------------------------------
+   4. CARDS — Consistent across all phones
+   ---------------------------------------------------------- */
+
+.card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+.card:active { border-color: rgba(74,139,255,0.3); }
+
+.hero {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 22px;
+  padding: 20px 16px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(74,139,255,0.3), transparent);
+}
+
+/* ----------------------------------------------------------
+   5. TYPOGRAPHY — Scales with screen width
+   ---------------------------------------------------------- */
+
+.page-title {
+  font-size: clamp(18px, 5.5vw, 24px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.bignum {
+  font-size: clamp(30px, 9vw, 42px);
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.eyebrow {
+  font-size: clamp(9px, 2.5vw, 11px);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t3, #3D4F72);
+}
+
+/* ----------------------------------------------------------
+   6. INPUTS — Touch-friendly 44px minimum
+   ---------------------------------------------------------- */
+
+input, select, textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px;
+  color: #F0F4FF;
+  font-size: 15px;                /* prevents iOS zoom on focus */
+  font-family: var(--font, 'DM Sans', sans-serif);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(74,139,255,0.5);
+  box-shadow: 0 0 0 3px rgba(74,139,255,0.08);
+}
+input::placeholder, textarea::placeholder {
+  color: rgba(61,79,114,0.8);
+}
+
+/* ----------------------------------------------------------
+   7. BUTTONS — Fat touch targets
+   ---------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.04);
+  color: #F0F4FF;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.btn:active { transform: scale(0.96); opacity: 0.85; }
+.btn-primary {
+  background: #4A8BFF;
+  border-color: #4A8BFF;
+  color: #fff;
+}
+.btn-primary:active { background: #3a7bef; }
+
+/* ----------------------------------------------------------
+   8. ROWS / LISTS — Swipe-friendly
+   ---------------------------------------------------------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  min-height: 52px;          /* comfortable touch target */
+  -webkit-tap-highlight-color: transparent;
+}
+.row:last-child { border-bottom: none; }
+.row-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.row-main { flex: 1; min-width: 0; }
+.row-title { font-size: 14px; font-weight: 600; color: #F0F4FF; }
+.row-sub { font-size: 12px; color: #8899C4; margin-top: 1px; }
+.row-amt { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; flex-shrink: 0; }
+
+/* ----------------------------------------------------------
+   9. GRIDS — Adaptive for all widths
+   ---------------------------------------------------------- */
+
+/* 2-col grid that collapses on very small screens */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (max-width: 340px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* 3-col stat blocks */
+.stat3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.s3i {
+  background: rgba(255,255,255,0.02);
+  padding: 12px 8px;
+  text-align: center;
+}
+.s3l {
+  font-size: 9px;
+  color: var(--t3, #3D4F72);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+  font-weight: 600;
+}
+.s3v {
+  font-size: clamp(13px, 3.5vw, 15px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--mono, monospace);
+}
+
+/* Quick action 4-col grid */
+.qa-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+@media (max-width: 360px) {
+  .qa-grid { gap: 6px; }
+}
+
+/* ----------------------------------------------------------
+   10. SECTION HEADERS
+   ---------------------------------------------------------- */
+
+.sec-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 10px;
+}
+.sec-title { font-size: 16px; font-weight: 700; color: #F0F4FF; }
+.sec-link  { font-size: 12px; color: #4A8BFF; cursor: pointer; }
+
+/* ----------------------------------------------------------
+   11. PROGRESS BARS
+   ---------------------------------------------------------- */
+
+.prog {
+  width: 100%;
+  height: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: #4A8BFF;
+  transition: width 0.4s ease;
+}
+
+/* ----------------------------------------------------------
+   12. ENV GRID (Envelopes) — 2 col on all phones
+   ---------------------------------------------------------- */
+
+.env-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (max-width: 340px) {
+  .env-grid { grid-template-columns: 1fr; }
+}
+
+/* ----------------------------------------------------------
+   13. ONBOARDING WIZARD — full-screen overlay
+   ---------------------------------------------------------- */
+
+/* The wizard is rendered outside PhoneShell so it must cover entire viewport */
+[data-wizard] {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg, #04070F);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ----------------------------------------------------------
+   14. MISC UTILITIES
+   ---------------------------------------------------------- */
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.overflow-x-auto {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.overflow-x-auto::-webkit-scrollbar { display: none; }
+
+/* Horizontal pill chips */
+.pill-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.pill-row::-webkit-scrollbar { display: none; }
+
+/* Prevent text overflow in narrow containers */
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Safe-area top spacer (for pages that don't use PhoneShell) */
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Touch callout disable for buttons */
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Fix iOS input zoom (must be >= 16px) */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+}

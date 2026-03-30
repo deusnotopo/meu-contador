@@ -31,6 +31,8 @@ import { EmptyState } from "../ui/EmptyState";
 import { PrivacyValue } from "../ui/PrivacyValue";
 import { FadeIn } from "../ui/skeleton";
 import { useState } from "react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export const InvoicesSection = () => {
   const { invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
@@ -42,7 +44,7 @@ export const InvoicesSection = () => {
     client: "",
     amount: "",
     status: "pending" as any,
-    dueDate: new Date().toISOString().split("T")[0],
+    dueDate: new Date().toISOString().substring(0, 10),
   });
 
   const handleOpenChange = (open: boolean) => {
@@ -54,7 +56,7 @@ export const InvoicesSection = () => {
         client: "",
         amount: "",
         status: "pending",
-        dueDate: new Date().toISOString().split("T")[0],
+        dueDate: new Date().toISOString().substring(0, 10),
       });
     }
   };
@@ -84,6 +86,47 @@ export const InvoicesSection = () => {
       addInvoice(data);
     }
     handleOpenChange(false);
+  };
+
+  const handleDownloadPDF = (inv: Invoice) => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.text("NOTA FISCAL DE SERVIÇOS", 105, 20, { align: "center" });
+    
+    doc.setFontSize(10);
+    doc.text(`Número: ${inv.number}`, 20, 40);
+    doc.text(`Data de Emissão: ${new Date().toLocaleDateString("pt-BR")}`, 20, 45);
+    doc.text(`Vencimento: ${new Date(inv.dueDate).toLocaleDateString("pt-BR")}`, 20, 50);
+
+    // Client Info
+    doc.setFontSize(14);
+    doc.text("TOMADOR DO SERVIÇO", 20, 65);
+    doc.setFontSize(10);
+    doc.text(`Cliente: ${inv.client}`, 20, 75);
+
+    // Table
+    autoTable(doc, {
+      startY: 90,
+      head: [["Descrição", "Valor Base", "Impostos", "Total"]],
+      body: [
+        [
+          `Serviços prestados conforme NF ${inv.number}`,
+          `R$ ${inv.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+          "R$ 0,00",
+          `R$ ${inv.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+        ],
+      ],
+      theme: "grid",
+      headStyles: { fillColor: [79, 70, 229] },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(12);
+    doc.text(`VALOR TOTAL: R$ ${inv.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 140, finalY);
+
+    doc.save(`NF_${inv.number}_${inv.client.replace(/\s+/g, "_")}.pdf`);
   };
 
   const statusConfig = {
@@ -268,7 +311,7 @@ export const InvoicesSection = () => {
           ) : (
             <div className="divide-y divide-white/5">
               {invoices.map((inv) => {
-                const config = statusConfig[inv.status];
+                const config = statusConfig[inv.status as keyof typeof statusConfig] || statusConfig.pending;
                 const Icon = config.icon;
 
                 return (
@@ -278,9 +321,9 @@ export const InvoicesSection = () => {
                   >
                     <div className="flex items-center gap-6">
                       <div
-                        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${config.color
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${(config.color || "")
                           .split(" ")[0]
-                          .replace("10", "20")} ${config.color.split(" ")[1]}`}
+                          ?.replace("10", "20")} ${(config.color || "").split(" ")[1] || ""}`}
                       >
                         <Icon size={24} />
                       </div>
@@ -306,6 +349,19 @@ export const InvoicesSection = () => {
                       </div>
                     </div>
 
+                    <div className="flex-1 flex justify-center md:justify-start">
+                      {inv.status !== "paid" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 rounded-lg text-[10px] font-black uppercase tracking-widest px-4"
+                          onClick={() => updateInvoice(inv.id, { status: "paid" })}
+                        >
+                          Marcar como Pago
+                        </Button>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between md:justify-end gap-10">
                       <div className="text-right">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-1">
@@ -317,6 +373,15 @@ export const InvoicesSection = () => {
                       </div>
 
                       <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-12 w-12 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5"
+                          onClick={() => handleDownloadPDF(inv)}
+                          title="Baixar PDF"
+                        >
+                          <FileText size={16} />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

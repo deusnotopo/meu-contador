@@ -45,7 +45,7 @@ export const checkRecurringTransactions = () => {
         // If the calculated next due date is in the future, stop
         if (nextDueDate > today) break;
 
-        const nextDueDateStr = nextDueDate.toISOString().split("T")[0];
+        const nextDueDateStr = nextDueDate.toISOString().split("T")[0] || "";
 
         // Check if this specific occurrence already exists
         const alreadyExists = loaded.some(

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { History, User, Clock, Info } from "lucide-react";
+import { History, Clock, Info } from "lucide-react";
 import type { AuditLogEntry } from "@/lib/audit-service";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 

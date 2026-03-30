@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 interface TesouroTitle {
   nome: string;
@@ -12,12 +12,29 @@ export const TesouroDiretoRates = () => {
   const [titles, setTitles] = useState<TesouroTitle[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fallbackTitles: TesouroTitle[] = [
+    { nome: "Tesouro IPCA+ 2035", vencimento: "15/05/2035", taxa: 6.12, preco: 3215.45, tipo: "IPCA+" },
+    { nome: "Tesouro Prefixado 2029", vencimento: "01/01/2029", taxa: 11.85, preco: 892.30, tipo: "Prefixado" },
+    { nome: "Tesouro Selic 2029", vencimento: "01/03/2029", taxa: 0.15, preco: 13145.67, tipo: "Selic" },
+    { nome: "Tesouro IPCA+ 2045", vencimento: "15/05/2045", taxa: 6.25, preco: 2890.2, tipo: "IPCA+" },
+    { nome: "Tesouro Prefixado 2033", vencimento: "01/01/2033", taxa: 12.1, preco: 745.8, tipo: "Prefixado" },
+  ];
+
   const fmt = (n: number) => "R$\u00a0" + n.toFixed(2).replace(".", ",");
   const fmtPct = (n: number) => n.toFixed(2) + "% a.a.";
 
   useEffect(() => {
     const loadTesouroData = async () => {
       setLoading(true);
+
+      // Não existe rota backend para este recurso neste ambiente local.
+      // Em dev, usamos fallback silencioso para evitar 404 no console.
+      if (import.meta.env.DEV) {
+        setTitles(fallbackTitles);
+        setLoading(false);
+        return;
+      }
+
       try {
         // Try to fetch from API via proxy or backend
         const response = await fetch("/api/tesouro-direto", {
@@ -42,14 +59,7 @@ export const TesouroDiretoRates = () => {
         throw new Error("API not available");
       } catch (error) {
         // Use fallback data on any error (CORS, timeout, etc.)
-        console.log("Using fallback Tesouro Direto data");
-        setTitles([
-          { nome: "Tesouro IPCA+ 2035", vencimento: "15/05/2035", taxa: 6.12, preco: 3215.45, tipo: "IPCA+" },
-          { nome: "Tesouro Prefixado 2029", vencimento: "01/01/2029", taxa: 11.85, preco: 892.30, tipo: "Prefixado" },
-          { nome: "Tesouro Selic 2029", vencimento: "01/03/2029", taxa: 0.15, preco: 13145.67, tipo: "Selic" },
-          { nome: "Tesouro IPCA+ 2045", vencimento: "15/05/2045", taxa: 6.25, preco: 2890.20, tipo: "IPCA+" },
-          { nome: "Tesouro Prefixado 2033", vencimento: "01/01/2033", taxa: 12.10, preco: 745.80, tipo: "Prefixado" },
-        ]);
+        setTitles(fallbackTitles);
       } finally {
         setLoading(false);
       }

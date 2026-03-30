@@ -10,7 +10,7 @@ interface PremiumGateProps {
   fallback?: ReactNode;
 }
 
-export function PremiumGate({ children, feature, fallback }: PremiumGateProps) {
+export function PremiumGate({ children, feature }: PremiumGateProps) {
   const { isEnabled } = useFeatureFlags();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const hasAccess = isEnabled(feature);

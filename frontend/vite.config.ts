@@ -21,11 +21,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Meu Contador - Gestão Financeira',
+        name: 'Meu Contador - Gestão Financeira com IA',
         short_name: 'Meu Contador',
-        description: 'Aplicativo completo de gestão financeira pessoal e empresarial',
-        theme_color: '#6366f1',
-        background_color: '#0f172a',
+        description: 'O Super App Financeiro que organiza suas contas com inteligência artificial.',
+        theme_color: '#4f46e5',
+        background_color: '#020617',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -35,26 +35,39 @@ export default defineConfig({
             src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'maskable'
           },
         ],
+        screenshots: [
+          {
+            src: 'screenshot-mobile.png',
+            sizes: '390x844',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Dashboard do Meu Contador'
+          }
+        ],
+        categories: ['finance', 'productivity'],
+        lang: 'pt-BR'
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 3000000 // 3MB
       },
       devOptions: {
-        enabled: true,
+        enabled: false,
         type: 'module',
       },
     }),
@@ -79,10 +92,15 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

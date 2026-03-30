@@ -1,0 +1,57 @@
+﻿src/App.tsx(2,8): error TS6133: 'React' is declared but its value is never read.
+src/components/ai/AIAssistantView.tsx(2,1): error TS6133: 'motion' is declared but its value is never read.
+src/components/ai/SmartCoach.tsx(141,18): error TS18048: 'activeInsight' is possibly 'undefined'.
+src/components/ai/SmartCoach.tsx(236,26): error TS18048: 'activeInsight' is possibly 'undefined'.
+src/components/ai/SmartCoach.tsx(240,73): error TS18048: 'activeInsight' is possibly 'undefined'.
+src/components/ai/SmartCoach.tsx(244,66): error TS18048: 'activeInsight' is possibly 'undefined'.
+src/components/ai/SmartCoach.tsx(246,26): error TS18048: 'activeInsight' is possibly 'undefined'.
+src/components/ai/SmartCoach.tsx(250,91): error TS18048: 'activeInsight' is possibly 'undefined'.
+src/components/ai/SmartCoach.tsx(252,28): error TS18048: 'activeInsight' is possibly 'undefined'.
+src/components/ai/SmartCoach.tsx(255,28): error TS18048: 'activeInsight' is possibly 'undefined'.
+src/components/ai/VoiceInput.tsx(52,28): error TS2532: Object is possibly 'undefined'.
+src/components/ai/VoiceInput.tsx(52,28): error TS2532: Object is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(56,11): error TS2532: Object is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(58,11): error TS2532: Object is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(95,26): error TS18048: 'previousMonth' is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(96,11): error TS18048: 'currentMonth' is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(96,33): error TS18048: 'previousMonth' is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(96,57): error TS18048: 'previousMonth' is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(98,27): error TS18048: 'previousMonth' is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(99,11): error TS18048: 'currentMonth' is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(99,35): error TS18048: 'previousMonth' is possibly 'undefined'.
+src/components/analytics/AnalyticsDashboard.tsx(99,61): error TS18048: 'previousMonth' is possibly 'undefined'.
+src/components/banking/BankConnectionsView.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/banking/BankConnectionsView.tsx(2,26): error TS6133: 'BankConnection' is declared but its value is never read.
+src/components/banking/BankConnectionsView.tsx(93,19): error TS6133: 'totalBalance' is declared but its value is never read.
+src/components/business/BusinessFinance.tsx(266,71): error TS2322: Type '(amount: number, from: Currency, to: Currency) => number' is not assignable to type '(amount: number, from: string, to: string) => number'.
+  Types of parameters 'from' and 'from' are incompatible.
+    Type 'string' is not assignable to type 'Currency'.
+src/components/business/InvoicesSection.tsx(84,18): error TS2345: Argument of type '{ amount: number; number: string; client: string; status: any; dueDate: string | undefined; }' is not assignable to parameter of type 'Omit<Invoice, "id">'.
+  Types of property 'dueDate' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/business/InvoicesSection.tsx(281,94): error TS2532: Object is possibly 'undefined'.
+src/components/charts/AdvancedCombinedChart.tsx(67,17): error TS2532: Object is possibly 'undefined'.
+src/components/charts/AdvancedCombinedChart.tsx(67,36): error TS2532: Object is possibly 'undefined'.
+src/components/charts/AdvancedCombinedChart.tsx(77,29): error TS2532: Object is possibly 'undefined'.
+src/components/charts/AdvancedCombinedChart.tsx(77,48): error TS2532: Object is possibly 'undefined'.
+src/components/contador/TransactionForm.tsx(38,65): error TS2345: Argument of type '{ currency: "BRL"; scope: "personal" | "business"; type: "expense"; description: string; amount: string; category: string; date: string | undefined; paymentMethod: string; notes: string; recurring: boolean; classification: "necessity"; }' is not assignable to parameter of type 'TransactionFormData | (() => TransactionFormData)'.
+  Type '{ currency: "BRL"; scope: "personal" | "business"; type: "expense"; description: string; amount: string; category: string; date: string | undefined; paymentMethod: string; notes: string; recurring: boolean; classification: "necessity"; }' is not assignable to type 'TransactionFormData'.
+    Types of property 'date' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/contador/TransactionForm.tsx(54,19): error TS2345: Argument of type '{ scope: "personal" | "business"; type: "expense"; description: string; amount: string; category: string; date: string | undefined; paymentMethod: string; notes: string; recurring: boolean; classification: "necessity"; }' is not assignable to parameter of type 'SetStateAction<TransactionFormData>'.
+  Type '{ scope: "personal" | "business"; type: "expense"; description: string; amount: string; category: string; date: string | undefined; paymentMethod: string; notes: string; recurring: boolean; classification: "necessity"; }' is not assignable to type 'TransactionFormData'.
+    Types of property 'date' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/components/dashboard/OpenBillsWidget.tsx(6,29): error TS6196: 'Transaction' is declared but never used.
+src/components/dashboard/OpenBillsWidget.tsx(39,27): error TS2304: Cannot find name 'TransactionFormData'.
+src/components/design/DesignSystemShowcase.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/education/EducationSection.tsx(229,86): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/FunctionsHub.tsx(4,1): error TS6133: 'useTransactions' is declared but its value is never read.
+src/components/FunctionsHub.tsx(5,1): error TS6133: 'useInvestments' is declared but its value is never read.
+src/components/FunctionsHub.tsx(6,1): error TS6133: 'showSuccess' is declared but its value is never read.
+src/components/FunctionsHub.tsx(14,73): error TS6133: 'onBack' is declared but its value is never read.
+src/components/investments/DividendList.tsx(59,7): error TS2353: Object literal may only specify known properties, and 'assetId' does not exist in type 'Omit<Dividend, "id" | "assetId" | "assetTicker">'.

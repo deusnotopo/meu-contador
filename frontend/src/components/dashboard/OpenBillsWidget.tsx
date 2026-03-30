@@ -3,7 +3,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { loadReminders, saveReminders } from "@/lib/storage";
 import { showSuccess, showError } from "@/lib/toast";
 import { useRole } from "@/context/AuthContext";
-import type { BillReminder, Transaction } from "@/types";
+import type { BillReminder, TransactionFormData } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Check, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -36,18 +36,18 @@ export const OpenBillsWidget = () => {
     saveReminders(updated);
 
     // 2. Create transaction
-    const newTransaction: Omit<Transaction, "id"> = {
+    const newTransaction: TransactionFormData = {
       type: "expense",
-      amount: bill.amount,
+      amount: bill.amount.toString(),
       category: bill.category,
       description: `Pgto: ${bill.name}`,
-      date: new Date().toISOString().split("T")[0],
+      date: new Date().toISOString().substring(0, 10),
       paymentMethod: "Conta Corrente",
       recurring: false,
       scope: "personal",
       notes: "Pagamento de conta agendada",
     };
-    addTransaction(newTransaction as any);
+    addTransaction(newTransaction);
 
     showSuccess(`Conta "${bill.name}" paga com sucesso!`);
     loadData(); // Refresh list

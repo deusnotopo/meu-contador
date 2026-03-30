@@ -8,7 +8,8 @@ import { useAuth } from "@/context/AuthContext";
 import { formatShortDate } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useTour } from "@/hooks/useTour";
-import { AlertCircle, BarChart3 as ChartBarIcon } from "lucide-react";
+import { useGamification } from "@/hooks/useGamification";
+import { AlertCircle, BarChart3 as ChartBarIcon, Trophy, Flame } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 
 // Sub-components
@@ -18,6 +19,8 @@ import { FluxoMensal } from "./dashboard/FluxoMensal";
 import { RecentTransactions } from "./dashboard/RecentTransactions";
 import { UserNav } from "./layout/UserNav";
 import { AreaTutorialButton } from "./ui/AreaTutorialButton";
+import { WizardTrigger } from "./onboarding/WizardTrigger";
+import { TermometroDoMes } from "./dashboard/TermometroDoMes";
 
 const fmt = (n: number) => 'R$\u00a0' + Math.round(n).toLocaleString('pt-BR');
 const fmtM = (n: number) => n >= 1e6 ? 'R$\u00a0' + (n / 1e6).toFixed(2).replace('.', ',') + ' M' : fmt(n);
@@ -29,6 +32,8 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   const { totals: debtTotals, error: debtError } = useDebts();
   const { goals } = useGoals();
   const { startTour } = useTour();
+  const { level, streaks } = useGamification();
+  const loginStreak = streaks['login'];
   
   React.useEffect(() => {
     startTour('dashboard');
@@ -138,21 +143,64 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   return (
     <div style={{ paddingTop: "10px" }} id="dashboard-overview">
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <div>
-          <div className="eyebrow" style={{ color: "var(--t3)", letterSpacing: "1px", fontSize: "11px" }}>{capitalizedDate}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: "4px" }}>
-            <div className="page-title" style={{ fontSize: "24px", letterSpacing: "-0.5px", background: "linear-gradient(90deg, var(--t1) 0%, var(--t2) 100%)", WebkitBackgroundClip: "text", color: "transparent" }}>
-              {greeting}, {firstName} {greetingEmoji}
-            </div>
-            {hasError && (
-              <div className="bdg bdg-r shadow-glow" style={{ animation: 'pulse 2s infinite' }}>
-                <AlertCircle size={10} /> Offline
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "14px",
+            background: "rgba(255,255,255,0.03)",
+            backdropFilter: "blur(8px)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+            overflow: "hidden"
+          }}>
+            <img src="/logo-new.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: "6px" }} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="eyebrow" style={{ color: "var(--t3)", letterSpacing: "1px", fontSize: "11px" }}>{capitalizedDate}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: "2px" }}>
+              <div className="page-title" style={{ fontSize: "22px", letterSpacing: "-0.5px", background: "linear-gradient(90deg, var(--t1) 0%, var(--t2) 100%)", WebkitBackgroundClip: "text", color: "transparent", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+                {greeting}, {firstName} {greetingEmoji}
               </div>
-            )}
+              {hasError && (
+                <div className="bdg bdg-r shadow-glow" style={{ animation: 'pulse 2s infinite' }}>
+                  <AlertCircle size={10} /> Offline
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end", width: "100%" }}>
+          {/* Level Badge */}
+          <button 
+            onClick={() => onNavigate?.('health')} 
+            style={{ 
+              background: "linear-gradient(135deg, rgba(255,173,59,0.15) 0%, rgba(255,140,0,0.1) 100%)", 
+              border: "1px solid rgba(255,173,59,0.2)", 
+              height: "36px", 
+              borderRadius: "12px", 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "6px",
+              padding: "0 10px",
+              cursor: "pointer", 
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)" 
+            }}
+          >
+            <Trophy size={14} style={{ color: "var(--amber)" }} />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--amber)", fontFamily: "var(--mono)" }}>Nv. {level.level}</span>
+            {loginStreak && loginStreak.current > 0 && (
+              <>
+                <Flame size={12} style={{ color: "var(--orange)" }} />
+                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--orange)" }}>{loginStreak.current}</span>
+              </>
+            )}
+          </button>
+          <WizardTrigger label="Assistente" />
           <AreaTutorialButton area="inicio" onNavigate={onNavigate} />
           <button onClick={() => onNavigate?.('notifications')} className="notif-ring hover-glow" style={{ background: "var(--glass2)", border: "1px solid var(--border)", width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.8" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -160,6 +208,14 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
           <UserNav onNavigate={onNavigate} collapsed={true} />
         </div>
       </div>
+
+      {/* Termômetro do Mês — status proativo */}
+      <TermometroDoMes
+        income={globalTotals.income}
+        expense={globalTotals.expense}
+        balance={globalTotals.balance}
+        onNavigate={onNavigate}
+      />
 
       <HeroPatrimonio 
         netWorth={globalTotals.netWorth}

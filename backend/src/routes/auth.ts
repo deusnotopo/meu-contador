@@ -202,7 +202,8 @@ export async function authRoutes(app: FastifyInstance) {
       isPro: user.isPro
     });
 
-    return { token, user: { id: user.id, email: user.email, name: user.name, isPro: user.isPro } };
+    const { passwordHash, ...userProfile } = user;
+    return { token, user: userProfile };
   });
 
   // Me
@@ -251,4 +252,25 @@ export async function authRoutes(app: FastifyInstance) {
     // just needs the updated user object or will re-verify via auth/me.
     return { success: true, user: userProfile };
   });
+  // DEV ONLY — reset/set password for any user (removes Google-only restriction)
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/auth/dev/reset-password', async (request, reply) => {
+      const { email, newPassword } = request.body as { email: string; newPassword: string };
+      if (!email || !newPassword || newPassword.length < 6) {
+        return reply.status(400).send({ message: 'Bad request: email and newPassword (min 6 chars) required' });
+      }
+      const user = await db.user.findUnique({ where: { email } });
+      if (!user) {
+        return reply.status(404).send({ message: 'User not found' });
+      }
+      const hashedPassword = await hashPassword(newPassword);
+      await db.user.update({ where: { email }, data: { passwordHash: hashedPassword } });
+      return { success: true, message: `Password reset for ${email}` };
+    });
+
+    app.get('/auth/dev/users', async (_request, reply) => {
+      const users = await db.user.findMany({ select: { id: true, email: true, name: true, passwordHash: true, createdAt: true } });
+      return users.map(u => ({ ...u, hasPassword: u.passwordHash !== '' }));
+    });
+  }
 }

@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { MFAService } from "@/lib/mfa-service";
-import { ShieldAlert, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MFAGateProps {

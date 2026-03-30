@@ -44,7 +44,9 @@ const parseReceiptText = (
   const amounts: number[] = [];
   let match;
   while ((match = currencyRegex.exec(text)) !== null) {
-    let valStr = match[1];
+    const rawVal = match[1];
+    if (!rawVal) continue;
+    let valStr = rawVal;
     if (valStr.includes(",")) {
       valStr = valStr.replace(/\./g, "").replace(",", ".");
     }
@@ -60,7 +62,7 @@ const parseReceiptText = (
     const lineUpper = line.toUpperCase();
     if (totalKeywords.some((k) => lineUpper.includes(k))) {
       const lineMatch = line.match(/(\d{1,3}(?:\.\d{3})*,\d{2}|\d+\.\d{2})/);
-      if (lineMatch) {
+      if (lineMatch && lineMatch[1]) {
         let valStr = lineMatch[1];
         if (valStr.includes(","))
           valStr = valStr.replace(/\./g, "").replace(",", ".");
@@ -78,7 +80,7 @@ const parseReceiptText = (
   const dateRegex = /(\d{2})[/.-](\d{2})[/.-](\d{2,4})/;
   const dateMatch = text.match(dateRegex);
   let formattedDate = new Date().toISOString().split("T")[0];
-  if (dateMatch) {
+  if (dateMatch && dateMatch[1] && dateMatch[2] && dateMatch[3]) {
     let year = dateMatch[3];
     if (year.length === 2) year = "20" + year;
     formattedDate = `${year}-${dateMatch[2]}-${dateMatch[1]}`;
@@ -172,7 +174,7 @@ const parseReceiptText = (
   return {
     amount: maxAmount,
     merchant,
-    date: formattedDate,
+    date: formattedDate ?? null,
     category,
     confidence, // Tesseract confidence (0-100)
   };

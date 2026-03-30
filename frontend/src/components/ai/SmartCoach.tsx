@@ -115,7 +115,15 @@ export const SmartCoach = ({
     }
   }, [insights.length]);
 
-  const activeInsight = insights[currentTipIndex] || insights[0];
+  const activeInsight = insights[currentTipIndex] || insights[0] || {
+    id: "default",
+    type: "success",
+    title: "Processando",
+    message: "Analisando seus dados...",
+    icon: Brain,
+    color: "text-indigo-400",
+    bg: "bg-indigo-500/10"
+  };
 
   return (
     <div className="relative">

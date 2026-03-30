@@ -10,6 +10,7 @@ export interface AuthUser extends UserProfile {
   id: string;
   uid: string; // Alias for legacy compatibility
   email: string;
+  onboardingCompleted?: boolean; // Persisted after wizard completion
   businessName?: string;
   businessCnpj?: string;
   businessSector?: string;
@@ -76,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             return { privacyMode: false, language: 'pt', theme: 'dark' };
           })
         ]);
-        console.log("Fetched preferences from server:", preferences);
+        console.debug("Fetched preferences from server.");
         
         // Apply preferences to state
         setPrivacyMode(preferences.privacyMode);
@@ -221,6 +222,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         
       setUser(authUser);
       await syncAllData(authUser.id);
+    } catch (error) {
+      console.error("Registration failed:", error);
+      throw error;
     } finally {
       setIsSyncing(false);
     }
@@ -303,11 +307,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateProfile = async (data: Partial<UserProfile>) => {
     try {
       await api.put('/users/me', data);
-      
-      // Update local state
+      // Update local state with proper type merge
       if (user) {
-          // @ts-ignore
-          setUser({ ...user, ...data });
+        setUser({ ...user, ...(data as Partial<AuthUser>) });
       }
     } catch (error) {
       console.error("Failed to update profile:", error);
@@ -326,18 +328,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const setLanguage = async (lang: string) => {
-    console.log("Setting language to:", lang);
     setLanguageState(lang);
     try {
       await api.patch("/users/preferences", { language: lang });
-      console.log("Language synced to server.");
     } catch (error) {
       console.error("Failed to sync language:", error);
     }
   };
 
   const setTheme = async (newTheme: 'light' | 'dark') => {
-    console.log("Setting theme to:", newTheme);
     setThemeState(newTheme);
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -346,7 +345,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     try {
       await api.patch("/users/preferences", { theme: newTheme });
-      console.log("Theme synced to server.");
     } catch (error) {
       console.error("Failed to sync theme:", error);
     }

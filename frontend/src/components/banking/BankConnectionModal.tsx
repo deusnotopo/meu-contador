@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Transaction } from "@/types";
 import { api } from "@/lib/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { Link2, FileUp } from "lucide-react";
@@ -10,7 +11,7 @@ import { PluggyConnect } from "react-pluggy-connect";
 interface BankConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (transactions: any[]) => void;
+  onSuccess: (transactions: Transaction[]) => void;
 }
 
 export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnectionModalProps) => {
@@ -35,7 +36,7 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
   const handlePluggySuccess = async (itemData: any) => {
     showSuccess("Banco Conectado! Baixando seu histórico...");
     try {
-      await api.post(`/open-finance/sync/${itemData.item.id}`);
+      await api.post(`/open-finance/sync/${itemData.item.id}`, {});
       showSuccess("Sincronização concluída com sucesso!");
       onSuccess([]); // Força reload de transactions na tela principal
       onClose();
@@ -127,7 +128,7 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
       <OFXImportModal
         isOpen={mode === "ofx"}
         onClose={() => setMode("select")}
-        onSuccess={(imported) => {
+        onSuccess={() => {
           setMode("select");
           onSuccess([]);
           onClose(); // Auto-fecha a UI

@@ -93,9 +93,10 @@ body {
    Works on any real device (iPhone, Android, tablet, desktop)
    ============================================ */
 
-/* Mobile-first: full-screen native */
+/* Mobile-first: full-screen native — no fake phone frame */
 .app-root {
   width: 100%;
+  min-height: 100dvh;
   height: 100dvh;
   background: var(--bg);
   display: flex;
@@ -109,8 +110,8 @@ body {
   overflow: hidden;
 }
 
-/* Desktop / tablet: cap width and center */
-@media (min-width: 520px) {
+/* Tablet/Desktop: cap width and center for better UX */
+@media (min-width: 768px) {
   body {
     display: flex;
     align-items: center;
@@ -121,10 +122,10 @@ body {
     overflow: auto;
   }
   .app-root {
-    width: 428px;
-    max-width: 428px;
+    width: 520px;
+    max-width: 520px;
     height: min(920px, 95vh);
-    border-radius: 42px;
+    border-radius: 32px;
     overflow: hidden;
     box-shadow:
       0 0 0 1px rgba(255,255,255,0.08),
@@ -146,7 +147,8 @@ body {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0 18px 100px;
+  /* Generous bottom padding so last card clears the tabbar + home indicator */
+  padding: 0 18px calc(80px + env(safe-area-inset-bottom, 0px));
   scrollbar-width: none;
 }
 .scontent::-webkit-scrollbar { display: none; }
@@ -154,7 +156,11 @@ body {
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
-@media (max-width: 519px) {
+/* Tighter side padding on very small screens */
+@media (max-width: 390px) {
+  .scontent { padding-left: 14px; padding-right: 14px; }
+}
+@media (min-width: 391px) and (max-width: 519px) {
   .scontent { padding-left: 16px; padding-right: 16px; }
 }
 
@@ -164,13 +170,17 @@ body {
    ============================================ */
 
 .tabbar {
-  height: 88px;
+  /* Fixed height only on desktop frame; on real devices use auto */
+  height: auto;
+  min-height: 56px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: flex-start;
-  padding: 12px 8px 0;
+  padding: 10px 4px 0;
+  /* Always respect home indicator (iPhone, Android) */
+  padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);
   flex-shrink: 0;
-  background: rgba(10, 14, 26, 0.96);
+  background: rgba(10, 14, 26, 0.97);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   position: relative;
@@ -181,10 +191,11 @@ body {
 }
 .tabbar::-webkit-scrollbar { display: none; }
 
-@media (max-width: 519px) {
+/* On desktop frame only (768px+) restore fixed height */
+@media (min-width: 768px) {
   .tabbar {
-    height: auto;
-    padding-bottom: max(env(safe-area-inset-bottom, 12px), 12px);
+    height: 72px;
+    padding: 10px 8px 8px;
   }
 }
 

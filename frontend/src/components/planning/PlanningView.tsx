@@ -1,8 +1,9 @@
 import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency, formatShortDate } from "@/lib/formatters";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { WizardTrigger } from "@/components/onboarding/WizardTrigger";
 import type { TabType } from "@/types/navigation";
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -126,10 +127,42 @@ interface PlanningViewProps {
   onNavigate?: (tab: TabType) => void;
 }
 
-export const PlanningView = ({ onBack, onNavigate }: PlanningViewProps = {}) => {
+interface UlyssesRule {
+  threshold: number;
+  destination: string;
+  day: number;
+  active: boolean;
+}
+
+const buildDefaultUlyssesRule = (monthlyIncome: number, totalBudget: number): UlyssesRule => {
+  const incomeBasedThreshold = monthlyIncome > 0 ? monthlyIncome * 0.15 : 0;
+  const budgetBasedThreshold = totalBudget > 0 ? totalBudget * 0.1 : 0;
+  const threshold = Math.max(1000, Math.round(Math.max(incomeBasedThreshold, budgetBasedThreshold) / 100) * 100);
+
+  return {
+    threshold,
+    destination: 'Investimentos',
+    day: 10,
+    active: true,
+  };
+};
+
+export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: PlanningViewProps = {}) => {
   const { budgets } = useBudgets();
   const { transactions } = useTransactions();
   const [selectedEnvelope, setSelectedEnvelope] = useState<string | null>(null);
+  const [showUlyssesModal, setShowUlyssesModal] = useState(false);
+  const [showHistoryNotice, setShowHistoryNotice] = useState(false);
+  const [ulyssesRule, setUlyssesRule] = useState(() => {
+    const saved = localStorage.getItem('ulysses_rule');
+    return saved ? JSON.parse(saved) as UlyssesRule : { threshold: 0, destination: 'Investimentos', day: 10, active: true };
+  });
+
+  const saveUlyssesRule = (newRule: UlyssesRule) => {
+    setUlyssesRule(newRule);
+    localStorage.setItem('ulysses_rule', JSON.stringify(newRule));
+    setShowUlyssesModal(false);
+  };
 
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthExpenses = transactions.filter((t) => t.type === "expense" && t.date.startsWith(currentMonth));
@@ -144,6 +177,24 @@ export const PlanningView = ({ onBack, onNavigate }: PlanningViewProps = {}) => 
   const totalSpent = budgets.reduce((acc, b) => acc + (spentByCategory[b.category] || 0), 0);
   const totalAvailable = Math.max(0, totalLimit - totalSpent);
   const progressPct = totalLimit > 0 ? Math.min(100, (totalSpent / totalLimit) * 100) : 0;
+  const totalIncome = useMemo(
+    () => transactions
+      .filter((t) => t.type === "income" && t.date.startsWith(currentMonth))
+      .reduce((acc, t) => acc + Math.abs(t.amount), 0),
+    [transactions, currentMonth]
+  );
+  const recommendedUlyssesRule = useMemo(
+    () => buildDefaultUlyssesRule(totalIncome, totalLimit),
+    [totalIncome, totalLimit]
+  );
+
+  useEffect(() => {
+    const saved = localStorage.getItem('ulysses_rule');
+    if (!saved && ulyssesRule.threshold <= 0) {
+      setUlyssesRule(recommendedUlyssesRule);
+      localStorage.setItem('ulysses_rule', JSON.stringify(recommendedUlyssesRule));
+    }
+  }, [recommendedUlyssesRule, ulyssesRule.threshold]);
 
   const currentMonthName = new Date().toLocaleDateString('pt-BR', { month: 'long' });
   const capitalizedMonth = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1);
@@ -166,7 +217,10 @@ export const PlanningView = ({ onBack, onNavigate }: PlanningViewProps = {}) => 
   return (
     <div style={{ paddingTop: "10px" }}>
       <div className="eyebrow">Orçamento zero-based</div>
-      <div className="page-title">Envelopes</div>
+      <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        Envelopes
+        <WizardTrigger label="Configurar" />
+      </div>
       <div className="page-sub" style={{ marginBottom: "14px" }}>
         {capitalizedMonth} · cada real tem um destino
       </div>
@@ -268,13 +322,94 @@ export const PlanningView = ({ onBack, onNavigate }: PlanningViewProps = {}) => 
 
       <div className="sec-hd"><span className="sec-title">Ulysses Contract</span></div>
       <div className="nudge good">
-        <div className="nudge-ttl" style={{ color: "var(--green)" }}>✓ Regra automática ativa</div>
-        <div className="nudge-body">Se conta-corrente superar <strong>R$ 5.000</strong> no dia 10 → excedente vai automaticamente para Investimentos.</div>
-        <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-          <button className="btn-ghost" style={{ flex: 1, padding: "8px", fontSize: "11px" }}>Editar regra</button>
-          <button className="btn-ghost" style={{ flex: 1, padding: "8px", fontSize: "11px", color: "var(--green)", borderColor: "rgba(0,217,145,0.3)" }}>Ver histórico</button>
+        <div className="nudge-ttl" style={{ color: "var(--green)" }}>
+          {ulyssesRule.active ? "✓ Regra automática ativa" : "⚠ Regra pausada"}
         </div>
+        <div className="nudge-body">
+          Se conta-corrente superar <strong>{formatCurrency(ulyssesRule.threshold)}</strong> no dia {ulyssesRule.day} → excedente vai automaticamente para {ulyssesRule.destination}.
+        </div>
+        <div style={{ fontSize: "11px", color: "var(--t3)", marginTop: "8px" }}>
+          Sugestão inicial calculada pelo app: <strong>{formatCurrency(recommendedUlyssesRule.threshold)}</strong>, com base na sua renda e envelopes do mês.
+        </div>
+        <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+          <button 
+            className="btn-ghost" 
+            style={{ flex: 1, padding: "8px", fontSize: "11px" }}
+            onClick={() => setShowUlyssesModal(true)}
+          >
+            Editar regra
+          </button>
+          <button 
+            className="btn-ghost" 
+            style={{ flex: 1, padding: "8px", fontSize: "11px", color: "var(--green)", borderColor: "rgba(0,217,145,0.3)" }}
+            onClick={() => setShowHistoryNotice((prev) => !prev)}
+          >
+            Ver histórico
+          </button>
+        </div>
+        {showHistoryNotice && (
+          <div className="card" style={{ marginTop: "10px", padding: "12px", background: "rgba(255,255,255,0.03)" }}>
+            <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>Histórico ainda não automatizado</div>
+            <div style={{ fontSize: "11px", color: "var(--t3)", lineHeight: 1.5 }}>
+              Esta área será conectada futuramente aos eventos reais de transferência e execução da regra. Por enquanto, o contrato funciona como configuração orientativa, sem log transacional persistido.
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Ulysses Config Modal */}
+      {showUlyssesModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div className="modal-content" style={{ background: '#111', border: '1px solid var(--border)', borderRadius: 24, padding: 30, width: '100%', maxWidth: 400 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>Contrato de Ulisses</h3>
+            <p style={{ color: 'var(--t3)', fontSize: 13, marginBottom: 25 }}>Configure o gatilho emocional para automatizar seu aporte.</p>
+            
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 10, textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 8 }}>Gatilho (Saldo &gt; X)</label>
+              <input 
+                type="number" 
+                defaultValue={ulyssesRule.threshold}
+                id="ulysses-threshold"
+                style={{ width: '100%', background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px', color: 'white' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 10, textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 8 }}>Destino</label>
+              <select 
+                id="ulysses-dest"
+                defaultValue={ulyssesRule.destination}
+                style={{ width: '100%', background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px', color: 'white' }}
+              >
+                <option value="Investimentos">📈 Investimentos (Geral)</option>
+                <option value="Reserva">💰 Reserva Emergência</option>
+                <option value="Imóvel">🏡 Fundo Imobiliário</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 30 }}>
+              <button 
+                className="btn-ghost" 
+                style={{ flex: 1 }}
+                onClick={() => setShowUlyssesModal(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-p" 
+                style={{ flex: 1, background: 'var(--green)', color: 'black' }}
+                onClick={() => {
+                  const threshold = Number((document.getElementById('ulysses-threshold') as HTMLInputElement).value);
+                  const destination = (document.getElementById('ulysses-dest') as HTMLSelectElement).value;
+                  saveUlyssesRule({ ...ulyssesRule, threshold, destination });
+                }}
+              >
+                Salvar Contrato
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

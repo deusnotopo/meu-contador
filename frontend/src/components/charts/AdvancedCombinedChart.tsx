@@ -64,7 +64,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
             <span className="text-xs font-medium text-slate-400">Balanço:</span>
             <span
               className={`text-sm font-black ${
-                payload[0].value - payload[1].value >= 0
+                (payload[0]?.value || 0) - (payload[1]?.value || 0) >= 0
                   ? "text-emerald-400"
                   : "text-rose-400"
               }`}
@@ -74,7 +74,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
                 : new Intl.NumberFormat("pt-BR", {
                     style: "currency",
                     currency: "BRL",
-                  }).format(payload[0].value - payload[1].value)}
+                  }).format((payload[0]?.value || 0) - (payload[1]?.value || 0))}
             </span>
           </div>
         )}

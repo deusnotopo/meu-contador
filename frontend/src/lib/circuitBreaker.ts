@@ -40,7 +40,7 @@ export async function fetchWithCircuitBreaker(
         console.error(`[CircuitBreaker] Failed after ${maxRetries} attempts:`, error);
         
         const fallbackBody = JSON.stringify({
-          choices: [{ message: { content: fallbackMessage } }]
+          response: fallbackMessage
         });
         
         return new Response(fallbackBody, {

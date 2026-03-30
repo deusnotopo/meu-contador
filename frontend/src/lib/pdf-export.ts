@@ -202,7 +202,7 @@ export const exportDRE = (
     },
     didParseCell: (data) => {
       if (data.section === "body") {
-        const label = data.row.raw[0] as string;
+        const label = (data.row.raw as string[])[0] || "";
         if (label === "Receita Bruta" || label === "Resultado Líquido") {
           data.cell.styles.fontStyle = "bold";
         }

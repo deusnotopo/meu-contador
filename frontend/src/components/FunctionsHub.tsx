@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useInvestments } from '@/hooks/useInvestments';
-import { showSuccess } from '@/lib/toast';
+
 import type { TabType } from '@/types/navigation';
 
 interface FunctionsHubProps {
   onNavigate?: (tab: TabType) => void;
-  onBack?: () => void;
+
 }
 
-export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }) => {
+export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
   const { user } = useAuth();
-  const personal = useTransactions("personal");
-  const { totals: investTotals } = useInvestments();
   const [clock, setClock] = useState('');
 
   useEffect(() => {
@@ -30,9 +26,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }
     return () => clearInterval(interval);
   }, []);
 
-  const handleCardClick = (msg: string) => {
-    showSuccess(msg);
-  };
+
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -305,6 +299,21 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }
           </div>
 
           <div 
+            onClick={() => onNavigate?.('cash_flow')}
+            className="fn-card fn-card-amber"
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{
+                width: '42px', height: '42px', borderRadius: '11px',
+                background: 'var(--amber-d)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px'
+              }}>🗓️</div>
+              <span className="chip chip-amber" style={{ fontSize: '8px' }}>30 dias</span>
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Calendário de caixa</div>
+            <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Saldo seguro, saídas previstas, compromissos e próximos dias críticos.</div>
+          </div>
+
+          <div 
             onClick={() => onNavigate?.('planning')}
             className="fn-card fn-card-green"
           >
@@ -349,7 +358,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }
           <div style={{ flex: 1, height: '1px', background: 'var(--line)' }} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
           {[
             { icon: '📈', name: 'Patrimônio geral', desc: 'Visão consolidada com sparkline e alocação.', color: 'blue', tab: 'investments' as TabType },
             { icon: '🧮', name: 'Juros compostos', desc: 'Calculadora com sliders de aporte, taxa e período.', color: 'blue', tab: 'invest_compostos' as TabType },
@@ -469,7 +478,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }
               background: 'var(--purple-d)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px'
             }}>💎</div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              <span className="chip chip-purple" style={{ fontSize: '8px' }}>Score 74/100</span>
+              <span className="chip chip-purple" style={{ fontSize: '8px' }}>Score 360°</span>
               <span className="chip chip-green" style={{ fontSize: '8px' }}>7 dimensões</span>
             </div>
           </div>
@@ -477,7 +486,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }
           <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Score multidimensional em 7 dimensões: liquidez, poupança, dívidas, diversificação, proteção, trajetória e bem-estar.</div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
           {[
             { icon: '📉', name: 'Inflação pessoal', desc: 'Sua inflação real vs. IPCA oficial.', color: 'red', tab: 'personal_inflation' as TabType },
             { icon: '🧘', name: 'Check-in', desc: 'Estresse financeiro subjetivo mensal.', color: 'purple', tab: 'financial_checkin' as TabType },
@@ -536,16 +545,16 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }
               background: 'var(--cyan-d)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px'
             }}>🎓</div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              <span className="chip chip-cyan" style={{ fontSize: '8px' }}>6 aulas</span>
-              <span className="chip chip-amber" style={{ fontSize: '8px' }}>🔥 7 dias</span>
-              <span className="chip chip-blue" style={{ fontSize: '8px' }}>350 XP</span>
+              <span className="chip chip-cyan" style={{ fontSize: '8px' }}>Micro-aulas</span>
+              <span className="chip chip-amber" style={{ fontSize: '8px' }}>Gamificação</span>
+              <span className="chip chip-blue" style={{ fontSize: '8px' }}>XP</span>
             </div>
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Academia de finanças</div>
           <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>6 micro-aulas em 4 trilhas com XP, streak e conquistas desbloqueáveis.</div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(78px, 1fr))', gap: '10px' }}>
           {[
             { icon: '💰', name: 'Juros compostos', status: '✓', color: 'blue' },
             { icon: '✉️', name: 'Envelopes', status: '✓', color: 'green' },
@@ -647,12 +656,12 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate, onBack }
             fontSize: '10px',
             color: 'var(--t3)',
             letterSpacing: '0.06em'
-          }}>18 funções · {user?.name || 'Usuário'}</div>
+          }}>Hub financeiro · {user?.name || 'Usuário'}</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <span className="chip chip-green" style={{ fontSize: '9px' }}>v3 — março 2026</span>
-          <span className="chip chip-blue" style={{ fontSize: '9px' }}>Score 74/100</span>
-          <span className="chip chip-amber" style={{ fontSize: '9px' }}>FIRE 2041</span>
+          <span className="chip chip-blue" style={{ fontSize: '9px' }}>Planejamento</span>
+          <span className="chip chip-amber" style={{ fontSize: '9px' }}>Patrimônio</span>
         </div>
       </motion.footer>
     </motion.div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import type { Lesson, Passo } from "@/data/educationData";
+import type { Lesson } from "@/data/educationData";
 import { showSuccess } from "@/lib/toast";
+import DOMPurify from "dompurify";
 
 interface LessonDetailViewProps {
   lesson: Lesson;
@@ -15,6 +16,7 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
   const [quizAcertou, setQuizAcertou] = useState(false);
 
   const passo = lesson.passos[passoAtual];
+  if (!passo) return null;
   const total = lesson.passos.length;
   const isLast = passoAtual === total - 1;
   const isQuiz = passo.tipo === 'quiz';
@@ -65,7 +67,7 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
         <>
           <div style={{ textAlign: "center", fontSize: "52px", margin: "20px 0 14px", animation: "fsu 0.3s ease" }}>{passo.visual}</div>
           <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--t1)", marginBottom: "10px", letterSpacing: "-0.3px" }}>{passo.titulo}</div>
-          <div style={{ fontSize: "14px", color: "var(--t2)", lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: passo.conteudo || '' }} />
+          <div style={{ fontSize: "14px", color: "var(--t2)", lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(passo.conteudo || '') }} />
         </>
       );
     }
@@ -73,7 +75,7 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
       return (
         <>
           <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--t1)", marginBottom: "10px", letterSpacing: "-0.3px" }}>📌 {passo.titulo}</div>
-          <div style={{ fontSize: "14px", color: "var(--t2)", lineHeight: 1.7, marginBottom: "12px" }} dangerouslySetInnerHTML={{ __html: passo.conteudo || '' }} />
+          <div style={{ fontSize: "14px", color: "var(--t2)", lineHeight: 1.7, marginBottom: "12px" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(passo.conteudo || '') }} />
           <div style={{ background: "var(--blue3)", border: "1px solid rgba(74,139,255,0.2)", borderRadius: "12px", padding: "12px 14px", fontSize: "13px", color: "var(--blue)", fontWeight: 500, fontFamily: "var(--mono)" }}>💡 {passo.exemplo}</div>
         </>
       );
@@ -82,7 +84,7 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
       return (
         <>
           <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--t1)", marginBottom: "12px", letterSpacing: "-0.3px" }}>🔢 {passo.titulo}</div>
-          <div style={{ fontSize: "13px", color: "var(--t2)", lineHeight: 1.6, marginBottom: "14px" }} dangerouslySetInnerHTML={{ __html: passo.conteudo || '' }} />
+          <div style={{ fontSize: "13px", color: "var(--t2)", lineHeight: 1.6, marginBottom: "14px" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(passo.conteudo || '') }} />
           <div style={{ display: "grid", gap: "8px" }}>
             <div style={{ background: "var(--red-d)", border: "1px solid rgba(255,79,110,0.2)", borderRadius: "12px", padding: "12px", textAlign: "center" }}>
               <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>Resultado simples</div>
@@ -160,7 +162,7 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
         <>
           <div style={{ textAlign: "center", fontSize: "48px", margin: "16px 0 14px" }}>🚀</div>
           <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--t1)", marginBottom: "10px", letterSpacing: "-0.3px" }}>{passo.titulo}</div>
-          <div style={{ fontSize: "14px", color: "var(--t2)", lineHeight: 1.7, marginBottom: "16px" }} dangerouslySetInnerHTML={{ __html: passo.conteudo || '' }} />
+          <div style={{ fontSize: "14px", color: "var(--t2)", lineHeight: 1.7, marginBottom: "16px" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(passo.conteudo || '') }} />
         </>
       );
     }

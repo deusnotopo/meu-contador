@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import { exportDRE } from "@/lib/pdf-export";
-import type { Transaction } from "@/types";
+import type { Transaction, Currency } from "@/types";
 import {
   Download,
   FileText,
@@ -10,9 +10,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+// ...
 interface Props {
   transactions: Transaction[];
-  convert: (amount: number, from: string, to: string) => number;
+  convert: (amount: number, from: Currency, to: Currency) => number;
 }
 
 export const DRESection = ({ transactions, convert }: Props) => {
@@ -122,7 +123,38 @@ export const DRESection = ({ transactions, convert }: Props) => {
 
         <div className="flex items-center gap-3">
           <Button
+            variant="outline"
             className="h-10 px-6 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-[10px] font-black uppercase tracking-widest transition-all"
+            onClick={() => {
+              const headers = ["Descrição", "Mensal", "Percentual"];
+              const rows = [
+                ["Receita Bruta", grossIncome, "100%"],
+                ["Impostos", taxes, `${((taxes / grossIncome) * 100 || 0).toFixed(1)}%`],
+                ["Custo Mercadoria", cogs, `${((cogs / grossIncome) * 100 || 0).toFixed(1)}%`],
+                ["Pessoal", personnel, `${((personnel / grossIncome) * 100 || 0).toFixed(1)}%`],
+                ["Operacional", operational, `${((operational / grossIncome) * 100 || 0).toFixed(1)}%`],
+                ["Resultado Líquido", netResult, `${margin.toFixed(1)}%`],
+              ];
+              
+              const csvContent = [
+                headers.join(","),
+                ...rows.map(r => r.join(","))
+              ].join("\n");
+              
+              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(blob);
+              link.setAttribute("download", `DRE_${new Date().toISOString().split('T')[0]}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+          >
+            <Download size={14} className="mr-2" />
+            CSV
+          </Button>
+          <Button
+            className="h-10 px-6 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-black border-none text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20"
             onClick={() => {
               const dreData = [
                 {
@@ -165,8 +197,8 @@ export const DRESection = ({ transactions, convert }: Props) => {
               exportDRE("Meu Negócio", dreData);
             }}
           >
-            <Download size={14} className="mr-2" />
-            Exportar PDF
+            <FileText size={14} className="mr-2" />
+            PDF
           </Button>
         </div>
       </div>

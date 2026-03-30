@@ -37,7 +37,7 @@ export const detectPatterns = (
 
     const isMonthly = list.some((t, i) => {
       if (i === 0) return false;
-      const prev = new Date(list[i - 1].date);
+      const prev = new Date(list[i - 1]?.date || "");
       const curr = new Date(t.date);
       const diffDays = Math.abs(
         (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
@@ -47,11 +47,11 @@ export const detectPatterns = (
 
     if (isMonthly || list.length >= 3) {
       patterns.push({
-        description: list[0].description,
-        amount: list[list.length - 1].amount,
-        category: list[0].category,
+        description: list[0]?.description || "",
+        amount: list[list.length - 1]?.amount || 0,
+        category: list[0]?.category || "",
         frequency: list.length,
-        lastDate: list[list.length - 1].date,
+        lastDate: list[list.length - 1]?.date || "",
         isAlreadyRecurring:
           reminderDescriptions.has(desc) || list.some((t) => t.recurring),
       });

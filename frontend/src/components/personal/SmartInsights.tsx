@@ -41,8 +41,8 @@ export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
     await addReminder({
       name: p.description,
       amount: p.amount,
-      category: p.category,
-      dueDate: nextMonth.toISOString().split("T")[0],
+      category: p.category ?? "Outros",
+      dueDate: nextMonth.toISOString().split("T")[0] || "",
       recurring: "monthly",
     });
 
@@ -146,7 +146,7 @@ export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {goals.map((goal, i) => {
+          {goals.map((goal) => {
             const remaining = goal.targetAmount - goal.currentAmount;
             const monthsToGoal =
               monthlySurplus > 0
@@ -203,11 +203,11 @@ export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
             </div>
             <div className="py-4">
               <p className="text-4xl font-black text-white">
-                128 <span className="text-lg text-slate-500">dias</span>
+                {monthlyExpenses > 0 ? Math.floor(totalInvested / (monthlyExpenses / 30)) : 0} <span className="text-lg text-slate-500">dias</span>
               </p>
             </div>
             <p className="text-[8px] text-slate-600 font-bold uppercase italic">
-              Fator de Sobrevivência (Cesta Básica + Fixos)
+              Fator de Sobrevivência (Baseado no custo de vida atual)
             </p>
           </div>
 
@@ -290,6 +290,7 @@ export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
               </Button>
               <Button
                 variant="ghost"
+                onClick={() => onNavigate?.("budget")}
                 className="w-full text-slate-500 font-bold text-[10px] uppercase"
               >
                 Ver Categoria por Categoria

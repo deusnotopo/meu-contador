@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDebts } from "@/hooks/useDebts";
 import { useInvestments } from "@/hooks/useInvestments";
-import { ArrowLeft, Brain, Heart, TrendingUp, AlertTriangle, CheckCircle, Calendar } from "lucide-react";
+import { ArrowLeft, Brain, CheckCircle } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 
 interface FinancialCheckinProps {

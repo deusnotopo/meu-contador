@@ -1,4 +1,4 @@
-import { formatCurrency } from "../formatters.js";
+import { formatCurrency } from "../formatters";
 
 interface WeeklyReportData {
   userName: string;

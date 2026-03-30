@@ -56,6 +56,7 @@ export const AULAS_TRILHAS: Trilha[] = [
   { id: 'cripto',      label: 'Cripto/Bitcoin',  emoji: '₿',  color: '#F7931A', bg: 'rgba(247,147,26,0.12)' },
   { id: 'sucessao',    label: 'Blindagem',       emoji: '🛡️', color: '#E94560', bg: 'rgba(233,69,96,0.12)' },
   { id: 'renda_ativa', label: 'Renda Ativa',     emoji: '🚀', color: '#4A8BFF', bg: 'rgba(74,139,255,0.12)' },
+  { id: 'mental',      label: 'Psicologia',      emoji: '🧠', color: '#9B7FFF', bg: 'rgba(155,127,255,0.12)' },
 ];
 
 export const AULAS_CONQUISTAS: Conquista[] = [
@@ -168,10 +169,11 @@ export const EDUCATION_MODULES: Lesson[] = [
     ]
   },
   {
-    id: 'men_kahneman', trilha: 'fire', title: 'Psicologia e Aversão à Perda', sub: 'Thinking, Fast and Slow (Kahneman)', emoji: '🧠', dur: '5 min', xp: 60, ok: false, grad: 'linear-gradient(135deg,#1F103A,#3D2075)',
+    id: 'men_kahneman', trilha: 'mental', title: 'Vieses e Aversão à Perda', sub: 'Thinking, Fast and Slow (Kahneman)', emoji: '🧠', dur: '5 min', xp: 60, ok: false, grad: 'linear-gradient(135deg,#1F103A,#3D2075)',
     passos: [
       { tipo: 'teoria', titulo: 'Por que o Brasileiro Vende na Baixa?', conteudo: 'O Prêmio Nobel Daniel Kahneman comprovou: o impacto psicológico da dor de perder R$ 1.000 é <strong style="color:#9B7FFF">DUAS VEZES MAIS FORTE</strong> que a alegria de ganhar os mesmos R$ 1.000.', visual: '🧠' },
       { tipo: 'regra', titulo: 'O Efeito da Manada', conteudo: 'Quando a Bolsa BR cai -20% durante a pandemia, todos os "novatos" desesperam-se com o número vermelho gigante no Home Broker (aversão absurda de perda) e vendem suas boas ações. Realizando o prejuízo no fundo do poço.', exemplo: 'Para ganhar muito dinheiro passivamente, a melhor coisa na Renda Variável BR é se comportar como se não tivesse a senha da corretora.' },
+      { tipo: 'quiz', pergunta: 'Você investiu R$ 10.000 no WRLD11. O mercado cai 15% e suas "notícias" dizem que o mundo vai acabar. Sua tela mostra R$ 8.500. Segundo Kahneman, qual o erro mais comum que seu cérebro tentará te forçar a cometer?', opcoes: ['Comprar mais porque está barato.', 'Vender tudo para "parar a dor" da perda, transformando uma oscilação temporária em um prejuízo real e definitivo.', 'Ignorar o app por 5 anos.', 'Calcular os dividendos recebidos.'], correta: 1, expl: 'A Aversão à Perda é irracional. Seu cérebro quer que a dor pare AGORA, e vender parece o único jeito. Investidores de sucesso sabem que a volatilidade é o preço que se paga pela rentabilidade de longo prazo.' },
       { tipo: 'acao', titulo: 'O Dashboard Desconectado', cta: 'Lançar Novos Títulos', ctaFn: "go('investimentos')", conteudo: 'Nossa área de Patrimônio foi formatada para não ter tickers e cores piscantes do Day Trade, forçando tranquilidade perante a loucura diária do país.' }
     ]
   },
@@ -247,6 +249,7 @@ export const EDUCATION_MODULES: Lesson[] = [
     passos: [
       { tipo: 'teoria', titulo: 'O Paradoxo do Luxo', conteudo: 'Você compra uma Compass/HRV de 200 mil ou o IPhone último modelo para ser adorado pelas pessoas. Morgan Housel alerta: <strong style="color:#FF4F6E">Ninguém admira você. As pessoas admiram o objeto e se imaginam dentro ou sendo donas dele</strong>.', visual: '🧠' },
       { tipo: 'regra', titulo: 'Treadmill Social', conteudo: 'Se você gasta todo o seu limite para "parecer rico", você é, na verdade, alguém em via rápida da falência. O carro zero não produz patrimônio, gera depreciação severa instantânea de -20% ao tirar da loja de automóvel + IPVA Brasil.', exemplo: 'Quer ser milionário? Pouse os olhos para bilionários de camisa lisa.' },
+      { tipo: 'quiz', pergunta: 'Um colega de trabalho compra um carro de luxo financiado em 60x. Ele parece ser muito mais bem-sucedido que você. Qual a lição de "Psicologia do Dinheiro"?', opcoes: ['Ele provavelmente é rico e tem juros baixos.', 'Riqueza é o que você NÃO vê. O que você vê (o carro) é apenas dinheiro que ele já GASTOU e não possui mais para render juros.', 'Você deve financiar um igual para manter o networking.', 'Carros são excelentes ativos de investimento no Brasil.'], correta: 1, expl: 'Como diz Housel: Riqueza são os ativos financeiros que ainda não foram convertidos nas coisas que você vê. Um carro de 200k é 200k que o dono NÃO TEM mais investidos.' },
       { tipo: 'acao', titulo: 'Orçamento com Liberdade', conteudo: 'Vá montar envelopes sensatos para seu lazer no app. Esqueça inflacionar seu Budget baseando-se no financiamento de SUV de outras pessoas.', cta: 'Meu Budget', ctaFn: "go('budget')" }
     ]
   },

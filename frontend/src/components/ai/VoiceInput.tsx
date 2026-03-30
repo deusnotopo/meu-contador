@@ -48,9 +48,11 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         }
       };
 
-      recognitionInstance.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        onTranscript(transcript);
+      recognitionInstance.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        if (transcript) {
+          onTranscript(transcript);
+        }
       };
 
       setRecognition(recognitionInstance);

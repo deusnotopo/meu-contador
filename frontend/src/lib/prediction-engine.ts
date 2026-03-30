@@ -142,7 +142,7 @@ export const getCategoryPredictions = (
 
   // Analyze each category active this month
   Object.keys(currentMonthTotals).forEach((category) => {
-    const current = currentMonthTotals[category];
+    const current = currentMonthTotals[category] ?? 0;
     const last = lastMonthTotals[category] || 0;
 
     // Simple Linear Projection for end of month

@@ -210,7 +210,7 @@ export const TransactionForm = ({
             <Label className="text-sm font-semibold">Data *</Label>
             <Input
               type="date"
-              value={formData.date}
+              value={formData.date || new Date().toISOString().substring(0, 10)}
               onChange={(e) =>
                 setFormData({ ...formData, date: e.target.value })
               }

@@ -5,6 +5,7 @@ import { logAction } from "@/lib/audit-service";
 import type {
   Dividend,
   Investment,
+  InvestmentWithRelations,
   TaxIndicator,
   Currency,
 } from "@/types";
@@ -19,61 +20,25 @@ export const useInvestments = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchInvestments = useCallback(async () => {
-    let cancelled = false; // ← Flag para cleanup
     setLoading(true);
     setGlobalLoading(true);
     setError(null);
     
     try {
       const data = await api.get<Investment[]>("/investments");
-      if (!cancelled) { // ← Verifica se componente ainda está montado
-        setAssets(data);
-      }
+      setAssets(data);
     } catch (err) {
-      if (!cancelled) {
-        console.error("Investments API Error:", err);
-        setError("Investimentos indisponíveis no momento. Tente novamente mais tarde.");
-      }
+      console.error("Investments API Error:", err);
+      setError("Investimentos indisponíveis no momento. Tente novamente mais tarde.");
     } finally {
-      if (!cancelled) {
-        setLoading(false);
-        setGlobalLoading(false);
-      }
+      setLoading(false);
+      setGlobalLoading(false);
     }
-    
-    return () => { cancelled = true; }; // ← Cleanup function
   }, [setGlobalLoading]);
 
   useEffect(() => {
-    let cancelled = false;
-    
-    const loadData = async () => {
-      setLoading(true);
-      setGlobalLoading(true);
-      setError(null);
-      
-      try {
-        const data = await api.get<Investment[]>("/investments");
-        if (!cancelled) {
-          setAssets(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Investments API Error:", err);
-          setError("Investimentos indisponíveis no momento. Tente novamente mais tarde.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-          setGlobalLoading(false);
-        }
-      }
-    };
-    
-    loadData();
-    
-    return () => { cancelled = true; }; // ← Cleanup!
-  }, [setGlobalLoading]);
+    fetchInvestments();
+  }, [fetchInvestments]);
 
   const addAsset = async (asset: Omit<Investment, "id" | "lastUpdate">) => {
     try {
@@ -116,6 +81,16 @@ export const useInvestments = () => {
     }
   };
 
+  const deleteDividend = async (investmentId: string, dividendId: string) => {
+    try {
+      await api.delete(`/investments/${investmentId}/dividends/${dividendId}`);
+      await fetchInvestments();
+      showSuccess("Provento removido!");
+    } catch (error) {
+      showError("Erro ao remover provento.");
+    }
+  };
+
   const addSale = async (investmentId: string, sale: { amount: number; price: number; date: string }) => {
     try {
       await api.post(`/investments/${investmentId}/sales`, sale);
@@ -136,7 +111,9 @@ export const useInvestments = () => {
     convert: (amount: number, from: Currency, to: Currency) => number
   ): TaxIndicator[] => {
     // Collect all sales from all assets
-    const allSales = assets.flatMap(a => (a as any).sales || []) as any[];
+    const allSales = (assets as InvestmentWithRelations[]).flatMap(
+      (a) => a.sales ?? []
+    );
     
     const monthlySales = allSales.reduce((acc, curr) => {
       const valueInBRL = convert(curr.totalValue, curr.currency || "BRL", "BRL");
@@ -209,11 +186,19 @@ export const useInvestments = () => {
       (sum, a) => sum + a.averagePrice * a.amount,
       0
     ),
-    totalDividends: assets.reduce(
-      (sum, a) => sum + ((a as any).dividends || []).reduce((s: number, d: any) => s + d.amount, 0),
+    totalDividends: (assets as InvestmentWithRelations[]).reduce(
+      (sum, a) => sum + (a.dividends ?? []).reduce((s, d) => s + d.amount, 0),
       0
     ),
   };
+
+  const dividends = (assets as InvestmentWithRelations[]).flatMap((a) =>
+    (a.dividends || []).map((d) => ({
+      ...d,
+      assetId: a.id.toString(),
+      assetTicker: a.ticker,
+    }))
+  );
 
   return {
     assets,
@@ -227,5 +212,7 @@ export const useInvestments = () => {
     updateAsset,
     getTaxIndicators,
     syncPrices,
+    dividends,
+    deleteDividend,
   };
 };

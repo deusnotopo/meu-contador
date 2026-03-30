@@ -47,16 +47,16 @@ export const parseIntent = (text: string): ParsedIntent => {
   ];
 
   // Goal patterns
-  const goalPatterns = [
+  /* const goalPatterns = [
     /(?:quero\s+poupar|meta\s+de)\s+(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:reais?)?\s+(?:para|de)\s+(.+)/i,
-  ];
+  ]; */
 
   // Check expense patterns
   for (const pattern of expensePatterns) {
     const match = text.match(pattern);
     if (match) {
-      const amount = parseFloat(match[1].replace(",", "."));
-      const description = match[2].trim();
+      const amount = parseFloat((match[1] || "0").replace(",", "."));
+      const description = (match[2] || "").trim();
 
       return {
         type: "transaction",
@@ -78,8 +78,8 @@ export const parseIntent = (text: string): ParsedIntent => {
   for (const pattern of incomePatterns) {
     const match = text.match(pattern);
     if (match) {
-      const amount = parseFloat(match[1].replace(",", "."));
-      const description = match[2].trim();
+      const amount = parseFloat((match[1] || "0").replace(",", "."));
+      const description = (match[2] || "").trim();
 
       return {
         type: "transaction",
@@ -101,8 +101,8 @@ export const parseIntent = (text: string): ParsedIntent => {
   for (const pattern of reminderPatterns) {
     const match = text.match(pattern);
     if (match) {
-      const name = match[1].trim();
-      const day = parseInt(match[2]);
+      const name = (match[1] || "").trim();
+      const day = parseInt(match[2] || "0");
       const currentDate = new Date();
       const dueDate = new Date(
         currentDate.getFullYear(),
@@ -133,8 +133,8 @@ export const parseIntent = (text: string): ParsedIntent => {
   for (const pattern of budgetPatterns) {
     const match = text.match(pattern);
     if (match) {
-      const limit = parseFloat(match[1].replace(",", "."));
-      const category = match[2].trim();
+      const limit = parseFloat((match[1] || "0").replace(",", "."));
+      const category = (match[2] || "").trim();
 
       return {
         type: "budget",
@@ -172,7 +172,7 @@ export const parseIntent = (text: string): ParsedIntent => {
       lowerText.includes("paguei") ||
       lowerText.includes("recebi"))
   ) {
-    const amount = parseFloat(hasAmount[1].replace(",", "."));
+    const amount = parseFloat((hasAmount[1] || "0").replace(",", "."));
     const isExpense = !lowerText.includes("recebi");
 
     // Simplistic extraction of description: everything that isn't the amount or common keywords

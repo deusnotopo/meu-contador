@@ -22,7 +22,7 @@ describe('MobileNavigation', () => {
     );
 
     const buttons = screen.getAllByRole('button');
-    if (buttons.length > 0) {
+    if (buttons[1]) {
       fireEvent.click(buttons[1]); // Click second button
       expect(mockOnTabChange).toHaveBeenCalled();
     }

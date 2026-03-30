@@ -28,9 +28,9 @@ const ACTIONS: { icon: string; label: string; route: TabType; color: string; bg:
     bg: "var(--purple-d)",
   },
   {
-    icon: "🎯",
-    label: "Metas",
-    route: "futuro",
+    icon: "🗓️",
+    label: "Calendário",
+    route: "cash_flow",
     color: "var(--amber)",
     bg: "var(--amber-d)",
   },

@@ -24,13 +24,6 @@ export const InvestCompostosView = ({ onBack }: InvestCompostosViewProps) => {
   const maxVal = chartPoints[chartPoints.length - 1] ?? 1;
   const W = 310, H = 60, barW = Math.max(2, W / anos - 2);
 
-  const bars = chartPoints.map((v, i) => {
-    const h = Math.max(2, (v / maxVal) * H);
-    const x = i * (W / anos);
-    const color = i < anos * 0.33 ? '#4F9BFF' : i < anos * 0.66 ? '#7B6FFF' : '#22D397';
-    return `<rect x="${x.toFixed(1)}" y="${(H - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${color}" opacity="0.8"/>`;
-  }).join('');
-
   return (
     <div style={{ paddingTop: '10px' }}>
       <div className="page-eyebrow">Simulador interativo</div>
@@ -60,7 +53,16 @@ export const InvestCompostosView = ({ onBack }: InvestCompostosViewProps) => {
             <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--green)' }} className="mono" id="comp-yield">{fmt(yld)}</div>
           </div>
         </div>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', marginTop: '14px', overflow: 'visible' }} id="comp-chart" dangerouslySetInnerHTML={{ __html: bars }} />
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', marginTop: '14px', overflow: 'visible' }} id="comp-chart">
+          {chartPoints.map((v, i) => {
+            const h = Math.max(2, (v / maxVal) * H);
+            const x = i * (W / anos);
+            const color = i < anos * 0.33 ? '#4F9BFF' : i < anos * 0.66 ? '#7B6FFF' : '#22D397';
+            return (
+              <rect key={i} x={x.toFixed(1)} y={(H - h).toFixed(1)} width={barW.toFixed(1)} height={h.toFixed(1)} rx="2" fill={color} opacity="0.8" />
+            );
+          })}
+        </svg>
       </div>
 
       <div className="card" style={{ marginTop: '12px' }}>

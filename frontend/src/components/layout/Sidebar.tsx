@@ -6,7 +6,6 @@ import {
   Building2,
   TrendingUp,
   GraduationCap,
-  Settings,
   ChevronLeft,
   ChevronRight,
   PieChart,

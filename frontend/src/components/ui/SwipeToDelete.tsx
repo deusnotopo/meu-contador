@@ -12,7 +12,7 @@ interface SwipeToDeleteProps {
 export function SwipeToDelete({ children, onDelete, className = '' }: SwipeToDeleteProps) {
   const controls = useAnimation();
   
-  const bind = useDrag(async ({ active, movement: [x], direction: [xDir], velocity: [vx] }) => {
+  const bind = useDrag(async ({ active, movement: [x] }) => {
     const trigger = x < -100; // Trigger delete if dragged left more than 100px
     
     if (!active && trigger) {

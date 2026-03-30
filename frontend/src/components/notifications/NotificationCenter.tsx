@@ -6,10 +6,6 @@ import {
   Bell,
   BellOff,
   AlertTriangle,
-  TrendingUp,
-  Target,
-  DollarSign,
-  Calendar,
   X,
   Check,
   Clock,
@@ -17,7 +13,7 @@ import {
   Info,
   AlertCircle
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface Notification {
   id: string;

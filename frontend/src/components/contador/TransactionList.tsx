@@ -49,7 +49,7 @@ export const TransactionList = ({
       Assinaturas: 0.25,
       default: 0.2,
     };
-    const rate = rates[category] || rates["default"];
+    const rate = (category in rates ? rates[category] : rates["default"]) ?? 0.2;
     return amount * rate;
   };
 

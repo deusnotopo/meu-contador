@@ -52,10 +52,13 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
       );
       if (monthIndex >= 0 && monthIndex < 6) {
         const dataIndex = 5 - monthIndex;
-        if (t.type === 'income') {
-          last6Months[dataIndex].income += t.amount;
-        } else {
-          last6Months[dataIndex].expenses += t.amount;
+        const targetMonth = last6Months[dataIndex];
+        if (targetMonth) {
+          if (t.type === 'income') {
+            targetMonth.income += t.amount;
+          } else {
+            targetMonth.expenses += t.amount;
+          }
         }
       }
     });
@@ -89,8 +92,8 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
 
   // Calculate trends
   const trends = useMemo(() => {
-    const currentMonth = monthlyData[5];
-    const previousMonth = monthlyData[4];
+    const currentMonth = monthlyData[5] || { income: 0, expenses: 0 };
+    const previousMonth = monthlyData[4] || { income: 0, expenses: 0 };
     
     const incomeChange = previousMonth.income
       ? ((currentMonth.income - previousMonth.income) / previousMonth.income) * 100

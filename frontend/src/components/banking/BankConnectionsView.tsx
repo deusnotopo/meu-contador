@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useOpenFinance, BankConnection } from '@/hooks/useOpenFinance';
+import { useEffect, useState } from 'react';
+import { useOpenFinance } from '@/hooks/useOpenFinance';
 import { PluggyConnect } from 'react-pluggy-connect';
 import { Landmark, AlertCircle, RefreshCw, Plus, CheckCircle2 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/toast';
@@ -90,7 +90,7 @@ export const BankConnectionsView = () => {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {connections.map((conn) => {
-            const totalBalance = conn.accounts.reduce((acc, a) => acc + a.balance, 0);
+            
             
             return (
               <div key={conn.id} className="card" style={{ padding: "16px" }}>

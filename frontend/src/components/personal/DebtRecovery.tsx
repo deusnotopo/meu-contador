@@ -310,7 +310,7 @@ export const DebtRecovery = () => {
                 {sortedDebts.length > 0 ? (
                   <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between">
                     <span className="font-black text-white">
-                      {sortedDebts[0].name}
+                      {sortedDebts[0]?.name}
                     </span>
                     <div className="flex items-center gap-2 text-emerald-400 font-black text-xs">
                       <span className="bg-emerald-500/20 px-2 py-0.5 rounded-lg">
