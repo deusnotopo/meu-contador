@@ -93,31 +93,41 @@ export async function authRoutes(app: FastifyInstance) {
     const { token } = request.body as { token: string };
 
     try {
-      // Verify ID Token
-      // NOTE: For full security, we need the Service Account.
-      // If setup fails (no creds), we might fallback or error.
-      // For this dev environment without keys, we might need a workaround or assume the token is valid if we can't verify signature.
-      // But let's try standard verification.
+      let email: string | undefined;
+      let name: string | undefined;
 
-      let decodedToken;
+      // Try Firebase Admin first (works if real service account is configured)
       try {
-           decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-      } catch (verifyErr) {
-           console.error("Firebase Verify Error:", verifyErr);
-           // Fallback for dev/demo if we don't have service account keys set up correctly
-           // DO NOT DO THIS IN PRODUCTION
-           if (process.env.NODE_ENV === 'development') {
-               console.warn("Dev mode: bypassing strict token check because Service Account might be missing.");
-               const parts = token.split('.');
-               if (parts.length === 3) {
-                   const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-                   decodedToken = payload;
-               }
-           }
-           if (!decodedToken) return (reply as any).status(401).send({ message: 'Invalid token' });
-      }
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+        email = decodedToken.email;
+        name = decodedToken.name;
+      } catch (_adminErr) {
+        // Fallback: verify token via Google's tokeninfo endpoint (no private key needed)
+        try {
+          const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+          if (!res.ok) {
+            return (reply as any).status(401).send({ message: 'Invalid Google token' });
+          }
+          const info = await res.json() as { email?: string; name?: string; aud?: string; exp?: string };
 
-      const { email, name, uid } = decodedToken;
+          // Validate audience matches our Firebase project
+          const expectedAud = process.env.FIREBASE_PROJECT_ID || 'meucontador-367cf';
+          if (!info.aud?.includes(expectedAud)) {
+            return (reply as any).status(401).send({ message: 'Token audience mismatch' });
+          }
+
+          // Check expiry
+          if (info.exp && parseInt(info.exp) * 1000 < Date.now()) {
+            return (reply as any).status(401).send({ message: 'Token expired' });
+          }
+
+          email = info.email;
+          name = info.name;
+        } catch (googleErr) {
+          console.error('Google tokeninfo error:', googleErr);
+          return (reply as any).status(401).send({ message: 'Unable to verify token' });
+        }
+      }
 
       if (!email) {
         return (reply as any).status(400).send({ message: 'Google account must have email' });
@@ -131,7 +141,7 @@ export async function authRoutes(app: FastifyInstance) {
           data: {
             email,
             name: name || 'Google User',
-            monthlyIncome: 0, // Assuming a default value for new users
+            monthlyIncome: 0,
             passwordHash: '', // No password for Google users
           }
         });
