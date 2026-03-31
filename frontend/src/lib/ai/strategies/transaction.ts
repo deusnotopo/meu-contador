@@ -1,4 +1,3 @@
-import { loadTransactions, saveTransactions } from "@/lib/storage";
 import type { Transaction } from "@/types";
 import type { ParsedIntent } from "../intent-parser";
 import type { ActionResult } from "../types";
@@ -22,30 +21,34 @@ export const executeTransactionAction = async (
     };
   }
 
-  const transaction: Transaction = {
-    id: Date.now().toString(),
-    amount,
-    description,
-    type,
-    category: category || "Outros",
-    date,
-    paymentMethod: "Outros",
-    notes: "Gerado pela Inteligência Artificial",
-    recurring: false,
-    scope: "personal",
-  };
+  // Phase 11: Real Persistence via API
+  const { api } = await import("@/lib/api");
+  
+  try {
+    const transaction = await api.post<Transaction>("/transactions", {
+      amount,
+      description,
+      type,
+      category: category || "Outros",
+      date,
+      scope: "personal", // Default for AI chat entries
+    });
 
-  const transactions = loadTransactions();
-  saveTransactions([...transactions, transaction]);
+    const emoji = type === "expense" ? "💸" : "💰";
+    const verb = type === "expense" ? "Despesa" : "Receita";
 
-  const emoji = type === "expense" ? "💸" : "💰";
-  const verb = type === "expense" ? "Despesa" : "Receita";
-
-  return {
-    success: true,
-    message: `${emoji} ${verb} de R$ ${amount.toFixed(
-      2
-    )} registrada com sucesso!\n📝 Descrição: ${description}\n🏷️ Categoria: ${category}`,
-    data: transaction,
-  };
+    return {
+      success: true,
+      message: `${emoji} ${verb} de R$ ${amount.toFixed(
+        2
+      )} registrada com sucesso no banco de dados!\n📝 Descrição: ${description}\n🏷️ Categoria: ${category || "Outros"}`,
+      data: transaction,
+    };
+  } catch (error) {
+    console.error("AI Save Error:", error);
+    return {
+      success: false,
+      message: "Consegui entender o comando, mas houve um erro ao salvar no servidor. Tente novamente em instantes.",
+    };
+  }
 };

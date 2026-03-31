@@ -5,18 +5,14 @@ import { trackEvent, analyticsEvents } from "@/lib/analytics";
 import { signInWithPopup } from "firebase/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { syncAllData } from "@/lib/storage";
-import { logger } from "@/lib/logger";
-
 // Extended User type to support both Profile data and Auth IDs
 export interface AuthUser extends UserProfile {
   id: string;
   uid: string; // Alias for legacy compatibility
   email: string;
   onboardingCompleted?: boolean; // Persisted after wizard completion
-  businessName?: string;
-  businessCnpj?: string;
-  businessSector?: string;
   createdAt?: string;
+  // Behavioral profile fields are already in UserProfile (age, dependents, investmentHorizon, employmentType)
 }
 
 interface AuthContextType {
@@ -106,7 +102,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             hasEmergencyFund: userData.hasEmergencyFund || false,
             hasDebts: userData.hasDebts || false,
             initialBalance: userData.initialBalance || 0,
-            isPro: userData.isPro || false
+            isPro: userData.isPro || false,
+            // Behavioral fields
+            age: userData.age,
+            dependents: userData.dependents ?? 0,
+            investmentHorizon: userData.investmentHorizon,
+            employmentType: userData.employmentType || 'clt',
+            businessName: userData.businessName,
+            businessCnpj: userData.businessCnpj,
+            businessSector: userData.businessSector,
         };
 
         setUser(authUser);
@@ -168,7 +172,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             hasEmergencyFund: backendUser.hasEmergencyFund || false,
             hasDebts: backendUser.hasDebts || false,
             initialBalance: backendUser.initialBalance || 0,
-            isPro: backendUser.isPro || false
+            isPro: backendUser.isPro || false,
+            // Behavioral fields
+            age: backendUser.age,
+            dependents: backendUser.dependents ?? 0,
+            investmentHorizon: backendUser.investmentHorizon,
+            employmentType: backendUser.employmentType || 'clt',
+            businessName: backendUser.businessName,
+            businessCnpj: backendUser.businessCnpj,
+            businessSector: backendUser.businessSector,
         };
 
       setUser(authUser);
@@ -288,7 +300,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             isPro: apiUser.isPro || false,
             businessName: apiUser.businessName,
             businessCnpj: apiUser.businessCnpj,
-            businessSector: apiUser.businessSector
+            businessSector: apiUser.businessSector,
+            // Behavioral fields
+            age: apiUser.age,
+            dependents: apiUser.dependents ?? 0,
+            investmentHorizon: apiUser.investmentHorizon,
+            employmentType: apiUser.employmentType || 'clt',
       };
       
       setUser(authUser);

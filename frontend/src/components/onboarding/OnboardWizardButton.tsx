@@ -82,7 +82,6 @@ const OnboardWizardButton: React.FC<OnboardWizardButtonProps> = ({
   tooltipText = 'Abrir Assistente de Configuração',
   label = 'Configurar',
   onWizardClose,
-  onStepComplete,
   className = '',
 }) => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);

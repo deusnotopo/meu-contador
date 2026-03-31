@@ -65,9 +65,49 @@ export async function aiRoutes(app: FastifyInstance) {
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
+      
+      // Phase 10: Deep Behavioral Context Injection
+      let userContext = "";
+      if (request.user && (request.user as any).id) {
+        const fullUser = await (app as any).db.user.findUnique({
+          where: { id: (request.user as any).id },
+          select: { 
+            age: true, 
+            dependents: true, 
+            employmentType: true, 
+            businessName: true,
+            businessSector: true,
+            financialGoal: true,
+            riskProfile: true,
+            monthlyIncome: true
+          }
+        });
+        
+        if (fullUser) {
+          userContext = `
+[DADOS DO CLIENTE PREMIUM]:
+- Idade: ${fullUser.age} anos
+- Dependentes: ${fullUser.dependents}
+- Perfil de Carreira: ${fullUser.employmentType.toUpperCase()} ${fullUser.businessName ? `(Empresa: ${fullUser.businessName}, Setor: ${fullUser.businessSector})` : ''}
+- Perfil de Risco: ${fullUser.riskProfile}
+- Objetivo: ${fullUser.financialGoal}
+- Renda Mensal Declarada: R$ ${fullUser.monthlyIncome}
+
+[DIRETRIZ DE CONSULTORIA]:
+Como o usuário é ${fullUser.employmentType === 'pj' ? 'PJ (Pessoa Jurídica)' : 'CLT'}, suas recomendações de reserva de emergência devem ser de ${fullUser.employmentType === 'pj' ? '12 meses' : '6 meses'} de custo fixo. 
+Sempre considere que ele tem ${fullUser.dependents} dependentes ao sugerir gastos supérfluos.
+Se o usuário disser que gastou ou recebeu algo, responda confirmando os detalhes e use um tom prestativo.`;
+        }
+      }
+
       const model = genAI.getGenerativeModel({ 
         model: modelName,
-        systemInstruction: "Você é um consultor financeiro ultra-avançado chamado 'Assistente Financeiro IA'. Responda de forma direta, altamente prestativa e profissional em português do Brasil. Ajude o usuário a economizar, analisar os dados em anexo e projetar investimentos. Evite formatação Markdown complexa se não for necessário. Seja breve e cordial na medida do possível."
+        systemInstruction: `Você é o 'Consultor Neural Premium' do app Meu Contador. 
+Responda em português do Brasil de forma executiva, breve e ultra-especializada.
+${userContext}
+Ajude o usuário a economizar, analisar os dados e projetar o futuro.
+Se o usuário descrever uma transação (ex: "gastei 50 no almoço"), você deve validar os dados e encorajá-lo. 
+Não use Markdown complexo.`
       });
 
       // Mapeando histórico do formato Frontend {role: user | assistant, content} para Gemini {role: user | model, parts: [{text}]}
@@ -85,29 +125,29 @@ export async function aiRoutes(app: FastifyInstance) {
         });
         finalContents.push({
           role: 'model',
-          parts: [{ text: 'Contexto operacional recebido e incorporado à análise.' }]
+          parts: [{ text: 'Contexto operacional e saldo atual recebidos.' }]
         });
       }
 
       if (data && Object.keys(data).length > 0) {
         finalContents.push({
           role: "user",
-          parts: [{ text: `[DADOS CONTÁBEIS EXPORTADOS PARA ANÁLISE]: \n${JSON.stringify(data).substring(0, 50000)}\n\n(Estas são as informações transacionais em JSON do meu aplicativo. Use-as para basear suas respostas a partir de agora se eu perguntar algo sobre minhas finanças. Se não houver dados o suficiente, responda de forma passiva)` }]
+          parts: [{ text: `[DADOS CONTÁBEIS EXPORTADOS]: \n${JSON.stringify(data).substring(0, 50000)}` }]
         });
         finalContents.push({
            role: "model",
-           parts: [{ text: "Compreendido perfeitamente. O extrato financeiro foi processado e armazenado na minha memória temporária para uso. Em que posso ser útil com suas finanças agora?" }]
+           parts: [{ text: "Extrato processado. Pronto para auditoria." }]
         });
       }
 
       if (financialData && Object.keys(financialData).length > 0) {
         finalContents.push({
           role: 'user',
-          parts: [{ text: `[DADOS FINANCEIROS E MÉTRICAS]:\n${JSON.stringify(financialData).substring(0, 40000)}` }]
+          parts: [{ text: `[MÉTRICAS FINANCEIRAS]:\n${JSON.stringify(financialData).substring(0, 40000)}` }]
         });
         finalContents.push({
           role: 'model',
-          parts: [{ text: 'Métricas financeiras recebidas. Vou considerá-las nas recomendações.' }]
+          parts: [{ text: 'Métricas de saúde e projeções integradas à análise.' }]
         });
       }
 

@@ -10,7 +10,6 @@ import { api } from "@/lib/api";
 import type {
   OnboardingBudget,
   OnboardingData,
-  OnboardingExpense,
   OnboardingGoal,
   OnboardingReminder,
   UserProfile,
@@ -19,7 +18,6 @@ import type {
 import {
   budgetTemplates,
   commonBillReminders,
-  financialGoalTemplates,
   goalPresets,
 } from "@/types/onboarding";
 import { AnimatePresence, motion } from "framer-motion";
@@ -32,20 +30,16 @@ import {
   Building2,
   Check,
   Crown,
-  Settings,
   Shield,
   Sparkles,
   Target,
   TrendingUp,
-  Wallet,
   Loader2,
   X,
   CreditCard,
-  Percent,
-  PieChart as PieIcon,
   Zap,
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface Props {
@@ -60,7 +54,9 @@ interface Props {
 const STEPS = [
   { id: "welcome", title: "Boas-vindas", act: 0 },
   { id: "identity", title: "Identidade", act: 1 },
-  { id: "income", title: "Renda & Trabalho", act: 1 },
+  { id: "family", title: "Perfil e Prioridade", act: 1 },
+  { id: "business", title: "O Seu Negócio", act: 1 },
+  { id: "income", title: "Sua Renda", act: 1 },
   { id: "balance", title: "Patrimônio", act: 1 },
   { id: "strategy_503020", title: "A Regra de Ouro", act: 2 },
   { id: "projection", title: "Seu Futuro", act: 2 },
@@ -68,8 +64,6 @@ const STEPS = [
   { id: "automation", title: "Piloto Automático", act: 3 },
   { id: "summary", title: "Diagnóstico Final", act: 3 },
 ];
-
-const COLORS = ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b'];
 
 // ----------------------------------------------------------------------------
 // Main Component
@@ -90,10 +84,15 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
     hasEmergencyFund: false,
     hasDebts: false,
     initialBalance: 0,
+    age: 30,
+    dependents: 0,
+    businessName: "",
+    businessSector: "technology",
+    businessCnpj: "",
   });
 
   // -- State: Finance Data --
-  const [budgets, setBudgets] = useState<OnboardingBudget[]>(budgetTemplates.moderate || []);
+  const [budgets] = useState<OnboardingBudget[]>(budgetTemplates.moderate || []);
   const [goals, setGoals] = useState<OnboardingGoal[]>(goalPresets);
   const [reminders, setReminders] = useState<OnboardingReminder[]>(commonBillReminders);
   const [investments] = useState<OnboardingInvestment[]>([]);
@@ -118,8 +117,15 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
       finalize();
       return;
     }
+    
+    let nextStepIndex = currentStep + newDirection;
+    // Pular a etapa de empresa se for CLT
+    if (STEPS[nextStepIndex]?.id === "business" && profile.employmentType === "clt") {
+      nextStepIndex += newDirection;
+    }
+
     setDirection(newDirection);
-    setCurrentStep(prev => prev + newDirection);
+    setCurrentStep(nextStepIndex);
   };
 
   const finalize = async () => {
@@ -217,7 +223,7 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="w-full max-w-lg mx-auto"
           >
-            {renderStep(currentStep, profile, handleProfileChange, budgets, setBudgets, goals, setGoals, reminders, setReminders)}
+            {renderStep(currentStep, profile, handleProfileChange, goals, setGoals, reminders, setReminders)}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -263,14 +269,13 @@ function renderStep(
   index: number,
   profile: UserProfile,
   onChange: (f: keyof UserProfile, v: any) => void,
-  budgets: OnboardingBudget[],
-  setBudgets: any,
   goals: OnboardingGoal[],
   setGoals: any,
   reminders: OnboardingReminder[],
   setReminders: any
 ) {
-  const stepId = STEPS[index].id;
+  const step = STEPS[index];
+  const stepId = step?.id;
 
   switch (stepId) {
     case "welcome":
@@ -332,6 +337,89 @@ function renderStep(
                 sub="Foco em lucro e blindagem"
               />
             </div>
+          </div>
+        </div>
+      );
+
+    case "family":
+      return (
+        <div className="space-y-8 pt-6">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold">Seu Perfil Pessoal</h2>
+            <p className="text-white/50">Esses dados ajustam a inteligência da sua Reserva de Emergência.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Sua Idade</Label>
+              <Input 
+                type="number"
+                value={profile.age || ""} 
+                onChange={e => onChange("age", parseInt(e.target.value) || 0)}
+                className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-black text-center"
+              />
+            </div>
+            <div className="space-y-4">
+              <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Filhos/Dependentes</Label>
+              <Input 
+                type="number"
+                value={profile.dependents?.toString() || ""} 
+                onChange={e => onChange("dependents", parseInt(e.target.value) || 0)}
+                className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-black text-center"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-4 pt-4">
+            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Sua Maior Prioridade</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { id: "save", label: "Construir Reserva Intocável", icon: Shield, color: "text-emerald-400" },
+                { id: "invest", label: "Multiplicar Dinheiro (Investir)", icon: TrendingUp, color: "text-indigo-400" },
+                { id: "debt-free", label: "Quitar Dívidas e Limpar Nome", icon: Target, color: "text-rose-400" }
+              ].map(goal => (
+                <div 
+                  key={goal.id}
+                  onClick={() => onChange("financialGoal", goal.id)}
+                  className={`p-4 rounded-xl border flex items-center gap-4 transition-all cursor-pointer ${
+                    profile.financialGoal === goal.id ? "bg-white/10 border-white/30" : "bg-white/5 border-white/5"
+                  }`}
+                >
+                  <goal.icon size={20} className={profile.financialGoal === goal.id ? goal.color : "text-white/30"} />
+                  <span className="font-bold text-sm tracking-tight">{goal.label}</span>
+                  {profile.financialGoal === goal.id && <Check size={16} className={`ml-auto ${goal.color}`} />}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+    case "business":
+      return (
+        <div className="space-y-8 pt-6">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold">Seu Negócio</h2>
+            <p className="text-white/50">Por você ser PJ, personalizaremos a separação de contas.</p>
+          </div>
+          
+          <div className="space-y-4">
+            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Nome da Empresa / Fantasia</Label>
+            <Input 
+              value={profile.businessName || ""} 
+              onChange={e => onChange("businessName", e.target.value)}
+              placeholder="Ex: Minha Agência Ltda" 
+              className="h-16 bg-white/5 border-white/10 rounded-2xl text-xl font-bold"
+            />
+          </div>
+          
+          <div className="space-y-4">
+            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">CNPJ (Opcional - Apenas números)</Label>
+            <Input 
+              value={profile.businessCnpj || ""} 
+              onChange={e => onChange("businessCnpj", e.target.value.replace(/\D/g, ''))}
+              placeholder="00.000.000/0001-00" 
+              className="h-16 bg-white/5 border-white/10 rounded-2xl text-xl font-bold tracking-widest font-mono"
+            />
           </div>
         </div>
       );
@@ -401,25 +489,55 @@ function renderStep(
       );
 
     case "strategy_503020": {
+      // Dinâmica de Regra customizada baseada na renda, perfil e metas!
+      let pE = 0.5, pL = 0.3, pF = 0.2; // Moderado Clássico
+      let ruleName = "50/30/20";
+      
+      if (profile.monthlyIncome < 3000 || profile.financialGoal === "debt-free") {
+        pE = 0.6; pL = 0.3; pF = 0.1;
+        ruleName = "60/30/10";
+      } else if (profile.riskProfile === "aggressive") {
+        pE = 0.4; pL = 0.2; pF = 0.4;
+        ruleName = "40/20/40";
+      } else if (profile.riskProfile === "conservative") {
+        pE = 0.5; pL = 0.2; pF = 0.3;
+        ruleName = "50/20/30";
+      }
+
       const data = [
-        { name: 'Essencial', value: 50, color: '#6366f1' },
-        { name: 'Estilo de Vida', value: 30, color: '#a855f7' },
-        { name: 'Liberdade', value: 20, color: '#10b981' },
+        { name: 'Essencial', value: pE * 100, color: '#6366f1' },
+        { name: 'Estilo de Vida', value: pL * 100, color: '#a855f7' },
+        { name: 'Futuro', value: pF * 100, color: '#10b981' },
       ];
+      
       return (
         <div className="space-y-6 pt-4 text-center">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold">A Regra de Ouro</h2>
-            <p className="text-white/50">Baseado na ciência econômica, esta é a sua alocação ideal:</p>
+            <p className="text-white/50">Calculamos sua alocação ideal com base no seu diagnóstico:</p>
           </div>
           
-          <div className="h-[280px] w-full flex items-center justify-center relative">
+          <div className="flex gap-2 p-1 bg-white/5 rounded-2xl mx-auto w-fit mb-4 border border-white/5">
+            {["conservative", "moderate", "aggressive"].map(mode => (
+              <button 
+                key={mode}
+                onClick={() => onChange("riskProfile", mode as any)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  profile.riskProfile === mode ? "bg-indigo-500 text-white shadow-lg" : "text-white/40 hover:text-white"
+                }`}
+              >
+                {mode === "conservative" ? "Economizar" : mode === "moderate" ? "Equilibrar" : "Acelerar"}
+              </button>
+            ))}
+          </div>
+
+          <div className="h-[240px] w-full flex items-center justify-center relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data}
                   cx="50%" cy="50%"
-                  innerRadius={70} outerRadius={100}
+                  innerRadius={65} outerRadius={95}
                   paddingAngle={8}
                   dataKey="value"
                   animationDuration={1500}
@@ -429,21 +547,22 @@ function renderStep(
                   ))}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#111', border: 'none', borderRadius: '12px', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
                   itemStyle={{ color: '#fff' }}
+                  formatter={(value: number) => [`${value.toFixed(0)}%`, 'Alocação']}
                 />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-[10px] uppercase font-bold text-white/40 tracking-widest">Alocação</span>
-              <span className="text-3xl font-black">50/30/20</span>
+              <span className="text-3xl font-black">{ruleName}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-2 text-left">
-            <StrategyRow color="bg-indigo-500" label="Necessidades (50%)" sub="Moradia, alimentação, saúde" val={formatCurrency(profile.monthlyIncome * 0.5)} />
-            <StrategyRow color="bg-purple-500" label="Lifestyle (30%)" sub="Lazer, compras, assinaturas" val={formatCurrency(profile.monthlyIncome * 0.3)} />
-            <StrategyRow color="bg-emerald-500" label="Futuro (20%)" sub="Investimento, dívidas, reserva" val={formatCurrency(profile.monthlyIncome * 0.2)} />
+            <StrategyRow color="bg-indigo-500" label={`Necessidades (${pE*100}%)`} sub="Moradia, alimentação, saúde" val={formatCurrency(profile.monthlyIncome * pE)} />
+            <StrategyRow color="bg-purple-500" label={`Lifestyle (${pL*100}%)`} sub="Lazer, compras, assinaturas" val={formatCurrency(profile.monthlyIncome * pL)} />
+            <StrategyRow color="bg-emerald-500" label={`Futuro (${pF*100}%)`} sub="Investimento, dívidas, reserva" val={formatCurrency(profile.monthlyIncome * pF)} />
           </div>
         </div>
       );
@@ -498,8 +617,10 @@ function renderStep(
                 key={i}
                 onClick={() => {
                   const newGoals = [...goals];
-                  newGoals[i].enabled = !newGoals[i].enabled;
-                  setGoals(newGoals);
+                  if (newGoals[i]) {
+                    newGoals[i].enabled = !newGoals[i].enabled;
+                    setGoals(newGoals);
+                  }
                 }}
                 className={`p-5 rounded-3xl border transition-all cursor-pointer relative overflow-hidden ${
                   g.enabled ? "bg-indigo-600/20 border-indigo-500" : "bg-white/5 border-white/10"
@@ -527,8 +648,10 @@ function renderStep(
                 key={i}
                 onClick={() => {
                   const newR = [...reminders];
-                  newR[i].enabled = !newR[i].enabled;
-                  setReminders(newR);
+                  if (newR[i]) {
+                    newR[i].enabled = !newR[i].enabled;
+                    setReminders(newR);
+                  }
                 }}
                 className={`p-4 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
                   r.enabled ? "bg-white/10 border-white/20" : "bg-white/5 border-white/5"

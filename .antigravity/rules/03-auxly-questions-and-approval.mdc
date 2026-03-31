@@ -125,4 +125,4 @@ await mcp_extension-auxly_auxly_update_task({
 
 ---
 
-**ENFORCEMENT: ZERO questions in chat. ALL via `mcp_extension-auxly_auxly_ask_question`. ALWAYS ask before marking done/review/cancelled.**
+**ENFORCEMENT: ZERO questions in chat. ALL via `mcp_extension-auxly_auxly_ask_question`. MCP blocks `in_progress` → `review` unless an answered APPROVAL REQUEST mentions review (text/context/options). ALWAYS ask before marking done/review/cancelled.**

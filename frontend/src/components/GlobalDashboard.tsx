@@ -90,16 +90,43 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
     am: tx.type === 'expense' ? -tx.amount : tx.amount
   }));
 
-  const sustainableDaily = globalTotals.netWorth > 0 ? Math.round(globalTotals.netWorth * 0.04 / 365) : 0;
+  // ── Adaptive Metrics (Phase 10+) ─────────────────────────────────────
+  const isPj = user?.employmentType === 'pj';
+  const dependents = user?.dependents ?? 0;
+  // PJ needs 12-month emergency reserve, CLT needs 6 months
+  const emergencyMonths = isPj ? 12 : 6;
+  const monthlyFixedCosts = globalTotals.expense > 0 ? globalTotals.expense : (user?.monthlyIncome ?? 0) * 0.6;
+  const requiredReserve = monthlyFixedCosts * emergencyMonths;
+  // Each dependent reduces sustainable daily spend by 8%
+  const dependentPenalty = 1 - (dependents * 0.08);
+  const sustainableDaily = globalTotals.netWorth > 0
+    ? Math.round(globalTotals.netWorth * 0.04 / 365 * Math.max(0.4, dependentPenalty))
+    : 0;
 
   const calculateScore = () => {
     if (globalTotals.income === 0) return 0;
     const savingsRatio = globalTotals.balance / globalTotals.income;
-    const debtRatio = globalTotals.liabilities / globalTotals.assets || 0;
-    return Math.min(100, Math.max(0, Math.round((savingsRatio * 50) + ((1 - debtRatio) * 50))));
+    const debtRatio = globalTotals.liabilities / (globalTotals.assets || 1);
+    let score = Math.round((savingsRatio * 50) + ((1 - debtRatio) * 50));
+    // Penalize PJ who doesn't have enough reserve
+    const currentBalance = globalTotals.balance;
+    if (currentBalance < requiredReserve) {
+      const reserveGap = (requiredReserve - currentBalance) / requiredReserve;
+      score = Math.round(score * (1 - reserveGap * 0.4));
+    }
+    // Small penalty per unprotected dependent (no emergency fund)
+    if (dependents > 0 && !user?.hasEmergencyFund) {
+      score = Math.round(score * (1 - dependents * 0.04));
+    }
+    return Math.min(100, Math.max(0, score));
   };
 
   const healthScore = calculateScore();
+  // Tax estimate for dashboard card
+  const monthlyRevenue = user?.monthlyIncome ?? globalTotals.income;
+  const estimatedTax = isPj
+    ? Math.round(monthlyRevenue * 0.06) // ~6% DAS Simples Nacional average
+    : Math.round(Math.max(0, (monthlyRevenue - 4664) * 0.275)); // rough IRPF
 
   const calculateMonthlyVariation = () => {
     if (personal.monthlyTrend.length < 2) return { amount: 0, percentage: 0 };
@@ -248,6 +275,40 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
           </div>
         </div>
       </div>
+
+      {/* Tax Auditor Card — Phase 11 */}
+      {estimatedTax > 0 && (
+        <div
+          className="card"
+          style={{ marginBottom: "18px", background: "linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(245,158,11,0.04) 100%)", border: "1px solid rgba(251,191,36,0.18)", cursor: "default" }}
+        >
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <div style={{ fontSize: "24px" }}>🧾</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "rgba(251,191,36,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "2px" }}>
+                Auditor de Impostos · {isPj ? "DAS / Simples Nacional" : "IRPF Estimado"}
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--t1)", fontWeight: 600 }}>
+                Separe <span style={{ color: "rgba(251,191,36,1)", fontVariantNumeric: "tabular-nums" }}>
+                  {fmt(estimatedTax)}/mês
+                </span> para o governo
+              </div>
+              <div style={{ fontSize: "11px", color: "var(--t3)", marginTop: "2px" }}>
+                {isPj
+                  ? `~6% Simples Nacional sobre R$ ${(monthlyRevenue / 1000).toFixed(0)}k de faturamento`
+                  : `Alíquota 27,5% sobre renda acima de R$ 4.664`}
+                {dependents > 0 && ` · ${dependents} dependente${dependents > 1 ? "s" : ""} podem reduzir sua base`}
+              </div>
+            </div>
+            {isPj && (
+              <div style={{ textAlign: "center", background: "rgba(251,191,36,0.1)", borderRadius: "10px", padding: "8px 12px", border: "1px solid rgba(251,191,36,0.2)" }}>
+                <div style={{ fontSize: "10px", color: "rgba(251,191,36,0.7)", fontWeight: 700, letterSpacing: "0.05em" }}>CNPJ</div>
+                <div style={{ fontSize: "11px", color: "var(--t2)", fontWeight: 600, marginTop: "2px" }}>Ativo</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Alerta comportamental */}
       {behavioralAlert && (

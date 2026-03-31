@@ -186,17 +186,25 @@ export async function userRoutes(app: FastifyInstance) {
             hasEmergencyFund: p.hasEmergencyFund || false,
             hasDebts: p.hasDebts || false,
             initialBalance: p.initialBalance || 0,
+            
+            // New Advanced AI / Business Fields
+            businessName: p.businessName || undefined,
+            businessCnpj: p.businessCnpj || undefined,
+            businessSector: p.businessSector || undefined,
+            age: p.age || undefined,
+            dependents: p.dependents || undefined,
+            investmentHorizon: p.investmentHorizon || undefined,
           }
         });
 
         // 2. Initial Balance Transaction
-        if (p.initialBalance && p.initialBalance > 0) {
+        if (p.initialBalance && p.initialBalance !== 0) {
           await db.transaction.create({
             data: {
               userId,
-              type: 'income',
-              description: 'Saldo Inicial',
-              amount: p.initialBalance,
+              type: p.initialBalance > 0 ? 'income' : 'expense',
+              description: p.initialBalance > 0 ? 'Saldo Inicial' : 'Dívida Inicial',
+              amount: Math.abs(p.initialBalance),
               category: 'Outros',
               date: new Date(),
               scope: 'personal'

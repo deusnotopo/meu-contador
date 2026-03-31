@@ -19,6 +19,8 @@ export const uploadReceipt = async (transactionId: string, file: File): Promise<
 
   const fileExtension = file.name.split('.').pop();
   const filePath = `users/${userId}/receipts/${transactionId}-${Date.now()}.${fileExtension}`;
+  
+  if (!storage) throw new Error("Firebase storage is not initialized.");
   const storageRef = ref(storage, filePath);
 
   try {
@@ -37,6 +39,10 @@ export const uploadReceipt = async (transactionId: string, file: File): Promise<
  * @param receiptUrl - The full URL of the receipt to delete
  */
 export const deleteReceipt = async (receiptUrl: string) => {
+  if (!storage) {
+    logger.warn("Firebase storage is not initialized, skipping deletion.");
+    return;
+  }
   try {
     const storageRef = ref(storage, receiptUrl);
     await deleteObject(storageRef);

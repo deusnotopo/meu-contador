@@ -41,6 +41,11 @@ model User {
   businessCnpj    String?
   businessSector  String?
 
+  // AI & Behavioral Profiling
+  age             Int?
+  dependents      Int?
+  investmentHorizon String?
+
   workspaces      Workspace[] @relation("UserWorkspaces")
   currentWorkspaceId String?
 
