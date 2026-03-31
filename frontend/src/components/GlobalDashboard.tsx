@@ -207,8 +207,8 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
             <span className="text-xs font-bold" style={{ color: "var(--amber)", fontFamily: "var(--mono)" }}>Nv. {level.level}</span>
             {loginStreak && loginStreak.current > 0 && (
               <>
-                <Flame size={12} style={{ color: "var(--orange)" }} />
-                <span className="text-[11px] font-semibold" style={{ color: "var(--orange)" }}>{loginStreak.current}</span>
+                <Flame size={12} style={{ color: "var(--amber)" }} />
+                <span className="text-[11px] font-semibold" style={{ color: "var(--amber)" }}>{loginStreak.current}</span>
               </>
             )}
           </button>
