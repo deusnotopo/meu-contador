@@ -4,9 +4,17 @@ import { db, auth } from "./firebase";
 const FIRESTORE_SYNC_ENABLED =
   import.meta.env.VITE_ENABLE_FIRESTORE_SYNC === "true" || import.meta.env.PROD;
 
+/**
+ * Firestore sync only works for users authenticated via Firebase (Google login).
+ * Email/password users have PostgreSQL UUIDs, not Firebase UIDs.
+ * We verify by checking auth.currentUser.uid matches the userId being synced.
+ */
 const canUseFirestoreSync = (userId?: string | null) => {
   if (!FIRESTORE_SYNC_ENABLED) return false;
   if (!userId || !auth.currentUser) return false;
+  // Critical: Only sync if userId matches Firebase Auth UID.
+  // This prevents email/password users from triggering Firestore calls that always timeout.
+  if (auth.currentUser.uid !== userId) return false;
   return true;
 };
 
