@@ -3,7 +3,7 @@ services:
     name: meu-contador
     runtime: node
     rootDir: backend
-    buildCommand: npm install --ignore-scripts && cd backend && npm install && npx prisma generate && npm run build
+    buildCommand: bash render-build.sh
     startCommand: cd backend && node dist/server.js
     envVars:
       - key: NODE_ENV
