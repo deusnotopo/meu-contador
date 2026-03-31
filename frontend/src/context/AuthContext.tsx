@@ -1,9 +1,11 @@
 import { api } from "@/lib/api";
 import type { UserProfile, WorkspaceRole } from "@/types";
 import { auth, googleProvider } from "@/lib/firebase";
+import { trackEvent, analyticsEvents } from "@/lib/analytics";
 import { signInWithPopup } from "firebase/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { syncAllData } from "@/lib/storage";
+import { logger } from "@/lib/logger";
 
 // Extended User type to support both Profile data and Auth IDs
 export interface AuthUser extends UserProfile {
@@ -69,10 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         setIsSyncing(true);
-        // Timeout de 15s para não travar se o backend estiver dormindo (Render free tier)
+        // Aumentando o timeout para 45s para compensar o cold-start do Render
         const [userData, preferences] = await Promise.all([
-          withTimeout(api.get<any>("/auth/me"), 15000),
-          withTimeout(api.get<any>("/users/preferences"), 15000).catch((e) => {
+          withTimeout(api.get<any>("/auth/me"), 45000),
+          withTimeout(api.get<any>("/users/preferences"), 45000).catch((e) => {
             console.warn("Preferences timeout/error, using defaults", e);
             return { privacyMode: false, language: 'pt', theme: 'dark' };
           })
@@ -174,6 +176,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Perform initial full-sync blocking login to guarantee data readiness
       await syncAllData(authUser.id);
+
+      // Track Login Event
+      trackEvent(analyticsEvents.LOGIN, { 
+        method: "email",
+        userId: authUser.id 
+      });
     } catch (error) {
        console.error("Login error:", error);
        throw error;
@@ -222,6 +230,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         
       setUser(authUser);
       await syncAllData(authUser.id);
+
+      // Track Registration Event
+      trackEvent(analyticsEvents.SIGN_UP, { userId: authUser.id });
     } catch (error) {
       console.error("Registration failed:", error);
       throw error;
@@ -290,6 +301,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsPro(authUser.isPro || false);
       
       await syncAllData(authUser.id);
+
+      // Track Google Login Event
+      trackEvent(analyticsEvents.LOGIN, { 
+        method: "google",
+        userId: authUser.id 
+      });
     } catch (error) {
       console.error("Google Login Failed", error);
       throw error;
@@ -299,6 +316,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = async () => {
+    // Track Logout Event
+    trackEvent(analyticsEvents.LOGOUT);
+
     localStorage.removeItem("authToken");
     setUser(null);
     setIsPro(false);
@@ -310,6 +330,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Update local state with proper type merge
       if (user) {
         setUser({ ...user, ...(data as Partial<AuthUser>) });
+        // Track Profile Update
+        trackEvent(analyticsEvents.UPDATE_PROFILE);
       }
     } catch (error) {
       console.error("Failed to update profile:", error);

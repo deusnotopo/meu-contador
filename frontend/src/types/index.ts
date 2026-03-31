@@ -16,6 +16,7 @@ export interface Transaction {
   currency?: "BRL" | "USD" | "EUR" | "GBP";
   originalAmount?: number;
   exchangeRate?: number;
+  receiptUrl?: string;
 }
 
 export interface TransactionFormData {
@@ -32,6 +33,7 @@ export interface TransactionFormData {
   classification?: "necessity" | "want" | "investment" | "debt";
   currency?: "BRL" | "USD" | "EUR" | "GBP";
   exchangeRate?: string;
+  receiptUrl?: string;
 }
 
 // ============= Budget Types =============

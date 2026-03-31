@@ -25,6 +25,7 @@ export async function transactionRoutes(app: FastifyInstance) {
       category: z.string(),
       date: z.string(),
       scope: z.enum(['personal', 'business']),
+      receiptUrl: z.string().optional(),
     });
 
     const body = schema.parse(request.body);
@@ -56,6 +57,7 @@ export async function transactionRoutes(app: FastifyInstance) {
       category: z.string().optional(),
       date: z.string().optional(),
       scope: z.enum(['personal', 'business']).optional(),
+      receiptUrl: z.string().optional(),
     });
 
     const body = schema.parse(request.body);

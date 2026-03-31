@@ -19,7 +19,7 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
-    signal: options.signal || AbortSignal.timeout(15000)
+    signal: options.signal || AbortSignal.timeout(45000)
   });
 
   if (response.status === 401) {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Search, Upload, Trash2, Pencil, Home, ShoppingCart, Utensils, Car, Pill, Film, Shirt, Package, DollarSign, TrendingUp, Receipt } from "lucide-react";
+import { ArrowLeft, Search, Upload, Trash2, Pencil, Home, ShoppingCart, Utensils, Car, Pill, Film, Shirt, Package, DollarSign, TrendingUp, Receipt, Paperclip } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -172,7 +172,8 @@ export const TransactionsView = ({ onBack }: TransactionsViewProps) => {
                     <div className="row-title">{tx.description}</div>
                     <div className="row-sub">{tx.category} · {new Date(tx.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</div>
                   </div>
-                  <div className={`row-amt ${tx.amount > 0 ? "amt-plus" : "amt-minus"}`} style={{ marginRight: 8 }}>
+                  <div className={`row-amt ${tx.amount > 0 ? "amt-plus" : "amt-minus"}`} style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 8 }}>
+                    {tx.receiptUrl && <Paperclip size={12} style={{ opacity: 0.5 }} />}
                     {tx.amount > 0 ? "+" : "−"}&nbsp;{formatCurrency(Math.abs(tx.amount))}
                   </div>
                   <button

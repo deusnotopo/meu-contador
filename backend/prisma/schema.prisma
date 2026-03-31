@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum DataReliability {
@@ -83,6 +84,7 @@ model Transaction {
   currency           String   @default("BRL")
   originalAmount     Float?
   exchangeRate       Float?
+  receiptUrl         String?
   fitid              String?  // OFX Financial Institution Transaction ID (dedup)
 
   userId             String
