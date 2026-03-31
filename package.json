@@ -12,7 +12,7 @@
     "vercel-build": "npm run build -w frontend",
     "docker:up": "docker-compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker-compose -f docker/docker-compose.yml down",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "prisma": "^7.2.0"
