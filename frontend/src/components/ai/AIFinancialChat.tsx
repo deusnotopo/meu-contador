@@ -102,6 +102,16 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
         intent.type !== "query" &&
         intent.confidence > 0.7
       ) {
+        const tempId = Date.now().toString() + "_temp";
+        const tempMessage: Message = {
+          id: tempId,
+          role: "assistant",
+          content: "Gravando o lançamento de dados...",
+          timestamp: new Date(),
+          type: "insight",
+        };
+        setMessages((prev) => [...prev, tempMessage]);
+
         const result = await executeAction(intent);
 
         const actionMessage: Message = {
@@ -114,8 +124,10 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
           type: result.success ? "insight" : "alert",
         };
 
-        setMessages((prev) => [...prev, actionMessage]);
+        setMessages((prev) => [...prev.filter(m => m.id !== tempId), actionMessage]);
         setIsLoading(false);
+        // Force overall dashboard refresh
+        window.dispatchEvent(new Event("transaction-updated"));
         return;
       }
 
@@ -156,13 +168,12 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
       const data = await response.json();
       const aiResponse = data.response ?? "Não foi possível obter resposta da IA";
 
-      // Detect response type
       let messageType: Message["type"] = "text";
       if (aiResponse.includes("recomendo") || aiResponse.includes("sugiro")) {
         messageType = "recommendation";
       } else if (aiResponse.includes("⚠") || aiResponse.includes("atenção")) {
         messageType = "alert";
-      } else if (aiResponse.includes("📊") || aiResponse.includes("análise")) {
+      } else if (aiResponse.includes("📊") || aiResponse.includes("análise") || aiResponse.includes("Processando")) {
         messageType = "insight";
       }
 

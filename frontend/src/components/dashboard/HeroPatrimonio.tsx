@@ -7,11 +7,13 @@ interface HeroPatrimonioProps {
   assets: number;
   liabilities: number;
   healthScore: number;
+  healthScoreTooltip?: string;
   monthlyVariation: { amount: number; percentage: number };
   sparklineData: number[];
   onNavigate?: (tab: TabType) => void;
   fmtM: (n: number) => string;
   fmt: (n: number) => string;
+
 }
 
 /** Animates a number from 0 to target over ~900ms */
@@ -56,6 +58,7 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
   assets,
   liabilities,
   healthScore,
+  healthScoreTooltip,
   monthlyVariation,
   sparklineData,
   onNavigate,
@@ -151,7 +154,11 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
             <div className="s3l">
               <span style={{ fontSize: "9px", marginRight: 3 }}>❤️</span>Score
             </div>
-            <div className="s3v" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
+            <div 
+              className="s3v" 
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}
+              title={healthScoreTooltip || "Score de Saúde Financeira"}
+            >
               {healthScore === 0 ? (
                 <span
                   style={{ fontSize: "10px", color: "var(--amber)", fontWeight: 700, border: "1px solid rgba(255,173,59,0.3)", borderRadius: "8px", padding: "2px 6px" }}

@@ -80,7 +80,13 @@ export const useTransactions = (
     
     loadData();
     
-    return () => { cancelled = true; }; // ← Cleanup!
+    const handleRefresh = () => { loadData(); };
+    window.addEventListener("transaction-updated", handleRefresh);
+
+    return () => { 
+      cancelled = true; 
+      window.removeEventListener("transaction-updated", handleRefresh);
+    }; // ← Cleanup!
   }, [scope, user?.uid]);
 
   const addTransaction = async (formData: TransactionFormData) => {

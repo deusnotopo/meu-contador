@@ -104,24 +104,34 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
     : 0;
 
   const calculateScore = () => {
-    if (globalTotals.income === 0) return 0;
+    if (globalTotals.income === 0) return { score: 0, tooltip: "Registre receitas para calcular o score de saúde." };
     const savingsRatio = globalTotals.balance / globalTotals.income;
     const debtRatio = globalTotals.liabilities / (globalTotals.assets || 1);
     let score = Math.round((savingsRatio * 50) + ((1 - debtRatio) * 50));
+    let tooltip = "Score Base. ";
+
     // Penalize PJ who doesn't have enough reserve
     const currentBalance = globalTotals.balance;
     if (currentBalance < requiredReserve) {
       const reserveGap = (requiredReserve - currentBalance) / requiredReserve;
       score = Math.round(score * (1 - reserveGap * 0.4));
+      tooltip += isPj 
+        ? "⚠️ Reserva PF limitada afeta PJ (-score). " 
+        : "⚠️ Reserva inferior a 6 meses de segurança (-score). ";
     }
     // Small penalty per unprotected dependent (no emergency fund)
     if (dependents > 0 && !user?.hasEmergencyFund) {
       score = Math.round(score * (1 - dependents * 0.04));
+      tooltip += `⚠️ ${dependents} dependente(s) sem Fundo de Emergência (-score).`;
     }
-    return Math.min(100, Math.max(0, score));
+    
+    if (tooltip === "Score Base. ") tooltip = "Seu score está ótimo! Reserva adequada e endividamento sob controle.";
+
+    return { score: Math.min(100, Math.max(0, score)), tooltip };
   };
 
-  const healthScore = calculateScore();
+  const { score: healthScore, tooltip: healthScoreTooltip } = calculateScore();
+  
   // Tax estimate for dashboard card
   const monthlyRevenue = user?.monthlyIncome ?? globalTotals.income;
   const estimatedTax = isPj
@@ -249,6 +259,7 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
         assets={globalTotals.assets}
         liabilities={globalTotals.liabilities}
         healthScore={healthScore}
+        healthScoreTooltip={healthScoreTooltip}
         monthlyVariation={monthlyVariation}
         sparklineData={sparklineData}
         onNavigate={onNavigate}
