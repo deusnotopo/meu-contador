@@ -118,10 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Trigger background sync to load all financial data without blocking the UI
         syncAllData(authUser.id).catch(err => console.error("Background sync failed:", err));
-      } catch (error) {
+      } catch (error: any) {
         console.error("Session restoration failed:", error);
-        // Remove token inválido ou sessão que expirou/não respondeu
-        localStorage.removeItem("authToken");
+        // Só removemos o token se for comprovadamente 401/403 (tratado pelo api.ts agora)
+        // Se for erro de rede (Failed to fetch) ou Timeout, mantemos o token para que
+        // um simples F5 reconecte o usuário quando o servidor Render acordar.
       } finally {
         setLoading(false);
         setIsSyncing(false);

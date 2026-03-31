@@ -54,6 +54,7 @@ interface Props {
 const STEPS = [
   { id: "welcome", title: "Boas-vindas", act: 0 },
   { id: "identity", title: "Identidade", act: 1 },
+  { id: "objective", title: "Objetivo Principal", act: 1 },
   { id: "family", title: "Perfil e Prioridade", act: 1 },
   { id: "business", title: "O Seu Negócio", act: 1 },
   { id: "income", title: "Sua Renda", act: 1 },
@@ -341,6 +342,74 @@ function renderStep(
         </div>
       );
 
+    case "objective":
+      const isCustomGoal = !["save", "invest", "debt", "house"].includes(profile.financialGoal || "save");
+      return (
+        <div className="space-y-8 pt-6">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold">O que te trouxe aqui?</h2>
+            <p className="text-white/50">Escolha o seu principal objetivo financeiro atual para personalizarmos sua IA.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {[
+              { id: "save", title: "Reserva de Emergência", desc: "Criar um colchão financeiro e ter paz de espírito.", icon: Shield },
+              { id: "invest", title: "Crescer Patrimônio", desc: "Aposentadoria, independência financeira ou bater metas altas.", icon: TrendingUp },
+              { id: "debt", title: "Sair das Dívidas", desc: "Vencer os juros e organizar a casa primeiro.", icon: Zap },
+              { id: "house", title: "Comprar um Imóvel", desc: "Planejamento para dar entrada na casa própria.", icon: Building2 },
+            ].map(obj => (
+              <button
+                key={obj.id}
+                onClick={() => onChange("financialGoal", obj.id)}
+                className={`p-5 rounded-2xl border transition-all text-left flex items-start gap-4 ${
+                  !isCustomGoal && profile.financialGoal === obj.id 
+                    ? "bg-indigo-500/20 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.2)]" 
+                    : "bg-white/5 border-white/5 hover:bg-white/10"
+                }`}
+              >
+                <div className={`p-3 rounded-xl ${!isCustomGoal && profile.financialGoal === obj.id ? "bg-indigo-500/30 text-indigo-400" : "bg-black/20 text-white/40"}`}>
+                  <obj.icon size={24} />
+                </div>
+                <div>
+                  <h3 className={`font-bold text-lg mb-1 ${!isCustomGoal && profile.financialGoal === obj.id ? "text-indigo-100" : "text-white"}`}>{obj.title}</h3>
+                  <p className="text-sm font-medium text-white/50">{obj.desc}</p>
+                </div>
+              </button>
+            ))}
+
+            {/* Custom Option Button */}
+            <button
+              onClick={() => onChange("financialGoal", "")} // Forces isCustomGoal = true by setting to ""
+              className={`p-5 rounded-2xl border transition-all text-left flex items-start gap-4 ${
+                isCustomGoal 
+                  ? "bg-indigo-500/20 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.2)]" 
+                  : "bg-white/5 border-white/5 hover:bg-white/10"
+              }`}
+            >
+              <div className={`p-3 rounded-xl ${isCustomGoal ? "bg-indigo-500/30 text-indigo-400" : "bg-black/20 text-white/40"}`}>
+                <Target size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className={`font-bold text-lg mb-1 ${isCustomGoal ? "text-indigo-100" : "text-white"}`}>Outro (Personalizado)</h3>
+                <p className="text-sm font-medium text-white/50">Inserir meu próprio objetivo manualmente</p>
+                
+                {/* Custom Input (rendered inside the button visually, but stops propagation so they can type) */}
+                {isCustomGoal && (
+                  <div className="mt-4" onClick={e => e.stopPropagation()}>
+                    <Input 
+                      autoFocus
+                      value={profile.financialGoal} 
+                      onChange={e => onChange("financialGoal", e.target.value)}
+                      placeholder="Ex: Viajar para o Japão" 
+                      className="h-12 bg-black/40 border-white/10 rounded-xl text-md font-bold focus:ring-2 ring-indigo-500/50"
+                    />
+                  </div>
+                )}
+              </div>
+            </button>
+          </div>
+        </div>
+      );
+
     case "family":
       return (
         <div className="space-y-8 pt-6">
@@ -366,29 +435,6 @@ function renderStep(
                 onChange={e => onChange("dependents", parseInt(e.target.value) || 0)}
                 className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-black text-center"
               />
-            </div>
-          </div>
-          
-          <div className="space-y-4 pt-4">
-            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Sua Maior Prioridade</Label>
-            <div className="grid grid-cols-1 gap-2">
-              {[
-                { id: "save", label: "Construir Reserva Intocável", icon: Shield, color: "text-emerald-400" },
-                { id: "invest", label: "Multiplicar Dinheiro (Investir)", icon: TrendingUp, color: "text-indigo-400" },
-                { id: "debt-free", label: "Quitar Dívidas e Limpar Nome", icon: Target, color: "text-rose-400" }
-              ].map(goal => (
-                <div 
-                  key={goal.id}
-                  onClick={() => onChange("financialGoal", goal.id)}
-                  className={`p-4 rounded-xl border flex items-center gap-4 transition-all cursor-pointer ${
-                    profile.financialGoal === goal.id ? "bg-white/10 border-white/30" : "bg-white/5 border-white/5"
-                  }`}
-                >
-                  <goal.icon size={20} className={profile.financialGoal === goal.id ? goal.color : "text-white/30"} />
-                  <span className="font-bold text-sm tracking-tight">{goal.label}</span>
-                  {profile.financialGoal === goal.id && <Check size={16} className={`ml-auto ${goal.color}`} />}
-                </div>
-              ))}
             </div>
           </div>
         </div>
