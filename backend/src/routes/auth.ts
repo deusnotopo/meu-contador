@@ -193,18 +193,24 @@ export async function authRoutes(app: FastifyInstance) {
       where: { email },
     });
 
-    if (!user || user.passwordHash === "") {
-      // If user has no password (e.g. Firebase user), they must reset or use social login (if implemented)
-      // For now, fail safe.
+    if (!user) {
+      console.log(`[Auth] Login failed: User not found (${email})`);
+      return reply.status(401).send({ message: 'Invalid credentials' });
+    }
+
+    if (user.passwordHash === "") {
+      console.log(`[Auth] Login failed: User has no password (Google user?) (${email})`);
       return reply.status(401).send({ message: 'Invalid credentials' });
     }
 
     const isValid = await comparePassword(password, user.passwordHash);
 
     if (!isValid) {
+      console.log(`[Auth] Login failed: Password mismatch (${email})`);
       return reply.status(401).send({ message: 'Invalid credentials' });
     }
 
+    console.log(`[Auth] Login success: ${email}`);
     const token = app.jwt.sign({
       id: user.id,
       email: user.email,
