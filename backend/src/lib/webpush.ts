@@ -1,3 +1,4 @@
+// @ts-ignore - web-push has no official @types package bundled
 import webpush from 'web-push';
 import dotenv from 'dotenv';
 dotenv.config();

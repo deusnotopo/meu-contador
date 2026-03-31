@@ -54,7 +54,7 @@ export async function pushRoutes(app: FastifyInstance) {
           }
         };
 
-        webpush.sendNotification(subObj, welcomePayload).catch(err => console.error('Erro no first-push:', err));
+        webpush.sendNotification(subObj, welcomePayload).catch((err: unknown) => console.error('Erro no first-push:', err));
 
         return reply.status(201).send({ status: 'success', id: subscription.id });
       } catch (error) {
