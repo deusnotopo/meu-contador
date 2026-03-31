@@ -30,12 +30,7 @@ export async function authRoutes(app: FastifyInstance) {
       response: {
         200: z.object({
           token: z.string(),
-          user: z.object({
-            id: z.string(),
-            email: z.string(),
-            name: z.string().nullable(),
-            isPro: z.boolean(),
-          }),
+          user: z.any(), // returns full profile including age, dependents, employmentType
         }),
         409: z.object({
           message: z.string(),
@@ -174,12 +169,7 @@ export async function authRoutes(app: FastifyInstance) {
       response: {
         200: z.object({
           token: z.string(),
-          user: z.object({
-            id: z.string(),
-            email: z.string(),
-            name: z.string().nullable(),
-            isPro: z.boolean(),
-          }),
+          user: z.any(), // returns full profile including age, dependents, employmentType
         }),
         401: z.object({
           message: z.string(),
