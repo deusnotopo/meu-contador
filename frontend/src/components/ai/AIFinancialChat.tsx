@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Loader2, Send, User as LucideUser, X, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { VoiceInput } from "./VoiceInput";
+import { AIThinkingIndicator } from "./AIThinkingIndicator";
 
 interface Message {
   id: string;
@@ -341,24 +342,9 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
           ))}
         </AnimatePresence>
 
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex gap-4"
-          >
-            <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <Loader2 size={20} className="text-indigo-400 animate-spin" />
-            </div>
-            <div className="p-5 rounded-3xl bg-white/5 border border-white/10">
-              <div className="flex gap-1">
-                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" />
-                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]" />
-              </div>
-            </div>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {isLoading && <AIThinkingIndicator />}
+        </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
 

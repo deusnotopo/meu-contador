@@ -41,7 +41,6 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   
   const hasError = personal.error || business.error || investError || debtError;
   const { user } = useAuth();
-  // Prefer the backend user name, fall back gracefully
   const firstName = (user as any)?.name?.split(' ')[0]
     || (user as any)?.username?.split(' ')[0]
     || 'Você';
@@ -93,11 +92,9 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   // ── Adaptive Metrics (Phase 10+) ─────────────────────────────────────
   const isPj = user?.employmentType === 'pj';
   const dependents = user?.dependents ?? 0;
-  // PJ needs 12-month emergency reserve, CLT needs 6 months
   const emergencyMonths = isPj ? 12 : 6;
   const monthlyFixedCosts = globalTotals.expense > 0 ? globalTotals.expense : (user?.monthlyIncome ?? 0) * 0.6;
   const requiredReserve = monthlyFixedCosts * emergencyMonths;
-  // Each dependent reduces sustainable daily spend by 8%
   const dependentPenalty = 1 - (dependents * 0.08);
   const sustainableDaily = globalTotals.netWorth > 0
     ? Math.round(globalTotals.netWorth * 0.04 / 365 * Math.max(0.4, dependentPenalty))
@@ -110,7 +107,6 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
     let score = Math.round((savingsRatio * 50) + ((1 - debtRatio) * 50));
     let tooltip = "Score Base. ";
 
-    // Penalize PJ who doesn't have enough reserve
     const currentBalance = globalTotals.balance;
     if (currentBalance < requiredReserve) {
       const reserveGap = (requiredReserve - currentBalance) / requiredReserve;
@@ -119,24 +115,21 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
         ? "⚠️ Reserva PF limitada afeta PJ (-score). " 
         : "⚠️ Reserva inferior a 6 meses de segurança (-score). ";
     }
-    // Small penalty per unprotected dependent (no emergency fund)
     if (dependents > 0 && !user?.hasEmergencyFund) {
       score = Math.round(score * (1 - dependents * 0.04));
       tooltip += `⚠️ ${dependents} dependente(s) sem Fundo de Emergência (-score).`;
     }
     
     if (tooltip === "Score Base. ") tooltip = "Seu score está ótimo! Reserva adequada e endividamento sob controle.";
-
     return { score: Math.min(100, Math.max(0, score)), tooltip };
   };
 
   const { score: healthScore, tooltip: healthScoreTooltip } = calculateScore();
   
-  // Tax estimate for dashboard card
   const monthlyRevenue = user?.monthlyIncome ?? globalTotals.income;
   const estimatedTax = isPj
-    ? Math.round(monthlyRevenue * 0.06) // ~6% DAS Simples Nacional average
-    : Math.round(Math.max(0, (monthlyRevenue - 4664) * 0.275)); // rough IRPF
+    ? Math.round(monthlyRevenue * 0.06)
+    : Math.round(Math.max(0, (monthlyRevenue - 4664) * 0.275));
 
   const calculateMonthlyVariation = () => {
     if (personal.monthlyTrend.length < 2) return { amount: 0, percentage: 0 };
@@ -178,83 +171,65 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   const behavioralAlert = calculateBehavioralAlert();
 
   return (
-    <div style={{ paddingTop: "10px" }} id="dashboard-overview">
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
-          <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "14px",
-            background: "rgba(255,255,255,0.03)",
-            backdropFilter: "blur(8px)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-            overflow: "hidden"
-          }}>
-            <img src="/logo-new.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: "6px" }} />
+    <div className="pt-2.5" id="dashboard-overview">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="flex justify-between items-start gap-3 mb-6 flex-wrap">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-12 h-12 rounded-[14px] bg-white/[0.03] backdrop-blur-md border border-white/[0.08] flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+            <img src="/logo-new.png" alt="Logo" className="w-full h-full object-contain p-1.5" />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div className="eyebrow" style={{ color: "var(--t3)", letterSpacing: "1px", fontSize: "11px" }}>{capitalizedDate}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: "2px" }}>
-              <div className="page-title" style={{ fontSize: "22px", letterSpacing: "-0.5px", background: "linear-gradient(90deg, var(--t1) 0%, var(--t2) 100%)", WebkitBackgroundClip: "text", color: "transparent", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div className="min-w-0 flex-1">
+            <div className="eyebrow" style={{ color: "var(--t3)", fontSize: "11px" }}>{capitalizedDate}</div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <div
+                className="page-title truncate"
+                style={{ fontSize: "22px", letterSpacing: "-0.5px", background: "linear-gradient(90deg, var(--t1) 0%, var(--t2) 100%)", WebkitBackgroundClip: "text", color: "transparent" }}
+              >
                 {greeting}, {firstName} {greetingEmoji}
               </div>
               {hasError && (
-                <div className="bdg bdg-r shadow-glow" style={{ animation: 'pulse 2s infinite' }}>
+                <div className="bdg bdg-r" style={{ animation: 'pulse 2s infinite' }}>
                   <AlertCircle size={10} /> Offline
                 </div>
               )}
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end", width: "100%" }}>
-          {/* Level Badge */}
-          <button 
-            onClick={() => onNavigate?.('health')} 
-            style={{ 
-              background: "linear-gradient(135deg, rgba(255,173,59,0.15) 0%, rgba(255,140,0,0.1) 100%)", 
-              border: "1px solid rgba(255,173,59,0.2)", 
-              height: "36px", 
-              borderRadius: "12px", 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "6px",
-              padding: "0 10px",
-              cursor: "pointer", 
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)" 
-            }}
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2.5 flex-wrap justify-end w-full">
+          <button
+            onClick={() => onNavigate?.('health')}
+            className="h-9 px-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
+            style={{ background: "linear-gradient(135deg, rgba(255,173,59,0.15), rgba(255,140,0,0.1))", border: "1px solid rgba(255,173,59,0.2)" }}
           >
             <Trophy size={14} style={{ color: "var(--amber)" }} />
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--amber)", fontFamily: "var(--mono)" }}>Nv. {level.level}</span>
+            <span className="text-xs font-bold" style={{ color: "var(--amber)", fontFamily: "var(--mono)" }}>Nv. {level.level}</span>
             {loginStreak && loginStreak.current > 0 && (
               <>
                 <Flame size={12} style={{ color: "var(--orange)" }} />
-                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--orange)" }}>{loginStreak.current}</span>
+                <span className="text-[11px] font-semibold" style={{ color: "var(--orange)" }}>{loginStreak.current}</span>
               </>
             )}
           </button>
           <WizardTrigger label="Assistente" />
           <AreaTutorialButton area="inicio" onNavigate={onNavigate} />
-          <button onClick={() => onNavigate?.('notifications')} className="notif-ring hover-glow" style={{ background: "var(--glass2)", border: "1px solid var(--border)", width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.8" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <button
+            onClick={() => onNavigate?.('notifications')}
+            className="notif-ring w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
+            style={{ background: "var(--glass2)", border: "1px solid var(--border)" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
+            </svg>
           </button>
           <UserNav onNavigate={onNavigate} collapsed={true} />
         </div>
       </div>
 
-      {/* Termômetro do Mês — status proativo */}
-      <TermometroDoMes
-        income={globalTotals.income}
-        expense={globalTotals.expense}
-        balance={globalTotals.balance}
-        onNavigate={onNavigate}
-      />
+      <TermometroDoMes income={globalTotals.income} expense={globalTotals.expense} balance={globalTotals.balance} onNavigate={onNavigate} />
 
-      <HeroPatrimonio 
+      <HeroPatrimonio
         netWorth={globalTotals.netWorth}
         assets={globalTotals.assets}
         liabilities={globalTotals.liabilities}
@@ -269,42 +244,38 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
 
       <ActionGrid onNavigate={onNavigate} />
 
-      {/* FIRE Promo Banner */}
-      <div 
-        className="card" 
-        style={{ marginBottom: "18px", background: "var(--glass2)", cursor: "pointer", border: "1px solid rgba(0,217,145,0.2)" }}
+      {/* FIRE Banner */}
+      <div
+        className="card mb-4 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+        style={{ background: "var(--glass2)", border: "1px solid rgba(0,217,145,0.2)" }}
         onClick={() => onNavigate?.('retirement')}
       >
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <div style={{ fontSize: "24px" }}>🎯</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--green)", marginBottom: "2px" }}>Simulador FIRE</div>
-            <div style={{ fontSize: "12px", color: "var(--t2)", lineHeight: 1.3 }}>Descubra quando você poderá se aposentar com seus investimentos atuais.</div>
+        <div className="flex gap-3 items-center">
+          <span className="text-2xl">🎯</span>
+          <div className="flex-1">
+            <div className="text-sm font-semibold mb-0.5" style={{ color: "var(--green)" }}>Simulador FIRE</div>
+            <div className="text-xs leading-snug" style={{ color: "var(--t2)" }}>Descubra quando você poderá se aposentar com seus investimentos atuais.</div>
           </div>
-          <div style={{ color: "var(--t3)" }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </div>
       </div>
 
-      {/* Tax Auditor Card — Phase 11 */}
+      {/* Tax Auditor */}
       {estimatedTax > 0 && (
         <div
-          className="card"
-          style={{ marginBottom: "18px", background: "linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(245,158,11,0.04) 100%)", border: "1px solid rgba(251,191,36,0.18)", cursor: "default" }}
+          className="card mb-4"
+          style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.06), rgba(245,158,11,0.04))", border: "1px solid rgba(251,191,36,0.18)" }}
         >
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <div style={{ fontSize: "24px" }}>🧾</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "rgba(251,191,36,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "2px" }}>
+          <div className="flex gap-3 items-center">
+            <span className="text-2xl">🧾</span>
+            <div className="flex-1">
+              <div className="text-[11px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(251,191,36,0.9)" }}>
                 Auditor de Impostos · {isPj ? "DAS / Simples Nacional" : "IRPF Estimado"}
               </div>
-              <div style={{ fontSize: "13px", color: "var(--t1)", fontWeight: 600 }}>
-                Separe <span style={{ color: "rgba(251,191,36,1)", fontVariantNumeric: "tabular-nums" }}>
-                  {fmt(estimatedTax)}/mês
-                </span> para o governo
+              <div className="text-[13px] font-semibold" style={{ color: "var(--t1)" }}>
+                Separe <span className="tabular-nums" style={{ color: "rgba(251,191,36,1)" }}>{fmt(estimatedTax)}/mês</span> para o governo
               </div>
-              <div style={{ fontSize: "11px", color: "var(--t3)", marginTop: "2px" }}>
+              <div className="text-[11px] mt-0.5" style={{ color: "var(--t3)" }}>
                 {isPj
                   ? `~6% Simples Nacional sobre R$ ${(monthlyRevenue / 1000).toFixed(0)}k de faturamento`
                   : `Alíquota 27,5% sobre renda acima de R$ 4.664`}
@@ -312,9 +283,9 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
               </div>
             </div>
             {isPj && (
-              <div style={{ textAlign: "center", background: "rgba(251,191,36,0.1)", borderRadius: "10px", padding: "8px 12px", border: "1px solid rgba(251,191,36,0.2)" }}>
-                <div style={{ fontSize: "10px", color: "rgba(251,191,36,0.7)", fontWeight: 700, letterSpacing: "0.05em" }}>CNPJ</div>
-                <div style={{ fontSize: "11px", color: "var(--t2)", fontWeight: 600, marginTop: "2px" }}>Ativo</div>
+              <div className="text-center rounded-xl px-3 py-2" style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.2)" }}>
+                <div className="text-[10px] font-bold tracking-wider" style={{ color: "rgba(251,191,36,0.7)" }}>CNPJ</div>
+                <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--t2)" }}>Ativo</div>
               </div>
             )}
           </div>
@@ -323,14 +294,14 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
 
       {/* Alerta comportamental */}
       {behavioralAlert && (
-        <div className="nudge warn" style={{ cursor: "pointer" }} onClick={() => onNavigate?.('planning')}>
+        <div className="nudge warn cursor-pointer" onClick={() => onNavigate?.('planning')}>
           <div className="nudge-ttl" style={{ color: "var(--amber)" }}>⚠ Alerta comportamental</div>
           <div className="nudge-body">{behavioralAlert}</div>
-          <div style={{ fontSize: "11px", color: "var(--amber)", marginTop: "6px", fontWeight: 500 }}>Toque para ver o envelope →</div>
+          <div className="text-[11px] font-medium mt-1.5" style={{ color: "var(--amber)" }}>Toque para ver o envelope →</div>
         </div>
       )}
 
-      <FluxoMensal 
+      <FluxoMensal
         monthName={monthName}
         income={globalTotals.income}
         expense={globalTotals.expense}
@@ -351,11 +322,7 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
       </div>
       <div className="card">
         {hasError ? (
-          <EmptyState 
-            icon={AlertCircle}
-            title="Conexão Falhou"
-            description="As categorias de gastos não podem ser carregadas offline."
-          />
+          <EmptyState icon={AlertCircle} title="Conexão Falhou" description="As categorias de gastos não podem ser carregadas offline." />
         ) : categorySpending.length > 0 ? (
           categorySpending.slice(0, 5).map((cat, idx) => {
             const safeSpent = isNaN(cat.spent) ? 0 : cat.spent;
@@ -364,45 +331,36 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
               <div key={idx} className="row" style={{ cursor: "default" }}>
                 <div className="row-ico">{getEmoji(cat.name)}</div>
                 <div className="row-main">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" }}>
+                  <div className="flex justify-between items-baseline mb-1">
                     <div className="row-title">{cat.name}</div>
-                    <div style={{ fontSize: "12px", fontWeight: 600, color: safeSpent > cat.budget ? "var(--red)" : "var(--t2)", fontFamily: "var(--mono)" }}>{fmt(safeSpent)}</div>
+                    <div className="text-xs font-semibold tabular-nums" style={{ color: safeSpent > cat.budget ? "var(--red)" : "var(--t2)", fontFamily: "var(--mono)" }}>{fmt(safeSpent)}</div>
                   </div>
                   <div className="prog">
-                    <div className="prog-fill" style={{ width: `${pc}%`, background: cat.spent > cat.budget ? "var(--red)" : "var(--blue)" }}></div>
+                    <div className="prog-fill" style={{ width: `${pc}%`, background: cat.spent > cat.budget ? "var(--red)" : "var(--blue)" }} />
                   </div>
-                  <div style={{ fontSize: "10px", color: "var(--t3)", marginTop: "2px", fontFamily: "var(--mono)" }}>de {fmt(cat.budget)}</div>
+                  <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--t3)", fontFamily: "var(--mono)" }}>de {fmt(cat.budget)}</div>
                 </div>
               </div>
             );
           })
         ) : (
-          <EmptyState 
-            icon={ChartBarIcon}
-            title="Nada gasto ainda"
-            description="Seus gastos categorizados aparecerão aqui assim que você lançar o primeiro."
-          />
+          <EmptyState icon={ChartBarIcon} title="Nada gasto ainda" description="Seus gastos categorizados aparecerão aqui assim que você lançar o primeiro." />
         )}
       </div>
 
-      <RecentTransactions 
-        transactions={recentPurchases}
-        onNavigate={onNavigate}
-        fmt={fmt}
-        error={hasError}
-      />
+      <RecentTransactions transactions={recentPurchases} onNavigate={onNavigate} fmt={fmt} error={hasError} />
 
       {/* Gasto diário sustentável */}
       {sustainableDaily > 0 && (
         <>
           <div className="sec-hd"><span className="sec-title">Gasto diário sustentável</span></div>
-          <div className="hero" style={{ padding: "18px" }}>
-            <div style={{ fontSize: "9.5px", color: "var(--t3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>Hipótese do ciclo de vida · Modigliani</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <span style={{ fontSize: "36px", fontWeight: 700, color: "var(--t1)", letterSpacing: "-1.5px", fontFamily: "var(--mono)" }}>{fmt(sustainableDaily)}</span>
-              <span style={{ fontSize: "14px", color: "var(--t2)" }}>/dia</span>
+          <div className="hero p-4">
+            <div className="text-[9.5px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: "var(--t3)" }}>Hipótese do ciclo de vida · Modigliani</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold tabular-nums" style={{ color: "var(--t1)", letterSpacing: "-1.5px", fontFamily: "var(--mono)" }}>{fmt(sustainableDaily)}</span>
+              <span className="text-sm" style={{ color: "var(--t2)" }}>/dia</span>
             </div>
-            <div style={{ fontSize: "11.5px", color: "var(--t2)", marginTop: "8px", lineHeight: 1.5 }}>Baseado no patrimônio atual, renda projetada e passivos futuros — valor que não compromete o seu eu de 85 anos.</div>
+            <div className="text-[11.5px] mt-2 leading-relaxed" style={{ color: "var(--t2)" }}>Baseado no patrimônio atual, renda projetada e passivos futuros — valor que não compromete o seu eu de 85 anos.</div>
           </div>
         </>
       )}
