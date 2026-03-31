@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Navigating to backend directory..."
-cd backend
+echo "==> Running from backend directory..."
 
 echo "==> Installing backend dependencies..."
 npm install

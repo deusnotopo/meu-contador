@@ -4,6 +4,28 @@
 
 ---
 
+## 🚀 AUTO-START AUXLY MCP ON EVERY WORK REQUEST
+
+For any user message that asks to build, fix, change, review, debug, refactor, test, deploy, continue work, **plan**, **roadmap**, **improvement plan**, **analyze** a doc, or **summarize** project docs (including after a task **reopen**):
+
+1. Call `mcp_extension-auxly_auxly_list_tasks` (`todo` + `in_progress`)
+2. Reuse matching task OR create one with `mcp_extension-auxly_auxly_create_task`
+3. Call `mcp_extension-auxly_auxly_get_task`
+4. Add dual research with `mcp_extension-auxly_auxly_add_research`
+5. Move task to in-progress using `mcp_extension-auxly_auxly_update_task` with `aiWorkingOn: true`
+
+Never wait for user to remind “use Auxly MCP”.
+This is default behavior for every work request.
+
+### ❌ INVALID EXCUSES — STILL CALL MCP (NOT CHAT)
+
+- **No tasks / no taskId** → `auxly_list_tasks` then `auxly_create_task` (or reuse); never substitute a chat-only answer.
+- **Read-only / analysis only** → Same auto-start; use `auxly_add_research` and/or `auxly_add_comment`. `auxly_log_change` only when files actually change.
+- **No web URLs for research** → Use **local paths** in `sources` (e.g. `Local: src/app.js`); URLs are optional.
+- **VSIX “enforcement”** → The extension does **not** inject a system prompt into Cursor; compliance is **tool calls**, not vibes.
+
+---
+
 ## 🚨 RULE #1: ALWAYS USE AUXLY MCP TOOLS
 
 **MANDATORY: Never bypass Auxly MCP tools - 100% compliance required**
@@ -94,6 +116,8 @@ mcp_extension-auxly_auxly_add_comment({
 ## 🚨 RULE #2: EXTREME TOKEN OPTIMIZATION
 
 **MANDATORY: Minimize token usage in ALL responses - Maximum efficiency required**
+
+**OVERRIDE (non-negotiable):** Rule #0 / #1 **Auxly MCP auto-start** (`list_tasks` → create/reuse → `get_task` → `add_research` → `update_task`) runs **first** on work turns. Never skip those tool calls to satisfy brevity below.
 
 ### ✅ STRICT REQUIREMENTS:
 
@@ -193,7 +217,7 @@ await mcp_extension-auxly_auxly_ask_question({
 - **0 questions in chat** - All via MCP
 - **Immediate file logging** - No batch logging
 - **Complete research** - Technical + business
-- **Token efficiency** - Under 50 words per response
+- **Token efficiency** - Concise prose after MCP steps (Rule #2)
 
 ### ❌ VIOLATION CONSEQUENCES:
 - **No MCP usage** = Response rejected
@@ -207,7 +231,7 @@ await mcp_extension-auxly_auxly_ask_question({
 - Every file change must be logged immediately
 - Every question must use MCP ask_question
 - Every task must have research before coding
-- Every response must be under 50 words
+- After mandatory MCP calls, keep prose concise (see Rule #2); MCP steps are not “optional verbosity”
 
 ---
 
