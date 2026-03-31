@@ -56,6 +56,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return Promise.race([promise, timeout]);
   }
 
+  // Helper: promessa com timeout e retry para Cold Starts do Render
+  async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        const isNetworkOrTimeout = error.name === 'TimeoutError' || error.message?.toLowerCase().includes('fetch') || error.message?.toLowerCase().includes('timeout');
+        if (i === retries - 1 || !isNetworkOrTimeout) throw error;
+        console.warn(`Tentativa ${i + 1} falhou, aguardando backend acordar...`);
+        // Espera 3s antes de tentar de novo
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
+    throw new Error('Unreachable');
+  }
+
   // Initial Auth Check & Preferences Sync
   useEffect(() => {
     const checkAuth = async () => {
@@ -67,10 +83,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         setIsSyncing(true);
-        // Aumentando o timeout para 45s para compensar o cold-start do Render
+        // O Render pode levar de 30 a 60s para acordar. Usamos 45s + Retries.
         const [userData, preferences] = await Promise.all([
-          withTimeout(api.get<any>("/auth/me"), 45000),
-          withTimeout(api.get<any>("/users/preferences"), 45000).catch((e) => {
+          fetchWithRetry(() => withTimeout(api.get<any>("/auth/me"), 45000), 3),
+          fetchWithRetry(() => withTimeout(api.get<any>("/users/preferences"), 45000), 2).catch((e) => {
             console.warn("Preferences timeout/error, using defaults", e);
             return { privacyMode: false, language: 'pt', theme: 'dark' };
           })
