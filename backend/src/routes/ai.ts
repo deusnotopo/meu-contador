@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { db } from '../lib/db';
 
 export async function aiRoutes(app: FastifyInstance) {
   app.post('/api/ai-proxy', {
@@ -69,7 +70,7 @@ export async function aiRoutes(app: FastifyInstance) {
       // Phase 10: Deep Behavioral Context Injection
       let userContext = "";
       if (request.user && (request.user as any).id) {
-        const fullUser = await (app as any).db.user.findUnique({
+        const fullUser = await db.user.findUnique({
           where: { id: (request.user as any).id },
           select: { 
             age: true, 
