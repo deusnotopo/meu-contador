@@ -5,6 +5,9 @@ import { getFunctions } from "firebase/functions";
 import { getAnalytics } from "firebase/analytics";
 import { getStorage } from "firebase/storage";
 import { getRemoteConfig } from "firebase/remote-config";
+import type { FirebaseStorage } from "firebase/storage";
+import type { RemoteConfig } from "firebase/remote-config";
+import type { Analytics } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,41 +19,39 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
+// Initialize Firebase core (always required)
 const app = initializeApp(firebaseConfig);
 
-// Initialize Services
+// Core services - always available
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
 
-import type { FirebaseStorage } from "firebase/storage";
-import type { RemoteConfig } from "firebase/remote-config";
-import type { Analytics } from "firebase/analytics";
-
-// Services that require specific config variables
+// Optional services - may fail gracefully if config is missing or CSP blocks them
 export let storage: FirebaseStorage | undefined;
 export let remoteConfig: RemoteConfig | undefined;
 export let analytics: Analytics | null = null;
 
+// Storage init
 try {
   storage = getStorage(app);
 } catch (e) {
-  console.warn("Storage failed to initialize:", e);
+  console.warn("[Firebase] Storage unavailable:", e);
 }
 
-try {
-  if (firebaseConfig.appId) {
-    remoteConfig = getRemoteConfig(app);
-    if (typeof window !== 'undefined') {
+// Analytics + RemoteConfig: deferred to avoid blocking app startup if CSP blocks GTM.
+// Uses a small timeout so the main React tree renders first.
+if (typeof window !== "undefined" && firebaseConfig.appId && firebaseConfig.measurementId) {
+  setTimeout(() => {
+    try {
+      remoteConfig = getRemoteConfig(app);
       analytics = getAnalytics(app);
+    } catch (e) {
+      // Silently fail - analytics is non-critical. CSP may block GTM in some environments.
+      console.warn("[Firebase] Analytics unavailable (CSP or config issue). App continues normally.");
     }
-  } else {
-    console.warn("Firebase appId missing. Analytics and Remote Config disabled.");
-  }
-} catch (e) {
-  console.warn("Optional Firebase services failed to initialize:", e);
+  }, 2000);
 }
 
 export default app;
