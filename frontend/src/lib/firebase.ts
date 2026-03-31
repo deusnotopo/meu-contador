@@ -24,10 +24,33 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
-export const storage = getStorage(app);
-export const remoteConfig = getRemoteConfig(app);
 
-// Analytics only in browser/production
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+import type { FirebaseStorage } from "firebase/storage";
+import type { RemoteConfig } from "firebase/remote-config";
+import type { Analytics } from "firebase/analytics";
+
+// Services that require specific config variables
+export let storage: FirebaseStorage | undefined;
+export let remoteConfig: RemoteConfig | undefined;
+export let analytics: Analytics | null = null;
+
+try {
+  storage = getStorage(app);
+} catch (e) {
+  console.warn("Storage failed to initialize:", e);
+}
+
+try {
+  if (firebaseConfig.appId) {
+    remoteConfig = getRemoteConfig(app);
+    if (typeof window !== 'undefined') {
+      analytics = getAnalytics(app);
+    }
+  } else {
+    console.warn("Firebase appId missing. Analytics and Remote Config disabled.");
+  }
+} catch (e) {
+  console.warn("Optional Firebase services failed to initialize:", e);
+}
 
 export default app;
