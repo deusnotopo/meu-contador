@@ -47,7 +47,7 @@ export async function aiRoutes(app: FastifyInstance) {
       // Phase 9: PRO Enforcement Seguro
       let isPro = true;
       if (request.user && (request.user as any).id) {
-        const user = await (app as any).db.user.findUnique({
+        const user = await db.user.findUnique({
           where: { id: (request.user as any).id },
           select: { isPro: true }
         });
@@ -87,16 +87,16 @@ export async function aiRoutes(app: FastifyInstance) {
         if (fullUser) {
           userContext = `
 [DADOS DO CLIENTE PREMIUM]:
-- Idade: ${fullUser.age} anos
-- Dependentes: ${fullUser.dependents}
-- Perfil de Carreira: ${fullUser.employmentType.toUpperCase()} ${fullUser.businessName ? `(Empresa: ${fullUser.businessName}, Setor: ${fullUser.businessSector})` : ''}
-- Perfil de Risco: ${fullUser.riskProfile}
-- Objetivo: ${fullUser.financialGoal}
-- Renda Mensal Declarada: R$ ${fullUser.monthlyIncome}
+- Idade: ${fullUser.age || 0} anos
+- Dependentes: ${fullUser.dependents || 0}
+- Perfil de Carreira: ${(fullUser.employmentType || 'clt').toUpperCase()} ${fullUser.businessName ? `(Empresa: ${fullUser.businessName}, Setor: ${fullUser.businessSector})` : ''}
+- Perfil de Risco: ${fullUser.riskProfile || 'moderate'}
+- Objetivo: ${fullUser.financialGoal || 'save'}
+- Renda Mensal Declarada: R$ ${fullUser.monthlyIncome || 0}
 
 [DIRETRIZ DE CONSULTORIA]:
 Como o usuário é ${fullUser.employmentType === 'pj' ? 'PJ (Pessoa Jurídica)' : 'CLT'}, suas recomendações de reserva de emergência devem ser de ${fullUser.employmentType === 'pj' ? '12 meses' : '6 meses'} de custo fixo. 
-Sempre considere que ele tem ${fullUser.dependents} dependentes ao sugerir gastos supérfluos.
+Sempre considere que ele tem ${fullUser.dependents || 0} dependentes ao sugerir gastos supérfluos.
 Se o usuário disser que gastou ou recebeu algo, responda confirmando os detalhes e use um tom prestativo.`;
         }
       }
