@@ -162,6 +162,7 @@ export interface UserProfile {
   workspaces?: string[]; // List of workspace IDs user has access to
   workspaceRoles?: Record<string, WorkspaceRole>; // Map of workspaceId -> role
   isPro?: boolean;
+  employmentType?: 'clt' | 'pj';
   subscriptionPlan?: "free" | "pro";
   age?: number;
   retirementAge?: number;

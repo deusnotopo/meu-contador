@@ -92,9 +92,6 @@ const OnboardWizardButton: React.FC<OnboardWizardButtonProps> = ({
     onWizardClose?.();
   };
 
-  const handleStepComplete = (stepIndex: number) => {
-    onStepComplete?.(stepIndex);
-  };
 
   // Estilos de posicionamento
   const positionStyles: Record<string, string> = {
@@ -129,9 +126,8 @@ const OnboardWizardButton: React.FC<OnboardWizardButtonProps> = ({
 
       {isWizardOpen && (
         <OnboardingWizard
-          isOpen={isWizardOpen}
-          onClose={handleWizardClose}
-          onStepComplete={handleStepComplete}
+          onComplete={handleWizardClose}
+          onSkip={handleWizardClose}
         />
       )}
     </>

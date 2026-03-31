@@ -182,6 +182,7 @@ export async function userRoutes(app: FastifyInstance) {
             monthlyIncome: p.monthlyIncome || undefined,
             financialGoal: p.financialGoal || undefined,
             riskProfile: p.riskProfile || undefined,
+            employmentType: p.employmentType || undefined,
             hasEmergencyFund: p.hasEmergencyFund || false,
             hasDebts: p.hasDebts || false,
             initialBalance: p.initialBalance || 0,

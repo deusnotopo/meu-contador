@@ -31,7 +31,7 @@ model User {
   hasDebts        Boolean    @default(false)
   initialBalance  Float       @default(0)
   isPro           Boolean     @default(false)
-  subscriptionPlan String     @default("free")
+  employmentType   String?     // 'clt' or 'pj'
   onboardingCompleted Boolean @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
