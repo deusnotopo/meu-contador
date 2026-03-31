@@ -9,6 +9,9 @@ npm install
 echo "==> Generating Prisma client..."
 npx prisma generate
 
+echo "==> Syncing database schema (accepting data loss for removed columns)..."
+npx prisma db push --accept-data-loss
+
 echo "==> Compiling TypeScript..."
 npm run build
 
