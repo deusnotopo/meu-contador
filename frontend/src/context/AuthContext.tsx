@@ -193,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const register = async (email: string, password: string, name?: string) => {
     try {
       setIsSyncing(true);
-      const { token } = await api.post<{ token: string; user: any }>("/auth/register", {
+      const { token, user: backendUser } = await api.post<{ token: string; user: any }>("/auth/register", {
         email,
         password,
         name
@@ -201,24 +201,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       localStorage.setItem("authToken", token);
       
-      const [fullUser, preferences] = await Promise.all([
-        api.get<any>("/auth/me"),
-        api.get<any>("/users/preferences").catch((e) => {
-           console.warn("Could not fetch prefs", e);
-           return { privacyMode: false, language: 'pt', theme: 'dark' };
-        })
-      ]);
-
-      // Apply preferences (will be defaults for new user)
-      setPrivacyMode(preferences.privacyMode);
-      setLanguageState(preferences.language);
-      setThemeState(preferences.theme as any);
+      // Defaults for new user
+      setPrivacyMode(false);
+      setLanguageState('pt');
+      setThemeState('dark');
       
       const authUser: AuthUser = {
-            ...fullUser,
-            id: fullUser.id,
-            uid: fullUser.id,
-             email: fullUser.email,
+            ...backendUser,
+            id: backendUser.id,
+            uid: backendUser.id,
+            email: backendUser.email,
             monthlyIncome: 0,
             financialGoal: "save",
             riskProfile: "moderate",
@@ -229,7 +221,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         };
         
       setUser(authUser);
-      await syncAllData(authUser.id);
+      
+      // Perform initial sync in the background so it doesn't block the UI
+      syncAllData(authUser.id).catch(err => console.error("Initial sync background failure:", err));
 
       // Track Registration Event
       trackEvent(analyticsEvents.SIGN_UP, { userId: authUser.id });
