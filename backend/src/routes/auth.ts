@@ -119,18 +119,39 @@ function isDevtoolsAuthorized(headers: Record<string, unknown>) {
   return typeof providedSecret === 'string' && providedSecret === configuredSecret;
 }
 
-// Initialize Firebase Admin (mock or real)
-// In a real scenario, you'd use a service account key
+// Initialize Firebase Admin with service account credentials from env vars.
+// Download the JSON from: Firebase Console → Project Settings → Service Accounts
+// → Generate new private key. Then set the env vars below.
 try {
   if (!firebaseAdmin.apps.length) {
-    firebaseAdmin.initializeApp({
-        // Must match the frontend token issuer
-        projectId: process.env.FIREBASE_PROJECT_ID || 'meucontador-367cf'
-    });
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const projectId = process.env.FIREBASE_PROJECT_ID || 'meucontador-367cf';
+
+    if (privateKey && clientEmail && !privateKey.includes('dummy')) {
+      // Full service account — verifyIdToken works properly (no external HTTP call)
+      firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.credential.cert({
+          projectId,
+          privateKey,
+          clientEmail,
+        }),
+        databaseURL: `https://${projectId}-default-rtdb.firebaseio.com`,
+      });
+      console.log('[Firebase Admin] Initialized with service account credentials ✅');
+    } else {
+      // Fallback: only projectId — verifyIdToken will fail, uses tokeninfo fallback
+      firebaseAdmin.initializeApp({ projectId });
+      console.warn(
+        '[Firebase Admin] ⚠️  Running without service account. ' +
+        'Set FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL in .env for production.'
+      );
+    }
   }
 } catch (e) {
-  console.warn('Firebase Admin init warning');
+  console.warn('[Firebase Admin] Init error:', e);
 }
+
 
 export async function authRoutes(app: FastifyInstance) {
   // Register
