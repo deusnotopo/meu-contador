@@ -129,18 +129,13 @@ export async function userRoutes(app: FastifyInstance) {
     if (!user) {
       throw new Error('User not found');
     }
-    
-    let prefs: UserPreferencesDto = { theme: 'dark', language: 'pt', privacyMode: false };
-    try {
-      if (typeof user.preferences === 'string') {
-        prefs = JSON.parse(user.preferences);
-      } else {
-        prefs = user.preferences as any;
-      }
-    } catch (e) {
-      console.error('Failed to parse user preferences:', e);
-    }
- 
+
+    // preferences is now a Json field — Prisma returns it as a plain object
+    const defaults: UserPreferencesDto = { theme: 'dark', language: 'pt', privacyMode: false };
+    const prefs = (user.preferences && typeof user.preferences === 'object')
+      ? user.preferences as unknown as UserPreferencesDto
+      : defaults;
+
     return prefs;
   });
 
@@ -165,7 +160,7 @@ export async function userRoutes(app: FastifyInstance) {
     },
     preHandler: [app.authenticate],
   }, async (request, reply) => {
-    const preferences = request.body as any;
+    const incoming = request.body as Partial<UserPreferencesDto>;
 
     const user = await db.user.findUnique({
       where: { id: request.user.id },
@@ -176,27 +171,17 @@ export async function userRoutes(app: FastifyInstance) {
       throw new Error('User not found');
     }
 
-    let currentPreferences: UserPreferencesDto = { theme: 'dark', language: 'pt', privacyMode: false };
-    try {
-      if (typeof user.preferences === 'string') {
-        currentPreferences = JSON.parse(user.preferences);
-      } else {
-        currentPreferences = user.preferences as any;
-      }
-    } catch (e) {
-      console.error('Failed to parse current user preferences:', e);
-    }
+    // preferences is now Json — merge objects directly, no parse/stringify
+    const defaults: UserPreferencesDto = { theme: 'dark', language: 'pt', privacyMode: false };
+    const current = (user.preferences && typeof user.preferences === 'object')
+      ? user.preferences as unknown as UserPreferencesDto
+      : defaults;
 
-    const newPreferences = {
-      ...currentPreferences,
-      ...preferences,
-    };
- 
-    console.log(`Updating preferences for user ${request.user.id}:`, newPreferences);
- 
+    const newPreferences: UserPreferencesDto = { ...current, ...incoming };
+
     await db.user.update({
       where: { id: request.user.id },
-      data: { preferences: JSON.stringify(newPreferences) },
+      data: { preferences: newPreferences as any },
     });
 
     return {
@@ -398,16 +383,17 @@ export async function userRoutes(app: FastifyInstance) {
             : Promise.resolve();
         })(),
 
-        // 8. Preferences
+        // 8. Preferences — preferences is now Json, merge directly
         data.preferences
           ? (async () => {
               const user = await db.user.findUnique({ where: { id: userId }, select: { preferences: true } });
               if (!user) return;
-              let currentPrefs: Record<string, unknown> = {};
-              try { currentPrefs = JSON.parse(user.preferences); } catch { /* use empty */ }
+              const currentPrefs = (user.preferences && typeof user.preferences === 'object')
+                ? user.preferences as Record<string, unknown>
+                : {};
               await db.user.update({
                 where: { id: userId },
-                data: { preferences: JSON.stringify({ ...currentPrefs, ...data.preferences }) },
+                data: { preferences: { ...currentPrefs, ...data.preferences } as any },
               });
             })()
           : Promise.resolve(),

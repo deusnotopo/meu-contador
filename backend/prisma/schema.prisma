@@ -59,7 +59,27 @@ model User {
   bankConnections BankConnection[]
   bankAccounts    BankAccount[]
   pushSubscriptions PushSubscription[]
-  preferences     String      @default("{\"theme\":\"dark\",\"language\":\"pt\",\"privacyMode\":false}")
+  sessions        Session[]
+  auditLogs       AuditLog[]
+  preferences     Json        @default("{\"theme\":\"dark\",\"language\":\"pt\",\"privacyMode\":false}")
+}
+
+model Session {
+  id                String   @id @default(uuid())
+  userId            String
+  refreshTokenHash  String   @unique
+  csrfToken         String
+  userAgent         String?
+  ipAddress         String?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt, revokedAt])
 }
 
 model Workspace {
@@ -107,6 +127,9 @@ model Transaction {
   dataReliability   DataReliability @default(REAL)
 
   @@unique([userId, fitid], name: "unique_user_fitid")
+  @@index([userId, date])
+  @@index([userId, scope, date])
+  @@index([bankAccountId, date])
 }
 
 model BankConnection {
@@ -120,6 +143,8 @@ model BankConnection {
   updatedAt       DateTime @updatedAt
 
   accounts        BankAccount[]
+
+  @@index([userId, updatedAt])
 }
 
 model BankAccount {
@@ -139,6 +164,8 @@ model BankAccount {
   user            User     @relation(fields: [userId], references: [id])
 
   transactions    Transaction[]
+
+  @@index([userId, connectionId])
 }
 
 
@@ -150,6 +177,9 @@ model Budget {
   month    String // YYYY-MM
   userId   String
   user     User   @relation(fields: [userId], references: [id])
+
+  @@index([userId, month])
+  @@unique([userId, category, month])
 }
 
 model SavingsGoal {
@@ -162,6 +192,8 @@ model SavingsGoal {
   color        String?
   userId       String
   user     User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, deadline])
 }
 
 model BillReminder {
@@ -174,6 +206,8 @@ model BillReminder {
   recurring String   @default("once") // monthly | yearly | once
   userId   String
   user     User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, dueDate, isPaid])
 }
 
 model Invoice {
@@ -206,6 +240,9 @@ model Investment {
 
   dividends    Dividend[]
   sales        InvestmentSale[]
+
+  @@index([userId, ticker])
+  @@index([userId, lastUpdate])
 }
 
 model Dividend {
@@ -215,6 +252,8 @@ model Dividend {
   amount       Float
   date         DateTime
   type         String     // dividend | jcp
+
+  @@index([investmentId, date])
 }
 
 model InvestmentSale {
@@ -229,6 +268,9 @@ model InvestmentSale {
   currency     String     @default("BRL")
   userId       String
   user         User       @relation(fields: [userId], references: [id])
+
+  @@index([userId, date])
+  @@index([investmentId, date])
 }
 
 model Debt {
@@ -242,6 +284,8 @@ model Debt {
   userId       String
   dataReliability DataReliability @default(REAL)
   user         User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, dueDate])
 }
 
 model PushSubscription {
@@ -253,5 +297,25 @@ model PushSubscription {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  action      String
+  resource    String
+  resourceId  String?
+  metadata    Json?
+  piiRedacted Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([resource, resourceId, createdAt])
+  @@index([expiresAt])
 }
 
