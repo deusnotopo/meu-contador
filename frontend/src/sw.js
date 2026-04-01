@@ -1,10 +1,23 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { NetworkOnly, NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
+import { clientsClaim } from 'workbox-core';
+
+// Auto-update: activa o novo SW imediatamente quando o vite-plugin-pwa
+// enviar a mensagem SKIP_WAITING (disparada por registerType: 'autoUpdate').
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Após ativar, assume controle de todas as abas abertas imediatamente.
+clientsClaim();
 
 const isDevHost = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+const API_CACHE_DENYLIST = ['/auth/', '/api/ai-proxy', '/open-finance/', '/api/push/'];
 
 if (isDevHost) {
   self.addEventListener('install', () => {
@@ -55,26 +68,31 @@ registerRoute(
   })
 );
 
-// 4. Estratégia para Scripts e Styles - Stale While Revalidate
+// 4. Estratégia para Scripts e Styles — Stale While Revalidate
 registerRoute(
-  ({ request, url }) => {
-    if (isDevHost) {
-      const pathname = url.pathname;
-      if (
-        pathname.startsWith('/@vite') ||
-        pathname.startsWith('/@react-refresh') ||
-        pathname.startsWith('/@fs/') ||
-        pathname.startsWith('/src/') ||
-        pathname.startsWith('/node_modules/.vite/')
-      ) {
-        return false;
-      }
-    }
-
-    return request.destination === 'script' || request.destination === 'style';
-  },
+  ({ request }) => request.destination === 'script' || request.destination === 'style',
   new StaleWhileRevalidate({
     cacheName: 'static-resources',
+  })
+);
+
+
+// 4.1 API sensível nunca deve ser cacheada pelo SW
+registerRoute(
+  ({ url }) => API_CACHE_DENYLIST.some((path) => url.pathname.includes(path)),
+  new NetworkOnly()
+);
+
+// 4.2 Requests GET de dados não sensíveis usam network-first curta
+registerRoute(
+  ({ request, url }) => request.method === 'GET' && url.pathname.startsWith('/api/') && !API_CACHE_DENYLIST.some((path) => url.pathname.includes(path)),
+  new NetworkFirst({
+    cacheName: 'api-read-cache',
+    networkTimeoutSeconds: 3,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxEntries: 40, maxAgeSeconds: 60 * 5 }),
+    ],
   })
 );
 

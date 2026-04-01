@@ -1,9 +1,9 @@
-import { api } from "@/lib/api";
+import { api, clearAuthSession, setCsrfToken, subscribeToAuthSession } from "@/lib/api";
 import type { UserProfile, WorkspaceRole } from "@/types";
 import { auth, googleProvider } from "@/lib/firebase";
 import { trackEvent, analyticsEvents } from "@/lib/analytics";
 import { signInWithPopup } from "firebase/auth";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { syncAllData } from "@/lib/storage";
 // Extended User type to support both Profile data and Auth IDs
 export interface AuthUser extends UserProfile {
@@ -33,9 +33,10 @@ interface AuthContextType {
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
   upgradeToPro: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -47,6 +48,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [privacyMode, setPrivacyMode] = useState(false);
   const [language, setLanguageState] = useState('pt');
   const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
+  const applyTheme = (nextTheme: 'light' | 'dark') => {
+    setThemeState(nextTheme);
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+    document.documentElement.classList.toggle('light', nextTheme === 'light');
+  };
+
+  const mapBackendUserToAuthUser = (backendUser: any): AuthUser => ({
+    ...backendUser,
+    id: backendUser.id,
+    uid: backendUser.id,
+    email: backendUser.email,
+    monthlyIncome: backendUser.monthlyIncome || 0,
+    financialGoal: backendUser.financialGoal || "save",
+    riskProfile: backendUser.riskProfile || "moderate",
+    hasEmergencyFund: backendUser.hasEmergencyFund || false,
+    hasDebts: backendUser.hasDebts || false,
+    initialBalance: backendUser.initialBalance || 0,
+    isPro: backendUser.isPro || false,
+    age: backendUser.age,
+    dependents: backendUser.dependents ?? 0,
+    investmentHorizon: backendUser.investmentHorizon,
+    employmentType: backendUser.employmentType || 'clt',
+    businessName: backendUser.businessName,
+    businessCnpj: backendUser.businessCnpj,
+    businessSector: backendUser.businessSector,
+    onboardingCompleted: backendUser.onboardingCompleted,
+  });
+
+  const refreshUser = async () => {
+    const backendUser = await api.get<any>("/auth/me");
+    const authUser = mapBackendUserToAuthUser(backendUser);
+    setUser(authUser);
+    setIsPro(!!backendUser.isPro);
+  };
 
   // Helper: promessa com timeout
   function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -74,19 +109,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Initial Auth Check & Preferences Sync
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        setLoading(false);
-        return;
+    return subscribeToAuthSession((snapshot) => {
+      if (!snapshot.isAuthenticated && !snapshot.csrfToken) {
+        setUser(null);
+        setIsPro(false);
       }
+    });
+  }, []);
 
+  useEffect(() => {
+    const checkAuth = async () => {
       try {
         setIsSyncing(true);
         // O Render pode levar de 30 a 60s para acordar. Usamos 45s + Retries.
         const [userData, preferences] = await Promise.all([
-          fetchWithRetry(() => withTimeout(api.get<any>("/auth/me"), 45000), 3),
-          fetchWithRetry(() => withTimeout(api.get<any>("/users/preferences"), 45000), 2).catch((e) => {
+          fetchWithRetry(() => withTimeout(api.get<any>("/auth/me"), 15000), 2),
+          fetchWithRetry(() => withTimeout(api.get<any>("/users/preferences"), 15000), 1).catch((e) => {
             console.warn("Preferences timeout/error, using defaults", e);
             return { privacyMode: false, language: 'pt', theme: 'dark' };
           })
@@ -96,38 +134,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Apply preferences to state
         setPrivacyMode(preferences.privacyMode);
         setLanguageState(preferences.language);
-        setThemeState(preferences.theme as any);
+        applyTheme((preferences.theme || 'dark') as 'light' | 'dark');
 
-        // Apply theme to document
-        if (preferences.theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-        
         // Map backend user to AuthUser
-        const authUser: AuthUser = {
-            ...userData,
-            id: userData.id,
-            uid: userData.id,
-            email: userData.email,
-            // Defaults for profile if missing in DB
-            monthlyIncome: userData.monthlyIncome || 0,
-            financialGoal: userData.financialGoal || "save",
-            riskProfile: userData.riskProfile || "moderate",
-            hasEmergencyFund: userData.hasEmergencyFund || false,
-            hasDebts: userData.hasDebts || false,
-            initialBalance: userData.initialBalance || 0,
-            isPro: userData.isPro || false,
-            // Behavioral fields
-            age: userData.age,
-            dependents: userData.dependents ?? 0,
-            investmentHorizon: userData.investmentHorizon,
-            employmentType: userData.employmentType || 'clt',
-            businessName: userData.businessName,
-            businessCnpj: userData.businessCnpj,
-            businessSector: userData.businessSector,
-        };
+        const authUser = mapBackendUserToAuthUser(userData);
 
         setUser(authUser);
         setIsPro(!!userData.isPro);
@@ -155,12 +165,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     
     try {
       setIsSyncing(true);
-      const { token, user: backendUser } = await api.post<{ token: string; user: any }>("/auth/login", {
+      const { user: backendUser, csrfToken } = await api.post<{ user: any; csrfToken: string }>("/auth/login", {
         email,
         password,
       });
-
-      localStorage.setItem("authToken", token);
+      setCsrfToken(csrfToken);
 
       // Remove extra /auth/me call, leverage the backendUser passed from login response
       const preferences = await api.get<any>("/users/preferences").catch((e) => {
@@ -171,40 +180,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Apply preferences
       setPrivacyMode(preferences.privacyMode);
       setLanguageState(preferences.language);
-      setThemeState(preferences.theme as any);
-      if (preferences.theme === 'dark') {
-          document.documentElement.classList.add('dark');
-      } else {
-          document.documentElement.classList.remove('dark');
-      }
+      applyTheme((preferences.theme || 'dark') as 'light' | 'dark');
 
-       const authUser: AuthUser = {
-            ...backendUser,
-            id: backendUser.id,
-            uid: backendUser.id,
-            email: backendUser.email,
-            monthlyIncome: backendUser.monthlyIncome || 0,
-            financialGoal: backendUser.financialGoal || "save",
-            riskProfile: backendUser.riskProfile || "moderate",
-            hasEmergencyFund: backendUser.hasEmergencyFund || false,
-            hasDebts: backendUser.hasDebts || false,
-            initialBalance: backendUser.initialBalance || 0,
-            isPro: backendUser.isPro || false,
-            // Behavioral fields
-            age: backendUser.age,
-            dependents: backendUser.dependents ?? 0,
-            investmentHorizon: backendUser.investmentHorizon,
-            employmentType: backendUser.employmentType || 'clt',
-            businessName: backendUser.businessName,
-            businessCnpj: backendUser.businessCnpj,
-            businessSector: backendUser.businessSector,
-        };
+       const authUser = mapBackendUserToAuthUser(backendUser);
 
       setUser(authUser);
       setIsPro(authUser.isPro || false);
       
-      // Perform initial full-sync blocking login to guarantee data readiness
-      await syncAllData(authUser.id);
+      // Sync em background — não bloquear a UI no login
+      syncAllData(authUser.id).catch(err => console.error("Background sync failed:", err));
 
       // Track Login Event
       trackEvent(analyticsEvents.LOGIN, { 
@@ -222,32 +206,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const register = async (email: string, password: string, name?: string) => {
     try {
       setIsSyncing(true);
-      const { token, user: backendUser } = await api.post<{ token: string; user: any }>("/auth/register", {
+      const { user: backendUser, csrfToken } = await api.post<{ user: any; csrfToken: string }>("/auth/register", {
         email,
         password,
         name
       });
-      
-      localStorage.setItem("authToken", token);
+      setCsrfToken(csrfToken);
       
       // Defaults for new user
       setPrivacyMode(false);
       setLanguageState('pt');
-      setThemeState('dark');
+      applyTheme('dark');
       
-      const authUser: AuthUser = {
-            ...backendUser,
-            id: backendUser.id,
-            uid: backendUser.id,
-            email: backendUser.email,
-            monthlyIncome: 0,
-            financialGoal: "save",
-            riskProfile: "moderate",
-            hasEmergencyFund: false,
-            hasDebts: false,
-            initialBalance: 0,
-            isPro: false
-        };
+      const authUser = mapBackendUserToAuthUser(backendUser);
         
       setUser(authUser);
       
@@ -270,11 +241,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
       
-      const { token, user: apiUser } = await api.post<{ token: string; user: any }>("/auth/google", {
+      const { user: apiUser, csrfToken } = await api.post<{ user: any; csrfToken: string }>("/auth/google", {
         token: idToken
       });
-
-      localStorage.setItem("authToken", token);
+      setCsrfToken(csrfToken);
 
       // Fetch preferences to ensure state is consistent
       interface UserPreferences {
@@ -294,41 +264,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Apply Preferences
       setPrivacyMode(preferences?.privacyMode || false);
       setLanguageState(preferences?.language || 'pt');
-      setThemeState((preferences?.theme || 'dark') as any);
-      
-      // Update DOM for theme
-      if (preferences?.theme === 'light') {
-         document.documentElement.classList.remove('dark');
-      } else {
-         document.documentElement.classList.add('dark');
-      }
+      applyTheme((preferences?.theme || 'dark') as 'light' | 'dark');
 
-      const authUser: AuthUser = {
-            ...apiUser,
-            id: apiUser.id,
-            uid: apiUser.id,
-            email: apiUser.email,
-            monthlyIncome: apiUser.monthlyIncome || 0,
-            financialGoal: apiUser.financialGoal || "save",
-            riskProfile: apiUser.riskProfile || "moderate",
-            hasEmergencyFund: apiUser.hasEmergencyFund || false,
-            hasDebts: apiUser.hasDebts || false,
-            initialBalance: apiUser.initialBalance || 0,
-            isPro: apiUser.isPro || false,
-            businessName: apiUser.businessName,
-            businessCnpj: apiUser.businessCnpj,
-            businessSector: apiUser.businessSector,
-            // Behavioral fields
-            age: apiUser.age,
-            dependents: apiUser.dependents ?? 0,
-            investmentHorizon: apiUser.investmentHorizon,
-            employmentType: apiUser.employmentType || 'clt',
-      };
+      const authUser = mapBackendUserToAuthUser(apiUser);
       
       setUser(authUser);
       setIsPro(authUser.isPro || false);
       
-      await syncAllData(authUser.id);
+      // Sync em background — não bloquear a UI no login Google
+      syncAllData(authUser.id).catch(err => console.error("Google sync failed:", err));
 
       // Track Google Login Event
       trackEvent(analyticsEvents.LOGIN, { 
@@ -346,8 +290,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = async () => {
     // Track Logout Event
     trackEvent(analyticsEvents.LOGOUT);
-
-    localStorage.removeItem("authToken");
+    try {
+      await api.post<{ success: boolean }>("/auth/logout", {});
+    } catch {
+      // noop
+    }
+    clearAuthSession();
+    setCsrfToken(null);
     setUser(null);
     setIsPro(false);
   };
@@ -387,12 +336,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const setTheme = async (newTheme: 'light' | 'dark') => {
-    setThemeState(newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    applyTheme(newTheme);
     try {
       await api.patch("/users/preferences", { theme: newTheme });
     } catch (error) {
@@ -418,28 +362,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const value = useMemo(() => ({
+    user,
+    loading,
+    isSyncing,
+    isPro,
+    login,
+    register,
+    loginWithGoogle,
+    logout,
+    updateProfile,
+    privacyMode,
+    togglePrivacy,
+    language,
+    setLanguage,
+    theme,
+    setTheme,
+    upgradeToPro,
+    refreshUser,
+    setGlobalLoading: setIsSyncing,
+  }), [user, loading, isSyncing, isPro, privacyMode, language, theme]);
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        isSyncing,
-        isPro,
-        login,
-        register,
-        loginWithGoogle,
-        logout,
-        updateProfile,
-        privacyMode,
-        togglePrivacy,
-        language,
-        setLanguage,
-        theme,
-        setTheme,
-        upgradeToPro,
-        setGlobalLoading: setIsSyncing,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
