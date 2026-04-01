@@ -11,14 +11,42 @@ build/
 # Frontend specifics
 frontend/node_modules/
 frontend/dist/
+frontend/dev-dist/
 frontend/.env*
 frontend/.vercel
 frontend/.firebase
+
+# Vite cache files (never commit these)
+frontend/vite.config.ts.timestamp-*.mjs
+frontend/vitest.config.ts.timestamp-*.mjs
+
+# Build artifacts and debug logs
+frontend/build-errors.txt
+frontend/build_*.log
+frontend/build*.log
+frontend/full_error*.log
+frontend/tsc*.log
+frontend/tsc-errors*.txt
+frontend/tsc-output.txt
+frontend/bundle_analysis.log
+frontend/my_build*.log
+frontend/playwright_error*.log
+frontend/playwright_results.log
+frontend/vite.log
+frontend/ts_error.log
+
+# Root-level debug files
+tsc-output.txt
+test.js
+e2e_results.log
+e2e_run*.log
+visual_test.log
 
 # Backend specifics
 backend/node_modules/
 backend/dist/
 backend/.env*
+backend/server.log
 
 # Auxly - AI Task Management (internal data)
 .auxly/
