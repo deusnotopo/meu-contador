@@ -11,6 +11,8 @@ export async function pushRoutes(app: FastifyInstance) {
     {
       preValidation: [app.authenticate],
       schema: {
+        tags: ['Push Notifications'],
+        security: [{ bearerAuth: [] }],
         body: z.object({
           endpoint: z.string(),
           keys: z.object({
@@ -18,6 +20,10 @@ export async function pushRoutes(app: FastifyInstance) {
             auth: z.string(),
           }),
         }),
+        response: {
+          201: z.object({ status: z.string(), id: z.string() }),
+          500: z.object({ message: z.string() }),
+        },
       },
     },
     async (request, reply) => {
@@ -70,10 +76,16 @@ export async function pushRoutes(app: FastifyInstance) {
     {
       preValidation: [app.authenticate],
       schema: {
+        tags: ['Push Notifications'],
+        security: [{ bearerAuth: [] }],
         body: z.object({
           title: z.string().optional(),
           body: z.string().optional(),
         }).optional(),
+        response: {
+          200: z.object({ status: z.string(), successCount: z.number(), failureCount: z.number() }),
+          404: z.object({ message: z.string() }),
+        },
       },
     },
     async (request, reply) => {

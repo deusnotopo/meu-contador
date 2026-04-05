@@ -3,8 +3,10 @@ import {
   multiFactor, 
   PhoneAuthProvider, 
   PhoneMultiFactorGenerator,
+  type ApplicationVerifier,
   type MultiFactorResolver,
-  getMultiFactorResolver
+  getMultiFactorResolver,
+  type MultiFactorError
 } from "firebase/auth";
 
 /**
@@ -24,7 +26,7 @@ export const MFAService = {
    * Starts the enrollment process for Phone MFA.
    * Returns the verification ID needed to complete enrollment.
    */
-  startPhoneEnrollment: async (phoneNumber: string, recaptchaVerifier: any) => {
+  startPhoneEnrollment: async (phoneNumber: string, recaptchaVerifier: ApplicationVerifier) => {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
@@ -54,8 +56,8 @@ export const MFAService = {
   /**
    * Handles MFA during sign-in if required.
    */
-  handleMFARequired: async (error: any, recaptchaVerifier: any) => {
-    const resolver = getMultiFactorResolver(auth, error);
+  handleMFARequired: async (error: unknown, recaptchaVerifier: ApplicationVerifier) => {
+    const resolver = getMultiFactorResolver(auth, error as MultiFactorError);
     if (!resolver) throw error;
 
     const session = resolver.session;

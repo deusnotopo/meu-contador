@@ -2,12 +2,30 @@ import { Button } from "@/components/ui/button";
 import { executeAction } from "@/lib/ai/action-executor";
 import { parseIntent } from "@/lib/ai/intent-parser";
 import { fetchWithCircuitBreaker } from "@/lib/circuitBreaker";
+import { useAuth } from "@/context/AuthContext";
+import { useEducation } from "@/hooks/useEducation";
 import { useFinancialContext } from "@/hooks/useFinancialContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Loader2, Send, User as LucideUser, X, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { VoiceInput } from "./VoiceInput";
 import { AIThinkingIndicator } from "./AIThinkingIndicator";
+
+const LEARNING_MODES = [
+  "Explique como professor",
+  "Explique sem economês",
+  "Mostre exemplo brasileiro",
+  "Explique como contador",
+  "Me diga a próxima ação",
+  "Monte um plano de 7 dias",
+];
+
+const TUTOR_RESPONSE_RULES = [
+  "responder em camadas: básico, prático, avançado quando fizer sentido",
+  "usar exemplos brasileiros concretos: Pix, boleto, cartão, DAS, aluguel, cliente atrasado",
+  "se houver risco imediato, priorizar caixa, dívida cara, provisões e reserva",
+  "terminar com próxima ação clara e revisita futura quando útil",
+];
 
 interface Message {
   id: string;
@@ -17,6 +35,47 @@ interface Message {
   type?: "text" | "insight" | "recommendation" | "alert";
 }
 
+interface FinancialSnapshotContext {
+  balance: number;
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  savingsRate: number;
+}
+
+interface FinancialSnapshotInsights {
+  score: number;
+  alerts: Array<{ message: string }>;
+  recommendations: Array<{ title: string }>;
+  predictions: Array<{ category: string; trend: string }>;
+}
+
+interface FinancialSnapshotMetrics {
+  expensesByCategory?: Record<string, number>;
+}
+
+function buildFinancialSnapshot(
+  context: FinancialSnapshotContext,
+  insights: FinancialSnapshotInsights,
+  metrics: FinancialSnapshotMetrics,
+) {
+  const categoryEntries = Object.entries(metrics?.expensesByCategory ?? {}) as Array<[string, number]>;
+
+  return {
+    balance: context.balance,
+    monthlyIncome: context.monthlyIncome,
+    monthlyExpenses: context.monthlyExpenses,
+    savingsRate: context.savingsRate,
+    score: insights.score,
+    topCategories: categoryEntries
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([category, amount]) => ({ category, amount })),
+    alerts: insights.alerts.map((alert) => alert.message),
+    recommendations: insights.recommendations.map((item) => item.title),
+    predictions: insights.predictions.map((item) => `${item.category}: ${item.trend}`),
+  };
+}
+
 interface AIFinancialChatProps {
   onClose?: () => void;
 }
@@ -24,21 +83,43 @@ interface AIFinancialChatProps {
 export const AIFinancialChat = ({
   onClose,
 }: AIFinancialChatProps) => {
-  const { context, insights, aiContextString, metrics } = useFinancialContext();
+  const { user } = useAuth();
+  const { context, insights, aiContextString } = useFinancialContext();
+  const { getTutorContext } = useEducation(user || undefined);
+  const tutorContext = getTutorContext();
+  const pedagogicalContext = `Você é um tutor financeiro brasileiro, pragmático e didático. Ensine sem economês desnecessário, priorize clareza, exemplo brasileiro, contabilidade aplicada e sempre termine com próxima ação prática quando fizer sentido. Se houver risco financeiro imediato, priorize proteção de caixa, dívida cara e reserva antes de investimento sofisticado. Regras de resposta: ${TUTOR_RESPONSE_RULES.join('; ')}.
+
+CONTEXTO PEDAGÓGICO DA ACADEMIA:
+- momento atual: ${tutorContext.currentMoment?.title || 'analisando'}
+- estágio da jornada: ${tutorContext.journeyStage.title}
+- descrição da jornada: ${tutorContext.journeyStage.description}
+- aula recomendada: ${tutorContext.learningFocus?.title || 'nenhuma'}
+- objetivo comportamental: ${tutorContext.learningFocus?.behaviorGoal || 'reforçar consistência financeira'}
+- feature conectada: ${tutorContext.learningFocus?.feature || 'dashboard'}
+- sinal contextual: ${tutorContext.contextSignal.signal?.title || 'sem sinal crítico no momento'}
+
+Ao responder, você pode usar explicitamente os modos: explicar, exemplificar, comparar, mandar agir e revisar depois.`;
   
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       role: "assistant",
-      content: `Olá! Sou seu assistente financeiro inteligente. Analisei seus dados e posso ver que:
+      content: `Olá! Sou seu tutor financeiro inteligente. Analisei seus dados e posso ver que:
 
 📊 **Score de Saúde Financeira:** ${insights.score}/100
 💰 **Saldo Atual:** R$ ${context.balance.toLocaleString('pt-BR')}
 📈 **Taxa de Poupança:** ${context.savingsRate.toFixed(1)}%
 
+🎯 **Seu momento na Academia:** ${tutorContext.currentMoment?.title || 'analisando'}
+🧭 **Estágio atual:** ${tutorContext.journeyStage.title}
+
 ${insights.summary}
 
 ${insights.alerts.length > 0 ? `\n**Alertas:**\n${insights.alerts.map(a => a.message).join('\n')}` : ''}
+
+${tutorContext.learningFocus ? `\n**Próximo foco pedagógico:**\n${tutorContext.learningFocus.title} → ${tutorContext.learningFocus.behaviorGoal}` : ''}
+
+Posso te ajudar em 5 modos: **explicar**, **simplificar**, **comparar**, **mandar agir** e **revisar depois**.
 
 Como posso ajudar você a melhorar suas finanças hoje?`,
       timestamp: new Date(),
@@ -137,6 +218,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
         "/api/ai-proxy",
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -145,14 +227,22 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
               role: m.role,
               content: m.content,
             })),
-            systemContext: aiContextString,
+            systemContext: `${aiContextString}\n\n${pedagogicalContext}`,
             userMessage: input,
-            financialData: {
-              metrics,
-              recommendations: insights.recommendations,
-              predictions: insights.predictions,
+            financialSnapshot: buildFinancialSnapshot({
+              balance: context.balance,
+              monthlyIncome: context.totalIncome,
+              monthlyExpenses: context.totalExpense,
+              savingsRate: context.savingsRate,
+            }, {
+              score: insights.score,
               alerts: insights.alerts,
-            },
+              recommendations: insights.recommendations,
+              predictions: insights.predictions.goalCompletionDates.map(g => ({
+                category: g.goal,
+                trend: g.estimatedDate,
+              })),
+            }, { expensesByCategory: Object.fromEntries(context.topCategories.map(c => [c.category, c.amount])) }),
           }),
         },
         {
@@ -211,11 +301,14 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
 
   const suggestedQuestions = [
     "Como está minha saúde financeira?",
+    "Explique sem economês onde estou errando",
+    "Qual é meu próximo melhor passo financeiro?",
+    "Explique como contador: meu dinheiro está saudável?",
+    "Mostre em básico, prático e avançado",
+    "Me explique com base na minha fase da Academia",
     "Onde posso economizar mais?",
     "Minha carteira está diversificada?",
     "Previsão do meu saldo no fim do mês",
-    insights.recommendations[0]?.title || "Recomendações para melhorar",
-    "Como acelerar minhas metas?",
   ];
 
   return (
@@ -327,9 +420,14 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
                       </span>
                     </div>
                   )}
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
-                    {message.content}
-                  </p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium" dangerouslySetInnerHTML={{ 
+                    __html: message.content
+                      .replace(/&/g, '&')
+                      .replace(/</g, '<')
+                      .replace(/>/g, '>')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\n/g, '<br/>')
+                  }} />
                 </div>
                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mt-2 px-1">
                   {message.timestamp.toLocaleTimeString("pt-BR", {
@@ -354,17 +452,34 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
         id="ai-input-area"
       >
         {messages.length === 1 && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {suggestedQuestions.map((q) => (
-              <button
-                key={q}
-                onClick={() => setInput(q)}
-                className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="mb-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Modos de aprendizagem</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {LEARNING_MODES.map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setInput(mode)}
+                    className="px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black uppercase tracking-widest text-indigo-300 hover:text-white hover:bg-indigo-500/20 transition-all"
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-6">
+              {suggestedQuestions.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => setInput(q)}
+                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         <div className="flex gap-2 items-center">

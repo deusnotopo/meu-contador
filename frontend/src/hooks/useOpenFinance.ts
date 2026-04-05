@@ -20,6 +20,14 @@ export interface BankConnection {
   accounts: BankAccount[];
 }
 
+interface PaginatedConnectionsResponse {
+  items: BankConnection[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const useOpenFinance = () => {
   const [connections, setConnections] = useState<BankConnection[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,16 +40,17 @@ export const useOpenFinance = () => {
     
     try {
       const data = await pluggyCircuitBreaker.call(
-        async () => api.get<BankConnection[]>('/open-finance/connections'),
-        () => [] // Fallback: return empty array if Pluggy is down
+        async () => api.get<PaginatedConnectionsResponse>('/open-finance/connections'),
+        () => ({ items: [], total: 0, page: 1, limit: 20, totalPages: 0 })
       );
       if (!cancelled) { // ← Verifica se componente ainda está montado
-        setConnections(data);
+        setConnections(data.items);
       }
-    } catch (err: any) {
+    } catch (err) {
       if (!cancelled) {
         console.error('Error fetching bank connections:', err);
-        setError(err.message || 'Erro ao carregar conexões bancárias');
+        const message = err instanceof Error ? err.message : 'Erro ao carregar conexões bancárias';
+        setError(message);
       }
     } finally {
       if (!cancelled) {
@@ -60,9 +69,10 @@ export const useOpenFinance = () => {
         () => { throw new Error('Pluggy temporariamente indisponível'); }
       );
       return data.accessToken;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error getting connect token:', err);
-      throw new Error(err.message || 'Erro ao gerar token do Pluggy');
+      const message = err instanceof Error ? err.message : 'Erro ao gerar token do Pluggy';
+      throw new Error(message);
     }
   };
 
@@ -71,9 +81,10 @@ export const useOpenFinance = () => {
       await api.post(`/open-finance/sync/${itemId}`, {});
       await fetchConnections(); // Refresh
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error syncing connection:', err);
-      throw new Error(err.message || 'Erro ao forçar sincronização');
+      const message = err instanceof Error ? err.message : 'Erro ao forçar sincronização';
+      throw new Error(message);
     }
   };
 

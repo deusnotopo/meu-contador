@@ -1,5 +1,13 @@
+import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  },
+}));
+
 import { MobileNavigation } from './MobileNavigation';
 
 describe('MobileNavigation', () => {

@@ -5,7 +5,7 @@ import { logger } from "./logger";
 /**
  * Custom Analytics tracking for financial events
  */
-export const trackEvent = (eventName: string, params?: Record<string, any>) => {
+export const trackEvent = (eventName: string, params?: Record<string, string | number | boolean | null | undefined>) => {
   if (analytics) {
     try {
       logEvent(analytics, eventName, params);

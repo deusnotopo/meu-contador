@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDebts } from "@/hooks/useDebts";
 import { useInvestments } from "@/hooks/useInvestments";
+import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/ui/HelpButton";
 import { MarketDataWidget } from "./MarketDataWidget";
 import { RealTimeQuotes } from "./RealTimeQuotes";
 import { TesouroDiretoRates } from "./TesouroDiretoRates";
@@ -112,9 +114,9 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
         <>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
             {onBack && (
-              <button className="back-btn" onClick={onBack} style={{ marginBottom: "8px" }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-              </button>
+              <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl mb-2">
+                ←
+              </Button>
             )}
             <div>
               <div className="eyebrow">Visão consolidada</div>
@@ -123,13 +125,14 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                 <WizardTrigger label="Ajustar" />
               </div>
             </div>
+            <HelpButton tooltipText="Acompanhe patrimônio, alocação, rentabilidade e dívidas em uma visão consolidada." />
           </div>
           <div className="page-sub" style={{ marginBottom: "14px" }}>Ativos, dívidas e alocação</div>
         </>
       )}
       {tab === "juros" && (
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
-          <button className="back-btn" onClick={() => setTab("geral")}>←</button>
+          <Button variant="ghost" size="icon" onClick={() => setTab("geral")} className="rounded-xl">←</Button>
           <div>
             <div className="eyebrow">Calculadora</div>
             <div className="page-title" style={{ fontSize: "22px", margin: 0 }}>Juros compostos</div>
@@ -138,7 +141,7 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
       )}
       {tab === "dividas" && (
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
-          <button className="back-btn" onClick={() => setTab("geral")}>←</button>
+          <Button variant="ghost" size="icon" onClick={() => setTab("geral")} className="rounded-xl">←</Button>
           <div style={{ flex: 1 }}>
             <div className="eyebrow">Gestão</div>
             <div className="page-title" style={{ fontSize: "22px", margin: 0 }}>Dívidas</div>
@@ -239,12 +242,12 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                         {retPct >= 0 ? '▲' : '▼'} {Math.abs(retPct).toFixed(1)}%
                       </div>
                     </div>
-                    <button onClick={() => setEditingAsset(a)} style={{ background: "none", border: "none", color: "var(--blue)", cursor: "pointer", padding: "4px", marginLeft: 4, opacity: 0.7 }} title="Editar">
+                    <Button variant="ghost" size="icon" onClick={() => setEditingAsset(a)} className="h-7 w-7 ml-1 text-blue-400/80" title="Editar">
                       <Pencil size={13} />
-                    </button>
-                    <button onClick={() => deleteAsset(a.id)} style={{ background: "none", border: "none", color: "var(--t3)", cursor: "pointer", padding: "4px", marginLeft: 2, opacity: 0.6 }}>
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deleteAsset(a.id)} className="h-7 w-7 ml-0.5 text-slate-400/80">
                       <Trash2 size={13} />
-                    </button>
+                    </Button>
                   </div>
                 );
               })
@@ -340,9 +343,9 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", marginBottom: "12px" }}>
             <span className="sec-title">Mapa de dívidas</span>
-            <button onClick={() => setShowAddDebt(!showAddDebt)} style={{ fontSize: "11px", color: "var(--blue)", fontWeight: 700, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+            <Button variant="ghost" size="sm" onClick={() => setShowAddDebt(!showAddDebt)} className="text-xs text-blue-400 font-bold gap-1">
               <Plus size={14} /> Nova
-            </button>
+            </Button>
           </div>
 
           {showAddDebt && (
@@ -353,7 +356,7 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                 <input type="number" step="0.1" placeholder="Juros (% a.m.) *" style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px", fontSize: "13px", color: "var(--t1)", outline: "none" }} value={newDebt.interestRate || ""} onChange={e => setNewDebt({ ...newDebt, interestRate: parseFloat(e.target.value) || 0 })} />
               </div>
               <input type="number" placeholder="Pagamento mínimo (R$) *" style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px", fontSize: "13px", color: "var(--t1)", outline: "none", marginBottom: "12px", boxSizing: "border-box" }} value={newDebt.minPayment || ""} onChange={e => setNewDebt({ ...newDebt, minPayment: parseFloat(e.target.value) || 0 })} />
-              <button onClick={() => { 
+              <Button variant="premium" className="w-full" onClick={() => { 
                 if (newDebt.name && newDebt.balance > 0 && newDebt.minPayment > 0) { 
                   const debtToSubmit = {
                     name: newDebt.name,
@@ -369,9 +372,9 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                 } else {
                   showError("Preencha todos os campos obrigatórios com valores válidos.");
                 }
-              }} style={{ background: "var(--blue)", color: "#fff", padding: "10px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 700, width: "100%", border: "none", cursor: "pointer" }}>
+              }}>
                 Salvar
-              </button>
+              </Button>
             </div>
           )}
 
@@ -399,9 +402,9 @@ export const InvestmentsSection = ({ onBack }: { onBack?: () => void }) => {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                   <div className="m-val r" style={{ fontSize: "14px" }}>{fmt(d.balance)}</div>
-                  <button onClick={() => deleteDebt(d.id)} style={{ background: "none", border: "none", color: "var(--t3)", marginTop: "12px", cursor: "pointer" }}>
+                  <Button variant="ghost" size="icon" onClick={() => deleteDebt(d.id)} className="mt-2 h-7 w-7 text-slate-400/80">
                     <Trash2 size={14} />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

@@ -99,10 +99,8 @@ export const AreaTutorialButton = ({ area, onNavigate, style }: AreaTutorialButt
   const ref = useRef<HTMLDivElement>(null);
 
   const tutorial = TUTORIALS[area];
-  if (!tutorial) return null;
-
-  const tip = tutorial.tips[step]!;
-  const total = tutorial.tips.length;
+  const total = tutorial?.tips.length ?? 0;
+  const tip = tutorial?.tips[step];
 
   // Close when clicking outside
   useEffect(() => {
@@ -116,6 +114,8 @@ export const AreaTutorialButton = ({ area, onNavigate, style }: AreaTutorialButt
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  if (!tutorial || !tip) return null;
 
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-flex", ...style }}>

@@ -1,36 +1,39 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import { AuthProvider } from "./context/AuthContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import "./index.css";
 import "./styles/accessibility.css";
+import "./styles/finapp-v3.css";
 import "./styles/mobile.css"; /* Mobile-first: overrides duplicate rules — loaded last */
+import "./styles/app-shell-fix.css";
 
 import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
 import { initSentry } from "./lib/sentry";
+
+import { PreferencesProvider } from "./context/PreferencesContext";
 
 // Initialize Sentry error tracking
 initSentry();
 
 const isDev = import.meta.env.DEV;
 
-// Apply saved theme before first render (avoids flash)
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'light') {
-  document.documentElement.classList.add('light');
-}
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <GlobalErrorBoundary>
       <AuthProvider>
-        <FeatureFlagsProvider>
-          <LanguageProvider>
-            <App />
-          </LanguageProvider>
-        </FeatureFlagsProvider>
+        <PreferencesProvider>
+          <FeatureFlagsProvider>
+            <LanguageProvider>
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <App />
+              </BrowserRouter>
+            </LanguageProvider>
+          </FeatureFlagsProvider>
+        </PreferencesProvider>
       </AuthProvider>
     </GlobalErrorBoundary>
   </StrictMode>

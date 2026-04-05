@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { showSuccess } from '@/lib/toast';
+import { api } from '@/lib/api';
 import type {
   EmotionalEntry,
   EmotionalPattern,
@@ -9,39 +10,48 @@ import type {
 } from '@/types/emotional';
 import { EMOTION_CONFIG } from '@/types/emotional';
 
-const STORAGE_KEY = 'emotional_journal';
-
-const loadEntries = (userId: string): EmotionalEntry[] => {
+const fetchEmotionalData = async (): Promise<EmotionalEntry[]> => {
   try {
-    const stored = localStorage.getItem(`${STORAGE_KEY}_${userId}`);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
+    const data = await api.get<{ emotionalData: EmotionalEntry[] }>('/users/emotional');
+    return data.emotionalData || [];
+  } catch (error) {
+    console.error('Error fetching emotional data:', error);
     return [];
   }
 };
 
-const saveEntries = (userId: string, entries: EmotionalEntry[]) => {
+const saveEmotionalData = async (entries: EmotionalEntry[]): Promise<boolean> => {
   try {
-    localStorage.setItem(`${STORAGE_KEY}_${userId}`, JSON.stringify(entries));
-  } catch (e) {
-    console.error('Failed to save emotional entries:', e);
+    await api.put('/users/emotional', { emotionalData: entries });
+    return true;
+  } catch (error) {
+    console.error('Error saving emotional data:', error);
+    return false;
   }
 };
 
 export function useEmotionalJournal() {
   const { user } = useAuth();
-  const [entries, setEntries] = useState<EmotionalEntry[]>(() =>
-    user ? loadEntries(user.id) : []
-  );
+  const [entries, setEntries] = useState<EmotionalEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Save when entries change
   useEffect(() => {
-    if (user) {
-      saveEntries(user.id, entries);
-    }
-  }, [entries, user]);
+    const loadData = async () => {
+      if (user) {
+        setIsLoading(true);
+        const data = await fetchEmotionalData();
+        setEntries(data || []);
+        setIsLoading(false);
+      }
+    };
 
-  // Add new emotional entry
+    loadData();
+  }, [user?.id]);
+
+  const saveEntries = useCallback(async (newEntries: EmotionalEntry[]) => {
+    await saveEmotionalData(newEntries);
+  }, []);
+
   const addEntry = useCallback((entry: Omit<EmotionalEntry, 'id' | 'date'>) => {
     const newEntry: EmotionalEntry = {
       ...entry,
@@ -49,30 +59,36 @@ export function useEmotionalJournal() {
       date: new Date().toISOString(),
     };
 
-    setEntries((prev) => [newEntry, ...prev]);
+    setEntries((prev) => {
+      const updated = [newEntry, ...prev];
+      saveEntries(updated);
+      return updated;
+    });
 
-    // Show feedback based on emotion
     const config = EMOTION_CONFIG[entry.emotion];
     if (config) {
       showSuccess(`${config.emoji} Registro emocional salvo`);
     }
 
     return newEntry;
-  }, []);
+  }, [saveEntries]);
 
-  // Update entry
   const updateEntry = useCallback((id: string, updates: Partial<EmotionalEntry>) => {
-    setEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
-    );
-  }, []);
+    setEntries((prev) => {
+      const updated = prev.map((e) => (e.id === id ? { ...e, ...updates } : e));
+      saveEntries(updated);
+      return updated;
+    });
+  }, [saveEntries]);
 
-  // Delete entry
   const deleteEntry = useCallback((id: string) => {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
-  }, []);
+    setEntries((prev) => {
+      const updated = prev.filter((e) => e.id !== id);
+      saveEntries(updated);
+      return updated;
+    });
+  }, [saveEntries]);
 
-  // Get entries for a specific date range
   const getEntriesByDateRange = useCallback(
     (startDate: string, endDate: string) => {
       return entries.filter((e) => e.date >= startDate && e.date <= endDate);
@@ -80,7 +96,6 @@ export function useEmotionalJournal() {
     [entries]
   );
 
-  // Get entries for current week
   const getThisWeekEntries = useCallback(() => {
     const now = new Date();
     const weekStart = new Date(now);
@@ -97,7 +112,6 @@ export function useEmotionalJournal() {
     );
   }, [getEntriesByDateRange]);
 
-  // Calculate emotional patterns
   const patterns = useMemo((): EmotionalPattern[] => {
     const patternMap: Record<string, {
       count: number;
@@ -152,7 +166,6 @@ export function useEmotionalJournal() {
     }));
   }, [entries]);
 
-  // Generate insights
   const insights = useMemo((): EmotionalInsight[] => {
     const result: EmotionalInsight[] = [];
 
@@ -165,7 +178,6 @@ export function useEmotionalJournal() {
       return result;
     }
 
-    // Calculate stats
     const totalEmotionalSpend = entries.reduce((sum, e) => sum + (e.amount || 0), 0);
     const regrettedEntries = entries.filter((e) => e.regretLevel && e.regretLevel >= 4);
     const regrettedAmount = regrettedEntries.reduce((sum, e) => sum + (e.amount || 0), 0);
@@ -186,7 +198,6 @@ export function useEmotionalJournal() {
       stressSpendPercent,
     };
 
-    // High regret warning
     if (regrettedEntries.length >= 3) {
       result.push({
         type: 'warning',
@@ -197,7 +208,6 @@ export function useEmotionalJournal() {
       });
     }
 
-    // Stress spending pattern
     const stressPattern = patterns.find((p) => p.emotion === 'stressed');
     if (stressPattern && stressPattern.frequency >= 3) {
       result.push({
@@ -210,7 +220,6 @@ export function useEmotionalJournal() {
       });
     }
 
-    // Impulse buying detection
     const impulseEntries = entries.filter((e) => e.motivation === 'impulse');
     if (impulseEntries.length >= 3) {
       const impulseTotal = impulseEntries.reduce((sum, e) => sum + (e.amount || 0), 0);
@@ -223,7 +232,6 @@ export function useEmotionalJournal() {
       });
     }
 
-    // Positive achievement
     if (happySpendPercent >= 70) {
       result.push({
         type: 'achievement',
@@ -234,7 +242,6 @@ export function useEmotionalJournal() {
       });
     }
 
-    // Social pressure pattern
     const socialPattern = patterns.find((p) => p.emotion === 'anxious');
     if (socialPattern && socialPattern.topTriggers.includes('Redes sociais')) {
       result.push({
@@ -249,7 +256,6 @@ export function useEmotionalJournal() {
     return result;
   }, [entries, patterns]);
 
-  // Quick stats
   const stats = useMemo(() => {
     const totalEntries = entries.length;
     const thisWeekEntries = getThisWeekEntries();
@@ -276,6 +282,7 @@ export function useEmotionalJournal() {
   }, [entries, patterns, getThisWeekEntries]);
 
   return {
+    isLoading,
     entries,
     patterns,
     insights,

@@ -71,14 +71,34 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
   const animatedLiabilities = useCountUp(liabilities);
 
   return (
-    <div className="hero" style={{ marginBottom: 14 }}>
+    <div className="hero" style={{ marginBottom: 0 }}>
+      {/* ── Floating Score Badge ───────────── */}
+      {!isEmpty && (
+        <button 
+          onClick={() => onNavigate?.('health')}
+          className="absolute top-5 right-5 flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer hover:bg-white/5 transition-colors border border-white/5 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 hover:scale-105 active:scale-95 z-10"
+          title={healthScoreTooltip || "Score de Saúde Financeira"}
+          style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(12px)" }}
+        >
+          {healthScore === 0 ? (
+            <span style={{ fontSize: "10px", color: "var(--amber)", fontWeight: 700 }}>Config score →</span>
+          ) : (
+            <>
+              <ScoreDot score={healthScore} />
+              <span className="text-[11px] font-bold font-mono" style={{ color: healthScore >= 70 ? "var(--green)" : healthScore >= 40 ? "var(--amber)" : "var(--red)" }}>
+                Score: {healthScore}
+              </span>
+            </>
+          )}
+        </button>
+      )}
+
       <div style={{
-        fontSize: "10px", color: "rgba(74,139,255,0.9)", fontWeight: 700,
-        letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "12px",
+        fontSize: "10.5px", color: "var(--t3)", fontWeight: 600,
+        letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "8px",
         display: "flex", alignItems: "center", gap: "6px"
       }}>
-        <span className="pdot" style={{ background: "var(--green)" }} />
-        Patrimônio líquido
+        Patrimônio Total
       </div>
 
       {isEmpty ? (
@@ -107,75 +127,52 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
       ) : (
         /* ── Data state ───────────────────────────── */
         <>
-          {/* Animated net worth number */}
-          <div className="bignum" style={{ transition: "color 0.3s" }}>
+          {/* Animated net worth number - THE DOMINANT VALUE */}
+          <div className="bignum mt-1 mb-2" style={{ 
+            fontSize: "46px", 
+            letterSpacing: "-2.5px",
+            background: "linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.7) 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            filter: "drop-shadow(0px 8px 32px rgba(255, 255, 255, 0.15))"
+          }}>
             {fmtM(animatedNetWorth)}
           </div>
 
-          {monthlyVariation.amount !== 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
-              <span className={`bdg ${monthlyVariation.amount > 0 ? 'bdg-g' : 'bdg-r'}`}>
-                {monthlyVariation.amount > 0 ? '▲' : '▼'} {fmt(Math.abs(monthlyVariation.amount))} este mês
-              </span>
-              <span style={{ fontSize: "11px", color: "var(--t3)", fontFamily: "var(--mono)" }}>
-                {monthlyVariation.percentage > 0 ? '+' : ''}{monthlyVariation.percentage.toFixed(1)}%
-              </span>
+          {/* Secondary stats (Assets & Liabilities) */}
+          <div className="flex items-center gap-4 mt-3 mb-4 pl-1">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Ativos</span>
+              <span className="text-[13px] font-mono text-emerald-400 font-medium">{fmtM(animatedAssets)}</span>
             </div>
-          )}
-
-          {sparklineData.length > 0 && (
-            <div style={{ marginTop: "12px", height: "44px" }}>
-              <Sparkline data={sparklineData} color="var(--green)" />
+            <div className="w-[1px] h-3 bg-white/10" />
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Passivos</span>
+              <span className="text-[13px] font-mono text-red-400 font-medium">{fmt(animatedLiabilities)}</span>
             </div>
-          )}
-        </>
-      )}
-
-      {/* ── Stats row — always visible ──────────── */}
-      {!isEmpty && (
-        <div className="stat3" style={{ marginTop: 14 }}>
-          <div className="s3i">
-            <div className="s3l">
-              <span style={{ fontSize: "9px", marginRight: 3 }}>📈</span>Ativos
-            </div>
-            <div className="s3v" style={{ color: "var(--green)" }}>{fmtM(animatedAssets)}</div>
           </div>
-          <div className="s3i">
-            <div className="s3l">
-              <span style={{ fontSize: "9px", marginRight: 3 }}>📉</span>Passivos
-            </div>
-            <div className="s3v" style={{ color: "var(--red)" }}>{fmt(animatedLiabilities)}</div>
-          </div>
-          <div
-            className="s3i"
-            onClick={() => onNavigate?.('health')}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="s3l">
-              <span style={{ fontSize: "9px", marginRight: 3 }}>❤️</span>Score
-            </div>
-            <div 
-              className="s3v" 
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}
-              title={healthScoreTooltip || "Score de Saúde Financeira"}
-            >
-              {healthScore === 0 ? (
-                <span
-                  style={{ fontSize: "10px", color: "var(--amber)", fontWeight: 700, border: "1px solid rgba(255,173,59,0.3)", borderRadius: "8px", padding: "2px 6px" }}
-                >
-                  Config →
+
+          <div className="h-[1px] w-full bg-white/5 my-3" />
+
+          <div className="flex items-center justify-between gap-4 h-[32px]">
+            {monthlyVariation.amount !== 0 && (
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${monthlyVariation.amount > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                  {monthlyVariation.amount > 0 ? '▲' : '▼'} {fmt(Math.abs(monthlyVariation.amount))} este mês
                 </span>
-              ) : (
-                <>
-                  <ScoreDot score={healthScore} />
-                  <span style={{ color: healthScore >= 70 ? "var(--green)" : healthScore >= 40 ? "var(--amber)" : "var(--red)" }}>
-                    {healthScore}/100
-                  </span>
-                </>
+                <span className="text-[10px] text-gray-500 font-mono font-medium">
+                  {monthlyVariation.percentage > 0 ? '+' : ''}{monthlyVariation.percentage.toFixed(1)}%
+                </span>
+              </div>
+            )}
+            
+            <div style={{ flex: 1, minWidth: '60px', height: '100%', opacity: 0.8 }}>
+              {sparklineData.length > 0 && (
+                 <Sparkline data={sparklineData} color="var(--blue)" />
               )}
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

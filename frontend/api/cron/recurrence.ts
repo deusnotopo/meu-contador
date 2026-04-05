@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db } from "../_firebase-admin";
 
 /**
  * CRON Job: Process Recurring Transactions
@@ -29,7 +28,6 @@ export default async function handler(
 
   try {
     const today = new Date().toISOString().split("T")[0];
-    const createdCount = 0;
 
     // In a real optimized scenario, we would use a Collection Group Query.
     // However, since data is inside `users/{userId}/data/transactions` blob in the current "simple sync" architecture,

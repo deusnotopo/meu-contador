@@ -1,19 +1,29 @@
 import React, { useState } from "react";
-import type { Lesson } from "@/data/educationData";
+import { EDUCATION_MODULES, getLessonActivationContext, getLessonAssociatedFeature, getLessonBehaviorGoal, getLessonObjective, getLessonOutcomeType, getLessonReferences, type Lesson } from "@/data/educationData";
 import { showSuccess } from "@/lib/toast";
 import DOMPurify from "dompurify";
 
 interface LessonDetailViewProps {
   lesson: Lesson;
+  initialCompletedSteps?: number;
+  checkpointLabel?: string;
   onBack: () => void;
+  onProgress?: (completedSteps: number) => void;
   onComplete: (xpEarned: number) => void;
+  onNavigate?: (targetTab: string) => void;
 }
 
-export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBack, onComplete }) => {
-  const [passoAtual, setPassoAtual] = useState(0);
+export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, initialCompletedSteps = 0, checkpointLabel, onBack, onProgress, onComplete, onNavigate }) => {
+  const [passoAtual, setPassoAtual] = useState(() => Math.min(initialCompletedSteps, Math.max(lesson.passos.length - 1, 0)));
   const [quizIdx, setQuizIdx] = useState<number | null>(null);
   const [quizOk, setQuizOk] = useState(false);
   const [quizAcertou, setQuizAcertou] = useState(false);
+
+  const lessonIndex = EDUCATION_MODULES.findIndex((module) => module.id === lesson.id);
+  const previousLesson = lessonIndex > 0 ? EDUCATION_MODULES[lessonIndex - 1] : null;
+  const nextLesson = lessonIndex >= 0 && lessonIndex < EDUCATION_MODULES.length - 1
+    ? EDUCATION_MODULES[lessonIndex + 1]
+    : null;
 
   const passo = lesson.passos[passoAtual];
   if (!passo) return null;
@@ -21,7 +31,14 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
   const isLast = passoAtual === total - 1;
   const isQuiz = passo.tipo === 'quiz';
 
+  const extractNavigationTarget = (ctaFn?: string) => {
+    const match = ctaFn?.match(/go\('([^']+)'\)/);
+    return match?.[1] || null;
+  };
+
   const avancarPasso = () => {
+    const nextCompletedSteps = Math.min(passoAtual + 1, total);
+    onProgress?.(nextCompletedSteps);
     setPassoAtual(prev => prev + 1);
     setQuizOk(false);
     setQuizAcertou(false);
@@ -180,6 +197,81 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
       </div>
 
       <div className="card" style={{ padding: "20px", minHeight: "260px" }}>
+        <div style={{ marginBottom: "14px", padding: "12px", borderRadius: "12px", background: "rgba(255,173,59,0.08)", border: "1px solid rgba(255,173,59,0.18)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "flex-start", marginBottom: "6px" }}>
+            <div style={{ fontSize: "10px", color: "var(--amber)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+              Objetivo prático da aula
+            </div>
+            <div style={{ fontSize: "10px", color: "var(--blue)", fontWeight: 700, textTransform: "uppercase" }}>
+              {getLessonOutcomeType(lesson)}
+            </div>
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--t2)", lineHeight: 1.5 }}>
+            {getLessonObjective(lesson)}
+          </div>
+        </div>
+        <div style={{ marginBottom: "14px", padding: "12px", borderRadius: "12px", background: "rgba(20,184,166,0.08)", border: "1px solid rgba(20,184,166,0.18)" }}>
+          <div style={{ fontSize: "10px", color: "#14B8A6", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: "6px" }}>
+            Onde isso aparece na vida real
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--t2)", lineHeight: 1.5, marginBottom: "8px" }}>
+            {getLessonActivationContext(lesson)}
+          </div>
+          <div style={{ fontSize: "10px", color: "var(--green)", fontWeight: 700 }}>
+            Comportamento esperado: {getLessonBehaviorGoal(lesson)}
+          </div>
+        </div>
+        <div style={{ marginBottom: "14px", padding: "12px", borderRadius: "12px", background: "rgba(74,139,255,0.08)", border: "1px solid rgba(74,139,255,0.18)" }}>
+          <div style={{ fontSize: "10px", color: "var(--blue)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: "6px" }}>
+            Contexto da jornada
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--t2)", lineHeight: 1.5 }}>
+            {previousLesson
+              ? <>Você chegou aqui depois de <strong style={{ color: "var(--t1)" }}>{previousLesson.title}</strong>.</>
+              : <>Esta é a aula inicial recomendada da sua jornada.</>}
+            {nextLesson && (
+              <>
+                {" "}Depois desta aula, o próximo passo ideal é <strong style={{ color: "var(--t1)" }}>{nextLesson.title}</strong>.
+              </>
+            )}
+          </div>
+        </div>
+        <div style={{ marginBottom: "14px", padding: "12px", borderRadius: "12px", background: "rgba(0,217,145,0.08)", border: "1px solid rgba(0,217,145,0.18)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+            <div style={{ fontSize: "10px", color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+              Progresso do módulo
+            </div>
+            <div style={{ fontSize: "10px", color: "var(--t2)", fontFamily: "var(--mono)" }}>
+              {Math.min(passoAtual + 1, total)}/{total}
+            </div>
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: "999px", height: "6px", overflow: "hidden", marginBottom: "6px" }}>
+            <div style={{ width: `${Math.round((Math.min(passoAtual + 1, total) / total) * 100)}%`, height: "100%", background: "linear-gradient(90deg,#00D991,#2F62D9)" }} />
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--t2)", lineHeight: 1.5 }}>
+            {checkpointLabel || `Checkpoint salvo automaticamente a cada avanço.`}
+          </div>
+        </div>
+        <div style={{ marginBottom: "14px", padding: "12px", borderRadius: "12px", background: "rgba(155,127,255,0.08)", border: "1px solid rgba(155,127,255,0.18)" }}>
+          <div style={{ fontSize: "10px", color: "var(--purple)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: "6px" }}>
+            Referências e lastro
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {getLessonReferences(lesson).map((reference) => (
+              <span key={reference} style={{ fontSize: "9px", color: "var(--t2)", padding: "4px 8px", borderRadius: "999px", border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" }}>
+                {reference}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: "14px", padding: "12px", borderRadius: "12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: "6px" }}>
+            Ação conectada ao produto
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--t2)", lineHeight: 1.5 }}>
+            Esta aula está ligada principalmente à área <strong style={{ color: "var(--t1)" }}>{getLessonAssociatedFeature(lesson)}</strong>, para transformar entendimento em execução prática.
+          </div>
+        </div>
         {renderCorpo()}
       </div>
 
@@ -190,7 +282,14 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, onBa
           </div>
         ) : (
           <button 
-            onClick={isLast ? () => onComplete(lesson.xp) : avancarPasso} 
+            onClick={isLast ? () => {
+              const targetTab = extractNavigationTarget(passo.ctaFn);
+              onProgress?.(total);
+              onComplete(lesson.xp);
+              if (targetTab) {
+                onNavigate?.(targetTab);
+              }
+            } : avancarPasso} 
             style={{ 
               background: isLast ? 'linear-gradient(135deg,#00D991,#00B87A)' : 'linear-gradient(135deg,#2F62D9,#5048E8)', 
               border: "none", borderRadius: "14px", padding: "14px", fontSize: "14px", fontWeight: 600, color: "#fff", cursor: "pointer", fontFamily: "var(--font)", width: "100%", 

@@ -7,6 +7,8 @@ import { formatCurrency } from "@/lib/formatters";
 import { applyOnboardingConfig, saveOnboarding } from "@/lib/onboarding";
 import { showSuccess, showError } from "@/lib/toast";
 import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useStrategyRules } from "@/hooks/useStrategyRules";
 import type {
   OnboardingBudget,
   OnboardingData,
@@ -39,12 +41,43 @@ import {
   CreditCard,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import type { LucideIcon } from "lucide-react";
 
 interface Props {
   onComplete: () => void;
   onSkip?: () => void;
+}
+
+type ExpenseKey = 'housing' | 'food' | 'transport' | 'health' | 'education' | 'leisure' | 'subscriptions' | 'shopping';
+type ExpenseField = `expense_${ExpenseKey}`;
+type OnboardingProfile = UserProfile & Partial<Record<ExpenseField, number>>;
+
+interface FeatureCardProps {
+  icon: LucideIcon;
+  label: string;
+}
+
+interface SelectCardProps {
+  active: boolean;
+  onClick: () => void;
+  icon: LucideIcon;
+  label: string;
+  sub: string;
+}
+
+interface StrategyRowProps {
+  color: string;
+  label: string;
+  sub: string;
+  val: string;
+}
+
+interface SummaryItemProps {
+  label: string;
+  value: string;
+  highlight?: boolean;
 }
 
 // ----------------------------------------------------------------------------
@@ -53,16 +86,14 @@ interface Props {
 
 const STEPS = [
   { id: "welcome", title: "Boas-vindas", act: 0 },
-  { id: "identity", title: "Identidade", act: 1 },
-  { id: "objective", title: "Objetivo Principal", act: 1 },
-  { id: "family", title: "Perfil e Prioridade", act: 1 },
-  { id: "business", title: "O Seu Negócio", act: 1 },
+  { id: "identity", title: "Quem é Você", act: 1 },
   { id: "income", title: "Sua Renda", act: 1 },
-  { id: "balance", title: "Patrimônio", act: 1 },
-  { id: "strategy_503020", title: "A Regra de Ouro", act: 2 },
-  { id: "projection", title: "Seu Futuro", act: 2 },
+  { id: "expenses", title: "Seus Gastos", act: 1 },
+  { id: "balance", title: "Seu Patrimônio", act: 1 },
+  { id: "investments", title: "Perfil de Investidor", act: 2 },
   { id: "goals", title: "Suas Metas", act: 2 },
-  { id: "automation", title: "Piloto Automático", act: 3 },
+  { id: "automation", title: "Piloto Automático", act: 2 },
+  { id: "strategy", title: "Sua Estratégia", act: 3 },
   { id: "summary", title: "Diagnóstico Final", act: 3 },
 ];
 
@@ -70,13 +101,66 @@ const STEPS = [
 // Main Component
 // ----------------------------------------------------------------------------
 
+// Dados para recomendação contextual da Academia
+interface AcademySignal {
+  title: string;
+  reason: string;
+  emoji: string;
+  color: string;
+}
+
+function getAcademySignal(profile: { hasDebts?: boolean; hasEmergencyFund?: boolean; employmentType?: string; financialGoal?: string }): AcademySignal {
+  if (profile.hasDebts) return {
+    title: "Quitação Inteligente de Dívidas",
+    reason: "Você indicou que possui dívidas. Quitar antes de investir é a estratégia mais rentável.",
+    emoji: "🛑",
+    color: "rose",
+  };
+  if (!profile.hasEmergencyFund) return {
+    title: "Construindo sua Reserva de Emergência",
+    reason: "Sem reserva, qualquer imprevisto vira dívida. Esse é o passo mais importante agora.",
+    emoji: "🛡️",
+    color: "amber",
+  };
+  if (profile.employmentType === 'pj') return {
+    title: "Finanças do PJ: Pró-labore e CNPJ",
+    reason: "Como PJ, separar pessoa física de jurídica protege seu patrimônio e reduz imposto.",
+    emoji: "🏢",
+    color: "indigo",
+  };
+  if (profile.financialGoal === 'invest' || profile.financialGoal === 'retire') return {
+    title: "Primeiro Aporte: Do Zero ao Mercado",
+    reason: "Você quer investir. Começar pelo básico de renda fixa e tesouro é o caminho mais seguro.",
+    emoji: "📈",
+    color: "emerald",
+  };
+  return {
+    title: "Orçamento Consciente: Método 50/30/20",
+    reason: "Uma base financeira sólida começa com um orçamento que você de fato consegue seguir.",
+    emoji: "📊",
+    color: "indigo",
+  };
+}
+
 export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
+  const { refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationDots] = useState(() =>
+    Array.from({ length: 40 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      color: ['#6366f1', '#a855f7', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4'][Math.floor(Math.random() * 6)] ?? '#6366f1',
+      size: 6 + Math.random() * 10,
+      delay: Math.random() * 0.4,
+    }))
+  );
 
   // -- State: Profile --
-  const [profile, setProfile] = useState<UserProfile>({
+  const [profile, setProfile] = useState<OnboardingProfile>({
     name: "",
     monthlyIncome: 5000,
     financialGoal: "save",
@@ -91,6 +175,9 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
     businessSector: "technology",
     businessCnpj: "",
   });
+
+  // -- State: Validation --
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // -- State: Finance Data --
   const [budgets] = useState<OnboardingBudget[]>(budgetTemplates.moderate || []);
@@ -107,9 +194,38 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
   const progress = ((currentStep + 1) / STEPS.length) * 100;
   const step = STEPS[currentStep];
 
+  const strategyRules = useStrategyRules({
+    monthlyIncome: profile.monthlyIncome,
+    hasDebts: profile.hasDebts,
+    riskProfile: profile.riskProfile as any,
+    employmentType: profile.employmentType as any,
+    dependents: profile.dependents,
+    age: profile.age
+  });
+
   // -- Helpers --
-  const handleProfileChange = (field: keyof UserProfile, value: unknown) => {
+  const handleProfileChange = (field: keyof UserProfile | ExpenseField, value: unknown) => {
     setProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  // -- Validation per step --
+  const validateCurrentStep = (): boolean => {
+    const stepId = STEPS[currentStep]?.id;
+    const errors: Record<string, string> = {};
+
+    switch (stepId) {
+      case "identity":
+        if (!profile.name.trim()) errors.name = "Nome é obrigatório";
+        if ((profile.age ?? 0) < 18 || (profile.age ?? 0) > 120) errors.age = "Idade deve ser entre 18 e 120";
+        if ((profile.dependents ?? 0) < 0) errors.dependents = "Dependentes não pode ser negativo";
+        break;
+      case "income":
+        if (profile.monthlyIncome <= 0) errors.monthlyIncome = "Renda deve ser maior que zero";
+        break;
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const paginate = (newDirection: number) => {
@@ -118,6 +234,9 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
       finalize();
       return;
     }
+
+    // Validar antes de avançar
+    if (newDirection === 1 && !validateCurrentStep()) return;
     
     let nextStepIndex = currentStep + newDirection;
     // Pular a etapa de empresa se for CLT
@@ -125,6 +244,7 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
       nextStepIndex += newDirection;
     }
 
+    setValidationErrors({});
     setDirection(newDirection);
     setCurrentStep(nextStepIndex);
   };
@@ -142,17 +262,58 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
       completedAt: new Date().toISOString(),
     };
     try {
-      await api.put('/users/onboarding', data);
+      const sanitizedProfile = {
+        ...profile,
+        businessName: profile.businessName?.trim() ? profile.businessName.trim() : undefined,
+        businessCnpj: profile.businessCnpj?.trim() ? profile.businessCnpj.trim() : undefined,
+        businessSector: profile.businessSector?.trim() ? profile.businessSector.trim() : undefined,
+      };
+
+      const expenseKeys: ExpenseKey[] = ['housing', 'food', 'transport', 'health', 'education', 'leisure', 'subscriptions', 'shopping'];
+      const historicalExpenses = expenseKeys
+        .map(key => ({
+          category: key,
+          amount: profile[`expense_${key}`] || 0,
+          month: new Date().toISOString().slice(0, 7),
+        }))
+        .filter(exp => exp.amount > 0);
+
+      const payload = {
+        profile: {
+          ...sanitizedProfile,
+          investmentHorizon: sanitizedProfile.riskProfile === "conservative" ? "long" : sanitizedProfile.riskProfile === "moderate" ? "medium" : "short",
+        },
+        budgets,
+        goals,
+        reminders,
+        investments,
+        historicalExpenses,
+        completed: true,
+        completedAt: new Date().toISOString(),
+      };
+      await api.put('/users/onboarding', payload);
       saveOnboarding(data);
       applyOnboardingConfig(data);
-      showSuccess(`Pronto, ${profile.name}! Sua jornada começou.`);
-      onComplete();
-    } catch (err) {
+      await refreshUser();
+
+      // 🎉 Celebração antes de fechar
+      setShowCelebration(true);
+      showSuccess(`Incrível, ${profile.name}! Sua jornada financeira começa agora! 🚀`);
+      setTimeout(() => {
+        setShowCelebration(false);
+        onComplete();
+      }, 2200);
+    } catch (_err) {
       showError("Erro ao sincronizar. Tente novamente.");
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Sinal contextual da Academia calculado a partir do perfil coletado
+  const academySignal = useMemo(() => getAcademySignal(profile), [
+    profile.hasDebts, profile.hasEmergencyFund, profile.employmentType, profile.financialGoal
+  ]);
 
   // --------------------------------------------------------------------------
   // Render
@@ -160,6 +321,45 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#030712] flex flex-col font-sans overflow-hidden text-white">
+      {/* 🎉 Confetti Celebration Overlay */}
+      <AnimatePresence>
+        {showCelebration && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] pointer-events-none flex items-center justify-center"
+          >
+            {celebrationDots.map(dot => (
+              <motion.div
+                key={dot.id}
+                initial={{ x: '50vw', y: '50vh', opacity: 1, scale: 0 }}
+                animate={{
+                  x: `${dot.x}vw`,
+                  y: `${dot.y}vh`,
+                  opacity: 0,
+                  scale: 1.5,
+                  rotate: Math.random() * 720 - 360,
+                }}
+                transition={{ duration: 1.8, delay: dot.delay, ease: 'easeOut' }}
+                className="absolute rounded-full"
+                style={{ width: dot.size, height: dot.size, backgroundColor: dot.color }}
+              />
+            ))}
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.2, opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-center z-10"
+            >
+              <div className="text-7xl mb-4">🎉</div>
+              <p className="text-2xl font-black text-white">Jornada Iniciada!</p>
+              <p className="text-white/50 text-sm mt-2">Preparando seu dashboard...</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Glow Effects */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div 
@@ -197,7 +397,7 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
         </div>
 
         {onSkip && (
-          <button onClick={onSkip} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+          <button onClick={onSkip} aria-label="Pular onboarding" className="p-2 hover:bg-white/5 rounded-full transition-colors">
             <X size={18} className="text-white/40" />
           </button>
         )}
@@ -218,13 +418,13 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
           <motion.div
             key={currentStep}
             custom={direction}
-            initial={{ opacity: 0, x: direction > 0 ? 50 : -50, filter: "blur(10px)" }}
-            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, x: direction > 0 ? -50 : 50, filter: "blur(10px)" }}
+            initial={{ opacity: 0, x: direction > 0 ? 50 : -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: direction > 0 ? -50 : 50 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="w-full max-w-lg mx-auto"
           >
-            {renderStep(currentStep, profile, handleProfileChange, goals, setGoals, reminders, setReminders)}
+            {renderStep(currentStep, profile, handleProfileChange, goals, setGoals, reminders, setReminders, validationErrors, strategyRules, academySignal)}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -268,12 +468,15 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
 
 function renderStep(
   index: number,
-  profile: UserProfile,
-  onChange: (f: keyof UserProfile, v: any) => void,
+  profile: OnboardingProfile,
+  onChange: (f: keyof UserProfile | ExpenseField, v: unknown) => void,
   goals: OnboardingGoal[],
-  setGoals: any,
+  setGoals: React.Dispatch<React.SetStateAction<OnboardingGoal[]>>,
   reminders: OnboardingReminder[],
-  setReminders: any
+  setReminders: React.Dispatch<React.SetStateAction<OnboardingReminder[]>>,
+  validationErrors: Record<string, string>,
+  strategyRules: ReturnType<typeof useStrategyRules>,
+  academySignal: AcademySignal
 ) {
   const step = STEPS[index];
   const stepId = step?.id;
@@ -309,114 +512,23 @@ function renderStep(
         <div className="space-y-8 pt-6">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold">Quem é você?</h2>
-            <p className="text-white/50">Precisamos saber como te chamar no dashboard.</p>
+            <p className="text-white/50">Esses dados personalizam sua estratégia financeira.</p>
           </div>
+          
+          {/* Nome */}
           <div className="space-y-4">
             <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Seu Nome ou Apelido</Label>
             <Input 
               value={profile.name} 
               onChange={e => onChange("name", e.target.value)}
               placeholder="Ex: João Silva" 
-              className="h-16 bg-white/5 border-white/10 rounded-2xl text-xl font-bold focus:ring-2 ring-indigo-500/50 transition-all"
+              aria-invalid={!!validationErrors.name}
+              className={`h-16 bg-white/5 border-white/10 rounded-2xl text-xl font-bold focus:ring-2 ring-indigo-500/50 transition-all ${validationErrors.name ? 'border-rose-500/60 ring-rose-500/30' : ''}`}
             />
+            {validationErrors.name && <p className="text-rose-400 text-xs font-medium" role="alert">{validationErrors.name}</p>}
           </div>
-          <div className="space-y-4">
-            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Modelo de Trabalho</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <SelectCard 
-                active={profile.employmentType === 'clt'} 
-                onClick={() => onChange("employmentType", "clt")}
-                icon={Briefcase} 
-                label="CLT / Funcional" 
-                sub="Foco em estabilidade e FGTS"
-              />
-              <SelectCard 
-                active={profile.employmentType === 'pj'} 
-                onClick={() => onChange("employmentType", "pj")}
-                icon={Building2} 
-                label="PJ / Empresário" 
-                sub="Foco em lucro e blindagem"
-              />
-            </div>
-          </div>
-        </div>
-      );
 
-    case "objective":
-      const isCustomGoal = !["save", "invest", "debt", "house"].includes(profile.financialGoal || "save");
-      return (
-        <div className="space-y-8 pt-6">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold">O que te trouxe aqui?</h2>
-            <p className="text-white/50">Escolha o seu principal objetivo financeiro atual para personalizarmos sua IA.</p>
-          </div>
-          <div className="grid grid-cols-1 gap-3">
-            {[
-              { id: "save", title: "Reserva de Emergência", desc: "Criar um colchão financeiro e ter paz de espírito.", icon: Shield },
-              { id: "invest", title: "Crescer Patrimônio", desc: "Aposentadoria, independência financeira ou bater metas altas.", icon: TrendingUp },
-              { id: "debt", title: "Sair das Dívidas", desc: "Vencer os juros e organizar a casa primeiro.", icon: Zap },
-              { id: "house", title: "Comprar um Imóvel", desc: "Planejamento para dar entrada na casa própria.", icon: Building2 },
-            ].map(obj => (
-              <button
-                key={obj.id}
-                onClick={() => onChange("financialGoal", obj.id)}
-                className={`p-5 rounded-2xl border transition-all text-left flex items-start gap-4 ${
-                  !isCustomGoal && profile.financialGoal === obj.id 
-                    ? "bg-indigo-500/20 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.2)]" 
-                    : "bg-white/5 border-white/5 hover:bg-white/10"
-                }`}
-              >
-                <div className={`p-3 rounded-xl ${!isCustomGoal && profile.financialGoal === obj.id ? "bg-indigo-500/30 text-indigo-400" : "bg-black/20 text-white/40"}`}>
-                  <obj.icon size={24} />
-                </div>
-                <div>
-                  <h3 className={`font-bold text-lg mb-1 ${!isCustomGoal && profile.financialGoal === obj.id ? "text-indigo-100" : "text-white"}`}>{obj.title}</h3>
-                  <p className="text-sm font-medium text-white/50">{obj.desc}</p>
-                </div>
-              </button>
-            ))}
-
-            {/* Custom Option Button */}
-            <button
-              onClick={() => onChange("financialGoal", "")} // Forces isCustomGoal = true by setting to ""
-              className={`p-5 rounded-2xl border transition-all text-left flex items-start gap-4 ${
-                isCustomGoal 
-                  ? "bg-indigo-500/20 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.2)]" 
-                  : "bg-white/5 border-white/5 hover:bg-white/10"
-              }`}
-            >
-              <div className={`p-3 rounded-xl ${isCustomGoal ? "bg-indigo-500/30 text-indigo-400" : "bg-black/20 text-white/40"}`}>
-                <Target size={24} />
-              </div>
-              <div className="flex-1">
-                <h3 className={`font-bold text-lg mb-1 ${isCustomGoal ? "text-indigo-100" : "text-white"}`}>Outro (Personalizado)</h3>
-                <p className="text-sm font-medium text-white/50">Inserir meu próprio objetivo manualmente</p>
-                
-                {/* Custom Input (rendered inside the button visually, but stops propagation so they can type) */}
-                {isCustomGoal && (
-                  <div className="mt-4" onClick={e => e.stopPropagation()}>
-                    <Input 
-                      autoFocus
-                      value={profile.financialGoal} 
-                      onChange={e => onChange("financialGoal", e.target.value)}
-                      placeholder="Ex: Viajar para o Japão" 
-                      className="h-12 bg-black/40 border-white/10 rounded-xl text-md font-bold focus:ring-2 ring-indigo-500/50"
-                    />
-                  </div>
-                )}
-              </div>
-            </button>
-          </div>
-        </div>
-      );
-
-    case "family":
-      return (
-        <div className="space-y-8 pt-6">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold">Seu Perfil Pessoal</h2>
-            <p className="text-white/50">Esses dados ajustam a inteligência da sua Reserva de Emergência.</p>
-          </div>
+          {/* Idade + Dependentes */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-4">
               <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Sua Idade</Label>
@@ -428,7 +540,7 @@ function renderStep(
               />
             </div>
             <div className="space-y-4">
-              <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Filhos/Dependentes</Label>
+              <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Dependentes</Label>
               <Input 
                 type="number"
                 value={profile.dependents?.toString() || ""} 
@@ -437,35 +549,152 @@ function renderStep(
               />
             </div>
           </div>
+
+          {/* Situação Trabalhista */}
+          <div className="space-y-4">
+            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Sua Situação</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <SelectCard 
+                active={profile.employmentType === 'clt'} 
+                onClick={() => onChange("employmentType", "clt")}
+                icon={Briefcase} 
+                label="CLT / Funcional" 
+                sub="Estabilidade e FGTS"
+              />
+              <SelectCard 
+                active={profile.employmentType === 'pj'} 
+                onClick={() => onChange("employmentType", "pj")}
+                icon={Building2} 
+                label="PJ / Empresário" 
+                sub="Lucro e blindagem"
+              />
+            </div>
+          </div>
         </div>
       );
 
-    case "business":
+    case "expenses":
       return (
         <div className="space-y-8 pt-6">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold">Seu Negócio</h2>
-            <p className="text-white/50">Por você ser PJ, personalizaremos a separação de contas.</p>
+          <div className="space-y-2 text-center">
+            <h2 className="text-3xl font-bold">Seus Gastos Mensais</h2>
+            <p className="text-white/50">Entenda para onde seu dinheiro vai.</p>
           </div>
           
           <div className="space-y-4">
-            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Nome da Empresa / Fantasia</Label>
-            <Input 
-              value={profile.businessName || ""} 
-              onChange={e => onChange("businessName", e.target.value)}
-              placeholder="Ex: Minha Agência Ltda" 
-              className="h-16 bg-white/5 border-white/10 rounded-2xl text-xl font-bold"
-            />
+            {/* Gastos Essenciais */}
+            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+              <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider">🏠 Essenciais</h3>
+              <div className="space-y-3">
+                {[
+                  { key: "housing", label: "Moradia (Aluguel/Financiamento)", placeholder: "Ex: 1500" },
+                  { key: "food", label: "Alimentação", placeholder: "Ex: 800" },
+                  { key: "transport", label: "Transporte", placeholder: "Ex: 400" },
+                  { key: "health", label: "Saúde", placeholder: "Ex: 300" },
+                  { key: "education", label: "Educação", placeholder: "Ex: 200" },
+                ].map(item => (
+                  <div key={item.key} className="flex items-center gap-4">
+                    <Label className="text-xs text-white/60 w-40">{item.label}</Label>
+                    <Input 
+                      type="number"
+                      placeholder={item.placeholder}
+                      value={profile[`expense_${item.key as ExpenseKey}`] || ""}
+                      onChange={e => onChange(`expense_${item.key as ExpenseKey}`, parseFloat(e.target.value) || 0)}
+                      className="h-12 bg-white/5 border-white/10 rounded-xl text-sm font-bold flex-1"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Gastos Lifestyle */}
+            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+              <h3 className="font-bold text-sm text-purple-400 uppercase tracking-wider">✨ Lifestyle</h3>
+              <div className="space-y-3">
+                {[
+                  { key: "leisure", label: "Lazer", placeholder: "Ex: 500" },
+                  { key: "subscriptions", label: "Assinaturas", placeholder: "Ex: 150" },
+                  { key: "shopping", label: "Compras", placeholder: "Ex: 300" },
+                ].map(item => (
+                  <div key={item.key} className="flex items-center gap-4">
+                    <Label className="text-xs text-white/60 w-40">{item.label}</Label>
+                    <Input 
+                      type="number"
+                      placeholder={item.placeholder}
+                      value={profile[`expense_${item.key as ExpenseKey}`] || ""}
+                      onChange={e => onChange(`expense_${item.key as ExpenseKey}`, parseFloat(e.target.value) || 0)}
+                      className="h-12 bg-white/5 border-white/10 rounded-xl text-sm font-bold flex-1"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-xs text-indigo-300 flex gap-3">
+              <Zap size={18} className="shrink-0" />
+              <p>Esses dados nos ajudam a calcular sua **capacidade real de poupança** e criar envelopes de orçamento personalizados.</p>
+            </div>
           </div>
-          
+        </div>
+      );
+
+    case "investments":
+      return (
+        <div className="space-y-8 pt-6">
+          <div className="space-y-2 text-center">
+            <h2 className="text-3xl font-bold">Perfil de Investidor</h2>
+            <p className="text-white/50">Vamos personalizar suas recomendações.</p>
+          </div>
+
+          {/* Experiência */}
           <div className="space-y-4">
-            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">CNPJ (Opcional - Apenas números)</Label>
-            <Input 
-              value={profile.businessCnpj || ""} 
-              onChange={e => onChange("businessCnpj", e.target.value.replace(/\D/g, ''))}
-              placeholder="00.000.000/0001-00" 
-              className="h-16 bg-white/5 border-white/10 rounded-2xl text-xl font-bold tracking-widest font-mono"
-            />
+            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Experiência com Investimentos</Label>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { id: "beginner", label: "Iniciante", icon: Sparkles },
+                { id: "intermediate", label: "Intermediário", icon: TrendingUp },
+              ].map(exp => (
+                <SelectCard 
+                  key={exp.id}
+                  active={profile.riskProfile === (exp.id === "beginner" ? "conservative" : "moderate")} 
+                  onClick={() => onChange("riskProfile", exp.id === "beginner" ? "conservative" : "moderate")}
+                  icon={exp.icon} 
+                  label={exp.label} 
+                  sub={exp.id === "beginner" ? "Poupança e renda fixa" : "Ações e fundos"}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Tolerância a Risco */}
+          <div className="space-y-4">
+            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Tolerância a Risco</Label>
+            <div className="flex gap-2 p-1 bg-white/5 rounded-2xl mx-auto w-fit border border-white/5">
+              {["conservative", "moderate", "aggressive"].map(mode => (
+                <button 
+                  key={mode}
+                  onClick={() => onChange("riskProfile", mode as "conservative" | "moderate" | "aggressive")}
+                  aria-label={`Selecionar perfil de risco: ${mode === "conservative" ? "Conservador" : mode === "moderate" ? "Moderado" : "Agressivo"}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    profile.riskProfile === mode ? "bg-indigo-500 text-white shadow-lg" : "text-white/40 hover:text-white"
+                  }`}
+                >
+                  {mode === "conservative" ? "Conservador" : mode === "moderate" ? "Moderado" : "Agressivo"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Valor Investido */}
+          <div className="space-y-4 text-center">
+            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Valor Total Investido Hoje</Label>
+            <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10">
+              <div className="text-4xl font-black tabular-nums text-indigo-400 tracking-tighter">
+                {formatCurrency(profile.initialBalance)}
+              </div>
+              <p className="text-[10px] text-white/30 mt-2">Já informado na etapa anterior</p>
+            </div>
           </div>
         </div>
       );
@@ -519,13 +748,25 @@ function renderStep(
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className={`p-6 rounded-3xl border transition-all cursor-pointer ${profile.hasEmergencyFund ? "bg-emerald-500/20 border-emerald-500/50" : "bg-white/5 border-white/10"}`}
-                   onClick={() => onChange("hasEmergencyFund", !profile.hasEmergencyFund)}>
+              <div 
+                role="button"
+                tabIndex={0}
+                aria-pressed={profile.hasEmergencyFund}
+                aria-label="Marcar se possui reserva de emergência"
+                onKeyDown={e => e.key === 'Enter' && onChange("hasEmergencyFund", !profile.hasEmergencyFund)}
+                className={`p-6 rounded-3xl border transition-all cursor-pointer ${profile.hasEmergencyFund ? "bg-emerald-500/20 border-emerald-500/50" : "bg-white/5 border-white/10"}`}
+                onClick={() => onChange("hasEmergencyFund", !profile.hasEmergencyFund)}>
                 <Shield className={profile.hasEmergencyFund ? "text-emerald-400" : "text-white/20"} />
                 <p className="mt-3 font-bold text-sm">Tenho Reserva de Emergência</p>
               </div>
-              <div className={`p-6 rounded-3xl border transition-all cursor-pointer ${profile.hasDebts ? "bg-rose-500/20 border-rose-500/50" : "bg-white/5 border-white/10"}`}
-                   onClick={() => onChange("hasDebts", !profile.hasDebts)}>
+              <div 
+                role="button"
+                tabIndex={0}
+                aria-pressed={profile.hasDebts}
+                aria-label="Marcar se possui dívidas atuais"
+                onKeyDown={e => e.key === 'Enter' && onChange("hasDebts", !profile.hasDebts)}
+                className={`p-6 rounded-3xl border transition-all cursor-pointer ${profile.hasDebts ? "bg-rose-500/20 border-rose-500/50" : "bg-white/5 border-white/10"}`}
+                onClick={() => onChange("hasDebts", !profile.hasDebts)}>
                 <CreditCard className={profile.hasDebts ? "text-rose-400" : "text-white/20"} />
                 <p className="mt-3 font-bold text-sm">Possuo Dívidas Atuais</p>
               </div>
@@ -534,118 +775,98 @@ function renderStep(
         </div>
       );
 
-    case "strategy_503020": {
-      // Dinâmica de Regra customizada baseada na renda, perfil e metas!
-      let pE = 0.5, pL = 0.3, pF = 0.2; // Moderado Clássico
-      let ruleName = "50/30/20";
-      
-      if (profile.monthlyIncome < 3000 || profile.financialGoal === "debt-free") {
-        pE = 0.6; pL = 0.3; pF = 0.1;
-        ruleName = "60/30/10";
-      } else if (profile.riskProfile === "aggressive") {
-        pE = 0.4; pL = 0.2; pF = 0.4;
-        ruleName = "40/20/40";
-      } else if (profile.riskProfile === "conservative") {
-        pE = 0.5; pL = 0.2; pF = 0.3;
-        ruleName = "50/20/30";
-      }
-
-      const data = [
-        { name: 'Essencial', value: pE * 100, color: '#6366f1' },
-        { name: 'Estilo de Vida', value: pL * 100, color: '#a855f7' },
-        { name: 'Futuro', value: pF * 100, color: '#10b981' },
-      ];
+    case "strategy": {
+      const {
+        ruleName,
+        pE, pL, pF,
+        reserveMonths,
+        data,
+        monthlyInvest,
+        projection10y,
+        projection20y
+      } = strategyRules;
       
       return (
-        <div className="space-y-6 pt-4 text-center">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold">A Regra de Ouro</h2>
-            <p className="text-white/50">Calculamos sua alocação ideal com base no seu diagnóstico:</p>
-          </div>
-          
-          <div className="flex gap-2 p-1 bg-white/5 rounded-2xl mx-auto w-fit mb-4 border border-white/5">
-            {["conservative", "moderate", "aggressive"].map(mode => (
-              <button 
-                key={mode}
-                onClick={() => onChange("riskProfile", mode as any)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  profile.riskProfile === mode ? "bg-indigo-500 text-white shadow-lg" : "text-white/40 hover:text-white"
-                }`}
-              >
-                {mode === "conservative" ? "Economizar" : mode === "moderate" ? "Equilibrar" : "Acelerar"}
-              </button>
-            ))}
+        <div className="space-y-6 pt-4">
+          <div className="space-y-2 text-center">
+            <h2 className="text-3xl font-bold">Sua Estratégia Personalizada</h2>
+            <p className="text-white/50">Baseada no seu perfil de {profile.employmentType?.toUpperCase()}, {profile.age} anos e {profile.dependents} dependentes.</p>
           </div>
 
-          <div className="h-[240px] w-full flex items-center justify-center relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%" cy="50%"
-                  innerRadius={65} outerRadius={95}
-                  paddingAngle={8}
-                  dataKey="value"
-                  animationDuration={1500}
-                >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(value: number) => [`${value.toFixed(0)}%`, 'Alocação']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] uppercase font-bold text-white/40 tracking-widest">Alocação</span>
-              <span className="text-3xl font-black">{ruleName}</span>
+          {/* Regra de Alocação */}
+          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+            <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider text-center">📊 Regra de Alocação: {ruleName}</h3>
+            
+            <div className="h-[200px] w-full flex items-center justify-center relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%" cy="50%"
+                    innerRadius={55} outerRadius={80}
+                    paddingAngle={8}
+                    dataKey="value"
+                    animationDuration={1500}
+                  >
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
+                    itemStyle={{ color: '#fff' }}
+                    formatter={(value: number) => [`${value.toFixed(0)}%`, 'Alocação']}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[10px] uppercase font-bold text-white/40 tracking-widest">Alocação</span>
+                <span className="text-2xl font-black">{ruleName}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 text-left">
+              <StrategyRow color="bg-indigo-500" label={`Necessidades (${pE*100}%)`} sub="Moradia, alimentação, saúde" val={formatCurrency(profile.monthlyIncome * pE)} />
+              <StrategyRow color="bg-purple-500" label={`Lifestyle (${pL*100}%)`} sub="Lazer, compras, assinaturas" val={formatCurrency(profile.monthlyIncome * pL)} />
+              <StrategyRow color="bg-emerald-500" label={`Futuro (${pF*100}%)`} sub="Investimento, dívidas, reserva" val={formatCurrency(profile.monthlyIncome * pF)} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 text-left">
-            <StrategyRow color="bg-indigo-500" label={`Necessidades (${pE*100}%)`} sub="Moradia, alimentação, saúde" val={formatCurrency(profile.monthlyIncome * pE)} />
-            <StrategyRow color="bg-purple-500" label={`Lifestyle (${pL*100}%)`} sub="Lazer, compras, assinaturas" val={formatCurrency(profile.monthlyIncome * pL)} />
-            <StrategyRow color="bg-emerald-500" label={`Futuro (${pF*100}%)`} sub="Investimento, dívidas, reserva" val={formatCurrency(profile.monthlyIncome * pF)} />
-          </div>
-        </div>
-      );
-    }
-
-    case "projection": {
-      const monthlyInvest = profile.monthlyIncome * 0.2;
-      const rate = 0.0087; // aprox 10.5% a.a. (realista CDI BR)
-      const projection10y = monthlyInvest * ((Math.pow(1 + rate, 120) - 1) / rate);
-      const projection20y = monthlyInvest * ((Math.pow(1 + rate, 240) - 1) / rate);
-
-      return (
-        <div className="space-y-8 pt-6">
-          <div className="space-y-2 text-center">
-            <h2 className="text-3xl font-bold">O Efeito Juros Compostos</h2>
-            <p className="text-white/50">Investindo seus 20% mensais ({formatCurrency(monthlyInvest)}), veja o que o tempo faz:</p>
-          </div>
-          
-          <div className="space-y-4">
-            <ProjectionCard 
-              years={10} 
-              total={projection10y} 
-              description="Em 10 anos, você terá patrimônio para grandes decisões."
-              color="border-indigo-500/30 bg-indigo-500/5"
-            />
-            <ProjectionCard 
-              years={20} 
-              total={projection20y} 
-              description="Em 20 anos, seus juros ganham mais que o seu trabalho."
-              color="border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
-              highlight
-            />
+          {/* Reserva de Emergência */}
+          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+            <h3 className="font-bold text-sm text-emerald-400 uppercase tracking-wider">🛡️ Reserva de Emergência Recomendada</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <p className="text-3xl font-black text-emerald-400">{reserveMonths}</p>
+                <p className="text-[10px] text-white/40">Meses</p>
+              </div>
+              <div className="text-center">
+                <p className="text-3xl font-black text-emerald-400">{formatCurrency(profile.monthlyIncome * reserveMonths)}</p>
+                <p className="text-[10px] text-white/40">Valor Alvo</p>
+              </div>
+            </div>
           </div>
 
-          <p className="text-[10px] text-center text-white/30 italic">
-            *Cálculo baseado na Selic atual projetada e aporte constante. Resultados podem variar.
-          </p>
+          {/* Projeção de Juros Compostos */}
+          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+            <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider">📈 Efeito Juros Compostos</h3>
+            <p className="text-xs text-white/50 text-center">Investindo {formatCurrency(monthlyInvest)}/mês (seus {pF*100}%)</p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center">
+                <p className="text-[10px] text-white/40 uppercase">Em 10 anos</p>
+                <p className="text-xl font-black text-indigo-400">{formatCurrency(projection10y)}</p>
+              </div>
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                <p className="text-[10px] text-white/40 uppercase">Em 20 anos</p>
+                <p className="text-xl font-black text-emerald-400">{formatCurrency(projection20y)}</p>
+              </div>
+            </div>
+            
+            <p className="text-[10px] text-center text-white/30 italic">
+              *Baseado na Selic atual projetada e aporte constante.
+            </p>
+          </div>
         </div>
       );
     }
@@ -661,6 +882,17 @@ function renderStep(
             {goals.map((g, i) => (
               <div 
                 key={i}
+                role="button"
+                tabIndex={0}
+                aria-pressed={g.enabled}
+                aria-label={`Meta: ${g.name}`}
+                onKeyDown={e => e.key === 'Enter' && (() => {
+                  const newGoals = [...goals];
+                  if (newGoals[i]) {
+                    newGoals[i].enabled = !newGoals[i].enabled;
+                    setGoals(newGoals);
+                  }
+                })()}
                 onClick={() => {
                   const newGoals = [...goals];
                   if (newGoals[i]) {
@@ -683,66 +915,210 @@ function renderStep(
 
     case "automation":
       return (
-        <div className="space-y-8 pt-6">
+        <div className="space-y-6 pt-6">
           <div className="space-y-2 text-center">
             <h2 className="text-3xl font-bold">Piloto Automático</h2>
-            <p className="text-white/50">Quais contas sua IA deve te lembrar de pagar?</p>
+            <p className="text-white/50">Ative e edite as contas que a IA vai te lembrar.</p>
           </div>
-          <div className="space-y-3 max-h-[350px] overflow-y-auto px-1 pr-2 hide-scrollbar">
+
+          <div className="space-y-3 max-h-[360px] overflow-y-auto px-1 pr-2 hide-scrollbar">
             {reminders.map((r, i) => (
-              <div 
+              <div
                 key={i}
-                onClick={() => {
-                  const newR = [...reminders];
-                  if (newR[i]) {
-                    newR[i].enabled = !newR[i].enabled;
-                    setReminders(newR);
-                  }
-                }}
-                className={`p-4 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
+                className={`rounded-2xl border transition-all ${
                   r.enabled ? "bg-white/10 border-white/20" : "bg-white/5 border-white/5"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${r.enabled ? "bg-indigo-500" : "bg-white/5"}`}>
-                    <Bell size={14} className={r.enabled ? "text-white" : "text-white/20"} />
+                {/* Toggle row */}
+                <div
+                  className="p-4 flex items-center justify-between cursor-pointer"
+                  onClick={() => {
+                    const newR = [...reminders];
+                    if (newR[i]) { newR[i].enabled = !newR[i].enabled; setReminders(newR); }
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${r.enabled ? "bg-indigo-500" : "bg-white/5"}`}>
+                      <Bell size={14} className={r.enabled ? "text-white" : "text-white/20"} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{r.name}</p>
+                      <p className="text-[10px] text-white/30 uppercase font-black tracking-widest">
+                        {(r.amount || 0) > 0 ? `R$ ${(r.amount || 0).toLocaleString('pt-BR')} · ` : ""}Dia {r.dueDay}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-sm">{r.name}</p>
-                    <p className="text-[10px] text-white/30 uppercase font-black tracking-widest">Dia {r.dueDay}</p>
-                  </div>
+                  <Switch checked={r.enabled} onCheckedChange={() => {}} />
                 </div>
-                <Switch checked={r.enabled} onCheckedChange={() => {}} />
+
+                {/* Editable fields — only when enabled */}
+                {r.enabled && (
+                  <div className="px-4 pb-4 grid grid-cols-3 gap-2">
+                    <div className="col-span-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1 block">Nome</label>
+                      <input
+                        type="text"
+                        value={r.name}
+                        onChange={(e) => {
+                          const newR = [...reminders];
+                          if (newR[i]) { newR[i].name = e.target.value; setReminders(newR); }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-medium"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1 block">Valor (R$)</label>
+                      <input
+                        type="number"
+                        value={r.amount || ""}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const newR = [...reminders];
+                          if (newR[i]) { newR[i].amount = Number(e.target.value); setReminders(newR); }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-medium"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1 block">Dia Vcto.</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={r.dueDay}
+                        onChange={(e) => {
+                          const newR = [...reminders];
+                          if (newR[i]) { newR[i].dueDay = Number(e.target.value); setReminders(newR); }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-medium"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
+
+            {/* Adicionar conta personalizada */}
+            <button
+              type="button"
+              onClick={() => {
+                setReminders([...reminders, {
+                  name: "Nova Conta",
+                  amount: 0,
+                  dueDay: 10,
+                  category: "Outros",
+                  enabled: true,
+                }]);
+              }}
+              className="w-full py-3 rounded-2xl border border-dashed border-white/20 text-white/40 text-sm font-semibold hover:border-indigo-500/50 hover:text-indigo-400 transition-all flex items-center justify-center gap-2"
+            >
+              <span className="text-lg">＋</span> Adicionar conta personalizada
+            </button>
           </div>
         </div>
       );
 
-    case "summary":
+    case "summary": {
+      const isPJ = profile.employmentType === 'pj';
+      const hasDebts = !!profile.hasDebts;
+      const noReserve = !profile.hasEmergencyFund;
+      const savingsCapacity = profile.monthlyIncome * strategyRules.pF;
+      
+      // Determinar status geral para coloração
+      void (hasDebts ? 'rose' : noReserve ? 'amber' : 'emerald'); // statusColor derivado implicitamente
+      const statusLabel = hasDebts ? '⚠️ Prioridade: Quitar Dívidas' : noReserve ? '🛡️ Prioridade: Construir Reserva' : '🚀 Pronto para Crescer';
+      const statusBg = hasDebts ? 'bg-rose-500/10 border-rose-500/30' : noReserve ? 'bg-amber-500/10 border-amber-500/30' : 'bg-emerald-500/10 border-emerald-500/30';
+      const statusText = hasDebts ? 'text-rose-400' : noReserve ? 'text-amber-400' : 'text-emerald-400';
+
       return (
-        <div className="space-y-8 pt-6">
-          <div className="text-center space-y-4">
-            <motion.div 
-              animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-              className="w-20 h-20 mx-auto border-2 border-indigo-500/30 border-t-indigo-500 rounded-full flex items-center justify-center"
+        <div className="space-y-6 pt-6">
+          <div className="text-center space-y-3">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="w-20 h-20 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/40"
             >
-              <Target size={32} className="text-indigo-400" />
+              <Target size={36} className="text-white" />
             </motion.div>
             <h2 className="text-3xl font-black">Diagnóstico Pronto!</h2>
-            <p className="text-white/50 text-sm px-6">
-              Analisamos seus dados de **{profile.employmentType?.toUpperCase()}** e criamos uma estratégia completa de alocação e metas.
+            <p className="text-white/50 text-sm">
+              Perfil <span className="font-bold text-white">{isPJ ? 'Empresário PJ' : 'CLT'}</span>
+              {profile.age ? `, ${profile.age} anos` : ''}
+              {(profile.dependents ?? 0) > 0 ? `, ${profile.dependents} dependente${(profile.dependents ?? 0) > 1 ? 's' : ''}` : ''}
             </p>
           </div>
-          
-          <div className="bg-white/5 rounded-3xl p-6 border border-white/10 space-y-4">
-            <SummaryItem label="Regra" value="50/30/20" />
+
+          {/* Status Banner Contextual */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className={`p-4 rounded-2xl border flex items-center gap-3 ${statusBg}`}
+          >
+            <span className={`text-lg font-black ${statusText}`}>{statusLabel}</span>
+          </motion.div>
+
+          {/* Dados Financeiros */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="bg-white/5 rounded-3xl p-6 border border-white/10 space-y-3"
+          >
+            <SummaryItem label="Regra de Alocação" value={strategyRules.ruleName} />
             <SummaryItem label="Renda Mensal" value={formatCurrency(profile.monthlyIncome)} />
-            <SummaryItem label="Capacidade Mensal" value={formatCurrency(profile.monthlyIncome * 0.2)} highlight />
-            <SummaryItem label="Fundo de Emergência" value={profile.employmentType === 'pj' ? "12 Meses (PJ)" : "6 Meses (CLT)"} />
-          </div>
+            <SummaryItem
+              label={hasDebts ? "⚠️ Direcionar para Dívidas" : "Capacidade de Aporte"}
+              value={formatCurrency(savingsCapacity)}
+              highlight={!hasDebts}
+              danger={hasDebts}
+            />
+            <SummaryItem
+              label="Reserva de Emergência"
+              value={`${strategyRules.reserveMonths} meses · ${formatCurrency(profile.monthlyIncome * strategyRules.reserveMonths)}`}
+            />
+            {hasDebts && (
+              <div className="pt-2 text-xs text-rose-300 flex items-start gap-2 border-t border-white/5">
+                <span>🔴</span>
+                <span>Recomendamos quitar dívidas antes de investir. Cada R$1 em juros é prejuízo direto.</span>
+              </div>
+            )}
+            {noReserve && !hasDebts && (
+              <div className="pt-2 text-xs text-amber-300 flex items-start gap-2 border-t border-white/5">
+                <span>⚡</span>
+                <span>Construir a reserva primeiro protege você de voltar ao zero em imprevistos.</span>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Card de Recomendação da Academia */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className={`p-5 rounded-2xl border ${
+              academySignal.color === 'rose' ? 'bg-rose-500/10 border-rose-500/20' :
+              academySignal.color === 'amber' ? 'bg-amber-500/10 border-amber-500/20' :
+              academySignal.color === 'emerald' ? 'bg-emerald-500/10 border-emerald-500/20' :
+              'bg-indigo-500/10 border-indigo-500/20'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-2xl mt-0.5">{academySignal.emoji}</span>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Seu Primeiro Módulo na Academia</p>
+                <p className="font-bold text-sm text-white leading-tight mb-1.5">{academySignal.title}</p>
+                <p className="text-xs text-white/50 leading-relaxed">{academySignal.reason}</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       );
+    }
 
     default:
       return null;
@@ -753,28 +1129,34 @@ function renderStep(
 // Sub-components
 // ----------------------------------------------------------------------------
 
-const FeatureCard = ({ icon: Icon, label }: { icon: any, label: string }) => (
+const FeatureCard = ({ icon: Icon, label }: FeatureCardProps) => (
   <div className="flex items-center gap-2 p-3 bg-white/5 border border-white/5 rounded-2xl">
     <Icon size={14} className="text-indigo-400" />
     <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">{label}</span>
   </div>
 );
 
-const SelectCard = ({ active, onClick, icon: Icon, label, sub }: any) => (
-  <button 
+const SelectCard = ({ active, onClick, icon: Icon, label, sub }: SelectCardProps) => (
+  <Button 
+    type="button"
+    variant="glossy"
     onClick={onClick}
-    className={`p-6 rounded-3xl border text-left transition-all relative ${
-      active ? "bg-indigo-600/20 border-indigo-500" : "bg-white/5 border-white/5 hover:bg-white/10"
+    aria-pressed={active}
+    aria-label={`Selecionar ${label}`}
+    className={`p-6 h-auto flex-col items-start justify-start rounded-2xl border text-left transition-all relative ${
+      active 
+        ? "bg-indigo-600/20 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.3)]" 
+        : "bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10"
     }`}
   >
-    <Icon className={`mb-3 ${active ? "text-indigo-400" : "text-white/30"}`} size={24} />
-    <p className="font-bold text-sm block mb-1">{label}</p>
-    <p className="text-[10px] text-white/40 leading-tight">{sub}</p>
+    <Icon className={`mb-3 transition-colors ${active ? "text-indigo-400" : "text-white/30"}`} size={24} />
+    <p className="font-bold text-sm block mb-1 text-left">{label}</p>
+    <p className="text-[10px] text-white/40 leading-tight text-left">{sub}</p>
     {active && <Check size={14} className="absolute top-4 right-4 text-indigo-400" />}
-  </button>
+  </Button>
 );
 
-const StrategyRow = ({ color, label, sub, val }: any) => (
+const StrategyRow = ({ color, label, sub, val }: StrategyRowProps) => (
   <div className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
     <div className="flex items-center gap-3">
       <div className={`w-2 h-8 rounded-full ${color}`} />
@@ -787,24 +1169,11 @@ const StrategyRow = ({ color, label, sub, val }: any) => (
   </div>
 );
 
-const ProjectionCard = ({ years, total, description, color, highlight }: any) => (
-  <div className={`p-6 rounded-[2rem] border ${color} space-y-3`}>
-    <div className="flex justify-between items-end">
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Em {years} anos</p>
-        <p className={`text-3xl font-black tabular-nums ${highlight ? "text-white" : "text-white/80"}`}>{formatCurrency(total)}</p>
-      </div>
-      <div className={`p-2 rounded-lg ${highlight ? "bg-emerald-500 text-black" : "bg-white/5"}`}>
-        <ArrowRight size={16} />
-      </div>
-    </div>
-    <p className="text-xs text-white/60 font-medium leading-snug">{description}</p>
-  </div>
-);
-
-const SummaryItem = ({ label, value, highlight }: any) => (
+const SummaryItem = ({ label, value, highlight, danger }: SummaryItemProps & { danger?: boolean }) => (
   <div className="flex justify-between items-center py-2 border-b border-white/5 last:border-0 border-dashed">
     <span className="text-xs font-medium text-white/40 uppercase tracking-wider">{label}</span>
-    <span className={`text-sm font-black ${highlight ? "text-emerald-400" : "text-white"}`}>{value}</span>
+    <span className={`text-sm font-black ${
+      danger ? "text-rose-400" : highlight ? "text-emerald-400" : "text-white"
+    }`}>{value}</span>
   </div>
 );

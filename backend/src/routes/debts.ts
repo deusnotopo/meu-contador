@@ -1,76 +1,137 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../lib/db';
+import { getCacheValue, setCacheValue } from '../lib/cache';
+
+const debtsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+const debtParamsSchema = z.object({ id: z.string().uuid() });
+const debtBodySchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  balance: z.number().positive().max(1_000_000_000),
+  interestRate: z.number().min(0).max(10_000),
+  minPayment: z.number().positive().max(1_000_000_000),
+  dueDate: z.string().datetime().optional().nullable(),
+  category: z.string().trim().min(1).max(40).default('credit_card'),
+});
+const debtUpdateBodySchema = debtBodySchema.partial().refine((body) => Object.keys(body).length > 0, {
+  message: 'Informe ao menos um campo para atualização',
+});
+const debtResponseSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  balance: z.number(),
+  interestRate: z.number(),
+  minPayment: z.number(),
+  dueDate: z.union([z.date(), z.string(), z.null()]).optional(),
+  category: z.string(),
+}).passthrough();
+const debtsListResponseSchema = z.object({
+  items: z.array(debtResponseSchema),
+  page: z.number().int(),
+  limit: z.number().int(),
+  total: z.number().int(),
+  totalPages: z.number().int(),
+});
+const debtDeleteResponseSchema = z.object({ success: z.boolean() });
+const debtErrorSchema = z.object({ message: z.string() });
 
 export async function debtRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
 
   // List all debts
-  app.get('/debts', async (request, reply) => {
-    const debts = await db.debt.findMany({
-      where: { userId: request.user.id },
-      orderBy: { name: 'asc' },
-    });
-    return debts;
+  app.get('/debts', {
+    schema: {
+      tags: ['Debts'],
+      security: [{ bearerAuth: [] }],
+      querystring: debtsQuerySchema,
+      response: { 200: debtsListResponseSchema },
+    },
+  }, async (request, reply) => {
+    const { page, limit } = request.query as z.infer<typeof debtsQuerySchema>;
+
+    const cacheKey = `debts:list:${request.user.id}:${page}:${limit}`;
+    const cachedResult = await getCacheValue(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const skip = (page - 1) * limit;
+    const where = { userId: request.user.id };
+    const [items, total] = await Promise.all([
+      db.debt.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        skip,
+        take: limit,
+      }),
+      db.debt.count({ where }),
+    ]);
+
+    const result = { items, page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
+    await setCacheValue(cacheKey, result, 1800000); // 30 minutes for stable data
+    return result;
   });
 
   // Create a new debt
-  app.post('/debts', async (request, reply) => {
-    const bodySchema = z.object({
-      name: z.string().min(1, "Nome é obrigatório"),
-      balance: z.number().positive("Saldo deve ser positivo"),
-      interestRate: z.number().min(0, "Taxa de juros deve ser maior ou igual a zero"),
-      minPayment: z.number().positive("Pagamento mínimo deve ser positivo"),
-      dueDate: z.string().optional().nullable(),
-      category: z.string().default("credit_card"),
+  app.post('/debts', {
+    schema: {
+      tags: ['Debts'],
+      security: [{ bearerAuth: [] }],
+      body: debtBodySchema,
+      response: { 200: debtResponseSchema },
+    },
+  }, async (request, reply) => {
+    const validatedData = request.body as z.infer<typeof debtBodySchema>;
+
+    const debt = await db.debt.create({
+      data: {
+        name: validatedData.name,
+        balance: validatedData.balance,
+        interestRate: validatedData.interestRate,
+        minPayment: validatedData.minPayment,
+        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
+        category: validatedData.category,
+        userId: request.user.id,
+      },
     });
 
-    try {
-      const validatedData = bodySchema.parse(request.body);
-      
-      const debt = await db.debt.create({
-        data: {
-          name: validatedData.name,
-          balance: validatedData.balance,
-          interestRate: validatedData.interestRate,
-          minPayment: validatedData.minPayment,
-          dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
-          category: validatedData.category,
-          userId: request.user.id,
-        },
-      });
-
-      return debt;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.status(400).send({
-          error: "Dados inválidos",
-          details: error.errors,
-        });
-      }
-      throw error;
-    }
+    return debt;
   });
 
   // Update a debt
-  app.put('/debts/:id', async (request, reply) => {
-    const paramsSchema = z.object({ id: z.string().uuid() });
-    const bodySchema = z.object({
-      name: z.string().optional(),
-      balance: z.number().optional(),
-      interestRate: z.number().optional(),
-      minPayment: z.number().optional(),
-      dueDate: z.string().optional().nullable(),
-      category: z.string().optional(),
+  app.put('/debts/:id', {
+    schema: {
+      tags: ['Debts'],
+      security: [{ bearerAuth: [] }],
+      params: debtParamsSchema,
+      body: debtUpdateBodySchema,
+      response: {
+        200: debtResponseSchema,
+        404: debtErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
+    const { id } = request.params as z.infer<typeof debtParamsSchema>;
+    const data = request.body as z.infer<typeof debtUpdateBodySchema>;
+
+    const existing = await db.debt.findFirst({
+      where: {
+        id,
+        userId: request.user.id,
+      },
     });
 
-    const { id } = paramsSchema.parse(request.params);
-    const data = bodySchema.parse(request.body);
+    if (!existing) {
+      return reply.status(404).send({ message: 'Debt not found' });
+    }
 
     const debt = await db.debt.update({
       where: {
         id,
-        userId: request.user.id,
       },
       data: {
         ...data,
@@ -82,16 +143,29 @@ export async function debtRoutes(app: FastifyInstance) {
   });
 
   // Delete a debt
-  app.delete('/debts/:id', async (request, reply) => {
-    const paramsSchema = z.object({ id: z.string().uuid() });
-    const { id } = paramsSchema.parse(request.params);
+  app.delete('/debts/:id', {
+    schema: {
+      tags: ['Debts'],
+      security: [{ bearerAuth: [] }],
+      params: debtParamsSchema,
+      response: {
+        200: debtDeleteResponseSchema,
+        404: debtErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
+    const { id } = request.params as z.infer<typeof debtParamsSchema>;
 
-    await db.debt.delete({
+    const deleted = await db.debt.deleteMany({
       where: {
         id,
         userId: request.user.id,
       },
     });
+
+    if (deleted.count === 0) {
+      return reply.status(404).send({ message: 'Debt not found' });
+    }
 
     return { success: true };
   });

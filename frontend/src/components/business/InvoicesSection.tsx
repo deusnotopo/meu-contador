@@ -34,6 +34,14 @@ import { useState } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
+type InvoiceStatus = Invoice["status"];
+
+interface AutoTableDoc extends jsPDF {
+  lastAutoTable?: {
+    finalY: number;
+  };
+}
+
 export const InvoicesSection = () => {
   const { invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
   const [isOpen, setIsOpen] = useState(false);
@@ -43,7 +51,7 @@ export const InvoicesSection = () => {
     number: "",
     client: "",
     amount: "",
-    status: "pending" as any,
+    status: "pending" as InvoiceStatus,
     dueDate: new Date().toISOString().substring(0, 10),
   });
 
@@ -122,7 +130,7 @@ export const InvoicesSection = () => {
       headStyles: { fillColor: [79, 70, 229] },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    const finalY = ((doc as AutoTableDoc).lastAutoTable?.finalY ?? 90) + 20;
     doc.setFontSize(12);
     doc.text(`VALOR TOTAL: R$ ${inv.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 140, finalY);
 

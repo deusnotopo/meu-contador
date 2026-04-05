@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useFeatureFlags } from '@/context/FeatureFlagsContext';
+import { Lock, FileCode } from 'lucide-react';
+import { OFXImporterModal } from './transactions/OFXImporterModal';
 
 import type { TabType } from '@/types/navigation';
 
@@ -9,9 +12,34 @@ interface FunctionsHubProps {
 
 }
 
+interface HubActionCardProps {
+  onClick?: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+  ariaLabel: string;
+}
+
+import { Button } from "@/components/ui/button";
+
+const HubActionCard: React.FC<HubActionCardProps> = ({ onClick, className, style, children, ariaLabel }) => (
+  <Button
+    variant="glossy"
+    type="button"
+    onClick={onClick}
+    style={style}
+    aria-label={ariaLabel}
+    className={`w-full text-left h-auto p-0 justify-start hover:scale-[1.01] active:scale-[0.99] ${className ?? ''}`}
+  >
+    {children}
+  </Button>
+);
+
 export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
   const { user } = useAuth();
+  const { isEnabled } = useFeatureFlags();
   const [clock, setClock] = useState('');
+  const [showOFX, setShowOFX] = useState(false);
 
   useEffect(() => {
     const updateClock = () => {
@@ -173,8 +201,9 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
         </div>
 
         {/* Dashboard Hero Card */}
-        <div 
+        <HubActionCard
           onClick={() => onNavigate?.('inicio')}
+          ariaLabel="Abrir dashboard de controle"
           style={{
             background: 'linear-gradient(145deg, #080E1F 0%, #04090F 60%, #060B18 100%)',
             border: '1px solid rgba(74,139,255,0.18)',
@@ -218,13 +247,14 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
               <span className="chip chip-amber">Alertas</span>
             </div>
           </div>
-        </div>
+        </HubActionCard>
 
         {/* Lançar Gasto / Receita */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <div 
+          <HubActionCard
             onClick={() => onNavigate?.('launch')}
             className="fn-card fn-card-blue"
+            ariaLabel="Lançar novo gasto"
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{
@@ -235,11 +265,12 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Lançar Gasto</div>
             <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Registra uma saída de dinheiro. Categoria, descrição, data e envelope.</div>
-          </div>
+          </HubActionCard>
 
-          <div 
+          <HubActionCard
             onClick={() => onNavigate?.('launch')}
             className="fn-card fn-card-green"
+            ariaLabel="Lançar nova receita"
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{
@@ -250,8 +281,41 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Lançar Receita</div>
             <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Registra qualquer entrada: salário, freelance, bônus.</div>
-          </div>
+          </HubActionCard>
         </div>
+
+        {/* OFX Importer Card */}
+        <HubActionCard
+          onClick={() => setShowOFX(true)}
+          ariaLabel="Importar OFX do banco"
+          style={{
+            background: 'linear-gradient(145deg, rgba(139,92,246,0.1) 0%, rgba(139,92,246,0.02) 100%)',
+            border: '1px solid rgba(139,92,246,0.2)',
+            borderRadius: '16px',
+            padding: '16px',
+            marginTop: '10px',
+            position: 'relative',
+            overflow: 'hidden',
+            cursor: 'pointer',
+            transition: 'all 0.25s'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+             <div style={{
+               width: '46px', height: '46px', borderRadius: '12px',
+               background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a78bfa'
+             }}>
+                <FileCode size={22} />
+             </div>
+             <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 700, color: 'var(--t1)' }}>Importar OFX</div>
+                   <span className="chip" style={{ background: 'rgba(139,92,246,0.2)', color: '#d8b4fe', fontSize: '8px', padding: '2px 6px' }}>NOVO</span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--t2)', lineHeight: 1.4 }}>Arraste o extrato do seu banco. A IA formata e categoriza o lote.</div>
+             </div>
+          </div>
+        </HubActionCard>
       </motion.section>
 
       {/* Section 02: Orçamento */}
@@ -283,9 +347,10 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <div 
+          <HubActionCard
             onClick={() => onNavigate?.('budget')}
             className="fn-card fn-card-blue"
+            ariaLabel="Abrir envelopes"
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{
@@ -296,11 +361,12 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Envelopes</div>
             <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Orçamento zero-based com 12 envelopes em 3 grupos.</div>
-          </div>
+          </HubActionCard>
 
-          <div 
+          <HubActionCard
             onClick={() => onNavigate?.('cash_flow')}
             className="fn-card fn-card-amber"
+            ariaLabel="Abrir calendário de caixa"
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{
@@ -311,11 +377,12 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Calendário de caixa</div>
             <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Saldo seguro, saídas previstas, compromissos e próximos dias críticos.</div>
-          </div>
+          </HubActionCard>
 
-          <div 
+          <HubActionCard
             onClick={() => onNavigate?.('planning')}
             className="fn-card fn-card-green"
+            ariaLabel="Abrir planejamento Ulysses Contract"
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{
@@ -326,7 +393,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Ulysses Contract</div>
             <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Regras pré-competidas que protegem seu futuro.</div>
-          </div>
+          </HubActionCard>
         </div>
       </motion.section>
 
@@ -360,21 +427,30 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
           {[
-            { icon: '📈', name: 'Patrimônio geral', desc: 'Visão consolidada com sparkline e alocação.', color: 'blue', tab: 'investments' as TabType },
-            { icon: '🧮', name: 'Juros compostos', desc: 'Calculadora com sliders de aporte, taxa e período.', color: 'blue', tab: 'invest_compostos' as TabType },
-            { icon: '💳', name: 'Dívidas', desc: 'Mapa de passivos com estratégia avalanche ou bola de neve.', color: 'red', tab: 'invest_dividas' as TabType }
-          ].map((item, i) => (
-            <div 
-              key={i}
-              onClick={() => onNavigate?.(item.tab)}
-              className={`fn-card fn-card-${item.color}`}
-              style={{ padding: '16px' }}
-            >
-              <div style={{ fontSize: '20px', marginBottom: '10px' }}>{item.icon}</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 700, color: 'var(--t1)', marginBottom: '5px' }}>{item.name}</div>
-              <div style={{ fontSize: '10px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>{item.desc}</div>
-            </div>
-          ))}
+            { icon: '📈', name: 'Patrimônio geral', desc: 'Visão consolidada com sparkline e alocação.', color: 'blue', tab: 'investments' as TabType, premium: true },
+            { icon: '🧮', name: 'Juros compostos', desc: 'Calculadora com sliders de aporte, taxa e período.', color: 'blue', tab: 'invest_compostos' as TabType, premium: true },
+            { icon: '💳', name: 'Dívidas', desc: 'Mapa de passivos com estratégia avalanche ou bola de neve.', color: 'red', tab: 'invest_dividas' as TabType, premium: true }
+          ].map((item, i) => {
+            const isLocked = item.premium && !isEnabled('investments');
+            return (
+              <HubActionCard
+                key={i}
+                onClick={() => onNavigate?.(item.tab)}
+                className={`fn-card fn-card-${item.color}`}
+                style={{ padding: '16px', opacity: isLocked ? 0.7 : 1, position: 'relative' }}
+                ariaLabel={`Abrir ${item.name}`}
+              >
+                {isLocked && (
+                  <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(245,158,11,0.2)', color: '#F59E0B', padding: '2px 6px', borderRadius: '4px', fontSize: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Lock size={8} /> PRO
+                  </div>
+                )}
+                <div style={{ fontSize: '20px', marginBottom: '10px' }}>{item.icon}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 700, color: 'var(--t1)', marginBottom: '5px' }}>{item.name}</div>
+                <div style={{ fontSize: '10px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>{item.desc}</div>
+              </HubActionCard>
+            );
+          })}
         </div>
       </motion.section>
 
@@ -407,9 +483,10 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <div 
+          <HubActionCard
             onClick={() => onNavigate?.('retirement')}
             className="fn-card fn-card-amber"
+            ariaLabel="Abrir aposentadoria"
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{
@@ -420,11 +497,12 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Aposentadoria</div>
             <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Data FIRE, meta patrimonial e 3 cenários de projeção.</div>
-          </div>
+          </HubActionCard>
 
-          <div 
+          <HubActionCard
             onClick={() => onNavigate?.('retire_fire')}
             className="fn-card fn-card-amber"
+            ariaLabel="Abrir calculadora FIRE"
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{
@@ -435,7 +513,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Calculadora FIRE</div>
             <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Sliders de despesa e aporte com meta calculada.</div>
-          </div>
+          </HubActionCard>
         </div>
       </motion.section>
 
@@ -467,10 +545,11 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
           <div style={{ flex: 1, height: '1px', background: 'var(--line)' }} />
         </div>
 
-        <div 
+        <HubActionCard
           onClick={() => onNavigate?.('health')}
           className="fn-card fn-card-purple"
           style={{ marginBottom: '10px' }}
+          ariaLabel="Abrir saúde financeira"
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div style={{
@@ -484,7 +563,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Saúde financeira</div>
           <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>Score multidimensional em 7 dimensões: liquidez, poupança, dívidas, diversificação, proteção, trajetória e bem-estar.</div>
-        </div>
+        </HubActionCard>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
           {[
@@ -492,16 +571,17 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             { icon: '🧘', name: 'Check-in', desc: 'Estresse financeiro subjetivo mensal.', color: 'purple', tab: 'financial_checkin' as TabType },
             { icon: '🔔', name: 'Notificações', desc: 'Alertas, nudges e oportunidades.', color: 'blue', tab: 'notifications' as TabType }
           ].map((item, i) => (
-            <div 
+            <HubActionCard
               key={i}
               onClick={() => onNavigate?.(item.tab)}
               className={`fn-card fn-card-${item.color}`}
               style={{ padding: '14px' }}
+              ariaLabel={`Abrir ${item.name}`}
             >
               <div style={{ fontSize: '18px', marginBottom: '8px' }}>{item.icon}</div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 700, color: 'var(--t1)', marginBottom: '4px' }}>{item.name}</div>
               <div style={{ fontSize: '9px', color: 'var(--t2)', lineHeight: 1.4, fontWeight: 300 }}>{item.desc}</div>
-            </div>
+            </HubActionCard>
           ))}
         </div>
       </motion.section>
@@ -534,10 +614,11 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
           <div style={{ flex: 1, height: '1px', background: 'var(--line)' }} />
         </div>
 
-        <div 
+        <HubActionCard
           onClick={() => onNavigate?.('academia')}
           className="fn-card fn-card-cyan"
           style={{ marginBottom: '10px' }}
+          ariaLabel="Abrir academia de finanças"
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div style={{
@@ -552,7 +633,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--t1)', marginBottom: '6px' }}>Academia de finanças</div>
           <div style={{ fontSize: '11px', color: 'var(--t2)', lineHeight: 1.5, fontWeight: 300 }}>6 micro-aulas em 4 trilhas com XP, streak e conquistas desbloqueáveis.</div>
-        </div>
+        </HubActionCard>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(78px, 1fr))', gap: '10px' }}>
           {[
@@ -565,11 +646,12 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             { icon: '🏆', name: 'Conquistas', status: '2/4', color: 'amber' },
             { icon: '⚡', name: 'XP & níveis', status: 'Nível 4', color: 'blue' }
           ].map((item, i) => (
-            <div 
+            <HubActionCard
               key={i}
               onClick={() => onNavigate?.('education')}
               className={`fn-card fn-card-${item.color}`}
               style={{ padding: '12px' }}
+              ariaLabel={`Abrir conteúdo ${item.name}`}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ fontSize: '16px' }}>{item.icon}</div>
@@ -580,24 +662,32 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
                 }}>{item.status}</span>
               </div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 700, color: 'var(--t1)' }}>{item.name}</div>
-            </div>
+            </HubActionCard>
           ))}
         </div>
       </motion.section>
 
       {/* AI Assistant */}
       <motion.section variants={itemVariants} style={{ marginBottom: '40px' }}>
-        <div 
+        <HubActionCard
           onClick={() => onNavigate?.('ai')}
+          ariaLabel="Abrir assistente financeiro com inteligência artificial"
           style={{
             background: 'linear-gradient(145deg, #0D0A1F 0%, #060810 60%, #0A0D18 100%)',
-            border: '1px solid rgba(155,127,255,0.2)',
+            border: !isEnabled('ai_advisor') ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(155,127,255,0.2)',
             borderRadius: '20px',
             padding: '24px',
             cursor: 'pointer',
-            transition: 'all 0.25s'
+            transition: 'all 0.25s',
+            position: 'relative',
+            opacity: !isEnabled('ai_advisor') ? 0.8 : 1
           }}
         >
+          {!isEnabled('ai_advisor') && (
+            <div style={{ position: 'absolute', top: 20, right: 24, background: '#F59E0B', color: '#000', padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Lock size={10} /> RECURSO PRO
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
             <div>
               <span className="chip chip-purple" style={{ fontSize: '9px' }}>IA Generativa</span>
@@ -627,7 +717,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             <span className="chip chip-blue">Ações reais</span>
             <span className="chip chip-green">Contexto financeiro</span>
           </div>
-        </div>
+        </HubActionCard>
       </motion.section>
 
       {/* Footer */}
@@ -664,6 +754,8 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
           <span className="chip chip-amber" style={{ fontSize: '9px' }}>Patrimônio</span>
         </div>
       </motion.footer>
+
+      <OFXImporterModal isOpen={showOFX} onClose={() => setShowOFX(false)} />
     </motion.div>
   );
 };

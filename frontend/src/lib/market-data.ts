@@ -3,8 +3,38 @@ import { cryptoCircuitBreaker, stockCircuitBreaker, bcbCircuitBreaker } from "./
 const COINGECKO_API = "https://api.coingecko.com/api/v3";
 const BRAPI_BASE_URL = "https://brapi.dev/api";
 
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+interface CoinGeckoPriceResponse {
+  bitcoin?: { brl?: number };
+  ethereum?: { brl?: number };
+}
+
+interface BrapiQuoteResponse {
+  results?: Array<{
+    regularMarketPrice?: number;
+    symbol?: string;
+    shortName?: string;
+    logourl?: string;
+  }>;
+}
+
+interface BcbRateResponseItem {
+  valor: string;
+}
+
+interface StockQuoteResult {
+  symbol?: string;
+  price?: number;
+  name?: string;
+  logo?: string;
+}
+
 // Cache para evitar rate limiting
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, CacheEntry<unknown>>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 // Fallback data for when APIs are down
@@ -24,7 +54,7 @@ const getFromCache = <T>(key: string): T | null => {
   return null;
 };
 
-const setCache = (key: string, data: any) => {
+const setCache = <T>(key: string, data: T) => {
   cache.set(key, { data, timestamp: Date.now() });
 };
 
@@ -51,7 +81,7 @@ export const fetchMarketData = async (): Promise<MarketData> => {
 
   try {
     // 1. Fetch Crypto do CoinGecko with circuit breaker
-    let cryptoData: any = {};
+    let cryptoData: CoinGeckoPriceResponse = {};
     try {
       const cryptoDataResult = await cryptoCircuitBreaker.call(
         async () => {
@@ -65,7 +95,7 @@ export const fetchMarketData = async (): Promise<MarketData> => {
         () => ({ bitcoin: { brl: FALLBACK_MARKET_DATA.btc }, ethereum: { brl: FALLBACK_MARKET_DATA.eth } })
       );
       cryptoData = cryptoDataResult;
-    } catch (e) {
+      } catch (_e) {
       console.warn("Failed to fetch crypto, using fallback");
     }
 
@@ -75,7 +105,7 @@ export const fetchMarketData = async (): Promise<MarketData> => {
     
     if (brapiToken) {
       try {
-        const usdData = await stockCircuitBreaker.call(
+        const usdData = await stockCircuitBreaker.call<BrapiQuoteResponse>(
           async () => {
             const usdRes = await fetch(
               `${BRAPI_BASE_URL}/quote/USDBRL=X?token=${brapiToken}`,
@@ -92,7 +122,7 @@ export const fetchMarketData = async (): Promise<MarketData> => {
         if (usdData.results && usdData.results[0]) {
           usdRate = usdData.results[0].regularMarketPrice || FALLBACK_MARKET_DATA.usd;
         }
-      } catch (e) {
+      } catch (_e) {
         console.warn("Failed to fetch USD from BRAPI, using fallback");
       }
     }
@@ -101,7 +131,7 @@ export const fetchMarketData = async (): Promise<MarketData> => {
     let selic = FALLBACK_MARKET_DATA.selic;
     let cdi = FALLBACK_MARKET_DATA.cdi;
     try {
-      const bcbData = await bcbCircuitBreaker.call(
+      const bcbData = await bcbCircuitBreaker.call<{ selicData: BcbRateResponseItem[]; cdiData: BcbRateResponseItem[] }>(
         async () => {
           const [selicRes, cdiRes] = await Promise.all([
             fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json", 
@@ -116,12 +146,12 @@ export const fetchMarketData = async (): Promise<MarketData> => {
           const [selicData, cdiData] = await Promise.all([selicRes.json(), cdiRes.json()]);
           return { selicData, cdiData };
         },
-        () => ({ selicData: [{ valor: FALLBACK_MARKET_DATA.selic }], cdiData: [{ valor: FALLBACK_MARKET_DATA.cdi }] })
+        () => ({ selicData: [{ valor: String(FALLBACK_MARKET_DATA.selic) }], cdiData: [{ valor: String(FALLBACK_MARKET_DATA.cdi) }] })
       );
       
       if (bcbData.selicData && bcbData.selicData[0]) selic = parseFloat(bcbData.selicData[0].valor);
       if (bcbData.cdiData && bcbData.cdiData[0]) cdi = parseFloat(bcbData.cdiData[0].valor);
-    } catch (e) {
+    } catch (_e) {
       console.warn("Failed to fetch BCB rates, using fallbacks");
     }
     
@@ -144,10 +174,10 @@ export const fetchMarketData = async (): Promise<MarketData> => {
 };
 
 // Função auxiliar para buscar cotações de ações brasileiras
-export const fetchStockQuote = async (ticker: string) => {
+export const fetchStockQuote = async (ticker: string): Promise<StockQuoteResult | null> => {
   // Verificar cache primeiro
   const cacheKey = `stock-${ticker}`;
-  const cached = getFromCache<any>(cacheKey);
+  const cached = getFromCache<StockQuoteResult>(cacheKey);
   if (cached) return cached;
 
   const brapiToken = import.meta.env.VITE_BRAPI_TOKEN;
@@ -168,7 +198,7 @@ export const fetchStockQuote = async (ticker: string) => {
     
     if (!response.ok) throw new Error("Failed to fetch stock quote");
     
-    const data = await response.json();
+    const data: BrapiQuoteResponse = await response.json();
     if (data.results && data.results[0]) {
       const result = {
         symbol: data.results[0].symbol,
@@ -193,7 +223,7 @@ export const fetchStockQuote = async (ticker: string) => {
 
 // Função para buscar múltiplas cotações com rate limiting
 export const fetchMultipleQuotes = async (tickers: string[]) => {
-  const results: Record<string, any> = {};
+  const results: Record<string, StockQuoteResult | null> = {};
   
   // Processar em lotes para evitar rate limiting
   for (let i = 0; i < tickers.length; i += 2) {
@@ -203,7 +233,7 @@ export const fetchMultipleQuotes = async (tickers: string[]) => {
     );
     
     batch.forEach((ticker, index) => {
-      results[ticker] = batchResults[index];
+      results[ticker] = batchResults[index] || null;
     });
     
     // Aguardar entre lotes se não for o último

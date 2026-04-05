@@ -43,7 +43,7 @@ export class CircuitBreaker {
       const result = await fn();
       this.reset();
       return result;
-    } catch (error) {
+    } catch (_error) {
       this.recordFailure();
       return fallback();
     }
@@ -94,13 +94,14 @@ export async function fetchWithRetry(url: string, options: RequestInit = {}, ret
       }
       
       throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       if (attempt >= maxRetries) {
-        throw new CircuitBreakerError(`Falha na conexão após ${maxRetries} tentativas: ${error.message}`);
+        throw new CircuitBreakerError(`Falha na conexão após ${maxRetries} tentativas: ${message}`);
       }
       
       attempt++;
-      if (onRetry) onRetry(attempt, error);
+      if (onRetry) onRetry(attempt, error instanceof Error ? error : new Error(message));
       
       const delay = baseDelay * Math.pow(2, attempt - 1) + (Math.random() * 200);
       await new Promise(resolve => setTimeout(resolve, delay));

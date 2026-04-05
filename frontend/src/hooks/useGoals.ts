@@ -9,62 +9,29 @@ export const useGoals = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchGoals = useCallback(async () => {
-    let cancelled = false; // ← Flag para cleanup
     setLoading(true);
     setError(null);
-    
     try {
-      const data = await api.get<SavingsGoal[]>("/goals");
-      if (!cancelled) { // ← Verifica se componente ainda está montado
-        setGoals(data);
-      }
-    } catch (err) {
-      if (!cancelled) {
-        setError("Metas de economia indisponíveis. Verifique sua conexão.");
-      }
+      const response = await api.get<SavingsGoal[] | { items?: SavingsGoal[] }>("/goals");
+      const items = Array.isArray(response) ? response : (response?.items || []);
+      setGoals(items);
+    } catch {
+      setError("Metas de economia indisponíveis. Verifique sua conexão.");
     } finally {
-      if (!cancelled) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
-    
-    return () => { cancelled = true; }; // ← Cleanup function
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const data = await api.get<SavingsGoal[]>("/goals");
-        if (!cancelled) {
-          setGoals(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError("Metas de economia indisponíveis. Verifique sua conexão.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-    
-    loadData();
-    
-    return () => { cancelled = true; }; // ← Cleanup!
-  }, []);
+    fetchGoals();
+  }, [fetchGoals]);
 
   const addGoal = async (goal: Omit<SavingsGoal, "id">) => {
     try {
       const newGoal = await api.post<SavingsGoal>("/goals", goal);
       setGoals((prev) => [...prev, newGoal]);
       showSuccess("Meta criada!");
-    } catch (error) {
+    } catch {
       showError("Erro ao criar meta.");
     }
   };
@@ -75,7 +42,7 @@ export const useGoals = () => {
       setGoals((prev) =>
         prev.map((g) => (g.id === id ? { ...g, currentAmount } : g))
       );
-    } catch (error) {
+    } catch {
       showError("Erro ao atualizar progresso.");
     }
   };
@@ -87,7 +54,7 @@ export const useGoals = () => {
         prev.map((g) => (g.id === id ? { ...g, ...updates } : g))
       );
       showSuccess("Meta atualizada!");
-    } catch (error) {
+    } catch {
       showError("Erro ao atualizar meta.");
     }
   };
@@ -97,7 +64,7 @@ export const useGoals = () => {
       await api.delete(`/goals/${id}`);
       setGoals((prev) => prev.filter((g) => g.id !== id));
       showSuccess("Meta removida.");
-    } catch (error) {
+    } catch {
       showError("Erro ao remover meta.");
     }
   };

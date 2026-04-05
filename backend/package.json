@@ -3,15 +3,20 @@
     "version": "1.0.0",
     "description": "Backend API for Meu Contador",
     "main": "dist/server.js",
+    "prisma": {
+        "schema": "prisma/schema.prisma"
+    },
     "scripts": {
         "dev": "tsx watch src/server.ts",
         "build": "tsc",
         "start": "node dist/server.js",
         "db:migrate": "prisma migrate dev",
+        "db:migrate:deploy": "prisma migrate deploy",
         "db:generate": "prisma generate",
         "test": "vitest",
         "test:run": "vitest run",
-        "test:coverage": "vitest run --coverage"
+        "test:coverage": "vitest run --coverage",
+        "test:watch": "vitest --coverage"
     },
     "dependencies": {
         "@fastify/cors": "^11.2.0",
@@ -22,6 +27,7 @@
         "@fastify/swagger": "^9.6.1",
         "@fastify/swagger-ui": "^5.2.4",
         "@google/generative-ai": "^0.24.1",
+        "@opentelemetry/api": "^1.9.1",
         "@prisma/client": "^5.22.0",
         "@types/bcryptjs": "^2.4.6",
         "@types/node": "^20.11.16",
@@ -32,6 +38,7 @@
         "fastify-type-provider-zod": "^1.2.0",
         "firebase-admin": "^13.6.0",
         "node-cron": "^4.2.1",
+        "pg": "^8.20.0",
         "pluggy-sdk": "^0.83.0",
         "prisma": "^5.22.0",
         "tsx": "^4.7.0",

@@ -160,8 +160,10 @@ export async function openFinanceRoutes(app: FastifyInstance) {
 
     try {
       await app.authenticate(request, reply);
+      await (app as any).proGuard(request, reply);
     } catch (err) {
-      return reply.status(401).send({ error: 'Não autorizado' });
+      if (reply.sent) return;
+      return reply.status(401).send({ error: 'Não autorizado ou assinatura necessária' });
     }
   });
 

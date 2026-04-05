@@ -1,6 +1,4 @@
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebase";
-import { auth } from "./firebase";
+import { api } from "./api";
 
 export type AuditAction = 
   | "CREATE_TRANSACTION" 
@@ -12,12 +10,11 @@ export type AuditAction =
   | "JOIN_WORKSPACE";
 
 export interface AuditLogEntry {
-  userId: string;
-  userName: string;
   action: AuditAction;
   details: string;
-  timestamp: any;
   workspaceId: string;
+  userName: string;
+  timestamp?: { toDate: () => Date };
 }
 
 /**
@@ -28,20 +25,15 @@ export const logAction = async (
   action: AuditAction, 
   details: string
 ) => {
-  const user = auth.currentUser;
-  if (!user || !workspaceId) return;
+  if (!workspaceId) return;
 
   try {
-    const logRef = collection(db, "workspaces", workspaceId, "audit_logs");
-    const entry: AuditLogEntry = {
-      userId: user.uid,
-      userName: user.displayName || user.email || "Usuário",
+    await api.post("/audit", {
       action,
-      details,
-      timestamp: serverTimestamp(),
-      workspaceId,
-    };
-    await addDoc(logRef, entry);
+      resource: "app", // Generic resource for app actions
+      resourceId: workspaceId,
+      metadata: { details },
+    });
   } catch (error) {
     console.error("Failed to log action:", error);
   }

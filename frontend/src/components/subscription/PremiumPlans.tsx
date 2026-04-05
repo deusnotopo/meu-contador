@@ -139,7 +139,7 @@ export const PremiumPlans = ({
                   try {
                     await upgradeToPro();
                     onClose();
-                  } catch (e) {
+                  } catch (_e) {
                     alert("Erro ao simular upgrade");
                   }
                 }}

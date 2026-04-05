@@ -1,9 +1,4 @@
-import {
-  loadInvoices,
-  saveInvoices,
-  STORAGE_EVENT,
-  STORAGE_KEYS,
-} from "@/lib/storage";
+import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
 import type { Invoice } from "@/types";
 import { useEffect, useState, useCallback } from "react";
@@ -13,79 +8,66 @@ export const useInvoices = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchInvoices = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const data = loadInvoices();
-      setInvoices(data);
-      setError(null);
-    } catch (err) {
-      setError("Falha ao carregar as notas fiscais do dispositivo.");
+      const response = await api.get<Invoice[] | { items?: Invoice[] }>("/invoices");
+      const items = Array.isArray(response) ? response : (response?.items || []);
+      setInvoices(items);
+    } catch (_err) {
+      setError("Falha ao carregar as notas fiscais.");
       showError("Falha ao carregar as notas fiscais.");
     } finally {
       setIsLoading(false);
     }
-
-    const handleStorageChange = (e: any) => {
-      if (e.detail?.key === STORAGE_KEYS.INVOICES) {
-        setInvoices(e.detail.data);
-      }
-    };
-
-    window.addEventListener(STORAGE_EVENT as any, handleStorageChange);
-    return () =>
-      window.removeEventListener(STORAGE_EVENT as any, handleStorageChange);
   }, []);
 
-  const addInvoice = useCallback((invoice: Omit<Invoice, "id">) => {
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
+
+  const addInvoice = useCallback(async (invoice: Omit<Invoice, "id">) => {
     try {
       setError(null);
-      const newInvoice: Invoice = {
-        ...invoice,
-        id: crypto.randomUUID(),
-      };
-      const updated = [...invoices, newInvoice];
-      setInvoices(updated);
-      saveInvoices(updated);
+      // Backend automatically creates the invoice with a UUID and parses the date
+      const newInvoice = await api.post<Invoice>("/invoices", invoice);
+      setInvoices(prev => [...prev, newInvoice]);
       showSuccess(`Nota Fiscal ${invoice.number} cadastrada!`);
-    } catch (error) {
-      const msg = "Erro ao cadastrar nota fiscal no armazenamento local.";
+    } catch {
+      const msg = "Erro ao cadastrar nota fiscal.";
       setError(msg);
       showError(msg);
     }
-  }, [invoices]);
+  }, []);
 
-  const updateInvoice = useCallback((id: string, updates: Partial<Invoice>) => {
+  const updateInvoice = useCallback(async (id: string, updates: Partial<Invoice>) => {
     try {
       setError(null);
-      const updated = invoices.map((inv) =>
-        inv.id === id ? { ...inv, ...updates } : inv
-      );
-      setInvoices(updated);
-      saveInvoices(updated);
+      const updatedInvoice = await api.put<Invoice>(`/invoices/${id}`, updates);
+      setInvoices(prev => prev.map(inv => inv.id === id ? updatedInvoice : inv));
       showSuccess("Nota Fiscal atualizada.");
-    } catch (error) {
+    } catch {
       const msg = "Erro ao atualizar a nota fiscal.";
       setError(msg);
       showError(msg);
     }
-  }, [invoices]);
+  }, []);
 
-  const deleteInvoice = useCallback((id: string) => {
+  const deleteInvoice = useCallback(async (id: string) => {
     if (window.confirm("Deseja realmente excluir esta nota?")) {
       try {
         setError(null);
-        const updated = invoices.filter((inv) => inv.id !== id);
-        setInvoices(updated);
-        saveInvoices(updated);
+        await api.delete(`/invoices/${id}`);
+        setInvoices(prev => prev.filter(inv => inv.id !== id));
         showSuccess("Nota Fiscal excluída.");
-      } catch (error) {
-        const msg = "Erro crítico ao excluir a nota fiscal.";
+    } catch {
+      const msg = "Erro crítico ao excluir a nota fiscal.";
         setError(msg);
         showError(msg);
       }
     }
-  }, [invoices]);
+  }, []);
 
   return {
     invoices,
@@ -94,5 +76,6 @@ export const useInvoices = () => {
     addInvoice,
     updateInvoice,
     deleteInvoice,
+    refresh: fetchInvoices
   };
 };

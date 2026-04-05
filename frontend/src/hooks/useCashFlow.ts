@@ -4,6 +4,14 @@ import { useBudgets } from './useBudgets';
 import { useGoals } from './useGoals';
 import { loadReminders } from '@/lib/storage';
 
+interface ProvisaoItem {
+  id?: string;
+  nome?: string;
+  mes?: number | string;
+  valorAnual?: number | string;
+  acumulado?: number | string;
+}
+
 export interface CashFlowDay {
   date: string;
   dateFormatted: string;
@@ -55,17 +63,17 @@ export function useCashFlow() {
   const { budgets } = useBudgets();
   const { goals } = useGoals();
 
-  const reminders = useMemo(() => loadReminders(), [personal.transactions.length]);
+  const reminders = useMemo(() => loadReminders(), []);
 
-  const provisoes = useMemo(() => {
+  const provisoes = useMemo((): ProvisaoItem[] => {
     try {
       const raw = localStorage.getItem('meu_contador_provisoes');
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed) ? (parsed as ProvisaoItem[]) : [];
     } catch {
       return [];
     }
-  }, [personal.transactions.length]);
+  }, []);
 
   // Detect recurring transactions
   const recurringItems = useMemo((): RecurringItem[] => {
@@ -121,13 +129,13 @@ export function useCashFlow() {
 
     let runningBalance = personal.totals.balance;
 
-    const weekdayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const weekdayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S\u00e1b'];
     const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
     for (let i = 0; i < 30; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
-      
+
       const dayOfMonth = date.getDate();
       const isWeekend = date.getDay() === 0 || date.getDay() === 6;
       const isToday = i === 0;
@@ -163,7 +171,7 @@ export function useCashFlow() {
             const dailyBudget = remaining / daysInMonth;
             if (dailyBudget > 0) {
               outflows.push({
-                description: `Orçamento ${budget.category}`,
+                description: `Or\u00e7amento ${budget.category}`,
                 amount: dailyBudget,
                 category: budget.category,
               });
@@ -208,7 +216,7 @@ export function useCashFlow() {
     }
 
     return days;
-  }, [personal.totals, recurringItems, budgets, goals]);
+  }, [budgets, goals, personal.totals.balance, personal.totals.expense, recurringItems]);
 
   // Calculate summary
   const summary = useMemo((): CashFlowSummary => {
@@ -286,18 +294,18 @@ export function useCashFlow() {
       });
 
     const provisaoCommitments: UpcomingCommitment[] = provisoes
-      .map((p: any, index: number) => {
+      .map((p: ProvisaoItem, index: number) => {
         const currentYear = today.getFullYear();
         let dueDate = new Date(currentYear, Number(p.mes || 1) - 1, 1);
         if (dueDate < today) dueDate = new Date(currentYear + 1, Number(p.mes || 1) - 1, 1);
         const missing = Math.max(0, Number(p.valorAnual || 0) - Number(p.acumulado || 0));
         return {
           id: `provisao-${p.id || index}`,
-          title: p.nome || 'Provisão',
+          title: p.nome || 'Provis\u00e3o',
           amount: missing,
           date: dueDate.toISOString().split('T')[0]!,
           source: 'provisao' as const,
-          category: 'Provisões',
+          category: 'Provis\u00f5es',
         };
       })
       .filter(item => item.amount > 0)
@@ -343,36 +351,36 @@ export function useCashFlow() {
     const result: string[] = [];
 
     if (summary.criticalDays > 0) {
-      result.push(`⚠️ Você tem ${summary.criticalDays} dias críticos nos próximos 30 dias. Planeje-se!`);
+      result.push(`\u26a0\ufe0f Voc\u00ea tem ${summary.criticalDays} dias cr\u00edticos nos pr\u00f3ximos 30 dias. Planeje-se!`);
     }
 
     if (summary.safeToSpend < summary.currentBalance * 0.35) {
-      result.push(`🛡️ Seu saldo realmente seguro para gastar hoje é ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.safeToSpend)}.`);
+      result.push(`\ud83d\udee1\ufe0f Seu saldo realmente seguro para gastar hoje \u00e9 ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.safeToSpend)}.`);
     }
 
     if (summary.burnRate < 90 && summary.burnRate !== Infinity) {
-      result.push(`🔥 Com o ritmo atual, seu saldo dura apenas ${summary.burnRate} dias.`);
+      result.push(`\ud83d\udd25 Com o ritmo atual, seu saldo dura apenas ${summary.burnRate} dias.`);
     }
 
     if (summary.averageDailyFlow < 0) {
-      result.push(`📉 Seu fluxo diário médio é negativo: R$ ${Math.abs(summary.averageDailyFlow).toFixed(2)}/dia.`);
+      result.push(`\ud83d\udcc9 Seu fluxo di\u00e1rio m\u00e9dio \u00e9 negativo: R$ ${Math.abs(summary.averageDailyFlow).toFixed(2)}/dia.`);
     }
 
     if (summary.positiveDays > summary.negativeDays) {
-      result.push(`✅ ${summary.positiveDays} dias positivos vs ${summary.negativeDays} negativos. Continue assim!`);
+      result.push(`\u2705 ${summary.positiveDays} dias positivos vs ${summary.negativeDays} negativos. Continue assim!`);
     }
 
     const hasSalary = recurringItems.some(i => 
-      i.description.toLowerCase().includes('salário') || 
+      i.description.toLowerCase().includes('sal\u00e1rio') || 
       i.description.toLowerCase().includes('salario')
     );
 
     if (!hasSalary) {
-      result.push(`💡 Não detectamos salário recorrente. Registre sua renda fixa para melhor projeção.`);
+      result.push(`\ud83d\udca1 N\u00e3o detectamos sal\u00e1rio recorrente. Registre sua renda fixa para melhor proje\u00e7\u00e3o.`);
     }
 
     return result;
-  }, [summary, recurringItems]);
+  }, [recurringItems, summary]);
 
   return {
     cashFlowDays,

@@ -42,9 +42,10 @@ describe("Debt Routes", () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const debts = JSON.parse(response.payload)
-    expect(debts.length).toBe(1)
-    expect(debts[0].name).toBe("Test Credit Card")
+    const payload = JSON.parse(response.payload)
+    expect(payload.total).toBe(1)
+    expect(payload.items).toHaveLength(1)
+    expect(payload.items[0].name).toBe("Test Credit Card")
   })
 
   it("should create a new debt", async () => {
@@ -80,6 +81,6 @@ describe("Debt Routes", () => {
 
     expect(response.statusCode).toBe(400)
     const parsed = JSON.parse(response.payload)
-    expect(parsed.error).toBe("Dados inválidos")
+    expect(parsed.message).toBe("Validation error")
   })
 })

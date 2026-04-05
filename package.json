@@ -6,21 +6,29 @@
     "backend"
   ],
   "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "npm run dev -w frontend",
     "dev:backend": "npm run dev -w backend",
     "build": "npm run build --workspaces",
+    "test": "npm run test:run -w backend && npm run test -w frontend -- --run",
+    "lint": "npm run lint -w frontend",
+    "typecheck": "npm exec tsc --noEmit -w frontend && npm exec tsc --noEmit -w backend",
     "vercel-build": "npm run build -w frontend",
     "docker:up": "docker-compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker-compose -f docker/docker-compose.yml down",
     "prepare": "husky || true"
   },
   "dependencies": {
+    "dataloader": "^2.2.3",
+    "node-cron": "^4.2.1",
     "prisma": "^7.2.0"
   },
   "prisma": {
     "schema": "backend/prisma/schema.prisma"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
+    "concurrently": "^9.2.1",
     "husky": "^9.1.7"
   }
 }

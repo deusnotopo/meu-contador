@@ -25,8 +25,7 @@ export const RealTimeQuotes = ({ tickers = DEFAULT_TICKERS }: RealTimeQuotesProp
   const fmt = (n: number) => "R$\u00a0" + n.toFixed(2).replace(".", ",");
 
   // Memoizar chave para que arrays inline não causem re-fetch
-  const tickerKey = tickers.join(",");
-  const stableTickers = useMemo(() => tickers, [tickerKey]);
+  const stableTickers = useMemo(() => tickers, [tickers]);
 
   useEffect(() => {
     if (didFetch.current) return;

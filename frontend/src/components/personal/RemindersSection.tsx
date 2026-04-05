@@ -27,6 +27,7 @@ import { Bell, Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export const RemindersSection = () => {
+  type RemindersStorageDetail = { key?: string; data?: BillReminder[] };
   const [reminders, setReminders] = useState<BillReminder[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<BillReminder | null>(
@@ -51,15 +52,15 @@ export const RemindersSection = () => {
   useEffect(() => {
     setReminders(loadReminders());
 
-    const handleStorageChange = (e: any) => {
-      if (e.detail?.key === STORAGE_KEYS.REMINDERS) {
-        setReminders(e.detail.data);
+    const handleStorageChange: EventListener = (event) => {
+      const detail = (event as CustomEvent<RemindersStorageDetail>).detail;
+      if (detail?.key === STORAGE_KEYS.REMINDERS) {
+        setReminders(detail.data || []);
       }
     };
 
-    window.addEventListener(STORAGE_EVENT as any, handleStorageChange);
-    return () =>
-      window.removeEventListener(STORAGE_EVENT as any, handleStorageChange);
+    window.addEventListener(STORAGE_EVENT, handleStorageChange);
+    return () => window.removeEventListener(STORAGE_EVENT, handleStorageChange);
   }, []);
 
   const handleSave = () => {

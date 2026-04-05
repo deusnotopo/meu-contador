@@ -23,15 +23,7 @@ export function AnalyticsDashboard({ transactions }: AnalyticsDashboardProps) {
 }
 
 function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
-  if (!transactions || transactions.length === 0) {
-    return (
-      <EmptyState
-        icon={BarChart3}
-        title="Nenhum dado analítico"
-        description="Adicione transações no painel para visualizar o dashboard de performance."
-      />
-    );
-  }
+  const hasTransactions = Boolean(transactions?.length);
 
   // Calculate monthly data
   const monthlyData = useMemo(() => {
@@ -44,6 +36,10 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
         expenses: 0,
       };
     });
+
+    if (!hasTransactions) {
+      return last6Months;
+    }
 
     transactions.forEach((t) => {
       const date = new Date(t.date);
@@ -64,10 +60,12 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
     });
 
     return last6Months;
-  }, [transactions]);
+  }, [transactions, hasTransactions]);
 
   // Calculate category breakdown
   const categoryData = useMemo(() => {
+    if (!hasTransactions) return [];
+
     const categories: Record<string, number> = {};
     transactions
       .filter((t) => t.type === 'expense')
@@ -77,10 +75,14 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
     return Object.entries(categories)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5);
-  }, [transactions]);
+  }, [transactions, hasTransactions]);
 
   // Calculate totals
   const totals = useMemo(() => {
+    if (!hasTransactions) {
+      return { income: 0, expenses: 0, balance: 0 };
+    }
+
     const income = transactions
       .filter((t) => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -88,7 +90,7 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
       .filter((t) => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     return { income, expenses, balance: income - expenses };
-  }, [transactions]);
+  }, [transactions, hasTransactions]);
 
   // Calculate trends
   const trends = useMemo(() => {
@@ -104,6 +106,16 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
 
     return { incomeChange, expenseChange };
   }, [monthlyData]);
+
+  if (!hasTransactions) {
+    return (
+      <EmptyState
+        icon={BarChart3}
+        title="Nenhum dado analítico"
+        description="Adicione transações no painel para visualizar o dashboard de performance."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

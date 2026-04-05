@@ -65,7 +65,9 @@ export const ProvisaoView: React.FC<Props> = ({ onBack }) => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) setProvisoes(JSON.parse(saved));
-    } catch {}
+    } catch (error) {
+      console.warn('Falha ao carregar provisões do localStorage', error);
+    }
   }, []);
 
   const save = (list: Provisao[]) => {

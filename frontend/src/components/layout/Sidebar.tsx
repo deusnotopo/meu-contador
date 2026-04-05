@@ -9,11 +9,13 @@ import {
   ChevronLeft,
   ChevronRight,
   PieChart,
-  Target
+  Target,
+  Lock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TabType } from "@/types/navigation";
 import { UserNav } from "./UserNav";
+import { useFeatureFlags } from "@/context/FeatureFlagsContext";
 
 interface SidebarProps {
   currentTab: string;
@@ -22,15 +24,26 @@ interface SidebarProps {
 
 const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
+  const { isEnabled } = useFeatureFlags();
 
   const menuItems = [
     { id: "overview", label: "Visão Geral", icon: LayoutDashboard },
     { id: "personal", label: "Pessoal", icon: User },
-    { id: "business", label: "Empresarial", icon: Building2 },
+    { id: "business", label: "Empresarial", icon: Building2, premium: true },
     { id: "planning", label: "Planejamento", icon: Target },
-    { id: "investments", label: "Investimentos", icon: TrendingUp },
+    { id: "investments", label: "Investimentos", icon: TrendingUp, premium: true },
     { id: "education", label: "Educação", icon: GraduationCap },
   ];
+
+  const handleTabChange = (id: string, isPremium?: boolean) => {
+    if (isPremium && !isEnabled("premium_analytics")) {
+      // O PremiumGate dentro da view cuidará do modal se a rota for acessada,
+      // mas vamos forçar a mudança de tab para que o usuário veja o portão.
+      onTabChange(id as TabType);
+      return;
+    }
+    onTabChange(id as TabType);
+  };
 
   return (
     <motion.aside
@@ -65,28 +78,46 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentTab === item.id;
+          const isLocked = item.premium && !isEnabled("premium_analytics");
 
           return (
             <button
               key={item.id}
-              onClick={() => onTabChange(item.id as TabType)}
+              onClick={() => handleTabChange(item.id, item.premium)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden",
                 isActive
                   ? "bg-primary text-primary-foreground shadow-glow"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  : isLocked 
+                    ? "text-sidebar-foreground/40 hover:bg-sidebar-accent/30" 
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               )}
             >
-              <Icon className={cn("w-5 h-5 flex-shrink-0", isActive && "animate-pulse-slow")} />
+              <div className="relative">
+                <Icon className={cn("w-5 h-5 flex-shrink-0", isActive && "animate-pulse-slow")} />
+                {isLocked && (
+                  <div className="absolute -top-1.5 -right-1.5 bg-amber-500 rounded-full p-0.5 border border-sidebar-border shadow-sm">
+                    <Lock className="w-2 h-2 text-black" />
+                  </div>
+                )}
+              </div>
               <AnimatePresence>
                 {!collapsed && (
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="font-medium whitespace-nowrap overflow-hidden"
+                    className={cn(
+                      "font-medium whitespace-nowrap overflow-hidden flex items-center gap-2",
+                      isLocked && "italic"
+                    )}
                   >
                     {item.label}
+                    {isLocked && (
+                      <span className="text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded-md font-bold border border-amber-500/20">
+                        PRO
+                      </span>
+                    )}
                   </motion.span>
                 )}
               </AnimatePresence>

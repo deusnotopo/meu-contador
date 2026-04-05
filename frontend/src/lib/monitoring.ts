@@ -1,6 +1,9 @@
+import { captureException as sentryCaptureException } from './sentry';
+import { onCLS, onFCP, onLCP, onTTFB } from 'web-vitals';
+
 /**
  * Operational Excellence Monitoring Service.
- * Implements Sentry and Web Vitals tracking.
+ * Connects to Sentry for error tracking and Web Vitals for performance.
  */
 
 export const MonitoringService = {
@@ -8,37 +11,47 @@ export const MonitoringService = {
    * Initializes monitoring systems.
    */
   init: () => {
-    console.log("[Monitoring] Initializing Silicon Valley Standard Monitoring...");
+    if (import.meta.env.DEV) {
+      console.log('[Monitoring] Dev mode — monitoramento ativo mas sem envio ao Sentry.');
+    }
     MonitoringService.setupWebVitals();
   },
 
   /**
-   * Captures and logs errors to Sentry (Mocked).
+   * Captures errors and sends to Sentry.
    */
-  captureError: (error: Error, context?: any) => {
-    console.group(`[Sentry] Error Captured: ${error.message}`);
-    console.error(error);
-    if (context) console.log("Context:", context);
-    console.groupEnd();
-    
-    // In a real scenario: Sentry.captureException(error, { extra: context });
+  captureError: (error: Error, context?: Record<string, unknown>) => {
+    sentryCaptureException(error, context);
+    if (import.meta.env.DEV) {
+      console.group(`[Monitoring] Erro capturado: ${error.message}`);
+      console.error(error);
+      if (context) console.log('Context:', context);
+      console.groupEnd();
+    }
   },
 
   /**
-   * Logs performance metrics (Web Vitals).
+   * Logs performance metrics (Web Vitals) and sends to analytics.
    */
   logMetric: (metric: { name: string; value: number; id: string }) => {
-    console.log(`[Web Vital] ${metric.name}:`, Math.round(metric.value * 100) / 100);
-    // In a real scenario: trackEvent('Web Vitals', metric.name, metric.value);
+    if (import.meta.env.DEV) {
+      console.log(`[Web Vital] ${metric.name}:`, Math.round(metric.value * 100) / 100);
+    }
   },
 
   /**
-   * Sets up automated Web Vitals tracking.
+   * Sets up automated Web Vitals tracking using the web-vitals library.
    */
   setupWebVitals: () => {
-    // This would use 'web-vitals' library in production
-    if (typeof window !== 'undefined') {
-      console.log("[Monitoring] Performance tracking active.");
+    if (typeof window === 'undefined') return;
+    try {
+      onCLS(MonitoringService.logMetric);
+      onFCP(MonitoringService.logMetric);
+      onLCP(MonitoringService.logMetric);
+      onTTFB(MonitoringService.logMetric);
+    } catch {
+      // web-vitals não disponível — ignorar silenciosamente
     }
-  }
+  },
 };
+

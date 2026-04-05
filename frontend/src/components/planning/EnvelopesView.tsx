@@ -5,6 +5,8 @@ import { useBudgets } from "@/hooks/useBudgets";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency, formatShortDate } from "@/lib/formatters";
 import { ArrowLeft, Plus, Edit2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/ui/HelpButton";
 
 import { AreaTutorialButton } from "@/components/ui/AreaTutorialButton";
 
@@ -142,17 +144,17 @@ export const EnvelopesView = ({ onBack, onNavigate }: EnvelopesViewProps) => {
     return (
       <div style={{ paddingTop: '10px', paddingBottom: '100px', animation: 'fsu 0.26s ease' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-          <button className="back-btn" onClick={() => { setSelectedEnvelope(null); setIsEditing(false); }}>
+          <Button variant="ghost" size="icon" onClick={() => { setSelectedEnvelope(null); setIsEditing(false); }} className="rounded-xl">
             <ArrowLeft size={16} />
-          </button>
+          </Button>
           <div style={{ fontSize: '28px' }}>{env.icon}</div>
           <div style={{ flex: 1 }}>
             <div className="page-title" style={{ fontSize: '22px', margin: 0 }}>{env.category}</div>
             {isOver && <span className="badge badge-red" style={{ marginTop: 4, display: 'inline-block' }}>Estourou {formatCurrency(Math.abs(env.spent - env.limit))}</span>}
           </div>
-          <button className="btn-ghost" style={{ width: 40, height: 40, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setIsEditing(!isEditing); setEditLimit(env.limit.toString()); }}>
+          <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl" onClick={() => { setIsEditing(!isEditing); setEditLimit(env.limit.toString()); }}>
             <Edit2 size={16} color="var(--t2)" />
-          </button>
+          </Button>
         </div>
 
         {isEditing ? (
@@ -162,10 +164,10 @@ export const EnvelopesView = ({ onBack, onNavigate }: EnvelopesViewProps) => {
               <input type="number" className="input" value={editLimit} onChange={e => setEditLimit(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn-primary" style={{ flex: 1 }} onClick={() => handleSaveEdit(env.id)}>Salvar</button>
-              <button className="btn-ghost" style={{ padding: '0 16px', color: 'var(--red)' }} onClick={() => handleDelete(env.id)}>
+              <Button variant="premium" className="flex-1" onClick={() => handleSaveEdit(env.id)}>Salvar</Button>
+              <Button variant="ghost" className="px-4 text-rose-400" onClick={() => handleDelete(env.id)}>
                 <Trash2 size={18} />
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -208,7 +210,7 @@ export const EnvelopesView = ({ onBack, onNavigate }: EnvelopesViewProps) => {
                     <div className="row-title">{e.category}</div>
                     <div className="row-sub">Sobra {formatCurrency(e.limit - e.spent)}</div>
                   </div>
-                  <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 11, background: 'var(--bg)' }}>Cobrir</button>
+                  <Button variant="outline" size="sm" className="text-xs">Cobrir</Button>
                 </div>
               ))}
             </div>
@@ -243,17 +245,20 @@ export const EnvelopesView = ({ onBack, onNavigate }: EnvelopesViewProps) => {
     <div style={{ paddingTop: '10px', paddingBottom: '110px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
         {onBack && (
-          <button className="back-btn" onClick={() => onBack()}>
+          <Button variant="ghost" size="icon" onClick={() => onBack()} className="rounded-xl">
             <ArrowLeft size={16} />
-          </button>
+          </Button>
         )}
         <div style={{ flex: 1 }}>
           <div className="eyebrow" style={{ marginBottom: 4 }}>Orçamento mensal</div>
-          <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Envelopes</div>
+          <div className="page-title" style={{ margin: 0, fontSize: 22, display: 'flex', alignItems: 'center', gap: 8 }}>
+            Envelopes
+            <HelpButton tooltipText="Crie, edite e acompanhe envelopes por categoria para controlar gastos do mês." />
+          </div>
         </div>
-        <button className="btn-ghost" style={{ width: 36, height: 36, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsCreating(true)}>
+        <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl" onClick={() => setIsCreating(true)}>
           <Plus size={18} color="var(--t1)" />
-        </button>
+        </Button>
         <AreaTutorialButton area="budget" onNavigate={onNavigate} />
       </div>
 
@@ -311,8 +316,8 @@ export const EnvelopesView = ({ onBack, onNavigate }: EnvelopesViewProps) => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn-primary" style={{ flex: 1, padding: 10 }} onClick={handleCreate}>Crair</button>
-            <button className="btn-ghost" style={{ flex: 1, padding: 10 }} onClick={() => setIsCreating(false)}>Cancelar</button>
+            <Button variant="premium" className="flex-1" onClick={handleCreate}>Criar</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setIsCreating(false)}>Cancelar</Button>
           </div>
         </div>
       )}
@@ -324,7 +329,7 @@ export const EnvelopesView = ({ onBack, onNavigate }: EnvelopesViewProps) => {
           <div style={{ fontSize: 13, color: "var(--t3)", marginBottom: 20 }}>
             Divida sua renda em "envelopes" (categorias) para criar limites e controlar exatamente para onde seu dinheiro vai.
           </div>
-          <button className="btn-primary" onClick={() => setIsCreating(true)}>Criar meu primeiro envelope</button>
+          <Button variant="premium" onClick={() => setIsCreating(true)}>Criar meu primeiro envelope</Button>
         </div>
       ) : (
         CATEGORY_TABS.map(groupName => {

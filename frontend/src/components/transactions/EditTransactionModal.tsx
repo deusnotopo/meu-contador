@@ -40,7 +40,7 @@ export const EditTransactionModal = ({ transaction, onSave, onClose }: EditTrans
       const url = await uploadReceipt(transaction.id, file);
       setForm(prev => ({ ...prev, receiptUrl: url }));
       showSuccess("Comprovante anexado!");
-    } catch (err) {
+    } catch (_err) {
       showError("Erro ao fazer upload do arquivo.");
     } finally {
       setUploading(false);
@@ -54,7 +54,7 @@ export const EditTransactionModal = ({ transaction, onSave, onClose }: EditTrans
         await deleteReceipt(form.receiptUrl);
         setForm(prev => ({ ...prev, receiptUrl: "" }));
         showSuccess("Comprovante removido.");
-      } catch (err) {
+      } catch (_err) {
         showError("Erro ao remover arquivo.");
       }
     }

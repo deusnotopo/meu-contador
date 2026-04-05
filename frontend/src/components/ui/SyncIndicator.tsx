@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 
 type SyncStatus = "synced" | "syncing" | "offline" | "error";
 
+interface SyncStatusConfig {
+  icon: typeof Check | typeof CloudOff | typeof Loader2;
+  color: string;
+  bg: string;
+  label: string;
+  animate?: boolean;
+}
+
 export const SyncIndicator = () => {
   const [status, setStatus] = useState<SyncStatus>("synced");
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -48,7 +56,7 @@ export const SyncIndicator = () => {
 
   if (!auth.currentUser) return null;
 
-  const statusConfig = {
+  const statusConfig: Record<SyncStatus, SyncStatusConfig> = {
     synced: {
       icon: Check,
       color: "text-emerald-400",
@@ -88,7 +96,7 @@ export const SyncIndicator = () => {
     >
       <Icon
         size={14}
-        className={`${config.color} ${(config as any).animate ? "animate-spin" : ""}`}
+        className={`${config.color} ${config.animate ? "animate-spin" : ""}`}
       />
     </div>
   );

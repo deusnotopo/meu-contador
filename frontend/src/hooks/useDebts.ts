@@ -14,9 +14,10 @@ export const useDebts = () => {
     setError(null);
     
     try {
-      const data = await api.get<Debt[]>("/debts");
+      const response = await api.get<Debt[] | { items?: Debt[] }>("/debts");
       if (!cancelled) { // ← Verifica se componente ainda está montado
-        setDebts(data);
+        const items = Array.isArray(response) ? response : (response?.items || []);
+        setDebts(items);
       }
     } catch (err) {
       if (!cancelled) {
@@ -33,40 +34,17 @@ export const useDebts = () => {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    
-    const loadData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const data = await api.get<Debt[]>("/debts");
-        if (!cancelled) {
-          setDebts(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Debts API Error:", err);
-          setError("Dívidas indisponíveis no momento. Verifique sua conexão.");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-    
-    loadData();
-    
-    return () => { cancelled = true; }; // ← Cleanup!
-  }, []);
+    let cancelFn = () => {};
+    fetchDebts().then(fn => { if (fn) cancelFn = fn; });
+    return () => { cancelFn(); };
+  }, [fetchDebts]);
 
   const addDebt = async (debtData: Omit<Debt, "id">) => {
     try {
       const newDebt = await api.post<Debt>("/debts", debtData);
       setDebts((prev) => [...prev, newDebt]);
       showSuccess("Dívida adicionada com sucesso!");
-    } catch (error) {
+    } catch {
       showError("Erro ao adicionar dívida.");
     }
   };
@@ -76,7 +54,7 @@ export const useDebts = () => {
       const updatedDebt = await api.put<Debt>(`/debts/${id}`, debtData);
       setDebts((prev) => prev.map((d) => (d.id === id ? updatedDebt : d)));
       showSuccess("Dívida atualizada!");
-    } catch (error) {
+    } catch {
       showError("Erro ao atualizar dívida.");
     }
   };
@@ -87,7 +65,7 @@ export const useDebts = () => {
         await api.delete(`/debts/${id}`);
         setDebts((prev) => prev.filter((d) => d.id !== id));
         showSuccess("Dívida excluída!");
-      } catch (error) {
+      } catch {
         showError("Erro ao excluir dívida.");
       }
     }

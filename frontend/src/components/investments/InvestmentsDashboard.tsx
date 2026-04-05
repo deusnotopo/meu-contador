@@ -38,6 +38,25 @@ import { useRole } from "@/context/AuthContext";
 import { showError } from "@/lib/toast";
 
 
+import { MarketDataWidget } from "./MarketDataWidget";
+import { CDIBenchmark } from "./CDIBenchmark";
+
+interface InvestmentPresetAsset {
+  ticker?: string;
+  type?: Investment["type"];
+  amount?: number;
+  averagePrice?: number;
+  currency?: Investment["currency"];
+}
+
+interface InvestmentPresetData {
+  assets?: InvestmentPresetAsset[];
+}
+
+interface InvestmentWithDividends extends Investment {
+  dividends?: unknown[];
+}
+
 const container = {
   hidden: { opacity: 0 },
   show: {
@@ -134,19 +153,19 @@ export const InvestmentsDashboard = () => {
       setIsOpen(false); // Close wizard
   };
 
-  const handleApplyPreset = (data: any) => {
+  const handleApplyPreset = (data: InvestmentPresetData) => {
     if (data && data.assets) {
-      data.assets.forEach((asset: any) => {
+      data.assets.forEach((asset) => {
         addAsset({
           name: asset.ticker || "",
           ticker: asset.ticker || "",
-          type: asset.type || "stock",
+          type: (asset.type || "stock") as "stock" | "fii" | "crypto" | "fixed_income" | "etf",
           amount: asset.amount || 0,
           averagePrice: asset.averagePrice || 0,
           currency: asset.currency || "BRL",
           currentPrice: asset.averagePrice || 0,
           sector: "Geral",
-        } as Omit<Investment, "id">);
+        });
       });
     }
     setShowWizard(false);
@@ -190,7 +209,7 @@ export const InvestmentsDashboard = () => {
         {showWizard && (
           <QuickSetupWizard 
             type="investments" 
-            onComplete={handleApplyPreset} 
+            onComplete={handleApplyPreset as any} 
             onClose={() => setShowWizard(false)} 
           />
         )}
@@ -442,12 +461,22 @@ export const InvestmentsDashboard = () => {
 
           <TabsContent value="portfolio" className="mt-0 outline-none">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-              {/* Allocation Chart */}
-              <AssetAllocationChart 
-                assets={assets} 
-                loading={loading} 
-                convert={convert} 
-              />
+              {/* Metrics & Allocation Column */}
+              <div className="flex flex-col gap-6">
+                <AssetAllocationChart 
+                  assets={assets} 
+                  loading={loading} 
+                  convert={convert} 
+                />
+                
+                <CDIBenchmark 
+                  rentabilidade={profitPercentage}
+                  valorInvestido={totalInvested}
+                  valorAtual={totalValue}
+                />
+
+                <MarketDataWidget />
+              </div>
 
               {/* Asset List (Replaced by Table) */}
               <div className="premium-card p-0 lg:col-span-2 overflow-hidden bg-transparent border-0">
@@ -502,7 +531,7 @@ export const InvestmentsDashboard = () => {
           </TabsContent>
 
           <TabsContent value="forecast" className="mt-0 outline-none">
-            <DividendForecast assets={assets} dividends={assets.flatMap(a => (a as any).dividends || [])} />
+            <DividendForecast assets={assets} dividends={assets.flatMap(a => ((a as InvestmentWithDividends).dividends || []) as never[])} />
           </TabsContent>
 
           <TabsContent value="analysis" className="mt-0 outline-none">

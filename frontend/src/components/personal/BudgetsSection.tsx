@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/ui/HelpButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,6 +10,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/formatters";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Target } from "lucide-react";
+import { CashCalendar } from "./CashCalendar";
 
 const CATEGORY_ICONS: Record<string, string> = {
   Moradia: "🏠", Mercado: "🛒", Delivery: "🍕", Transporte: "🚗",
@@ -77,6 +80,9 @@ export const BudgetsSection = () => {
       <div className="hero" style={{ padding: "20px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
           <div>
+            <div style={{ marginBottom: 8 }}>
+              <HelpButton tooltipText="Crie envelopes para limitar gastos por categoria e acompanhar o saldo disponível do mês." />
+            </div>
             <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, marginBottom: 4 }}>
               Disponível p/ alocar
             </div>
@@ -89,15 +95,9 @@ export const BudgetsSection = () => {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <button
-                style={{
-                  width: 36, height: 36, borderRadius: 12, background: "var(--glass2)",
-                  border: "1px solid var(--border)", display: "flex", alignItems: "center",
-                  justifyContent: "center", cursor: "pointer", color: "var(--t1)"
-                }}
-              >
+              <Button variant="ghost" size="icon" className="rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10">
                 <Plus size={18} />
-              </button>
+              </Button>
             </DialogTrigger>
             <DialogContent className="glass-premium border-white/10 text-white max-w-md">
               <DialogHeader>
@@ -121,7 +121,7 @@ export const BudgetsSection = () => {
                   onChange={(e) => setFormData({ ...formData, limit: Number(e.target.value) })}
                   className="h-12 bg-white/5 border-white/10 rounded-xl"
                 />
-                <button className="btn-p" onClick={handleSave}>Criar</button>
+                <Button variant="premium" className="w-full rounded-xl" onClick={handleSave}>Criar</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -180,11 +180,14 @@ export const BudgetsSection = () => {
         </>
       )}
 
+      {/* Cash Calendar Injection */}
+      <CashCalendar />
+
       {/* Ulysses Nudge */}
       <div className="nudge success" style={{ marginTop: 20 }}>
         <div className="nudge-ttl" style={{ color: "var(--green)" }}>Ulysses Contract</div>
         <div className="nudge-body">Bloquear excedente de Lazer e redirecionar para Tesouro Direto todo dia 25?</div>
-        <button className="btn-s" style={{ marginTop: 10, padding: 8, fontSize: 11 }}>Ativar regra</button>
+        <Button variant="outline" size="sm" className="mt-3 text-xs">Ativar regra</Button>
       </div>
     </div>
   );

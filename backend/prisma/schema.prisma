@@ -6,18 +6,14 @@ generator client {
 // Run with: npm run db:seed
 
 datasource db {
-  provider  = "postgresql"
+  provider  = "sqlite"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
-enum DataReliability {
-  REAL
-  ESTIMATED
-  HEURISTIC
-  BENCHMARK
-  EXTERNAL_SOURCE
-}
+// =====================================================
+// TYPES (SQLite doesn't support enums)
+// Using String fields with validation in application layer
+// =====================================================
 
 model User {
   id              String      @id @default(uuid())
@@ -31,10 +27,11 @@ model User {
   hasDebts        Boolean    @default(false)
   initialBalance  Float       @default(0)
   isPro           Boolean     @default(false)
-  employmentType   String?     // 'clt' or 'pj'
+  employmentType  String?
   onboardingCompleted Boolean @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  deletedAt       DateTime?
 
   // Business Profile
   businessName    String?
@@ -61,7 +58,13 @@ model User {
   pushSubscriptions PushSubscription[]
   sessions        Session[]
   auditLogs       AuditLog[]
-  preferences     Json        @default("{\"theme\":\"dark\",\"language\":\"pt\",\"privacyMode\":false}")
+  preferences     String      @default("{\"theme\":\"dark\",\"language\":\"pt\",\"privacyMode\":false}")
+
+  // Gamification and Emotional Data
+  gamificationData String?    // JSON: { level, achievements, streaks, etc. }
+  emotionalData    String?    // JSON: array of emotional entries
+
+  @@index([deletedAt])
 }
 
 model Session {
@@ -92,26 +95,42 @@ model Workspace {
 
   transactions Transaction[]
   invoices     Invoice[]
+  invites      WorkspaceInvite[]
+}
+
+model WorkspaceInvite {
+  id          String   @id @default(uuid())
+  email       String
+  role        String   @default("viewer")
+  token       String   @unique
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([workspaceId, email])
 }
 
 model Transaction {
-  id                 String   @id @default(uuid())
-  type               String   // income | expense
+  id                 String              @id @default(uuid())
+  type               String
   description        String
   amount             Float
   category           String
   date               DateTime
   paymentMethod      String?
   notes              String?
-  recurring          Boolean  @default(false)
-  recurrenceInterval String?  // monthly | weekly | bi-weekly | yearly
-  scope              String   // personal | business
-  classification     String?  // necessity | want | investment | debt
-  currency           String   @default("BRL")
+  recurring          Boolean             @default(false)
+  recurrenceInterval String?
+  scope              String
+  classification     String?
+  currency           String              @default("BRL")
   originalAmount     Float?
   exchangeRate       Float?
   receiptUrl         String?
-  fitid              String?  // OFX Financial Institution Transaction ID (dedup)
+  mood               String?
+  motivation         String?
+  fitid              String?
 
   userId             String
   user               User     @relation(fields: [userId], references: [id])
@@ -124,157 +143,203 @@ model Transaction {
   pluggyTransactionId String? @unique
 
   createdAt          DateTime @default(now())
-  dataReliability   DataReliability @default(REAL)
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+  dataReliability    String   @default("REAL")
 
   @@unique([userId, fitid], name: "unique_user_fitid")
+  @@unique([userId, pluggyTransactionId], name: "unique_user_pluggy")
   @@index([userId, date])
   @@index([userId, scope, date])
+  @@index([userId, type, date])
+  @@index([userId, category, date])
   @@index([bankAccountId, date])
+  @@index([deletedAt])
 }
 
 model BankConnection {
-  id              String   @id @default(uuid())
-  pluggyItemId    String   @unique
-  status          String   // UPDATING | UPDATED | LOGIN_ERROR | WAITING_USER_INPUT
+  id              String           @id @default(uuid())
+  pluggyItemId    String           @unique
+  status          String           @default("UPDATING")
   lastSyncAt      DateTime?
   userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  user            User             @relation(fields: [userId], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
 
   accounts        BankAccount[]
 
   @@index([userId, updatedAt])
+  @@index([deletedAt])
 }
 
 model BankAccount {
-  id              String   @id @default(uuid())
-  pluggyAccountId String   @unique
+  id              String          @id @default(uuid())
+  pluggyAccountId String          @unique
   name            String
   balance         Float
-  currencyCode    String   @default("BRL")
-  type            String   // CHECKING | CREDIT_CARD | INVESTMENT
+  currencyCode    String          @default("BRL")
+  type            String
   subtype         String?
   bankName        String?
   bankImageUrl    String?
-
   connectionId    String
-  connection      BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connection      BankConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   userId          String
-  user            User     @relation(fields: [userId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
 
-  transactions    Transaction[]
+  // Reconciliation fields
+  calculatedBalance Float?      // Sum of user transactions
+  lastReconciledAt  DateTime?   // Last time reconciliation was performed
+  reconciliationStatus String? // MATCHING, DISCREPANCY, ERROR
+  discrepancyAmount Float?      // bank balance - calculated balance
 
-  @@index([userId, connectionId])
+  transactions      Transaction[]
+
+  @@index([userId, balance])
 }
 
 
 model Budget {
-  id       String @id @default(uuid())
-  category String
-  limit    Float
-  spent    Float  @default(0)
-  month    String // YYYY-MM
-  userId   String
-  user     User   @relation(fields: [userId], references: [id])
+  id        String   @id @default(uuid())
+  category  String
+  limit     Float
+  spent     Float    @default(0)
+  month     String   // YYYY-MM
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@index([userId, month])
   @@unique([userId, category, month])
+  @@index([deletedAt])
 }
 
 model SavingsGoal {
-  id           String   @id @default(uuid())
-  name         String
-  targetAmount Float
+  id            String   @id @default(uuid())
+  name          String
+  targetAmount  Float
   currentAmount Float    @default(0)
-  deadline     DateTime
-  icon         String?
-  color        String?
-  userId       String
-  user     User     @relation(fields: [userId], references: [id])
+  deadline      DateTime
+  icon          String?
+  color         String?
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
 
   @@index([userId, deadline])
+  @@index([userId, targetAmount])
+  @@index([deletedAt])
 }
 
 model BillReminder {
-  id       String   @id @default(uuid())
-  name     String
-  amount   Float
-  dueDate  DateTime
-  category String
-  isPaid   Boolean  @default(false)
-  recurring String   @default("once") // monthly | yearly | once
-  userId   String
-  user     User     @relation(fields: [userId], references: [id])
+  id        String       @id @default(uuid())
+  name      String
+  amount    Float
+  dueDate   DateTime
+  category  String
+  isPaid    Boolean      @default(false)
+  recurring String       @default("ONCE")
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
 
   @@index([userId, dueDate, isPaid])
+  @@index([deletedAt])
 }
 
 model Invoice {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   number      String
   client      String
   amount      Float
   dueDate     DateTime
-  status      String   @default("pending") // pending | paid | overdue
+  status      String        @default("PENDING")
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  createdAt   DateTime @default(now())
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, dueDate])
+  @@index([deletedAt])
+  @@unique([workspaceId, number], name: "unique_workspace_invoice")
 }
 
 model Investment {
-  id           String   @id @default(uuid())
-  name         String
-  ticker       String
-  type         String   // stock | fii | crypto | fixed_income | etf
-  amount       Float    // Quantity
-  averagePrice Float
-  currentPrice Float
-  currency     String   @default("BRL")
-  sector       String?
-  targetAllocation Float?
-  lastUpdate   DateTime @default(now())
-    userId       String
-    dataReliability DataReliability @default(REAL)
-    user         User     @relation(fields: [userId], references: [id])
+  id                String          @id @default(uuid())
+  name              String
+  ticker            String
+  type              String
+  amount            Float
+  averagePrice      Float
+  currentPrice      Float
+  currency          String          @default("BRL")
+  sector            String?
+  targetAllocation  Float?
+  lastUpdate        DateTime        @default(now())
+  userId            String
+  dataReliability   String          @default("REAL")
+  user              User            @relation(fields: [userId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
 
   dividends    Dividend[]
   sales        InvestmentSale[]
 
   @@index([userId, ticker])
   @@index([userId, lastUpdate])
+  @@index([deletedAt])
+  @@unique([userId, ticker, type], name: "unique_user_investment")
 }
 
 model Dividend {
-  id           String     @id @default(uuid())
+  id           String       @id @default(uuid())
   investmentId String
-  investment   Investment @relation(fields: [investmentId], references: [id])
+  investment   Investment   @relation(fields: [investmentId], references: [id], onDelete: Cascade)
   amount       Float
   date         DateTime
-  type         String     // dividend | jcp
+  type         String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@index([investmentId, date])
+  @@unique([investmentId, type, date])
 }
 
 model InvestmentSale {
-  id           String     @id @default(uuid())
+  id           String   @id @default(uuid())
   investmentId String
-  investment   Investment @relation(fields: [investmentId], references: [id])
+  investment   Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
   ticker       String
   amount       Float
   price        Float
   totalValue   Float
   date         DateTime
-  currency     String     @default("BRL")
+  currency     String   @default("BRL")
   userId       String
-  user         User       @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([userId, date])
   @@index([investmentId, date])
 }
 
 model Debt {
-  id           String   @id @default(uuid())
+  id           String       @id @default(uuid())
   name         String
   balance      Float
   interestRate Float
@@ -282,10 +347,16 @@ model Debt {
   dueDate      DateTime?
   category     String
   userId       String
-  dataReliability DataReliability @default(REAL)
-  user         User     @relation(fields: [userId], references: [id])
+  dataReliability String   @default("REAL")
+  user         User         @relation(fields: [userId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
 
   @@index([userId, dueDate])
+  @@index([userId, category])
+  @@index([userId, balance])
+  @@index([deletedAt])
 }
 
 model PushSubscription {
@@ -307,7 +378,7 @@ model AuditLog {
   action      String
   resource    String
   resourceId  String?
-  metadata    Json?
+  metadata    String?
   piiRedacted Boolean  @default(true)
   createdAt   DateTime @default(now())
   expiresAt   DateTime?
@@ -318,4 +389,3 @@ model AuditLog {
   @@index([resource, resourceId, createdAt])
   @@index([expiresAt])
 }
-

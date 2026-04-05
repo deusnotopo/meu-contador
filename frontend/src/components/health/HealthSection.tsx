@@ -144,21 +144,23 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
 
   return (
     <div style={{ animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingTop: "10px" }}>
+      {/* ── Header Flutuante Zen ── */}
+      <div className="flex items-center gap-3 mb-6 sticky top-2 z-[60] bg-[#0A1220]/70 backdrop-blur-2xl px-4 py-3.5 rounded-[28px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-2">
         {onBack && (
-          <button className="back-btn" onClick={() => onBack("inicio")}>
+          <button className="w-10 h-10 rounded-xl bg-white/[0.03] backdrop-blur-md border border-white/[0.08] flex items-center justify-center shadow-md transition-transform hover:scale-105 active:scale-95" onClick={() => onBack("inicio")}>
             <ArrowLeft size={16} />
           </button>
         )}
         <div style={{ flex: 1 }}>
-          <div className="eyebrow" style={{ marginBottom: 4 }}>Score 360°</div>
-          <div className="page-title" style={{ margin: 0 }}>Saúde Financeira</div>
+          <div className="text-[10px] text-white/50 uppercase tracking-widest font-bold mb-0.5">Score 360°</div>
+          <div className="text-lg font-bold text-white tracking-tight" style={{ margin: 0 }}>Saúde Financeira</div>
         </div>
         <AreaTutorialButton area="futuro" onNavigate={onNavigate} />
       </div>
 
-      {/* Score ring */}
-      <div className="hero" style={{ textAlign: "center", padding: "28px 20px 22px", marginBottom: 16 }}>
+      <div className="px-2">
+      {/* Score ring (Bento Full) */}
+      <div id="health-score" className="bento-card bento-full" style={{ textAlign: "center", padding: "28px 20px 22px", marginBottom: 16 }}>
         <svg style={{ width: 140, height: 140, margin: "0 auto 16px" }} viewBox="0 0 140 140">
           <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="11" />
           <circle
@@ -192,9 +194,59 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
         </div>
       </div>
 
+      {/* Modigliani Life-Cycle Hypothesis Alert */}
+      {score < 70 && (
+        <div className="bento-card bento-full mb-4 flex items-start gap-3" style={{ background: "rgba(255,173,59,0.06)", borderColor: "rgba(255,173,59,0.2)" }}>
+          <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 flex-shrink-0 mt-1">
+             <Target size={16} />
+          </div>
+          <div>
+            <h4 className="text-[13px] font-black text-amber-500 uppercase tracking-widest mb-1 shadow-sm">Alerta Modigliani</h4>
+            <p className="text-[11px] text-white/70 leading-relaxed font-medium">
+              Sua taxa de consumo atual ({(100 - savingRate).toFixed(0)}%) pode não sustentar seu padrão de vida futuro. A <strong>Hipótese do Ciclo de Vida (Modigliani)</strong> sugere poupar hoje para suavizar o consumo na aposentadoria. Considere reduzir custos fixos.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Credit Score Interno */}
+      <div className="bento-card bento-full" style={{ marginBottom: 16, padding: '20px' }}>
+         <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-4 flex justify-between">
+           <span>Score Interno de Crédito</span>
+           <span className="text-white/30 truncate max-w-[100px]">Simulação</span>
+         </div>
+         <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+               <ShieldCheck size={20} className={score >= 70 ? "text-emerald-500" : "text-amber-500"} />
+               <span className="text-[14px] font-bold text-white">Trust Score</span>
+            </div>
+            <span className="text-2xl font-black font-mono tracking-tighter" style={{ color: scoreColor2 }}>
+               {Math.round(score * 10)}
+            </span>
+         </div>
+         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex mb-2">
+            <div className="h-full bg-rose-500" style={{ width: '30%' }} />
+            <div className="h-full bg-amber-500" style={{ width: '40%' }} />
+            <div className="h-full bg-emerald-500" style={{ width: '30%' }} />
+            {/* Indicator Dot */}
+            <div 
+               className="absolute h-4 w-4 rounded-full bg-white shadow-lg border-2 border-slate-900 border-solid mt-[-4px]" 
+               style={{ marginLeft: `${score}%`, transition: 'all 1s ease' }} 
+            />
+         </div>
+         <div className="flex justify-between text-[9px] text-white/40 uppercase font-bold tracking-widest mt-2">
+            <span>Alto Risco</span>
+            <span>Estável</span>
+            <span>Prime</span>
+         </div>
+         <div className="mt-4 pt-4 border-t border-white/5 text-[11px] text-white/50 leading-relaxed">
+            Seu score atual de <strong>{Math.round(score * 10)}/1000</strong> simula a avaliação de crédito do mercado baseada na sua liquidez ({(liquidezMeses).toFixed(1)} meses), índice de alavancagem financeira e consistência de pagamentos.
+         </div>
+      </div>
+
       {/* Histórico orientativo */ }
-      <div className="sec-hd"><span className="sec-title">Evolução do Score</span></div>
-      <div className="card" style={{ marginBottom: 16, padding: '14px 16px' }}>
+      <div className="bento-card bento-full" style={{ marginBottom: 16, padding: '18px' }}>
+        <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-4">Evolução da Saúde</div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
         {historyPoints.map((v, i, arr) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -208,11 +260,18 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
         </div>
       </div>
 
-      <div className="sec-hd"><span className="sec-title">7 Dimensoẽs (Toque p/ ações)</span></div>
-      <div className="card">
+      <div id="health-dimensions" className="bento-card bento-full !p-0 overflow-hidden mb-4 border border-white/[0.08]">
+        <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 px-5 pt-5 pb-2">7 Dimensões Vitais</div>
         {DIMS.map((d) => (
           <div key={d.nm} style={{ borderBottom: "1px solid var(--border)", paddingBottom: expandedDim === d.nm ? 16 : 0, marginBottom: expandedDim === d.nm ? 16 : 0, transition: 'all 0.2s' }}>
-            <div className="row" style={{ cursor: "pointer", borderBottom: "none", marginBottom: 0, paddingBottom: 12 }} onClick={() => setExpandedDim(expandedDim === d.nm ? null : d.nm)}>
+            <button
+              type="button"
+              className="row w-full text-left"
+              style={{ cursor: "pointer", borderBottom: "none", marginBottom: 0, paddingBottom: 12 }}
+              onClick={() => setExpandedDim(expandedDim === d.nm ? null : d.nm)}
+              aria-expanded={expandedDim === d.nm}
+              aria-label={`Alternar detalhes de ${d.nm}`}
+            >
               <div className="row-ico flex items-center justify-center" style={{ background: BG_MAP[d.cl] }}>{d.em}</div>
               <div className="row-main">
                 <div className="row-title">{d.nm}</div>
@@ -224,7 +283,7 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
                 </div>
                 <ChevronDown size={14} color="var(--t3)" style={{ transform: expandedDim === d.nm ? "rotate(180deg)" : "rotate(0)", transition: "0.2s" }} />
               </div>
-            </div>
+            </button>
 
             {/* Accordion content with AI Recommendation */}
             {expandedDim === d.nm && (() => {
@@ -236,7 +295,7 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
                     <strong>{action.title}:</strong> {action.text}
                   </div>
                   {action.act && d.sc < 80 && (
-                    <button className="btn-secondary" style={{ marginTop: 12, width: '100%', padding: '8px', fontSize: 12 }} onClick={() => onNavigate?.(action.act as any)}>
+                    <button className="btn-secondary" style={{ marginTop: 12, width: '100%', padding: '8px', fontSize: 12 }} onClick={() => onNavigate?.(action.act as TabType)}>
                       {action.actText} <ChevronRight size={12} />
                     </button>
                   )}
@@ -250,30 +309,34 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
       </div>
 
       {/* Stress check-in */}
-      <div className="sec-hd"><span className="sec-title">Check-in Biopsicossocial</span></div>
-      <div className="card">
+      <div className="bento-card bento-full" style={{ padding: '20px' }}>
+        <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-4">Check-in Biopsicossocial</div>
         <div style={{ fontSize: 13, color: "var(--t1)", marginBottom: 16, lineHeight: 1.4 }}>
           A ansiedade financeira reduz a capacidade cognitiva. Como você está se sentindo ao olhar suas contas hoje?
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(62px, 1fr))", gap: 6 }}>
           {[1, 2, 3, 4, 5].map((val, i) => (
-            <div
+            <button
+              type="button"
               key={i}
               onClick={() => handleSetStress(i)}
+              aria-pressed={selectedStress === i}
+              aria-label={`Registrar humor ${STRESS_LABELS[i]}`}
               style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: "16px 4px 10px", borderRadius: 14, border: `1px solid ${selectedStress === i ? "var(--blue)" : "var(--border)"}`, background: selectedStress === i ? "var(--blue3)" : "var(--bg)", transition: "all 0.15s", boxShadow: selectedStress === i ? "0 4px 12px rgba(89,143,249,0.15)" : "none" }}
             >
               <div style={{ fontSize: 18, color: selectedStress === i ? "var(--blue)" : "var(--t3)", fontWeight: 800 }}>M{val}</div>
               <div style={{ fontSize: 9, color: selectedStress === i ? "var(--t1)" : "var(--t3)", marginTop: 6, lineHeight: 1.2, fontWeight: selectedStress === i ? 700 : 500 }}>
                 {STRESS_LABELS[i]}
               </div>
-            </div>
+            </button>
           ))}
         </div>
         {selectedStress !== null && (
           <div style={{ marginTop: 12, fontSize: 12, color: "var(--t2)", textAlign: "center" }}>
-            ✓ Check-in registrado: <strong>{STRESS_LABELS[selectedStress]}</strong>. Impacto visualizado no seu Score 360°.
+            ✓ Check-in registrado: <strong>{STRESS_LABELS[selectedStress!]}</strong>. Impacto visualizado no seu Score 360°.
           </div>
         )}
+      </div>
       </div>
     </div>
   );

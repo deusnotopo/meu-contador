@@ -1,6 +1,19 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
+interface GenerateInsightsPayload {
+  messages: unknown;
+  temperature?: number;
+  response_format?: unknown;
+}
+
+interface MistralChatRequestBody {
+  model: string;
+  messages: unknown;
+  temperature: number;
+  response_format?: unknown;
+}
+
 // Ensure firebase-admin is initialized if used elsewhere, 
 // though for this specific pure proxy it might not be strictly needed yet.
 if (!admin.apps.length) {
@@ -15,7 +28,7 @@ if (!admin.apps.length) {
  * const generateInsights = httpsCallable(functions, 'generateInsights');
  * generateInsights({ messages, temperature, response_format });
  */
-export const generateInsights = functions.https.onCall(async (data: any, context) => {
+export const generateInsights = functions.https.onCall(async (data: GenerateInsightsPayload, context) => {
   // 1. Authorization Check (Optional but recommended)
   if (!context.auth) {
     throw new functions.https.HttpsError(
@@ -40,7 +53,7 @@ export const generateInsights = functions.https.onCall(async (data: any, context
   }
 
   // 3. Request Construction
-  const body: any = {
+  const body: MistralChatRequestBody = {
     model: "mistral-small",
     messages,
     temperature: temperature || 0.3,

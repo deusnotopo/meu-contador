@@ -3,6 +3,10 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 import type { Currency } from "@/types";
 
+interface FrankfurterResponse {
+  rates?: Partial<Record<Currency, number>>;
+}
+
 interface CurrencyContextType {
   baseCurrency: Currency;
   rates: Record<string, number>;
@@ -33,7 +37,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({
         const res = await fetch(
           "https://api.frankfurter.app/latest?from=BRL&to=USD,EUR,GBP"
         );
-        const data = await res.json();
+        const data: FrankfurterResponse = await res.json();
         if (data.rates) {
           const newRates = { BRL: 1, ...data.rates };
           setRates(newRates);
@@ -51,8 +55,8 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const convert = (amount: number, from: Currency, to: Currency) => {
     return currencyService.convertFromBRL(
-      currencyService.convertToBRL(amount, from as any),
-      to as any
+      currencyService.convertToBRL(amount, from),
+      to
     );
   };
 

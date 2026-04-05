@@ -1,4 +1,4 @@
-import { useAuth } from "@/context/AuthContext";
+import { usePreferences } from "@/context/PreferencesContext";
 import { formatCurrency } from "@/lib/formatters";
 
 interface PrivacyValueProps {
@@ -16,7 +16,7 @@ export const PrivacyValue = ({
   displayValue,
   currency = "BRL",
 }: PrivacyValueProps) => {
-  const { privacyMode } = useAuth();
+  const { privacyMode } = usePreferences();
 
   if (privacyMode) {
     return <span className={className}>••••••</span>;

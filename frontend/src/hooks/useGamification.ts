@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { showSuccess } from '@/lib/toast';
+import { api } from '@/lib/api';
 import type {
   Achievement,
   GamificationState,
@@ -13,11 +14,7 @@ import {
   XP_REWARDS,
 } from '@/types/gamification';
 
-const STORAGE_KEY = 'gamification_state';
-
 const calculateLevel = (totalXp: number): UserLevel => {
-  // Each level requires progressively more XP
-  // Level 1: 0 XP, Level 2: 100 XP, Level 3: 250 XP, etc.
   let level = 1;
   let xpRemaining = totalXp;
   let xpForCurrentLevel = 100;
@@ -40,21 +37,7 @@ const calculateLevel = (totalXp: number): UserLevel => {
   };
 };
 
-const loadState = (userId: string): GamificationState => {
-  try {
-    const stored = localStorage.getItem(`${STORAGE_KEY}_${userId}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        ...parsed,
-        level: calculateLevel(parsed.level?.totalXp || 0),
-      };
-    }
-  } catch (e) {
-    console.error('Failed to load gamification state:', e);
-  }
-
-  // Default state
+const createDefaultState = (): GamificationState => {
   const achievements: Achievement[] = PREDEFINED_ACHIEVEMENTS.map((a) => ({
     ...a,
     isUnlocked: false,
@@ -70,34 +53,55 @@ const loadState = (userId: string): GamificationState => {
   };
 };
 
-const saveState = (userId: string, state: GamificationState) => {
+const fetchGamificationData = async (): Promise<GamificationState | null> => {
   try {
-    localStorage.setItem(`${STORAGE_KEY}_${userId}`, JSON.stringify(state));
-  } catch (e) {
-    console.error('Failed to save gamification state:', e);
+    const data = await api.get<{ gamificationData: GamificationState | null }>('/users/gamification');
+    return data.gamificationData || null;
+  } catch (error) {
+    console.error('Error fetching gamification data:', error);
+    return null;
+  }
+};
+
+const saveGamificationData = async (state: GamificationState): Promise<boolean> => {
+  try {
+    await api.put('/users/gamification', { gamificationData: state });
+    return true;
+  } catch (error) {
+    console.error('Error saving gamification data:', error);
+    return false;
   }
 };
 
 export function useGamification() {
   const { user } = useAuth();
-  const [state, setState] = useState<GamificationState>(() =>
-    user ? loadState(user.id) : {
-      level: calculateLevel(0),
-      achievements: [],
-      streaks: {},
-      weeklyChallenge: null,
-      leaderboard: [],
-    }
-  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [state, setState] = useState<GamificationState>(createDefaultState);
 
-  // Save state when it changes
   useEffect(() => {
-    if (user) {
-      saveState(user.id, state);
-    }
-  }, [state, user]);
+    const loadData = async () => {
+      if (user) {
+        setIsLoading(true);
+        const data = await fetchGamificationData();
+        if (data) {
+          setState({
+            ...data,
+            level: calculateLevel(data.level?.totalXp || 0),
+          });
+        } else {
+          setState(createDefaultState());
+        }
+        setIsLoading(false);
+      }
+    };
 
-  // Award XP
+    loadData();
+  }, [user?.id]);
+
+  const saveState = useCallback(async (newState: GamificationState) => {
+    await saveGamificationData(newState);
+  }, []);
+
   const awardXp = useCallback((amount: number) => {
     setState((prev) => {
       const newTotalXp = prev.level.totalXp + amount;
@@ -108,14 +112,16 @@ export function useGamification() {
         showSuccess(`🎉 Nível ${newLevel.level}! ${newLevel.title}`);
       }
 
-      return {
+      const newState = {
         ...prev,
         level: newLevel,
       };
-    });
-  }, []);
 
-  // Unlock achievement
+      saveState(newState);
+      return newState;
+    });
+  }, [saveState]);
+
   const unlockAchievement = useCallback((achievementId: string) => {
     setState((prev) => {
       const achievement = prev.achievements.find((a) => a.id === achievementId);
@@ -132,15 +138,17 @@ export function useGamification() {
 
       showSuccess(`🏆 Conquista desbloqueada: ${achievement.name}!`);
 
-      return {
+      const newState = {
         ...prev,
         achievements: updatedAchievements,
         level: newLevel,
       };
-    });
-  }, []);
 
-  // Update achievement progress
+      saveState(newState);
+      return newState;
+    });
+  }, [saveState]);
+
   const updateAchievementProgress = useCallback((achievementId: string, progress: number) => {
     setState((prev) => {
       const achievement = prev.achievements.find((a) => a.id === achievementId);
@@ -168,15 +176,17 @@ export function useGamification() {
 
       const newLevel = calculateLevel(newTotalXp);
 
-      return {
+      const newState = {
         ...prev,
         achievements: updatedAchievements,
         level: newLevel,
       };
-    });
-  }, []);
 
-  // Update streak
+      saveState(newState);
+      return newState;
+    });
+  }, [saveState]);
+
   const updateStreak = useCallback((type: 'login' | 'budget' | 'savings') => {
     setState((prev) => {
       const today = new Date().toISOString().split('T')[0];
@@ -184,7 +194,6 @@ export function useGamification() {
       const lastUpdate = existingStreak?.lastUpdate?.split('T')[0];
 
       if (lastUpdate === today) {
-        // Already updated today
         return prev;
       }
 
@@ -199,7 +208,6 @@ export function useGamification() {
 
       const newBest = Math.max(newCurrent, existingStreak?.best || 0);
 
-      // Check streak achievements
       let newTotalXp = prev.level.totalXp;
       if (newCurrent === 7) {
         newTotalXp += XP_REWARDS.STREAK_BONUS;
@@ -211,7 +219,7 @@ export function useGamification() {
 
       const newLevel = calculateLevel(newTotalXp);
 
-      return {
+      const newState = {
         ...prev,
         streaks: {
           ...prev.streaks,
@@ -224,10 +232,12 @@ export function useGamification() {
         },
         level: newLevel,
       };
-    });
-  }, []);
 
-  // Get streak
+      saveState(newState);
+      return newState;
+    });
+  }, [saveState]);
+
   const getStreak = useCallback(
     (type: 'login' | 'budget' | 'savings'): Streak | null => {
       return state.streaks[type] || null;
@@ -235,7 +245,6 @@ export function useGamification() {
     [state.streaks]
   );
 
-  // Check specific achievements
   const checkTransactionAchievement = useCallback(() => {
     updateAchievementProgress('first_transaction', 1);
     awardXp(XP_REWARDS.ADD_TRANSACTION);
@@ -273,23 +282,20 @@ export function useGamification() {
     updateAchievementProgress('millionaire', netWorth);
   }, [updateAchievementProgress]);
 
-  // Login reward
   const claimDailyLogin = useCallback(() => {
     updateStreak('login');
     awardXp(XP_REWARDS.DAILY_LOGIN);
   }, [updateStreak, awardXp]);
 
-  // Get unlocked achievements
   const unlockedAchievements = state.achievements.filter((a) => a.isUnlocked);
   const lockedAchievements = state.achievements.filter((a) => !a.isUnlocked);
 
-  // Progress percentage
   const overallProgress = state.achievements.length > 0
     ? (unlockedAchievements.length / state.achievements.length) * 100
     : 0;
 
   return {
-    // State
+    isLoading,
     level: state.level,
     achievements: state.achievements,
     unlockedAchievements,
@@ -299,7 +305,6 @@ export function useGamification() {
     leaderboard: state.leaderboard,
     overallProgress,
 
-    // Actions
     awardXp,
     unlockAchievement,
     updateAchievementProgress,
@@ -307,7 +312,6 @@ export function useGamification() {
     getStreak,
     claimDailyLogin,
 
-    // Checkers
     checkTransactionAchievement,
     checkBudgetAchievement,
     checkInvestmentAchievement,

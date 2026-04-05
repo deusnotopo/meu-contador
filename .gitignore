@@ -12,6 +12,7 @@ build/
 frontend/node_modules/
 frontend/dist/
 frontend/dev-dist/
+frontend/src/output.css
 frontend/.env*
 !frontend/.env.example
 frontend/.vercel

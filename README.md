@@ -7,7 +7,7 @@
 [![Code Quality](https://img.shields.io/badge/Quality%20Score-7.5%2F10-success.svg)](#quality-metrics)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A modern, full-stack financial management application built with React, TypeScript, Node.js, and Firebase. Features include personal finance tracking, business accounting, investment portfolio management, and AI-powered insights.
+A modern, full-stack financial management application built with React, TypeScript, Fastify, Prisma, PostgreSQL, and Firebase integrations. Features include personal finance tracking, business accounting, investment portfolio management, and AI-powered insights.
 
 ---
 
@@ -60,7 +60,8 @@ A modern, full-stack financial management application built with React, TypeScri
 
 - **Node.js** 20.x or higher
 - **npm** or **yarn**
-- **Firebase** account (for authentication & database)
+- **PostgreSQL** database
+- **Firebase** account (for authentication integrations)
 
 ### Installation
 
@@ -88,11 +89,11 @@ A modern, full-stack financial management application built with React, TypeScri
    ```bash
    # Frontend (.env)
    cp .env.example .env
-   # Add your Firebase config
+    # Add your frontend environment config
 
    # Backend (.env)
    cp .env.example .env
-   # Add your API keys
+    # Add your API keys and PostgreSQL connection
    ```
 
 4. **Start development servers**
@@ -123,14 +124,16 @@ A modern, full-stack financial management application built with React, TypeScri
 - **Shadcn/UI** - Component library
 - **Framer Motion** - Animations
 - **Recharts** - Data visualization
-- **Firebase** - Authentication & database
+- **Firebase** - Authentication integrations
 
 ### Backend
 
 - **Node.js** - Runtime
-- **Express** - Web framework
+- **Fastify** - Web framework
 - **TypeScript** - Type safety
-- **Firebase Admin** - Backend services
+- **Prisma** - ORM and database access
+- **PostgreSQL** - Primary database
+- **Firebase Admin** - Authentication/service integrations
 
 ### DevOps & Quality
 

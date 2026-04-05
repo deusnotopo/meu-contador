@@ -14,11 +14,12 @@ export const useBudgets = () => {
     setError(null);
     
     try {
-      const data = await api.get<Budget[]>("/budgets");
+      const response = await api.get<Budget[] | { items?: Budget[] }>("/budgets");
       if (!cancelled) { // ← Verifica se componente ainda está montado
-        setBudgets(data);
+        const items = Array.isArray(response) ? response : (response?.items || []);
+        setBudgets(items);
       }
-    } catch (err) {
+    } catch {
       if (!cancelled) {
         setError("Orçamentos indisponíveis. Verifique sua conexão.");
       }
@@ -39,11 +40,12 @@ export const useBudgets = () => {
       setError(null);
       
       try {
-        const data = await api.get<Budget[]>("/budgets");
+        const response = await api.get<Budget[] | { items?: Budget[] }>("/budgets");
         if (!cancelled) {
-          setBudgets(data);
+          const items = Array.isArray(response) ? response : (response?.items || []);
+          setBudgets(items);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setError("Orçamentos indisponíveis. Verifique sua conexão.");
         }
@@ -64,7 +66,7 @@ export const useBudgets = () => {
       const newBudget = await api.post<Budget>("/budgets", budget);
       setBudgets((prev) => [...prev, newBudget]);
       showSuccess("Orçamento definido!");
-    } catch (error) {
+    } catch {
       showError("Erro ao definir orçamento.");
     }
   };
@@ -78,7 +80,7 @@ export const useBudgets = () => {
       const updated = await api.put<Budget>(`/budgets/${id}`, { limit: newLimit, spent: newSpent });
       setBudgets((prev) => prev.map((b) => (b.id === id ? updated : b)));
       showSuccess("Orçamento atualizado!");
-    } catch (error) {
+    } catch {
       showError("Erro ao atualizar orçamento.");
     }
   };
@@ -86,9 +88,9 @@ export const useBudgets = () => {
   const deleteBudget = async (id: string) => {
     try {
       await api.delete(`/budgets/${id}`);
-      setBudgets((prev) => prev.filter((b) => b.id !== id));
+      setBudgets((prev) => prev.filter((b) => b.id === id));
       showSuccess("Orçamento excluído.");
-    } catch (error) {
+    } catch {
       showError("Erro ao excluir orçamentos.");
     }
   };

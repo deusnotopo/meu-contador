@@ -13,7 +13,8 @@ interface EmotionalCheckInProps {
   onClose: () => void;
   transactionAmount?: number;
   transactionCategory?: string;
-  onComplete?: (entry: any) => void;
+  onComplete?: (entry: unknown) => void;
+  initialEmotion?: EmotionType | null;
 }
 
 export function EmotionalCheckIn({
@@ -22,10 +23,11 @@ export function EmotionalCheckIn({
   transactionAmount,
   transactionCategory,
   onComplete,
+  initialEmotion,
 }: EmotionalCheckInProps) {
   const { addEntry } = useEmotionalJournal();
-  const [step, setStep] = useState<'emotion' | 'motivation' | 'triggers' | 'regret'>('emotion');
-  const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
+  const [step, setStep] = useState<'emotion' | 'motivation' | 'triggers' | 'regret'>(initialEmotion ? 'motivation' : 'emotion');
+  const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(initialEmotion || null);
   const [selectedMotivation, setSelectedMotivation] = useState<PurchaseMotivation | null>(null);
   const [selectedTriggers, setSelectedTriggers] = useState<string[]>([]);
   const [regretLevel, setRegretLevel] = useState<number>(3);

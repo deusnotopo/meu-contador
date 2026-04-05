@@ -58,7 +58,7 @@ export function useRealMarketData(refreshInterval = 5 * 60 * 1000) {
 
   const getStockQuote = useCallback(async (ticker: string): Promise<StockQuote | null> => {
     try {
-      return await fetchStockQuote(ticker);
+      return (await fetchStockQuote(ticker)) as StockQuote | null;
     } catch (err) {
       console.error(`Error fetching ${ticker}:`, err);
       return null;

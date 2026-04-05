@@ -4,8 +4,7 @@ import {
   getClassification,
 } from "./financial-health";
 
-// HYBRID ARCHITECTURE: Calls our Vercel Serverless Function instead of the AI API directly
-// This protects our API Key and ensures better performance across the Vercel ecosystem
+// Chamada sempre via backend/proxy para evitar exposição de chave no cliente.
 const AI_PROXY_URL = "/api/ai-proxy";
 
 export interface AIInsights {
@@ -177,21 +176,25 @@ export const parseVoiceCommand = async (
   try {
     const response = await fetch(AI_PROXY_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
       body: JSON.stringify({
-        messages: [
-          { role: "system", content: systemPrompt },
+        conversation: [
           { role: "user", content: text },
         ],
-        temperature: 0.1, // Low temp for deterministic JSON
-        response_format: { type: "json_object" },
+        systemContext: systemPrompt,
+        userMessage: text,
       }),
     });
 
     if (!response.ok) throw new Error("AI Proxy failed");
 
     const data = await response.json();
-    const content = JSON.parse(data.choices[0].message.content);
+    const rawContent = typeof data.response === "string" ? data.response : "{}";
+    const normalized = rawContent.replace(/```json|```/g, "").trim();
+    const content = JSON.parse(normalized);
 
     return {
       type: content.type,

@@ -44,11 +44,11 @@ function calcularPayoff(
   if (!dividas.length) return { totalMeses: 0, totalJuros: 0, ordem: [] };
 
   // Clonar para não mutar state
-  let lista = dividas.map((d) => ({ ...d, saldoRestante: d.saldo }));
+  const lista = dividas.map((d) => ({ ...d, saldoRestante: d.saldo }));
   let meses = 0;
   let totalJuros = 0;
   const ordem: string[] = [];
-  let maxMeses = 600; // limite de segurança
+  const maxMeses = 600; // limite de segurança
 
   while (lista.some((d) => d.saldoRestante > 0) && meses < maxMeses) {
     meses++;

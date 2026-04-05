@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Sparkles, X } from "lucide-react";
-import { OnboardingWizard } from "./OnboardingWizard";
+
+const OnboardingWizard = lazy(() => import("./OnboardingWizard").then((m) => ({ default: m.OnboardingWizard })));
 
 interface WizardTriggerProps {
   label?: string;
@@ -74,10 +75,12 @@ export const WizardTrigger = ({
           >
             <X size={16} />
           </button>
-          <OnboardingWizard
-            onComplete={() => setOpen(false)}
-            onSkip={() => setOpen(false)}
-          />
+          <Suspense fallback={<div style={{ position: "fixed", inset: 0, background: "rgba(2,4,10,0.92)", zIndex: 200 }} />}>
+            <OnboardingWizard
+              onComplete={() => setOpen(false)}
+              onSkip={() => setOpen(false)}
+            />
+          </Suspense>
         </div>
       )}
     </>

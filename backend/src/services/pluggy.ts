@@ -4,17 +4,30 @@ import { db } from '../lib/db';
 const clientId = process.env.PLUGGY_CLIENT_ID;
 const clientSecret = process.env.PLUGGY_CLIENT_SECRET;
 
-export const pluggyClient = new PluggyClient({
-  clientId: clientId || '',
-  clientSecret: clientSecret || '',
-});
+// Lazy initialization - only create client when credentials are available
+let _pluggyClient: PluggyClient | null = null;
+
+export function getPluggyClient(): PluggyClient | null {
+  if (!_pluggyClient && clientId && clientSecret) {
+    _pluggyClient = new PluggyClient({
+      clientId,
+      clientSecret,
+    });
+  }
+  return _pluggyClient;
+}
+
+// For backward compatibility
+export const pluggyClient = getPluggyClient();
 
 /**
  * Retorna o Connect Token usado pelo FrontEnd para renderizar o Widget do Pluggy.
  */
 export async function getConnectToken(itemId?: string) {
   try {
-    const token = await pluggyClient.createConnectToken(itemId);
+    const client = getPluggyClient();
+    if (!client) throw new Error("Pluggy Client not configured");
+    const token = await client.createConnectToken(itemId);
     return token.accessToken;
   } catch (err) {
     console.error("Erro ao gerar Pluggy Connect Token:", err);
@@ -28,8 +41,11 @@ export async function getConnectToken(itemId?: string) {
  */
 export async function syncBankConnection(itemId: string, userId: string) {
   try {
+    const client = getPluggyClient();
+    if (!client) throw new Error("Pluggy Client not configured");
+
     // 1. Pega informações do Item
-    const item = await pluggyClient.fetchItem(itemId);
+    const item = await client.fetchItem(itemId);
     
     // 2. Registra o Item (Conexão) no nosso BD
     const bankConnection = await db.bankConnection.upsert({
@@ -45,7 +61,7 @@ export async function syncBankConnection(itemId: string, userId: string) {
     });
 
     // 3. Pega as contas atreladas a esta conexão
-    const accounts = await pluggyClient.fetchAccounts(itemId);
+    const accounts = await client.fetchAccounts(itemId);
     
     // 4. Salva contas no nosso BD
     for (const acc of accounts.results) {
@@ -72,7 +88,7 @@ export async function syncBankConnection(itemId: string, userId: string) {
 
       // 4.1. Sincroniza as transações dessa conta
       try {
-        const transactions = await pluggyClient.fetchTransactions(acc.id);
+        const transactions = await client.fetchTransactions(acc.id);
         
         const insertData = transactions.results.map((t) => ({
           userId: userId,
@@ -89,8 +105,7 @@ export async function syncBankConnection(itemId: string, userId: string) {
 
         if (insertData.length > 0) {
           await db.transaction.createMany({
-            data: insertData,
-            skipDuplicates: true, // pluggyTransactionId é @unique, previne duplicadas
+            data: insertData as any,
           });
         }
 

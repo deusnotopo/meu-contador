@@ -21,11 +21,16 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transact
 
   return (
     <>
-      <div className="sec-hd">
-        <span className="sec-title">Últimas transações</span>
-        <span className="sec-link" onClick={() => onNavigate?.('personal')}>Ver todas</span>
+      <div className="flex justify-between items-center mb-3">
+        <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Últimas transações</div>
+        <button
+          className="text-[11px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300 transition-colors"
+          onClick={() => onNavigate?.('personal')}
+        >
+          Ver Todas
+        </button>
       </div>
-      <div className="card">
+      <div className="-mx-2">
         {error ? (
           <EmptyState 
             icon={AlertCircle}
@@ -36,15 +41,15 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transact
           transactions.map(tx => {
             const isPlus = tx.am > 0;
             return (
-              <div key={tx.id} className="row">
-                <div className="row-ico" style={{ background: isPlus ? 'var(--green-d)' : 'var(--glass2)' }}>
+              <div key={tx.id} className="flex items-center gap-3 py-3 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] px-2 rounded-xl transition-colors cursor-pointer">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-[18px] border border-white/[0.05]" style={{ background: isPlus ? 'var(--green-d)' : 'var(--glass2)' }}>
                   {tx.ico}
                 </div>
-                <div className="row-main">
-                  <div className="row-title">{tx.ti}</div>
-                  <div className="row-sub">{tx.cat}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold text-gray-100 truncate">{tx.ti}</div>
+                  <div className="text-[11.5px] text-gray-500 truncate mt-0.5">{tx.cat}</div>
                 </div>
-                <div className={`row-amt ${isPlus ? 'amt-plus' : 'amt-minus'}`}>
+                <div className={`text-[13.5px] font-semibold tabular-nums ${isPlus ? 'text-emerald-400' : 'text-red-400'}`} style={{ fontFamily: 'var(--mono)' }}>
                   {isPlus ? '+' : '−'}&nbsp;{fmt(Math.abs(tx.am)).replace('R$\xa0', 'R$\xa0')}
                 </div>
               </div>

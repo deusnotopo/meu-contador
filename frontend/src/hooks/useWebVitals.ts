@@ -1,6 +1,13 @@
 import { useEffect } from 'react';
 import { logger } from '@/lib/logger';
 
+interface WebVitalsMetricPayload {
+  name: string;
+  value: number;
+  delta: number;
+  id: string;
+}
+
 interface WebVitalsMetric {
   name: string;
   value: number;
@@ -52,7 +59,7 @@ export function useWebVitals() {
   useEffect(() => {
     // Dynamically import web-vitals to avoid bundling if not used
     import('web-vitals').then(({ onCLS, onFID, onFCP, onLCP, onTTFB, onINP }) => {
-      const handleMetric = (metric: any) => {
+      const handleMetric = (metric: WebVitalsMetricPayload) => {
         const webVitalsMetric: WebVitalsMetric = {
           name: metric.name,
           value: metric.value,
@@ -78,7 +85,7 @@ export function useWebVitals() {
 // Standalone function for manual reporting
 export function reportWebVitals() {
   import('web-vitals').then(({ onCLS, onFID, onFCP, onLCP, onTTFB, onINP }) => {
-    const handleMetric = (metric: any) => {
+    const handleMetric = (metric: WebVitalsMetricPayload) => {
       const webVitalsMetric: WebVitalsMetric = {
         name: metric.name,
         value: metric.value,

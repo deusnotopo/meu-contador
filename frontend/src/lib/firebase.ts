@@ -47,7 +47,7 @@ if (typeof window !== "undefined" && firebaseConfig.appId && firebaseConfig.meas
     try {
       remoteConfig = getRemoteConfig(app);
       analytics = getAnalytics(app);
-    } catch (e) {
+    } catch (_e) {
       // Silently fail - analytics is non-critical. CSP may block GTM in some environments.
       console.warn("[Firebase] Analytics unavailable (CSP or config issue). App continues normally.");
     }

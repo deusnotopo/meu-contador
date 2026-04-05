@@ -8,6 +8,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { OFXImportModal } from "./OFXImportModal";
 import { PluggyConnect } from "react-pluggy-connect";
 
+interface OpenFinanceTokenResponse {
+  accessToken: string;
+}
+
+interface PluggyItemSuccess {
+  item: {
+    id: string;
+  };
+}
+
+interface PluggyErrorLike {
+  message?: string;
+}
+
 interface BankConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,8 +36,8 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
     if (isOpen) {
       setMode("select");
       // Solicita o Token oficial da Pluggy logo no início para aquecimento
-      api.get("/open-finance/token")
-        .then((res: any) => setConnectToken(res.accessToken))
+      api.get<OpenFinanceTokenResponse>("/open-finance/token")
+        .then((res) => setConnectToken(res.accessToken))
         .catch((err) => {
           console.error("Open Finance Token Error:", err);
           showError("Falhas na malha bancária segura. Tente mais tarde.");
@@ -33,14 +47,14 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
     }
   }, [isOpen]);
 
-  const handlePluggySuccess = async (itemData: any) => {
+  const handlePluggySuccess = async (itemData: PluggyItemSuccess) => {
     showSuccess("Banco Conectado! Baixando seu histórico...");
     try {
       await api.post(`/open-finance/sync/${itemData.item.id}`, {});
       showSuccess("Sincronização concluída com sucesso!");
       onSuccess([]); // Força reload de transactions na tela principal
       onClose();
-    } catch (err) {
+    } catch (_err) {
       showError("Sem transações recentes ou erro ao sincronizar.");
       onClose();
     }
@@ -115,12 +129,11 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
           connectToken={connectToken}
           includeSandbox={true}
           onSuccess={handlePluggySuccess}
-          onError={(error: any) => {
+          onError={(error: PluggyErrorLike) => {
              console.error("Pluggy Connect Error:", error);
              showError("Autorização bancária cancelada ou negada.");
              setMode("select");
           }}
-          {...({ onClose: () => setMode("select") } as any)}
         />
       )}
 

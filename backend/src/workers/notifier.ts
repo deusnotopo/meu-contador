@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { db } from '../lib/db';
+import { purgeExpiredSensitiveData, writeAuditLog } from '../lib/audit';
 import { webpush } from '../lib/webpush';
 
 export function startWorkers() {
@@ -51,6 +52,20 @@ export function startWorkers() {
 
     } catch (error) {
       console.error('❌ Erro durante o CronJob de Notificações:', error);
+    }
+  });
+
+  cron.schedule('30 3 * * *', async () => {
+    try {
+      const result = await purgeExpiredSensitiveData();
+      await writeAuditLog({
+        action: 'SENSITIVE_DATA_PURGED',
+        resource: 'retention_job',
+        metadata: result,
+        retentionDays: 30,
+      });
+    } catch (error) {
+      console.error('❌ Erro durante o job de retenção/expurgo:', error);
     }
   });
 }

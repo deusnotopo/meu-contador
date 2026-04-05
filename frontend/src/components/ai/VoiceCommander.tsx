@@ -11,7 +11,27 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Loader2, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
-export const VoiceCommander = () => {
+interface VoiceTransactionData {
+  type?: Transaction["type"];
+  amount?: number | string;
+  description?: string;
+  category?: string;
+  date?: string;
+  paymentMethod?: string;
+}
+
+interface VoiceInvestmentData {
+  ticker?: string;
+  type?: string;
+  amount?: number | string;
+  price?: number | string;
+}
+
+interface VoiceCommanderProps {
+  onClose?: () => void;
+}
+
+export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
   const { isViewer } = useRole();
   const [isProcessing, setIsProcessing] = useState(false);
   const [parsedResult, setParsedResult] = useState<ParsedCommand | null>(null);
@@ -22,7 +42,7 @@ export const VoiceCommander = () => {
     try {
       const result = await parseVoiceCommand(text);
       setParsedResult(result);
-    } catch (error) {
+    } catch (_error) {
       showError("Erro ao processar comando de voz.");
     } finally {
       setIsProcessing(false);
@@ -40,14 +60,14 @@ export const VoiceCommander = () => {
     }
 
     if (parsedResult.type === "transaction" && parsedResult.data) {
-      const t = parsedResult.data as any;
+      const t = parsedResult.data as VoiceTransactionData;
       const newTransaction: Transaction = {
         id: Date.now().toString(),
         type: t.type || 'expense',
         amount: typeof t.amount === 'string' ? parseFloat(t.amount) : (t.amount || 0),
         description: t.description || 'Comando de voz',
         category: t.category || 'Outros',
-        date: t.date || new Date().toISOString().split("T")[0],
+        date: t.date || (new Date().toISOString().split("T")[0] ?? new Date().toISOString()),
         paymentMethod: t.paymentMethod || 'other',
         notes: "Via Comando de Voz",
         recurring: false,
@@ -59,11 +79,11 @@ export const VoiceCommander = () => {
       showSuccess("Transação registrada!");
       window.dispatchEvent(new Event("storage-local"));
     } else if (parsedResult.type === "investment" && parsedResult.data) {
-      const inv = parsedResult.data as any;
+      const inv = parsedResult.data as VoiceInvestmentData;
       addAsset({
         name: inv.ticker || "Ativo",
         ticker: inv.ticker || "ATIVO",
-        type: inv.type || "stock",
+        type: (inv.type || "stock") as "stock" | "fii" | "crypto" | "fixed_income" | "etf",
         amount: typeof inv.amount === 'string' ? parseFloat(inv.amount) : (inv.amount || 0),
         averagePrice: typeof inv.price === 'string' ? parseFloat(inv.price) : (inv.price || 0),
         currentPrice: typeof inv.price === 'string' ? parseFloat(inv.price) : (inv.price || 0),
@@ -118,7 +138,7 @@ export const VoiceCommander = () => {
 
                 {parsedResult.type === "transaction" && parsedResult.data ? (
                   (() => {
-                    const t = parsedResult.data as any;
+                    const t = parsedResult.data as VoiceTransactionData;
                     return (
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
@@ -136,7 +156,7 @@ export const VoiceCommander = () => {
                                 : "text-red-400"
                             }`}
                           >
-                            R$ {t.amount?.toFixed(2) || '0.00'}
+                            R$ {(typeof t.amount === 'number' ? t.amount : parseFloat(String(t.amount || 0))).toFixed(2) || '0.00'}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -150,7 +170,7 @@ export const VoiceCommander = () => {
                   })()
                 ) : parsedResult.type === "investment" && parsedResult.data ? (
                   (() => {
-                    const inv = parsedResult.data as any;
+                    const inv = parsedResult.data as VoiceInvestmentData;
                     return (
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
@@ -169,7 +189,7 @@ export const VoiceCommander = () => {
                           <div className="flex justify-between">
                             <span className="text-slate-400">Preço:</span>
                             <span className="text-emerald-400 font-bold">
-                              R$ {inv.price?.toFixed(2) || '0.00'}
+                              R$ {(typeof inv.price === 'number' ? inv.price : parseFloat(String(inv.price || 0))).toFixed(2) || '0.00'}
                             </span>
                           </div>
                         )}
@@ -208,6 +228,14 @@ export const VoiceCommander = () => {
       </AnimatePresence>
 
       <div className="relative group">
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="absolute -top-10 right-0 w-8 h-8 rounded-full bg-slate-800/80 text-slate-300 flex items-center justify-center backdrop-blur shadow-lg border border-white/10 hover:bg-slate-700 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        )}
         <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full group-hover:bg-indigo-500/40 transition-all duration-500" />
         <div className="relative bg-black/90 backdrop-blur-xl p-2 rounded-full border border-white/10 shadow-xl">
           <VoiceInput

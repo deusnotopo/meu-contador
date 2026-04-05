@@ -33,6 +33,7 @@ if (UPSTASH_URL && UPSTASH_TOKEN) {
 // --- In-memory fallback ---
 
 const memoryStore = new Map<string, CacheEntry<unknown>>();
+const MAX_MEMORY_ENTRIES = 5000;
 
 function memGet<T>(key: string): T | null {
   const entry = memoryStore.get(key);
@@ -45,6 +46,11 @@ function memGet<T>(key: string): T | null {
 }
 
 function memSet<T>(key: string, value: T, ttlMs: number): void {
+  if (memoryStore.size >= MAX_MEMORY_ENTRIES) {
+    // Apaga 10% dos registros antigos baseando-se nas chaves da Map se o limite bater.
+    const keys = Array.from(memoryStore.keys()).slice(0, 500);
+    keys.forEach(k => memoryStore.delete(k));
+  }
   memoryStore.set(key, { value, expiresAt: Date.now() + ttlMs });
 }
 

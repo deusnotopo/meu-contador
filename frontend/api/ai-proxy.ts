@@ -1,5 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+interface MistralChatRequestBody {
+  model: string;
+  messages: unknown;
+  temperature: number;
+  response_format?: unknown;
+}
+
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse
@@ -22,7 +29,7 @@ export default async function handler(
   }
 
   try {
-    const body: any = {
+    const body: MistralChatRequestBody = {
       model: "mistral-small",
       messages,
       temperature: temperature || 0.3,

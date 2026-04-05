@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
+import type { AuthUser } from "@/context/AuthContext";
 
 interface UserNavProps {
   onNavigate?: (tab: TabType) => void;
@@ -15,11 +16,12 @@ interface UserNavProps {
 }
 
 export function UserNav({ onNavigate, collapsed = false }: UserNavProps) {
-  const { user, logout } = useAuth() as any;
+  const { user, logout } = useAuth();
+  const navUser = user as (AuthUser & { username?: string }) | null;
 
   // Derive display name and initials from auth context (always up-to-date)
-  const displayName: string = (user as any)?.name || (user as any)?.username || "Usuário";
-  const displayEmail: string = (user as any)?.email || "";
+  const displayName: string = navUser?.name || navUser?.username || "Usuário";
+  const displayEmail: string = navUser?.email || "";
   const initials = displayName.substring(0, 2).toUpperCase();
 
   const handleLogout = async () => {

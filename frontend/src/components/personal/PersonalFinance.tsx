@@ -20,6 +20,7 @@ import {
   Upload,
   Link2,
 } from "lucide-react";
+import { HelpButton } from "@/components/ui/HelpButton";
 import { BankConnectionModal } from "@/components/banking/BankConnectionModal";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -108,7 +109,22 @@ export const PersonalFinance = () => {
 
   const handleBankSyncSuccess = (newTransactions: Partial<Transaction>[]) => {
     newTransactions.forEach(t => {
-      addTransaction(t as any);
+      addTransaction({
+        type: t.type || "expense",
+        description: t.description || "Transação importada",
+        amount: String(t.amount || 0),
+        category: t.category || "Outros",
+        date: t.date || new Date().toISOString().split("T")[0] || "",
+        paymentMethod: t.paymentMethod || "bank_sync",
+        notes: t.notes || "",
+        recurring: t.recurring || false,
+        recurrenceInterval: t.recurrenceInterval,
+        scope: t.scope || "personal",
+        classification: t.classification,
+        currency: t.currency,
+        exchangeRate: t.exchangeRate ? String(t.exchangeRate) : undefined,
+        receiptUrl: t.receiptUrl,
+      });
     });
   };
 
@@ -232,6 +248,7 @@ export const PersonalFinance = () => {
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
           <div className="space-y-4 flex flex-col items-center md:items-start">
+            <HelpButton tooltipText="Gerencie suas finanças pessoais: lançamentos, orçamentos, metas e lembretes" />
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-white/5 text-[10px] font-black uppercase tracking-widest text-indigo-400">
               <Sparkles size={12} />
               Gestão Financeira
@@ -257,29 +274,26 @@ export const PersonalFinance = () => {
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
               <Button
-                variant="ghost"
+                variant="glossy"
                 size="icon"
                 onClick={() => exportTransactionsToCSV(transactions)}
-                className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white"
                 title="Exportar para Excel"
               >
                 <FileSpreadsheet size={18} />
               </Button>
               <Button
-                variant="ghost"
+                variant="glossy"
                 size="icon"
                 onClick={handleExport}
-                className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white"
                 title="Exportar para JSON"
               >
                 <Download size={18} />
               </Button>
               <Button
-                variant="ghost"
+                variant="glossy"
                 size="icon"
                 onClick={() => isViewer ? showError("Somente leitura") : fileInputRef.current?.click()}
                 disabled={isViewer}
-                className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50"
                 title="Importar transações"
               >
                 <Upload size={18} />
@@ -288,17 +302,21 @@ export const PersonalFinance = () => {
 
             <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
                <Button
+                variant="glossy"
+                size="lg"
                 onClick={() => isViewer ? showError("Somente leitura") : setShowReceiptScanner(true)}
                 disabled={isViewer}
-                className="bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl h-14 px-6 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+                className="font-black text-[10px] md:text-xs uppercase tracking-widest"
               >
                 <Camera size={18} className="mr-2 hidden sm:block" />
                 Escanear
               </Button>
               <Button
+                variant="default"
+                size="lg"
                 onClick={() => isViewer ? showError("Somente leitura") : handleNewTransaction()}
                 disabled={isViewer}
-                className="bg-white text-black hover:bg-white/90 font-black rounded-2xl h-14 px-8 shadow-xl shadow-white/5 transition-all text-[10px] md:text-xs uppercase tracking-widest whitespace-nowrap disabled:opacity-50"
+                className="font-black text-[10px] md:text-xs uppercase tracking-widest"
               >
                 <PlusCircle size={18} className="mr-2 hidden sm:block" />
                 Novo Lançamento

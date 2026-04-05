@@ -3,6 +3,8 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { formatCurrency, formatShortDate } from "@/lib/formatters";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/ui/HelpButton";
 import { WizardTrigger } from "@/components/onboarding/WizardTrigger";
 import type { TabType } from "@/types/navigation";
 
@@ -38,39 +40,43 @@ const EnvelopeDetail = ({ category, limit, spent, transactions, onBack }: Envelo
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <div style={{ paddingTop: "10px", animation: "fsu 0.26s ease" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <button className="back-btn" onClick={onBack}><ArrowLeft size={16} /></button>
-        <div>
-          <div className="eyebrow">Envelope</div>
-          <div className="page-title" style={{ margin: 0, fontSize: 22 }}>
+    <div style={{ paddingTop: "8px", animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
+      {/* ── Header Flutuante Zen ── */}
+      <div className="flex items-center gap-3 mb-6 sticky top-2 z-[60] bg-[#0A1220]/70 backdrop-blur-2xl px-4 py-3.5 rounded-[28px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-2">
+        <button className="w-10 h-10 rounded-xl bg-white/[0.03] backdrop-blur-md border border-white/[0.08] flex items-center justify-center shadow-md transition-transform hover:scale-105 active:scale-95" onClick={onBack}>
+          <ArrowLeft size={16} />
+        </button>
+        <div style={{ flex: 1 }}>
+          <div className="text-[10px] text-white/50 uppercase tracking-widest font-bold mb-0.5">Envelope</div>
+          <div className="text-lg font-bold text-white tracking-tight flex items-center gap-2" style={{ margin: 0 }}>
             {CATEGORY_ICONS[category] || "📦"} {category}
           </div>
         </div>
       </div>
+      <div className="px-2">
 
       {/* Hero card */}
-      <div className="hero" style={{ padding: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+      <div className="bento-card bento-full" style={{ padding: 22, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 4 }}>
+            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, marginBottom: 4 }}>
               {isOver ? "Estouro" : "Restando"}
             </div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: isOver ? "var(--red)" : "var(--green)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>
+            <div style={{ fontSize: 32, fontWeight: 700, color: isOver ? "var(--red)" : "var(--green)", fontFamily: "var(--mono)", letterSpacing: "-1.5px" }}>
               {formatCurrency(Math.abs(available))}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 4 }}>Gasto</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>
+            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, marginBottom: 4 }}>Gasto</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>
               {formatCurrency(spent)}
             </div>
           </div>
         </div>
-        <div className="prog" style={{ height: 8 }}>
-          <div className="prog-fill" style={{ width: `${pct}%`, background: progressColor }} />
+        <div className="h-2 rounded-full bg-white/5 overflow-hidden flex">
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: progressColor }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--t3)", marginTop: 4, fontFamily: "var(--mono)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--t3)", marginTop: 8, fontFamily: "var(--mono)", fontWeight: 500 }}>
           <span>{Math.round(pct)}% utilizado</span>
           <span>Limite: {formatCurrency(limit)}</span>
         </div>
@@ -95,28 +101,29 @@ const EnvelopeDetail = ({ category, limit, spent, transactions, onBack }: Envelo
       ) : null}
 
       {/* Transactions of this category */}
-      <div className="sec-hd">
-        <span className="sec-title">Lançamentos</span>
-        <span style={{ fontSize: 11, color: "var(--t3)", fontFamily: "var(--mono)" }}>{catTxns.length} este mês</span>
+      <div className="flex justify-between items-center mb-3 mt-4">
+        <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Lançamentos do Envelope</span>
+        <span style={{ fontSize: 11, color: "var(--t3)", fontFamily: "var(--mono)", fontWeight: 500 }}>{catTxns.length} este mês</span>
       </div>
       {catTxns.length === 0 ? (
-        <div className="card" style={{ padding: "20px", textAlign: "center", color: "var(--t3)", fontSize: 13 }}>
+        <div className="bento-card bento-full" style={{ padding: "24px", textAlign: "center", color: "var(--t3)", fontSize: 13 }}>
           Nenhum lançamento em {category} este mês.
         </div>
       ) : (
-        <div className="card">
+        <div className="-mx-2">
           {catTxns.map((tx, i) => (
-            <div key={tx.id || i} className="row">
-              <div className="row-ico" style={{ background: "var(--glass2)" }}>{CATEGORY_ICONS[category] || "📦"}</div>
-              <div className="row-main">
-                <div className="row-title">{tx.description}</div>
-                <div className="row-sub">{formatShortDate(tx.date)}</div>
+            <div key={tx.id || i} className="flex items-center gap-3 py-3 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] px-2 rounded-xl transition-colors cursor-pointer">
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-[18px] border border-white/[0.05] bg-white/[0.03]">{CATEGORY_ICONS[category] || "📦"}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-semibold text-gray-100 truncate">{tx.description}</div>
+                <div className="text-[11.5px] text-gray-500 truncate mt-0.5">{formatShortDate(tx.date)}</div>
               </div>
-              <div className="row-amt amt-minus">− {formatCurrency(Math.abs(tx.amount))}</div>
+              <div className="text-[13.5px] font-semibold text-red-400 tabular-nums" style={{ fontFamily: 'var(--mono)' }}>− {formatCurrency(Math.abs(tx.amount))}</div>
             </div>
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 };
@@ -215,31 +222,39 @@ export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: Plann
   }
 
   return (
-    <div style={{ paddingTop: "10px" }}>
-      <div className="eyebrow">Orçamento zero-based</div>
-      <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        Envelopes
-        <WizardTrigger label="Configurar" />
+    <div style={{ paddingTop: "8px", animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
+      {/* ── Header Flutuante Zen ── */}
+      <div className="flex items-center gap-3 mb-6 sticky top-2 z-[60] bg-[#0A1220]/70 backdrop-blur-2xl px-4 py-3.5 rounded-[28px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-2">
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div>
+            <div className="text-[10px] text-white/50 uppercase tracking-widest font-bold mb-0.5">Orçamento zero-based</div>
+            <div className="text-lg font-bold text-white tracking-tight leading-none">Envelopes</div>
+          </div>
+          <WizardTrigger label="Configurar" />
+          <HelpButton tooltipText="Distribua a renda do mês por envelopes, acompanhe excesso e automatize regras de realocação." />
+        </div>
       </div>
-      <div className="page-sub" style={{ marginBottom: "14px" }}>
+
+      <div className="px-2">
+      <div className="text-center text-[12px] text-slate-400 mb-5 font-medium tracking-wide">
         {capitalizedMonth} · cada real tem um destino
       </div>
 
-      <div className="hero" style={{ padding: "18px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+      <div className="bento-card bento-full" style={{ padding: "22px", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
           <div>
-            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: "4px" }}>Disponível p/ alocar</div>
-            <div style={{ fontSize: "28px", fontWeight: 700, color: "var(--green)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>{formatCurrency(totalAvailable)}</div>
+            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "4px" }}>Disponível p/ alocar</div>
+            <div style={{ fontSize: "32px", fontWeight: 700, color: "var(--green)", fontFamily: "var(--mono)", letterSpacing: "-1.5px" }}>{formatCurrency(totalAvailable)}</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: "4px" }}>Alocado</div>
-            <div style={{ fontSize: "28px", fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>{formatCurrency(totalSpent)}</div>
+            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "4px" }}>Alocado</div>
+            <div style={{ fontSize: "26px", fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>{formatCurrency(totalSpent)}</div>
           </div>
         </div>
-        <div className="prog" style={{ height: "8px" }}>
-          <div className="prog-fill" style={{ width: `${progressPct}%`, background: "linear-gradient(90deg,#00D991,#4A8BFF)" }} />
+        <div className="h-2 bg-white/5 rounded-full overflow-hidden flex">
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progressPct}%`, background: "linear-gradient(90deg,#00D991,#4A8BFF)" }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--t3)", marginTop: "4px", fontFamily: "var(--mono)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--t3)", marginTop: "8px", fontFamily: "var(--mono)", fontWeight: 500 }}>
           <span>{Math.round(progressPct)}% alocado</span>
           <span>Total: {formatCurrency(totalLimit)}</span>
         </div>
@@ -250,9 +265,9 @@ export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: Plann
         if (groupBudgets.length === 0) {
           if (budgets.length === 0) return null;
           return (
-            <div key={group.name} style={{ marginBottom: 10 }}>
-              <div className="sec-hd"><span className="sec-title">{group.name}</span></div>
-              <div className="card" style={{ padding: "16px", textAlign: "center", color: "var(--t3)", fontSize: 11, borderStyle: "dashed" }}>
+            <div key={group.name} style={{ marginBottom: 16 }}>
+              <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-3">{group.name}</div>
+              <div className="bento-card bento-full" style={{ padding: "16px", textAlign: "center", color: "var(--t3)", fontSize: 11, borderStyle: "dashed" }}>
                 Nenhum envelope em {group.name.split(' · ')[0]}
               </div>
             </div>
@@ -279,9 +294,9 @@ export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: Plann
         const isSavingsGroup = group.name.includes('Poupança');
 
         return (
-          <div key={group.name}>
-            <div className="sec-hd"><span className="sec-title">{group.name}</span></div>
-            <div className="env-grid">
+          <div key={group.name} style={{ marginBottom: 20 }}>
+            <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-3">{group.name}</div>
+            <div className="bento-grid" style={{ marginBottom: 0 }}>
               {displayItems.map((item, idx) => {
                 let progressColor = "var(--blue)";
                 if (item.pc >= 100 && !isSavingsGroup) {
@@ -295,19 +310,19 @@ export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: Plann
                 return (
                   <div
                     key={idx}
-                    className="env"
-                    style={{ cursor: "pointer" }}
+                    className="bento-card"
+                    style={{ padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column" }}
                     onClick={() => setSelectedEnvelope(item.nm)}
                   >
-                    <div className="env-ico">{item.ic}</div>
-                    <div className="env-name">{item.nm}</div>
-                    <div className="env-val" style={{ color: item.pc > 100 ? "var(--red)" : item.pc === 100 && !isSavingsGroup ? "var(--amber)" : undefined }}>
+                    <div className="text-[20px] mb-2">{item.ic}</div>
+                    <div className="text-[12px] font-bold text-white mb-1">{item.nm}</div>
+                    <div className="text-[14px] font-black font-mono tracking-tight mb-2" style={{ color: item.pc > 100 ? "var(--red)" : item.pc === 100 && !isSavingsGroup ? "var(--amber)" : "var(--t1)" }}>
                       {formatCurrency(item.us).replace(',00', '')}
                     </div>
-                    <div className="prog" style={{ height: "4px" }}>
-                      <div className="prog-fill" style={{ width: `${Math.min(item.pc, 100)}%`, background: progressColor }} />
+                    <div className="h-1 bg-white/5 rounded-full overflow-hidden flex w-full mb-2 mt-auto">
+                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(item.pc, 100)}%`, background: progressColor }} />
                     </div>
-                    <div className="env-sub" style={{ color: item.pc > 100 ? "var(--red)" : undefined }}>
+                    <div className="text-[9.5px] font-bold uppercase tracking-widest" style={{ color: item.pc > 100 ? "var(--red)" : "var(--t3)" }}>
                       {item.pc > 100
                         ? `⚠ +${formatCurrency(item.us - item.tt)}`
                         : (item.pc === 100 && isSavingsGroup ? '✓ Completo' : item.tt > 0 ? `de ${formatCurrency(item.tt).replace(',00', '')}` : 'Toque p/ ver')}
@@ -320,41 +335,44 @@ export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: Plann
         );
       })}
 
-      <div className="sec-hd"><span className="sec-title">Ulysses Contract</span></div>
-      <div className="nudge good">
-        <div className="nudge-ttl" style={{ color: "var(--green)" }}>
+      <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-3 mt-4">Ulysses Contract</div>
+      <div className="bento-card bento-full border-blue-500/20" style={{ background: "linear-gradient(135deg, rgba(74,139,255,0.06), rgba(0,0,0,0))" }}>
+        <div className="text-[12px] font-black uppercase tracking-widest mb-1.5" style={{ color: ulyssesRule.active ? "var(--green)" : "var(--amber)" }}>
           {ulyssesRule.active ? "✓ Regra automática ativa" : "⚠ Regra pausada"}
         </div>
-        <div className="nudge-body">
-          Se conta-corrente superar <strong>{formatCurrency(ulyssesRule.threshold)}</strong> no dia {ulyssesRule.day} → excedente vai automaticamente para {ulyssesRule.destination}.
+        <div className="text-[12px] font-medium leading-relaxed text-white/80">
+          Se saldo superar <strong className="text-white font-mono">{formatCurrency(ulyssesRule.threshold)}</strong> no dia {ulyssesRule.day} → enviar para {ulyssesRule.destination}.
         </div>
-        <div style={{ fontSize: "11px", color: "var(--t3)", marginTop: "8px" }}>
-          Sugestão inicial calculada pelo app: <strong>{formatCurrency(recommendedUlyssesRule.threshold)}</strong>, com base na sua renda e envelopes do mês.
+        <div style={{ fontSize: "10.5px", color: "var(--t3)", marginTop: "10px", lineHeight: 1.5 }}>
+          Sugestão heurística atual: <strong>{formatCurrency(recommendedUlyssesRule.threshold)}</strong>
         </div>
         <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-          <button 
-            className="btn-ghost" 
-            style={{ flex: 1, padding: "8px", fontSize: "11px" }}
+          <Button 
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
             onClick={() => setShowUlyssesModal(true)}
           >
             Editar regra
-          </button>
-          <button 
-            className="btn-ghost" 
-            style={{ flex: 1, padding: "8px", fontSize: "11px", color: "var(--green)", borderColor: "rgba(0,217,145,0.3)" }}
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs text-emerald-400 border-emerald-500/30"
             onClick={() => setShowHistoryNotice((prev) => !prev)}
           >
             Ver histórico
-          </button>
+          </Button>
         </div>
         {showHistoryNotice && (
-          <div className="card" style={{ marginTop: "10px", padding: "12px", background: "rgba(255,255,255,0.03)" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>Histórico ainda não automatizado</div>
-            <div style={{ fontSize: "11px", color: "var(--t3)", lineHeight: 1.5 }}>
-              Esta área será conectada futuramente aos eventos reais de transferência e execução da regra. Por enquanto, o contrato funciona como configuração orientativa, sem log transacional persistido.
+          <div className="mt-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+            <div className="text-[11px] font-bold text-white mb-1 uppercase tracking-widest">Aviso Operacional</div>
+            <div className="text-[11px] text-white/50 leading-relaxed">
+              O motor de agendamento está em aprovação (Open Finance). Por enquanto isso norteia o comportamento, transferências são manuais.
             </div>
           </div>
         )}
+      </div>
       </div>
 
       {/* Ulysses Config Modal */}
@@ -388,16 +406,16 @@ export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: Plann
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 30 }}>
-              <button 
-                className="btn-ghost" 
-                style={{ flex: 1 }}
+              <Button 
+                variant="outline"
+                className="flex-1"
                 onClick={() => setShowUlyssesModal(false)}
               >
                 Cancelar
-              </button>
-              <button 
-                className="btn-p" 
-                style={{ flex: 1, background: 'var(--green)', color: 'black' }}
+              </Button>
+              <Button 
+                variant="secondary"
+                className="flex-1 bg-emerald-400 text-black hover:bg-emerald-300"
                 onClick={() => {
                   const threshold = Number((document.getElementById('ulysses-threshold') as HTMLInputElement).value);
                   const destination = (document.getElementById('ulysses-dest') as HTMLSelectElement).value;
@@ -405,7 +423,7 @@ export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: Plann
                 }}
               >
                 Salvar Contrato
-              </button>
+              </Button>
             </div>
           </div>
         </div>

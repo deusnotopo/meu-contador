@@ -4,6 +4,7 @@ import { db } from '../lib/db';
 import { hashPassword, comparePassword } from '../lib/auth-utils';
 import firebaseAdmin from 'firebase-admin';
 import crypto from 'crypto';
+import { writeAuditLog } from '../lib/audit';
 
 const ACCESS_COOKIE_NAME = 'mc_access_token';
 const REFRESH_COOKIE_NAME = 'mc_refresh_token';
@@ -41,7 +42,7 @@ function buildCookie(name: string, value: string, options: {
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     'Path=/',
-    'SameSite=Lax',
+    process.env.NODE_ENV === 'production' ? 'SameSite=Strict' : 'SameSite=Lax',
     ...(options.maxAge ? [`Max-Age=${options.maxAge}`] : []),
     ...(process.env.NODE_ENV === 'production' ? ['Secure'] : []),
     ...(options.httpOnly === false ? [] : ['HttpOnly']),
@@ -111,14 +112,6 @@ async function issueAuthCookies(app: FastifyInstance, reply: any, user: any, req
   return { csrfToken };
 }
 
-function isDevtoolsAuthorized(headers: Record<string, unknown>) {
-  const configuredSecret = process.env.AUTH_DEVTOOLS_SECRET?.trim();
-  if (!configuredSecret) return false;
-
-  const providedSecret = headers['x-devtools-secret'];
-  return typeof providedSecret === 'string' && providedSecret === configuredSecret;
-}
-
 // Initialize Firebase Admin with service account credentials from env vars.
 // Download the JSON from: Firebase Console → Project Settings → Service Accounts
 // → Generate new private key. Then set the env vars below.
@@ -154,19 +147,21 @@ try {
 
 
 export async function authRoutes(app: FastifyInstance) {
+  const isTestRuntime = process.env.NODE_ENV === 'test' || !!process.env.VITEST || !!process.env.VITEST_WORKER_ID;
+  const authRateLimit = isTestRuntime
+    ? { max: 1000, timeWindow: '1 minute' as const }
+    : { max: 5, timeWindow: '1 minute' as const };
+
   // Register
   app.post('/auth/register', {
     config: {
-      rateLimit: {
-        max: 5,
-        timeWindow: '1 minute',
-      },
+      rateLimit: authRateLimit,
     },
     schema: {
       tags: ['Auth'],
       body: z.object({
         email: z.string().email(),
-        password: z.string().min(6),
+        password: z.string().min(8),
         name: z.string().optional(),
       }),
       response: {
@@ -189,17 +184,41 @@ export async function authRoutes(app: FastifyInstance) {
 
     const hashedPassword = await hashPassword(password);
 
-    const user = await db.user.create({
-      data: {
-        email,
-        passwordHash: hashedPassword, // Using the new field
-        name: name || email.split('@')[0],
-      },
+    const user = await db.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email,
+          passwordHash: hashedPassword,
+          name: name || email.split('@')[0],
+        },
+      });
+
+      const workspace = await tx.workspace.create({
+        data: {
+          name: `${createdUser.name || 'Workspace'} Principal`,
+          ownerId: createdUser.id,
+          members: { connect: { id: createdUser.id } },
+        },
+      });
+
+      return tx.user.update({
+        where: { id: createdUser.id },
+        data: { currentWorkspaceId: workspace.id },
+      });
     });
 
     const { passwordHash, ...userWithoutPassword } = user;
 
     const { csrfToken } = await issueAuthCookies(app, reply, user, request);
+    
+    await writeAuditLog({
+      userId: user.id,
+      action: 'user.register',
+      resource: 'user',
+      resourceId: user.id,
+      metadata: { method: 'email' }
+    });
+    
     return { user: userWithoutPassword, csrfToken };
   });
 
@@ -233,7 +252,13 @@ export async function authRoutes(app: FastifyInstance) {
         email = decodedToken.email;
         name = decodedToken.name;
       } catch (_adminErr) {
-        // Fallback: verify token via Google's tokeninfo endpoint (no private key needed)
+        // Em PRODUÇÃO: falhar FECHADO, sem fallback. Fallback apenas em desenvolvimento.
+        if (process.env.NODE_ENV === 'production') {
+          console.error('[PROD] Firebase Admin verification failed, no fallback allowed');
+          return (reply as any).status(401).send({ message: 'Invalid Google token' });
+        }
+        
+        // Fallback APENAS em desenvolvimento: verify token via Google's tokeninfo endpoint (no private key needed)
         try {
           const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
           if (!res.ok) {
@@ -271,13 +296,28 @@ export async function authRoutes(app: FastifyInstance) {
       let user = await db.user.findUnique({ where: { email } });
 
       if (!user) {
-        user = await db.user.create({
-          data: {
-            email,
-            name: name || 'Google User',
-            monthlyIncome: 0,
-            passwordHash: '', // No password for Google users
-          }
+        user = await db.$transaction(async (tx) => {
+          const createdUser = await tx.user.create({
+            data: {
+              email,
+              name: name || 'Google User',
+              monthlyIncome: 0,
+              passwordHash: '',
+            }
+          });
+
+          const workspace = await tx.workspace.create({
+            data: {
+              name: `${createdUser.name || 'Workspace'} Principal`,
+              ownerId: createdUser.id,
+              members: { connect: { id: createdUser.id } },
+            },
+          });
+
+          return tx.user.update({
+            where: { id: createdUser.id },
+            data: { currentWorkspaceId: workspace.id },
+          });
         });
       }
 
@@ -294,10 +334,7 @@ export async function authRoutes(app: FastifyInstance) {
   // Login
   app.post('/auth/login', {
     config: {
-      rateLimit: {
-        max: 5,
-        timeWindow: '1 minute',
-      },
+      rateLimit: authRateLimit,
     },
     schema: {
       tags: ['Auth'],
@@ -339,6 +376,14 @@ export async function authRoutes(app: FastifyInstance) {
     const { passwordHash, ...userProfile } = user;
     console.info('[Auth] Login success');
     const { csrfToken } = await issueAuthCookies(app, reply, user, request);
+    
+    await writeAuditLog({
+      userId: user.id,
+      action: 'user.login',
+      resource: 'session',
+      metadata: { method: 'email' }
+    });
+    
     return { user: userProfile, csrfToken };
   });
 
@@ -366,16 +411,50 @@ export async function authRoutes(app: FastifyInstance) {
         expiresAt: { gt: new Date() },
       },
       include: { user: true },
-    });
+    }).catch(() => null);
 
     if (!session) {
       return reply.status(401).send({ message: 'Unauthorized' });
     }
 
-    await db.session.update({
-      where: { id: session.id },
+    // Usar updateMany com condição revokedAt: null para garantir atomicidade
+    // Isso previne race condition onde dois requests /refresh simultâneos com o mesmo token
+    const updated = await db.session.updateMany({
+      where: { 
+        id: session.id,
+        revokedAt: null 
+      },
       data: { revokedAt: new Date() },
     });
+
+    if (updated.count === 0) {
+      // Token já foi revogado antes: possível ataque, revogar TODAS as sessões do usuário
+      await db.session.updateMany({
+        where: {
+          userId: session.userId,
+          revokedAt: null
+        },
+        data: { revokedAt: new Date() }
+      });
+
+      app.log.warn({
+        event: "refresh_token_reused",
+        userId: session.userId,
+        sessionId: session.id,
+        ipAddress: request.ip,
+        userAgent: request.headers['user-agent']
+      });
+
+      await writeAuditLog({
+        userId: session.userId,
+        action: 'security.refresh_token_reused',
+        resource: 'session',
+        resourceId: session.id,
+        metadata: { ipAddress: request.ip }
+      });
+
+      return reply.status(401).send({ message: 'Sessão inválida' });
+    }
 
     const next = await createSession(session.user.id, request);
     const accessToken = app.signAccessToken({
@@ -410,6 +489,11 @@ export async function authRoutes(app: FastifyInstance) {
       buildExpiredCookie(REFRESH_COOKIE_NAME),
       `${CSRF_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
     ]);
+
+    await writeAuditLog({
+      action: 'user.logout',
+      resource: 'session'
+    });
 
     return { success: true };
   });
@@ -464,33 +548,4 @@ export async function authRoutes(app: FastifyInstance) {
       message: 'Upgrade manual desabilitado. Integre verificação de pagamento/entitlement antes de reativar este endpoint.'
     });
   });
-  // DEV ONLY — reset/set password for any user (removes Google-only restriction)
-  if (process.env.NODE_ENV === 'development') {
-    app.post('/auth/dev/reset-password', async (request, reply) => {
-      if (!isDevtoolsAuthorized(request.headers as Record<string, unknown>)) {
-        return reply.status(403).send({ message: 'Devtools não autorizado' });
-      }
-
-      const { email, newPassword } = request.body as { email: string; newPassword: string };
-      if (!email || !newPassword || newPassword.length < 6) {
-        return reply.status(400).send({ message: 'Bad request: email and newPassword (min 6 chars) required' });
-      }
-      const user = await db.user.findUnique({ where: { email } });
-      if (!user) {
-        return reply.status(404).send({ message: 'User not found' });
-      }
-      const hashedPassword = await hashPassword(newPassword);
-      await db.user.update({ where: { email }, data: { passwordHash: hashedPassword } });
-      return { success: true, message: `Password reset for ${email}` };
-    });
-
-    app.get('/auth/dev/users', async (request, reply) => {
-      if (!isDevtoolsAuthorized(request.headers as Record<string, unknown>)) {
-        return reply.status(403).send({ message: 'Devtools não autorizado' });
-      }
-
-      const users = await db.user.findMany({ select: { id: true, email: true, name: true, passwordHash: true, createdAt: true } });
-      return users.map(u => ({ ...u, hasPassword: u.passwordHash !== '' }));
-    });
-  }
 }

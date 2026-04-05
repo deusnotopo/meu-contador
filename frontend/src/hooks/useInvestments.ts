@@ -25,8 +25,9 @@ export const useInvestments = () => {
     setError(null);
     
     try {
-      const data = await api.get<Investment[]>("/investments");
-      setAssets(data);
+      const response = await api.get<Investment[] | { items?: Investment[] }>("/investments");
+      const items = Array.isArray(response) ? response : (response?.items || []);
+      setAssets(items);
     } catch (err) {
       console.error("Investments API Error:", err);
       setError("Investimentos indisponíveis no momento. Tente novamente mais tarde.");
@@ -50,7 +51,7 @@ export const useInvestments = () => {
       }
       
       showSuccess("Ativo cadastrado com sucesso!");
-    } catch (error) {
+    } catch {
       showError("Erro ao cadastrar ativo.");
     }
   };
@@ -66,7 +67,7 @@ export const useInvestments = () => {
       }
       
       showSuccess("Ativo removido.");
-    } catch (error) {
+    } catch {
       showError("Erro ao remover ativo.");
     }
   };
@@ -76,7 +77,7 @@ export const useInvestments = () => {
       await api.post(`/investments/${investmentId}/dividends`, dividend);
       await fetchInvestments(); // Refresh to get updated nested data
       showSuccess("Provento registrado!");
-    } catch (error) {
+    } catch {
       showError("Erro ao registrar provento.");
     }
   };
@@ -86,7 +87,7 @@ export const useInvestments = () => {
       await api.delete(`/investments/${investmentId}/dividends/${dividendId}`);
       await fetchInvestments();
       showSuccess("Provento removido!");
-    } catch (error) {
+    } catch {
       showError("Erro ao remover provento.");
     }
   };
@@ -102,7 +103,7 @@ export const useInvestments = () => {
       }
       
       showSuccess("Venda registrada!");
-    } catch (error) {
+    } catch {
       showError("Erro ao registrar venda.");
     }
   };
@@ -135,7 +136,7 @@ export const useInvestments = () => {
       const updated = await api.put<Investment>(`/investments/${id}`, updates);
       setAssets((prev) => prev.map((a) => (a.id === id ? updated : a)));
       showSuccess("Ativo atualizado!");
-    } catch (error) {
+    } catch {
       showError("Erro ao atualizar ativo.");
     }
   };
@@ -170,7 +171,7 @@ export const useInvestments = () => {
       // For now, we update local state and notify success
       setAssets(updatedAssets);
       showSuccess("Cotações atualizadas!");
-    } catch (e) {
+    } catch {
       showError("Erro ao sincronizar preços.");
     } finally {
       setLoading(false);

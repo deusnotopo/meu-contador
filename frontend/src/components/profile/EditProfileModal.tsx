@@ -20,6 +20,9 @@ export const EditProfileModal = ({ onClose }: EditProfileModalProps) => {
     riskProfile: (user?.riskProfile || "moderate") as UserProfile["riskProfile"],
   });
 
+  const riskProfileOptions: UserProfile["riskProfile"][] = ["conservative", "moderate", "aggressive"];
+  const financialGoalOptions: UserProfile["financialGoal"][] = ["save", "invest", "debt-free", "emergency", "travel", "house", "retire"];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -27,7 +30,7 @@ export const EditProfileModal = ({ onClose }: EditProfileModalProps) => {
     try {
       await updateProfile(formData);
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError("Falha ao atualizar o perfil. Tente novamente.");
     } finally {
@@ -90,14 +93,15 @@ export const EditProfileModal = ({ onClose }: EditProfileModalProps) => {
               <label style={{ display: "block", fontSize: 13, color: "var(--t2)", marginBottom: 6, fontWeight: 500 }}>Perfil de Investidor</label>
               <select 
                 value={formData.riskProfile}
-                onChange={(e) => setFormData({...formData, riskProfile: e.target.value as any})}
+                onChange={(e) => setFormData({...formData, riskProfile: e.target.value as UserProfile["riskProfile"]})}
                 className="inp"
                 style={{ width: "100%", background: "var(--bg)", color: "var(--t1)" }}
               >
-                <option value="conservative">Conservador</option>
-                <option value="moderate">Moderado</option>
-                <option value="aggressive">Arrojado</option>
-                <option value="Não definido">Não definido</option>
+                {riskProfileOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "conservative" ? "Conservador" : option === "moderate" ? "Moderado" : "Arrojado"}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -105,14 +109,27 @@ export const EditProfileModal = ({ onClose }: EditProfileModalProps) => {
               <label style={{ display: "block", fontSize: 13, color: "var(--t2)", marginBottom: 6, fontWeight: 500 }}>Objetivo Financeiro</label>
               <select 
                 value={formData.financialGoal}
-                onChange={(e) => setFormData({...formData, financialGoal: e.target.value as any})}
+                onChange={(e) => setFormData({...formData, financialGoal: e.target.value as UserProfile["financialGoal"]})}
                 className="inp"
                 style={{ width: "100%", background: "var(--bg)", color: "var(--t1)" }}
               >
-                <option value="save">Poupando dinheiro</option>
-                <option value="invest">Investindo</option>
-                <option value="pay_debts">Pagando dívidas</option>
-                <option value="Não definido">Não definido</option>
+                {financialGoalOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "save"
+                      ? "Poupando dinheiro"
+                      : option === "invest"
+                        ? "Investindo"
+                        : option === "debt-free"
+                          ? "Quitando dívidas"
+                          : option === "emergency"
+                            ? "Reserva de emergência"
+                            : option === "travel"
+                              ? "Viagem"
+                              : option === "house"
+                                ? "Casa própria"
+                                : "Aposentadoria"}
+                  </option>
+                ))}
               </select>
             </div>
           </form>

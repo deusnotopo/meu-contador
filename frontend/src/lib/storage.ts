@@ -11,9 +11,59 @@ import type {
   UserProfile,
   Dividend,
 } from "@/types";
-import { auth } from "./firebase";
-import { loadFromCloud, syncToCloud } from "./firestore-sync";
-import { logger } from "./logger";
+import { auth } from "./firebase.js";
+import { loadFromCloud, syncToCloud } from "./firestore-sync.js";
+import { logger } from "./logger.js";
+import { encrypt, decrypt } from "./crypto.js";
+
+// Volatile Memory Cache for sync access
+const MEMORY_CACHE: Record<string, any> = {};
+
+/**
+ * Privacy Fortress: Hydrates the memory cache from encrypted LocalStorage.
+ * This is called during app initialization to provide sync access to local data.
+ */
+export const hydrateCacheFromLocalStorage = async () => {
+  const keys = Object.values(STORAGE_KEYS);
+  await Promise.all(
+    keys.map(async (key) => {
+      const encryptedData = localStorage.getItem(key);
+      if (!encryptedData) return;
+
+      // Handle legacy non-encrypted data
+      if (encryptedData.startsWith("[") || encryptedData.startsWith("{")) {
+        try {
+          MEMORY_CACHE[key] = JSON.parse(encryptedData);
+          return;
+        } catch (e) { /* ignore */ }
+      }
+
+      // Decrypt for memory cache
+      const decrypted = await decrypt(encryptedData);
+      if (decrypted) {
+        try {
+          MEMORY_CACHE[key] = JSON.parse(decrypted);
+        } catch (e) {
+          logger.error(`Failed to parse decrypted data for key ${key}`, e);
+        }
+      }
+    })
+  );
+  logger.sync("Local storage hydrated and decrypted successfully");
+};
+
+/**
+ * Privacy Fortress: Complete PII wipeout.
+ * Unconditionally clears all application data from the browser.
+ */
+export const clearAllStorage = () => {
+  // Clear volatile cache by deleting keys
+  Object.keys(MEMORY_CACHE).forEach(key => delete MEMORY_CACHE[key]);
+  localStorage.clear();
+  logger.sync("Storage fully purged (PII Wipeout)");
+};
+
+type TransactionWithOptionalStatus = Transaction & { status?: string };
 
 export const STORAGE_KEYS = {
   TRANSACTIONS: "meu_contador_transactions",
@@ -112,7 +162,11 @@ export const syncAllData = async (userId: string) => {
             collectionName
           );
           if (cloudData) {
-            localStorage.setItem(key, JSON.stringify(cloudData));
+            MEMORY_CACHE[key] = cloudData;
+            // Persist encrypted to local storage
+            const encrypted = await encrypt(JSON.stringify(cloudData));
+            localStorage.setItem(key, encrypted);
+            
             // Trigger local update for hooks
             window.dispatchEvent(
               new CustomEvent(STORAGE_EVENT, {
@@ -134,7 +188,17 @@ export const syncAllData = async (userId: string) => {
 export const STORAGE_EVENT = "storage-local";
 
 const persistData = <T>(key: string, data: T) => {
-  localStorage.setItem(key, JSON.stringify(data));
+  MEMORY_CACHE[key] = data;
+  
+  // Encrypt background task
+  encrypt(JSON.stringify(data)).then((encrypted) => {
+    localStorage.setItem(key, encrypted);
+  }).catch(e => {
+    logger.error("Failed to encrypt data for disk persistence", e);
+    // Fallback: simple string if it fails (not recommended, but better than lost data)
+    localStorage.setItem(key, JSON.stringify(data));
+  });
+
   window.dispatchEvent(
     new CustomEvent(STORAGE_EVENT, { detail: { key, data } })
   );
@@ -207,15 +271,23 @@ export const saveFromCloud = <T>(key: string, data: T) => {
 // ============= Transactions =============
 export const loadTransactions = (): Transaction[] => {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
-    if (data) {
-      const parsed = JSON.parse(data);
-      // Add default scope for legacy data
-      return parsed.map((t: Partial<Transaction>) => ({
-        ...t,
-        scope: t.scope || "personal",
-      }));
+    // 1. Memory Cache (Volatile, fast, decrypted)
+    if (MEMORY_CACHE[STORAGE_KEYS.TRANSACTIONS]) {
+      return MEMORY_CACHE[STORAGE_KEYS.TRANSACTIONS];
     }
+
+    // 2. Local Storage (Persistent, Slow, Encrypted)
+    const data = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+    if (!data) return [];
+
+    // Note: This sync path is only hit if memory cache was cleared but localStorage exists.
+    // Since decryption is async, we return empty list if not already in memory cache 
+    // to avoid UI blocking, and rely on syncAllData to have loaded it.
+    // If it's pure JSON (legacy), return it while migration happens.
+    if (data.startsWith("[") || data.startsWith("{")) {
+       return JSON.parse(data);
+    }
+    
     return [];
   } catch (error) {
     logger.error("Error loading transactions", error);
@@ -256,7 +328,7 @@ export const exportTransactionsToCSV = (transactions: Transaction[]): void => {
     t.category,
     t.amount.toString().replace(".", ","),
     t.paymentMethod || "",
-    (t as any).status || "Pendente",
+    (t as TransactionWithOptionalStatus).status || "Pendente",
     t.scope,
   ]);
 
@@ -290,7 +362,7 @@ export const importTransactions = (file: File): Promise<Transaction[]> => {
         } else {
           reject(new Error("Formato de arquivo inválido"));
         }
-      } catch (error) {
+      } catch (_error) {
         reject(new Error("Erro ao importar dados"));
       }
     };
@@ -299,42 +371,21 @@ export const importTransactions = (file: File): Promise<Transaction[]> => {
 };
 
 // ============= Budgets =============
-export const loadBudgets = (): Budget[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.BUDGETS);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
+export const loadBudgets = (): Budget[] => MEMORY_CACHE[STORAGE_KEYS.BUDGETS] || [];
 
 export const saveBudgets = (budgets: Budget[]): void => {
   persistData(STORAGE_KEYS.BUDGETS, budgets);
 };
 
 // ============= Goals =============
-export const loadGoals = (): SavingsGoal[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.GOALS);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
+export const loadGoals = (): SavingsGoal[] => MEMORY_CACHE[STORAGE_KEYS.GOALS] || [];
 
 export const saveGoals = (goals: SavingsGoal[]): void => {
   persistData(STORAGE_KEYS.GOALS, goals);
 };
 
 // ============= Reminders =============
-export const loadReminders = (): BillReminder[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.REMINDERS);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
+export const loadReminders = (): BillReminder[] => MEMORY_CACHE[STORAGE_KEYS.REMINDERS] || [];
 
 export const saveReminders = (reminders: BillReminder[]): void => {
   persistData(STORAGE_KEYS.REMINDERS, reminders);
@@ -353,98 +404,49 @@ export const addReminder = (
 };
 
 // ============= Invoices =============
-export const loadInvoices = (): Invoice[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.INVOICES);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
+export const loadInvoices = (): Invoice[] => MEMORY_CACHE[STORAGE_KEYS.INVOICES] || [];
 
 export const saveInvoices = (invoices: Invoice[]): void => {
   persistData(STORAGE_KEYS.INVOICES, invoices);
 };
 
 // ============= Cash Flow =============
-export const loadCashFlow = (): CashFlowProjection[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.CASH_FLOW);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
+export const loadCashFlow = (): CashFlowProjection[] => MEMORY_CACHE[STORAGE_KEYS.CASH_FLOW] || [];
 
 export const saveCashFlow = (cashFlow: CashFlowProjection[]): void => {
   persistData(STORAGE_KEYS.CASH_FLOW, cashFlow);
 };
 
 // ============= Profile =============
-export const loadProfile = (): UserProfile | null => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.PROFILE);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
-};
+export const loadProfile = (): UserProfile | null => MEMORY_CACHE[STORAGE_KEYS.PROFILE] || null;
 
 export const saveProfile = (d: UserProfile) => {
   persistData(STORAGE_KEYS.PROFILE, d);
 };
 
 // ============= Education =============
-export const loadEducationProgress = () => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.EDUCATION_PROGRESS);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
-};
+export const loadEducationProgress = (): EducationProgress | null => MEMORY_CACHE[STORAGE_KEYS.EDUCATION_PROGRESS] || null;
 
 export const saveEducationProgress = (progress: EducationProgress) => {
   persistData(STORAGE_KEYS.EDUCATION_PROGRESS, progress);
 };
 
 // ============= Investments =============
-export const loadInvestments = (): Investment[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.INVESTMENTS);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
+export const loadInvestments = (): Investment[] => MEMORY_CACHE[STORAGE_KEYS.INVESTMENTS] || [];
 
 export const saveInvestments = (investments: Investment[]): void => {
   persistData(STORAGE_KEYS.INVESTMENTS, investments);
 };
 
 // ============= Dividends =============
-export const loadDividends = (): Dividend[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.DIVIDENDS);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
+export const loadDividends = (): Dividend[] => MEMORY_CACHE[STORAGE_KEYS.DIVIDENDS] || [];
 
 export const saveDividends = (dividends: Dividend[]): void => {
   persistData(STORAGE_KEYS.DIVIDENDS, dividends);
 };
 
 // ============= Investment Sales =============
-export const loadInvestmentSales = (): InvestmentSale[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.INVESTMENT_SALES);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
+export const loadInvestmentSales = (): InvestmentSale[] => MEMORY_CACHE[STORAGE_KEYS.INVESTMENT_SALES] || [];
 
 export const saveInvestmentSales = (sales: InvestmentSale[]): void => {
   persistData(STORAGE_KEYS.INVESTMENT_SALES, sales);
@@ -510,7 +512,7 @@ export const importFullBackup = (file: File): Promise<void> => {
         if (backup.profile) saveProfile(backup.profile);
 
         resolve();
-      } catch (error) {
+      } catch (_error) {
         reject(new Error("Erro ao processar arquivo de backup"));
       }
     };

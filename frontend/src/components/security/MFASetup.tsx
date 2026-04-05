@@ -14,7 +14,7 @@ export const MFASetup = () => {
   const [verificationId, setVerificationId] = useState("");
   const [step, setStep] = useState<"init" | "verify" | "complete">("init");
   const [isLoading, setIsLoading] = useState(false);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState<any>(null);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
     const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
@@ -26,13 +26,14 @@ export const MFASetup = () => {
 
   const handleStartEnrollment = async () => {
     if (!phoneNumber) return showError("Digite um número válido");
+    if (!recaptchaVerifier) return showError("ReCAPTCHA não inicializado. Recarregue a página.");
     setIsLoading(true);
     try {
       const vid = await MFAService.startPhoneEnrollment(phoneNumber, recaptchaVerifier);
       setVerificationId(vid);
       setStep("verify");
       showSuccess("Código enviado!");
-    } catch (error) {
+    } catch (_error) {
       showError("Erro ao iniciar autenticação.");
     } finally {
       setIsLoading(false);
@@ -46,7 +47,7 @@ export const MFASetup = () => {
       await MFAService.finishEnrollment(verificationId, verificationCode, "Celular Pessoal");
       setStep("complete");
       showSuccess("MFA ativado com sucesso!");
-    } catch (error) {
+    } catch (_error) {
       showError("Código inválido ou expirado.");
     } finally {
       setIsLoading(false);

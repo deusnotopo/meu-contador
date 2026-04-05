@@ -1,7 +1,12 @@
 import React from "react";
 
+interface UserProfileHeroUser {
+  name?: string;
+  email?: string;
+}
+
 interface UserProfileHeroProps {
-  user: any;
+  user: UserProfileHeroUser | null;
   healthScore: number;
   fireProgress: number;
   daysInApp: number;

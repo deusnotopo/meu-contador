@@ -1,3 +1,5 @@
+import type { EmotionType, PurchaseMotivation } from "./emotional";
+
 export type Currency = "BRL" | "USD" | "EUR" | "GBP";
 
 export interface Transaction {
@@ -13,6 +15,8 @@ export interface Transaction {
   recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly";
   scope: "personal" | "business";
   classification?: "necessity" | "want" | "investment" | "debt";
+  mood?: EmotionType;
+  motivation?: PurchaseMotivation;
   currency?: "BRL" | "USD" | "EUR" | "GBP";
   originalAmount?: number;
   exchangeRate?: number;
@@ -31,6 +35,8 @@ export interface TransactionFormData {
   recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly";
   scope: "personal" | "business";
   classification?: "necessity" | "want" | "investment" | "debt";
+  mood?: EmotionType;
+  motivation?: PurchaseMotivation;
   currency?: "BRL" | "USD" | "EUR" | "GBP";
   exchangeRate?: string;
   receiptUrl?: string;
@@ -136,6 +142,28 @@ export interface WorkspaceMetadata {
   name: string;
   ownerId: string;
   members: Record<string, WorkspaceRole>;
+  createdAt: string;
+}
+
+export interface Reconciliation {
+  id: string;
+  workspaceId: string;
+  bankAccountId: string;
+  calculatedBalance: number;
+  actualBalance: number;
+  discrepancy: number;
+  status: "matched" | "discrepancy" | "pending";
+  reconciledAt: string | null;
+  lastSyncAt: string;
+}
+
+export interface WorkspaceInvite {
+  id: string;
+  email: string;
+  role: WorkspaceRole;
+  token: string;
+  workspaceId: string;
+  expiresAt: string;
   createdAt: string;
 }
 

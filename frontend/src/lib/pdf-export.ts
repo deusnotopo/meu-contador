@@ -2,12 +2,20 @@ import type { Transaction, UserProfile } from "@/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+interface AutoTableCursorDoc extends jsPDF {
+  lastAutoTable?: {
+    cursor?: {
+      y: number;
+    };
+  };
+}
+
 export const exportFinancialReport = (
   transactions: Transaction[],
   profile: UserProfile | null,
   period: string
 ) => {
-  const doc = new jsPDF();
+  const doc = new jsPDF() as AutoTableCursorDoc;
   const pageWidth = doc.internal.pageSize.width;
 
   // Header Colors & Style
@@ -93,7 +101,7 @@ export const exportFinancialReport = (
     ]);
 
   autoTable(doc, {
-    startY: (doc as any).lastAutoTable.cursor.y + 15,
+    startY: (doc.lastAutoTable?.cursor?.y || 80) + 15,
     head: [["DATA", "DESCRIÇÃO", "CATEGORIA", "TIPO", "VALOR"]],
     body: tableData,
     theme: "grid",
@@ -111,7 +119,7 @@ export const exportFinancialReport = (
   });
 
   // Footer
-  const pageCount = (doc as any).internal.getNumberOfPages();
+  const pageCount = (doc.internal as any).getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
@@ -151,7 +159,7 @@ export const exportDRE = (
     percent: number;
   }[]
 ) => {
-  const doc = new jsPDF();
+  const doc = new jsPDF() as AutoTableCursorDoc;
   const pageWidth = doc.internal.pageSize.width;
 
   // Header Colors & Style
@@ -214,7 +222,7 @@ export const exportDRE = (
   });
 
   // Footer
-  const pageCount = (doc as any).internal.getNumberOfPages();
+  const pageCount = (doc.internal as any).getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);

@@ -3,8 +3,19 @@ import type { UserProfile, WorkspaceRole } from "@/types";
 import { auth, googleProvider } from "@/lib/firebase";
 import { trackEvent, analyticsEvents } from "@/lib/analytics";
 import { signInWithPopup } from "firebase/auth";
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { syncAllData } from "@/lib/storage";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { syncAllData, clearAllStorage, hydrateCacheFromLocalStorage } from "@/lib/storage";
+
+interface BackendUser extends Partial<AuthUser> {
+  id: string;
+  email: string;
+  isPro?: boolean;
+}
+
+interface LoginResponse {
+  user: BackendUser;
+  csrfToken: string;
+}
 // Extended User type to support both Profile data and Auth IDs
 export interface AuthUser extends UserProfile {
   id: string;
@@ -25,13 +36,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
-  privacyMode: boolean;
-  togglePrivacy: () => void;
   setGlobalLoading: (isLoading: boolean) => void;
-  language: string;
-  setLanguage: (lang: string) => void;
-  theme: 'light' | 'dark';
-  setTheme: (theme: 'light' | 'dark') => void;
   upgradeToPro: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -45,17 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPro, setIsPro] = useState(false);
-  const [privacyMode, setPrivacyMode] = useState(false);
-  const [language, setLanguageState] = useState('pt');
-  const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
-  const applyTheme = (nextTheme: 'light' | 'dark') => {
-    setThemeState(nextTheme);
-    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
-    document.documentElement.classList.toggle('light', nextTheme === 'light');
-  };
 
-  const mapBackendUserToAuthUser = (backendUser: any): AuthUser => ({
+
+  const mapBackendUserToAuthUser = (backendUser: BackendUser): AuthUser => ({
     ...backendUser,
+    name: backendUser.name ?? "Sua Conta",
     id: backendUser.id,
     uid: backendUser.id,
     email: backendUser.email,
@@ -76,12 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     onboardingCompleted: backendUser.onboardingCompleted,
   });
 
-  const refreshUser = async () => {
-    const backendUser = await api.get<any>("/auth/me");
+  const refreshUser = useCallback(async () => {
+    const backendUser = await api.get<BackendUser>("/auth/me");
     const authUser = mapBackendUserToAuthUser(backendUser);
     setUser(authUser);
     setIsPro(!!backendUser.isPro);
-  };
+  }, []);
 
   // Helper: promessa com timeout
   function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -96,8 +95,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     for (let i = 0; i < retries; i++) {
       try {
         return await fn();
-      } catch (error: any) {
-        const isNetworkOrTimeout = error.name === 'TimeoutError' || error.message?.toLowerCase().includes('fetch') || error.message?.toLowerCase().includes('timeout');
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message.toLowerCase() : '';
+        const errorName = error instanceof Error ? error.name : '';
+        const isNetworkOrTimeout = errorName === 'TimeoutError' || message.includes('fetch') || message.includes('timeout');
         if (i === retries - 1 || !isNetworkOrTimeout) throw error;
         console.warn(`Tentativa ${i + 1} falhou, aguardando backend acordar...`);
         // Espera 3s antes de tentar de novo
@@ -107,80 +108,84 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     throw new Error('Unreachable');
   }
 
-  // Initial Auth Check & Preferences Sync
+  // Unificado: único fluxo de inicialização com cleanup
   useEffect(() => {
-    return subscribeToAuthSession((snapshot) => {
-      if (!snapshot.isAuthenticated && !snapshot.csrfToken) {
-        setUser(null);
-        setIsPro(false);
-      }
-    });
-  }, []);
+    let cancelled = false;
+    const syncAbort = new AbortController();
 
-  useEffect(() => {
-    const checkAuth = async () => {
+    const runInit = async () => {
       try {
         setIsSyncing(true);
-        // O Render pode levar de 30 a 60s para acordar. Usamos 45s + Retries.
-        const [userData, preferences] = await Promise.all([
-          fetchWithRetry(() => withTimeout(api.get<any>("/auth/me"), 15000), 2),
-          fetchWithRetry(() => withTimeout(api.get<any>("/users/preferences"), 15000), 1).catch((e) => {
-            console.warn("Preferences timeout/error, using defaults", e);
-            return { privacyMode: false, language: 'pt', theme: 'dark' };
-          })
-        ]);
-        console.debug("Fetched preferences from server.");
-        
-        // Apply preferences to state
-        setPrivacyMode(preferences.privacyMode);
-        setLanguageState(preferences.language);
-        applyTheme((preferences.theme || 'dark') as 'light' | 'dark');
+        // Privacy Fortress: Hydrate local cache from encrypted storage immediately
+        await hydrateCacheFromLocalStorage();
 
-        // Map backend user to AuthUser
+        const userData = await fetchWithRetry(() => withTimeout(api.get<BackendUser>("/auth/me"), 5000), 2);
+        if (cancelled) return;
+
         const authUser = mapBackendUserToAuthUser(userData);
-
         setUser(authUser);
         setIsPro(!!userData.isPro);
 
-        // Trigger background sync to load all financial data without blocking the UI
-        syncAllData(authUser.id).catch(err => console.error("Background sync failed:", err));
-      } catch (error: any) {
-        console.error("Session restoration failed:", error);
-        // Só removemos o token se for comprovadamente 401/403 (tratado pelo api.ts agora)
-        // Se for erro de rede (Failed to fetch) ou Timeout, mantemos o token para que
-        // um simples F5 reconecte o usuário quando o servidor Render acordar.
+        // Restaurar o CSRF token na memória após reload de página.
+        // O /auth/me confirma que o cookie JWT é válido, mas o csrfToken
+        // in-memory é perdido ao recarregar. O /auth/refresh devolve cookies
+        // frescos e o csrfToken que o CSRF middleware exige nos POSTs.
+        try {
+          const refreshData = await api.post<{ csrfToken?: string }>("/auth/refresh", {});
+          if (!cancelled && refreshData?.csrfToken) {
+            setCsrfToken(refreshData.csrfToken);
+          }
+        } catch {
+          // Se refresh falhar, seguimos de qualquer forma — o 403 vai disparar
+          // o tryRefreshSession interno do api.ts num próximo POST
+        }
+
+        syncAllData(authUser.id).catch(err => {
+          if (!cancelled) console.error("Background sync failed:", err);
+        });
+      } catch (error: unknown) {
+        if (!cancelled) {
+          console.error("Session restoration failed:", error);
+        }
       } finally {
-        setLoading(false);
-        setIsSyncing(false);
+        if (!cancelled) {
+          setLoading(false);
+          setIsSyncing(false);
+        }
       }
     };
 
-    checkAuth();
+    runInit();
+
+    const unsub = subscribeToAuthSession((snapshot) => {
+      if (!snapshot.isAuthenticated && !snapshot.csrfToken && !cancelled) {
+        // Só limpa se checkAuth ainda não tiver resolvido com dados
+        setUser((prev) => prev ? prev : null);
+        setIsPro(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      syncAbort.abort();
+      unsub();
+    };
   }, []);
 
 
 
-  const login = async (email: string, password?: string) => {
+  const login = useCallback(async (email: string, password?: string) => {
     if (!password) throw new Error("Senha é obrigatória.");
     
     try {
       setIsSyncing(true);
-      const { user: backendUser, csrfToken } = await api.post<{ user: any; csrfToken: string }>("/auth/login", {
+      const { user: backendUser, csrfToken } = await api.post<LoginResponse>("/auth/login", {
         email,
         password,
       });
       setCsrfToken(csrfToken);
 
-      // Remove extra /auth/me call, leverage the backendUser passed from login response
-      const preferences = await api.get<any>("/users/preferences").catch((e) => {
-         console.warn("Could not fetch prefs", e);
-         return { privacyMode: false, language: 'pt', theme: 'dark' };
-      });
 
-      // Apply preferences
-      setPrivacyMode(preferences.privacyMode);
-      setLanguageState(preferences.language);
-      applyTheme((preferences.theme || 'dark') as 'light' | 'dark');
 
        const authUser = mapBackendUserToAuthUser(backendUser);
 
@@ -201,22 +206,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, []);
 
-  const register = async (email: string, password: string, name?: string) => {
+  const register = useCallback(async (email: string, password: string, name?: string) => {
     try {
       setIsSyncing(true);
-      const { user: backendUser, csrfToken } = await api.post<{ user: any; csrfToken: string }>("/auth/register", {
+      const { user: backendUser, csrfToken } = await api.post<LoginResponse>("/auth/register", {
         email,
         password,
         name
       });
       setCsrfToken(csrfToken);
       
-      // Defaults for new user
-      setPrivacyMode(false);
-      setLanguageState('pt');
-      applyTheme('dark');
+
       
       const authUser = mapBackendUserToAuthUser(backendUser);
         
@@ -233,38 +235,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = useCallback(async () => {
     try {
       setIsSyncing(true);
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
       
-      const { user: apiUser, csrfToken } = await api.post<{ user: any; csrfToken: string }>("/auth/google", {
+      const { user: apiUser, csrfToken } = await api.post<LoginResponse>("/auth/google", {
         token: idToken
       });
       setCsrfToken(csrfToken);
 
-      // Fetch preferences to ensure state is consistent
-      interface UserPreferences {
-        privacyMode?: boolean;
-        language?: string;
-        theme?: "light" | "dark";
-      }
-      
-      let preferences: UserPreferences = {};
-      try {
-           preferences = await api.get<UserPreferences>("/users/preferences");
-      } catch (e) { 
-          // If preference fetch fails, we default to safe values
-          console.warn("Could not fetch prefs", e); 
-      }
-      
-      // Apply Preferences
-      setPrivacyMode(preferences?.privacyMode || false);
-      setLanguageState(preferences?.language || 'pt');
-      applyTheme((preferences?.theme || 'dark') as 'light' | 'dark');
+
 
       const authUser = mapBackendUserToAuthUser(apiUser);
       
@@ -285,9 +269,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     // Track Logout Event
     trackEvent(analyticsEvents.LOGOUT);
     try {
@@ -299,9 +283,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setCsrfToken(null);
     setUser(null);
     setIsPro(false);
-  };
+    // Privacy Fortress: Unconditional PII wipeout
+    clearAllStorage();
+  }, []);
 
-  const updateProfile = async (data: Partial<UserProfile>) => {
+  const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
     try {
       await api.put('/users/me', data);
       // Update local state with proper type merge
@@ -314,40 +300,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error("Failed to update profile:", error);
       throw error;
     }
-  };
+  }, [user]);
 
-  const togglePrivacy = async () => {
-    const newState = !privacyMode;
-    setPrivacyMode(newState);
-    try {
-      await api.patch("/users/preferences", { privacyMode: newState });
-    } catch (error) {
-      console.error("Failed to sync privacy mode:", error);
-    }
-  };
 
-  const setLanguage = async (lang: string) => {
-    setLanguageState(lang);
-    try {
-      await api.patch("/users/preferences", { language: lang });
-    } catch (error) {
-      console.error("Failed to sync language:", error);
-    }
-  };
 
-  const setTheme = async (newTheme: 'light' | 'dark') => {
-    applyTheme(newTheme);
-    try {
-      await api.patch("/users/preferences", { theme: newTheme });
-    } catch (error) {
-      console.error("Failed to sync theme:", error);
-    }
-  };
-
-  const upgradeToPro = async () => {
+  const upgradeToPro = useCallback(async () => {
     try {
       setIsSyncing(true);
-      const res = await api.post<{ success: boolean; user: any }>("/auth/upgrade", {});
+      const res = await api.post<{ success: boolean; user: BackendUser }>("/auth/upgrade", {});
       if (res.success) {
         setIsPro(true);
         if (user) {
@@ -360,7 +320,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [user]);
 
   const value = useMemo(() => ({
     user,
@@ -372,16 +332,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     loginWithGoogle,
     logout,
     updateProfile,
-    privacyMode,
-    togglePrivacy,
-    language,
-    setLanguage,
-    theme,
-    setTheme,
     upgradeToPro,
     refreshUser,
     setGlobalLoading: setIsSyncing,
-  }), [user, loading, isSyncing, isPro, privacyMode, language, theme]);
+  }), [user, loading, isSyncing, isPro, login, register, loginWithGoogle, logout, updateProfile, upgradeToPro, refreshUser]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -123,7 +123,7 @@ const getToastCallback = () => {
   return toastCallback;
 };
 
-export const showSuccess = (message: any) => {
+export const showSuccess = (message: unknown) => {
   const callback = getToastCallback();
   if (callback) {
     callback({ message: String(message), type: 'success' });
@@ -132,7 +132,7 @@ export const showSuccess = (message: any) => {
   }
 };
 
-export const showError = (message: any) => {
+export const showError = (message: unknown) => {
   const callback = getToastCallback();
   if (callback) {
     callback({ message: String(message), type: 'error' });
@@ -141,7 +141,7 @@ export const showError = (message: any) => {
   }
 };
 
-export const showLoading = (message: any) => {
+export const showLoading = (message: unknown) => {
   const callback = getToastCallback();
   if (callback) {
     return callback({ message: String(message), type: 'loading', duration: 0 });
@@ -151,12 +151,12 @@ export const showLoading = (message: any) => {
   }
 };
 
-export const dismissToast = (toastId: any) => {
+export const dismissToast = (toastId: string) => {
   // The auto-removal handles this, but we can trigger immediate removal if needed
   console.log(" dismissToast called for:", toastId);
 };
 
-export const showPromise = async (promise: Promise<any>, messages: { loading: string; success: string; error: string }) => {
+export const showPromise = async <T,>(promise: Promise<T>, messages: { loading: string; success: string; error: string }) => {
   const loadingId = showLoading(messages.loading);
   
   try {

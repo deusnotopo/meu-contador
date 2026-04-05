@@ -5,16 +5,14 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useDebts } from "@/hooks/useDebts";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatters";
-import { ArrowLeft, TrendingUp, Zap, Loader2 } from "lucide-react";
-import { AreaTutorialButton } from "@/components/ui/AreaTutorialButton";
+import { ArrowLeft, TrendingUp, Zap, Loader2, Target, Landmark, Flame, ChevronRight } from "lucide-react";
 import { useRetirement } from "@/hooks/useRetirement";
+import { motion } from "framer-motion";
 
 interface RetirementViewProps {
   onBack?: (tab?: TabType) => void;
   onNavigate?: (tab: TabType) => void;
 }
-
-// Lógica de cálculo transferida para `useRetirement` hook
 
 // ── SVG projection chart ──────────────────────────────────
 function ProjectionChart({ series, years }: {
@@ -40,47 +38,77 @@ function ProjectionChart({ series, years }: {
       <defs>
         {series.map((s, i) => (
           <linearGradient key={i} id={`ag${i}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={s.color} stopOpacity="0.2" />
+            <stop offset="0%" stopColor={s.color} stopOpacity="0.3" />
             <stop offset="100%" stopColor={s.color} stopOpacity="0" />
           </linearGradient>
         ))}
       </defs>
 
-      {/* Grid lines */}
       {yTicks.map((v, i) => (
         <g key={i}>
-          <line
-            x1={PAD.l} y1={toY(v)} x2={W - PAD.r} y2={toY(v)}
-            stroke="rgba(255,255,255,0.05)" strokeWidth="1"
-          />
-          <text x={PAD.l - 4} y={toY(v) + 4} fontSize="7" fill="rgba(138,151,180,0.6)"
-            textAnchor="end" fontFamily="JetBrains Mono">
-            {fmtY(v)}
-          </text>
+          <line x1={PAD.l} y1={toY(v)} x2={W - PAD.r} y2={toY(v)}
+            stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+          <text x={PAD.l - 4} y={toY(v) + 4} fontSize="7" fill="rgba(138,151,180,0.5)"
+            textAnchor="end" fontFamily="var(--mono)">{fmtY(v)}</text>
         </g>
       ))}
 
-      {/* X axis labels */}
       {[0, Math.round(years / 4), Math.round(years / 2), Math.round(years * 3 / 4), years].map((yr, i) => (
-        <text key={i} x={toX(yr)} y={H - 4} fontSize="7" fill="rgba(138,151,180,0.55)"
-          textAnchor="middle" fontFamily="JetBrains Mono">
+        <text key={i} x={toX(yr)} y={H - 4} fontSize="7" fill="rgba(138,151,180,0.45)"
+          textAnchor="middle" fontFamily="var(--mono)">
           {new Date().getFullYear() + yr}
         </text>
       ))}
 
-      {/* Series */}
       {series.map((s, si) => {
         const pts = s.data.map((v, i) => `${toX(i)},${toY(v)}`).join(" L ");
         const areaPath = `M ${toX(0)},${toY(0)} L ${pts} L ${toX(years)},${toY(0)} Z`;
         return (
           <g key={si}>
-            <path d={`M ${pts}`} fill="none" stroke={s.color} strokeWidth={si === 1 ? 2 : 1.5}
-              strokeLinecap="round" strokeDasharray={si === 0 ? "none" : si === 2 ? "5 3" : "none"} />
+            <path d={`M ${pts}`} fill="none" stroke={s.color} strokeWidth={si === 1 ? 2.5 : 1.5}
+              strokeLinecap="round" strokeDasharray={si === 2 ? "5 3" : "none"} />
             <path d={areaPath} fill={`url(#ag${si})`} />
           </g>
         );
       })}
     </svg>
+  );
+}
+
+// ── Slider with label ──────────────────────────────────────
+function SliderField({ label, value, min, max, step, color, format, onChange, hint }: {
+  label: string; value: number; min: number; max: number; step: number;
+  color: string; format: (v: number) => string;
+  onChange: (v: number) => void; hint?: string;
+}) {
+  return (
+    <div className="future-slider-field">
+      <div className="future-slider-header">
+        <span className="future-slider-label">{label}</span>
+        <span className="future-slider-value" style={{ color }}>{format(value)}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="future-slider" style={{ "--accent": color } as React.CSSProperties} />
+      {hint && <div className="future-slider-hint">{hint}</div>}
+    </div>
+  );
+}
+
+// ── Age stepper ────────────────────────────────────────────
+function AgeStepper({ label, value, min, max, onChange }: {
+  label: string; value: number; min: number; max: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="future-age-card">
+      <div className="future-age-label">{label}</div>
+      <div className="future-age-controls">
+        <button className="future-age-btn" onClick={() => onChange(Math.max(min, value - 1))}>−</button>
+        <div className="future-age-value">{value}</div>
+        <button className="future-age-btn" onClick={() => onChange(Math.min(max, value + 1))}>+</button>
+      </div>
+    </div>
   );
 }
 
@@ -93,210 +121,198 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
 
   const isLoading = invLoading || personal.isLoading || business.isLoading || debtLoading;
 
-  const [currentAge, setCurrentAge] = useState((user as any)?.age || 30);
-  const [retireAge, setRetireAge] = useState((user as any)?.retirementAge || 60);
+  const [currentAge, setCurrentAge] = useState(user?.age || 30);
+  const [retireAge, setRetireAge] = useState(user?.retirementAge || 60);
   const [monthlyContribution, setMonthlyContribution] = useState(
-    Math.round(((user as any)?.monthlyIncome || 0) * 0.15) || 1500
+    Math.round((user?.monthlyIncome || 0) * 0.15) || 1500
   );
   const [expectedReturnPct, setExpectedReturnPct] = useState(7);
   const [targetMonthlyIncome, setTargetMonthlyIncome] = useState(
-    Math.round(((user as any)?.monthlyIncome || 0) * 0.8) || 10000
+    Math.round((user?.monthlyIncome || 0) * 0.8) || 10000
   );
 
-  // Real data
   const trueNetWorth = Math.max(0,
     (personal.totals.balance + business.totals.balance + invTotals.currentValue) - debtTotals.totalBalance
   );
   const {
-    yearsToRetire,
-    fireTarget,
-    futureValue,
-    isOnTrack,
-    progressToTarget,
-    progressColor,
-    chartSeries,
-    milestones,
-    sensitivity
+    yearsToRetire, fireTarget, futureValue, isOnTrack,
+    progressToTarget, chartSeries, milestones, sensitivity
   } = useRetirement({
-    currentAge,
-    retireAge,
-    monthlyContribution,
-    expectedReturnPct,
-    targetMonthlyIncome,
-    currentNetWorth: trueNetWorth
+    currentAge, retireAge, monthlyContribution, expectedReturnPct,
+    targetMonthlyIncome, currentNetWorth: trueNetWorth
   });
+
+  const totalContributed = monthlyContribution * (yearsToRetire * 12);
+  const compoundGains = Math.max(0, futureValue - totalContributed - trueNetWorth);
+  const compoundPct = futureValue > 0 ? Math.round((compoundGains / futureValue) * 100) : 0;
 
   if (isLoading) {
     return (
-      <div style={{ paddingTop: "10px", display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <button className="back-btn" onClick={() => onBack?.()}>
-            <ArrowLeft size={16} />
-          </button>
-          <div style={{ flex: 1 }}>
-            <div className="eyebrow">Projeção FIRE</div>
-            <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Aposentadoria</div>
+      <div className="future-loading">
+        <div className="future-header-row">
+          <button className="back-btn" onClick={() => onBack?.()}><ArrowLeft size={16} /></button>
+          <div>
+            <div className="eyebrow" style={{ color: "var(--blue)" }}>Projeção FIRE</div>
+            <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Futuro</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12, color: "var(--t3)" }}>
-          <Loader2 size={20} style={{ animation: "spin 1s linear infinite" }} />
-          <span style={{ fontSize: 14 }}>Carregando dados financeiros...</span>
+        <div className="future-loading-inner">
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--blue)" }} />
+          <span>Calculando projeções...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ paddingTop: "10px", animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <button className="back-btn" onClick={() => onBack?.()}>
-          <ArrowLeft size={16} />
-        </button>
+    <div className="future-root">
+      {/* ── Header ── */}
+      <div className="future-header-row">
+        <button className="back-btn" onClick={() => onBack?.()}><ArrowLeft size={16} /></button>
         <div style={{ flex: 1 }}>
-          <div className="eyebrow">Projeção FIRE</div>
-          <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Aposentadoria</div>
+          <div className="eyebrow" style={{ color: "var(--blue)" }}>Projeção FIRE</div>
+          <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Futuro</div>
         </div>
-        <AreaTutorialButton area="futuro" onNavigate={onNavigate} />
       </div>
 
-      {/* Hero card */}
-      <div className="hero" style={{ padding: 18, marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 4 }}>
-              Patrimônio estimado aos {retireAge} anos
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: isOnTrack ? "var(--green)" : "var(--blue)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>
+      {/* ── Hero Status Card ── */}
+      <motion.div
+        className="future-hero-card"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        {/* Progress arc visual */}
+        <div className="future-hero-top">
+          <div className="future-hero-main">
+            <div className="future-hero-eyebrow">Patrimônio projetado</div>
+            <div className="future-hero-value" style={{ color: isOnTrack ? "var(--green)" : "var(--blue)" }}>
               {formatCurrency(futureValue)}
             </div>
-            <div style={{ fontSize: 12, color: "var(--t2)", marginTop: 4 }}>
-              Meta FIRE: {formatCurrency(fireTarget)}
-            </div>
+            <div className="future-hero-sub">aos {retireAge} anos</div>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 4 }}>
-              Progresso
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: progressColor, fontFamily: "var(--mono)" }}>
+          <div className="future-hero-badge" style={{
+            background: isOnTrack ? "rgba(0,217,145,0.1)" : "rgba(74,139,255,0.1)",
+            borderColor: isOnTrack ? "rgba(0,217,145,0.25)" : "rgba(74,139,255,0.2)",
+          }}>
+            <div className="future-badge-pct" style={{ color: isOnTrack ? "var(--green)" : "var(--blue)" }}>
               {Math.round(progressToTarget)}%
             </div>
-            <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 4 }}>da meta</div>
+            <div className="future-badge-label">da meta</div>
           </div>
         </div>
 
-        <div className="prog" style={{ height: 8 }}>
-          <div className="prog-fill" style={{ width: `${progressToTarget}%`, background: isOnTrack ? "var(--green)" : "linear-gradient(90deg, var(--blue), var(--purple))" }} />
+        <div className="future-progress-track">
+          <motion.div
+            className="future-progress-fill"
+            style={{ background: isOnTrack ? "var(--green)" : "linear-gradient(90deg, var(--blue), var(--purple))" }}
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, progressToTarget)}%` }}
+            transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+          />
         </div>
 
-        {isOnTrack ? (
-          <div style={{ fontSize: 12, color: "var(--green)", marginTop: 8, fontWeight: 500 }}>
-            ✅ No caminho certo! Patrimônio supera a meta em {formatCurrency(futureValue - fireTarget)}.
-          </div>
-        ) : (
-          <div style={{ fontSize: 12, color: "var(--amber)", marginTop: 8, fontWeight: 500 }}>
-            ⚠ Faltam {formatCurrency(fireTarget - futureValue)} para a meta. Aumente o aporte ou a rentabilidade.
-          </div>
-        )}
-      </div>
+        <div className="future-hero-status">
+          {isOnTrack ? (
+            <span style={{ color: "var(--green)" }}>✅ No caminho certo — supera a meta em {formatCurrency(futureValue - fireTarget)}</span>
+          ) : (
+            <span style={{ color: "var(--amber)" }}>⚠ Faltam {formatCurrency(fireTarget - futureValue)} para a meta FIRE</span>
+          )}
+        </div>
 
-      {/* Projection chart */}
-      <div className="sec-hd"><span className="sec-title">Projeção {yearsToRetire} anos</span></div>
-      <div className="card" style={{ padding: "14px 12px 8px" }}>
+        {/* Metrics row */}
+        <div className="future-metrics-row">
+          {[
+            { icon: <Target size={14} />, label: "Meta FIRE", value: formatCurrency(fireTarget), color: "var(--purple)" },
+            { icon: <Flame size={14} />, label: "Anos restantes", value: `${yearsToRetire} anos`, color: "var(--amber)" },
+            { icon: <Landmark size={14} />, label: "Patrimônio atual", value: formatCurrency(trueNetWorth), color: "var(--blue)" },
+          ].map((m, i) => (
+            <div key={i} className="future-metric-pill" style={{ borderColor: `${m.color}22`, background: `${m.color}0D` }}>
+              <div style={{ color: m.color }}>{m.icon}</div>
+              <div>
+                <div className="future-metric-val" style={{ color: m.color }}>{m.value}</div>
+                <div className="future-metric-lbl">{m.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ── Projection Chart ── */}
+      <div className="future-section-title">Projeção {yearsToRetire} anos</div>
+      <div className="future-bento-card">
         {yearsToRetire > 0 ? (
           <>
             <ProjectionChart series={chartSeries} years={yearsToRetire} />
-            <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+            <div className="future-legend-row">
               {chartSeries.map(s => (
-                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ width: 14, height: 3, background: s.color, borderRadius: 2, display: "inline-block" }} />
-                  <span style={{ fontSize: 10, color: "var(--t3)" }}>{s.label}</span>
+                <div key={s.label} className="future-legend-item">
+                  <span className="future-legend-dot" style={{ background: s.color }} />
+                  <span className="future-legend-label">{s.label}</span>
                 </div>
               ))}
             </div>
           </>
         ) : (
-          <div style={{ padding: "16px", textAlign: "center", color: "var(--t3)", fontSize: 12 }}>
-            Idade objetivo deve ser maior que a idade atual.
-          </div>
+          <div className="future-empty-msg">Defina uma idade de aposentadoria maior que a atual.</div>
         )}
       </div>
 
-      {/* Simulator */}
-      <div className="sec-hd"><span className="sec-title">Simulador interativo</span></div>
-      <div className="card">
-        {/* Target Income */}
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>Renda mensal desejada</span>
-            <span style={{ fontSize: 14, color: "var(--green)", fontFamily: "var(--mono)", fontWeight: 700 }}>{formatCurrency(targetMonthlyIncome)}</span>
-          </div>
-          <input type="range" min="2000" max="50000" step="500" value={targetMonthlyIncome}
-            onChange={e => setTargetMonthlyIncome(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "var(--green)" }} />
-          <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 3 }}>
-            Patrimônio alvo (regra 4%): {formatCurrency(fireTarget)}
-          </div>
+      {/* ── Simulator ── */}
+      <div className="future-section-title">Simulador interativo</div>
+      <div className="future-bento-card">
+        <SliderField label="Renda mensal desejada" value={targetMonthlyIncome}
+          min={2000} max={50000} step={500} color="var(--green)"
+          format={formatCurrency} onChange={setTargetMonthlyIncome}
+          hint={`Meta patrimonial (regra 4%): ${formatCurrency(fireTarget)}`} />
+
+        <SliderField label="Aporte mensal" value={monthlyContribution}
+          min={0} max={20000} step={100} color="var(--blue)"
+          format={formatCurrency} onChange={setMonthlyContribution} />
+
+        <div className="future-age-row">
+          <AgeStepper label="Sua idade" value={currentAge} min={18} max={90} onChange={setCurrentAge} />
+          <AgeStepper label="Aposentadoria" value={retireAge} min={currentAge + 1} max={100} onChange={setRetireAge} />
         </div>
 
-        {/* Monthly contribution */}
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>Aporte mensal</span>
-            <span style={{ fontSize: 14, color: "var(--blue)", fontFamily: "var(--mono)", fontWeight: 700 }}>{formatCurrency(monthlyContribution)}</span>
-          </div>
-          <input type="range" min="0" max="20000" step="100" value={monthlyContribution}
-            onChange={e => setMonthlyContribution(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "var(--blue)" }} />
-        </div>
+        <SliderField label="Rentabilidade real a.a." value={expectedReturnPct}
+          min={1} max={15} step={0.5} color="var(--purple)"
+          format={v => `${v}%`} onChange={setExpectedReturnPct}
+          hint="Poupança (~1%) · CDI real (~5%) · Ações (~12%)" />
+      </div>
 
-        {/* Ages */}
-        <div style={{ display: "flex", gap: 14, marginBottom: 22 }}>
-          {[
-            { label: "Sua idade", val: currentAge, set: setCurrentAge, min: 18, max: 90 },
-            { label: "Aposentadoria", val: retireAge, set: setRetireAge, min: currentAge + 1, max: 100 },
-          ].map(({ label, val, set, min, max }) => (
-            <div key={label} style={{ flex: 1, background: "var(--glass2)", borderRadius: 14, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>{label}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button className="btn-ghost" style={{ padding: "0 10px", height: 32, fontSize: 16 }}
-                  onClick={() => set(Math.max(min, val - 1))}>−</button>
-                <div style={{ fontSize: 20, fontFamily: "var(--mono)", fontWeight: 700, flex: 1, textAlign: "center" }}>{val}</div>
-                <button className="btn-ghost" style={{ padding: "0 10px", height: 32, fontSize: 16 }}
-                  onClick={() => set(Math.min(max, val + 1))}>+</button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Return rate */}
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>Rentabilidade real a.a.</span>
-            <span style={{ fontSize: 14, color: "var(--purple)", fontFamily: "var(--mono)", fontWeight: 700 }}>{expectedReturnPct}%</span>
+      {/* ── Juros compostos insight ── */}
+      <div className="future-compound-card">
+        <div className="future-compound-title">⚡ O poder dos juros compostos</div>
+        <div className="future-compound-stats">
+          <div className="future-compound-stat">
+            <div className="future-compound-stat-val">{formatCurrency(totalContributed)}</div>
+            <div className="future-compound-stat-lbl">Você vai investir</div>
           </div>
-          <input type="range" min="1" max="15" step="0.5" value={expectedReturnPct}
-            onChange={e => setExpectedReturnPct(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "var(--purple)" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--t3)", marginTop: 2 }}>
-            <span>Poupança (~1%)</span><span>CDI real (~5%)</span><span>Ações (~12%)</span>
+          <div className="future-compound-stat">
+            <div className="future-compound-stat-val" style={{ color: "var(--green)" }}>+{formatCurrency(compoundGains)}</div>
+            <div className="future-compound-stat-lbl">Juros gerados</div>
+          </div>
+          <div className="future-compound-stat">
+            <div className="future-compound-stat-val" style={{ color: "var(--amber)" }}>{compoundPct}%</div>
+            <div className="future-compound-stat-lbl">Veio dos juros</div>
           </div>
         </div>
       </div>
 
-      {/* Milestones */}
+      {/* ── Milestones ── */}
       {milestones.length > 0 && (
         <>
-          <div className="sec-hd"><span className="sec-title">Marcos da jornada</span></div>
-          <div className="card">
+          <div className="future-section-title">Marcos da jornada</div>
+          <div className="future-bento-card" style={{ padding: "6px 0" }}>
             {milestones.slice(0, 5).map((m, i) => (
-              <div key={i} className="row" style={{ borderBottom: i < milestones.length - 1 ? "1px solid var(--border)" : "none", paddingBottom: i < milestones.length - 1 ? 12 : 0, marginBottom: i < milestones.length - 1 ? 12 : 0 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--glass2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: m.color, fontFamily: "var(--mono)" }}>{m.year}</span>
-                </div>
-                <div className="row-main">
-                  <div className="row-title">{m.label}</div>
-                  <div className="row-sub">{m.sub}</div>
+              <div key={i} className="future-milestone-row" style={{
+                borderBottom: i < Math.min(milestones.length, 5) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none"
+              }}>
+                <div className="future-milestone-year" style={{ color: m.color }}>{m.year}</div>
+                <div className="future-milestone-info">
+                  <div className="future-milestone-label">{m.label}</div>
+                  <div className="future-milestone-sub">{m.sub}</div>
                 </div>
               </div>
             ))}
@@ -304,49 +320,38 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
         </>
       )}
 
-      {/* Sensitivity analysis */}
-      <div className="sec-hd"><span className="sec-title">Sensibilidade de aportes</span></div>
-      <div className="card">
-        <div style={{ fontSize: 11, color: "var(--t2)", marginBottom: 12, lineHeight: 1.5 }}>
-          Impacto de aumentar o aporte mensal em {yearsToRetire} anos ({expectedReturnPct}% a.a.)
+      {/* ── Sensitivity ── */}
+      <div className="future-section-title">Sensibilidade de aportes</div>
+      <div className="future-bento-card" style={{ padding: "6px 0" }}>
+        <div className="future-sensitivity-hint">
+          Impacto de aumentar o aporte em {yearsToRetire} anos · {expectedReturnPct}% a.a.
         </div>
         {sensitivity.map(({ extra, total }, i) => (
-          <div key={extra} className="row" style={{ borderBottom: i < sensitivity.length - 1 ? "1px solid var(--border)" : "none", paddingBottom: i < sensitivity.length - 1 ? 10 : 0, marginBottom: i < sensitivity.length - 1 ? 10 : 0 }}>
-            <div className="row-main">
-              <div className="row-title" style={{ fontFamily: "var(--mono)" }}>
-                {extra === 0 ? "Plano atual" : `+${formatCurrency(extra)}`}
-                {extra > 0 && <span style={{ fontSize: 10, color: "var(--t3)", fontFamily: "var(--font)" }}>/mês</span>}
-              </div>
+          <div key={extra} className="future-sensitivity-row" style={{
+            borderBottom: i < sensitivity.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none"
+          }}>
+            <div className="future-sensitivity-extra">
+              {extra === 0 ? "Plano atual" : `+${formatCurrency(extra)}/mês`}
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{formatCurrency(total)}</div>
-              {extra > 0 && <div style={{ fontSize: 10, color: "var(--green)", fontFamily: "var(--mono)" }}>+{formatCurrency(total - sensitivity[0]!.total)}</div>}
+              <div className="future-sensitivity-total">{formatCurrency(total)}</div>
+              {extra > 0 && <div className="future-sensitivity-gain">+{formatCurrency(total - sensitivity[0]!.total)}</div>}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Contextual insight */}
-      <div className="nudge good" style={{ marginTop: 14 }}>
-        <div className="nudge-ttl" style={{ color: "var(--green)" }}>
-          💡 O poder dos juros compostos
-        </div>
-        <div className="nudge-body" style={{ lineHeight: 1.5 }}>
-          Você vai contribuir <strong>{formatCurrency(monthlyContribution * (yearsToRetire * 12))}</strong> ao longo de {yearsToRetire} anos.<br /><br />
-          Com {expectedReturnPct}% ao ano, o patrimônio chega a <strong>{formatCurrency(futureValue)}</strong>.<br />
-          <strong>{Math.max(0, Math.round(((futureValue - (monthlyContribution * (yearsToRetire * 12) + trueNetWorth)) / (futureValue || 1)) * 100))}%</strong> do patrimônio final veio dos juros — não do seu suor!
-        </div>
-      </div>
-
-      {/* Quick navigation */}
-      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-        <button className="btn-ghost" style={{ flex: 1, gap: 6, display: "flex", alignItems: "center", justifyContent: "center" }}
-          onClick={() => onNavigate?.("retire_fire")}>
-          <Zap size={14} /> Calculadora FIRE
+      {/* ── Quick nav ── */}
+      <div className="future-nav-row">
+        <button className="future-nav-btn" onClick={() => onNavigate?.("retire_fire")}>
+          <Zap size={15} style={{ color: "var(--amber)" }} />
+          <span>Calculadora FIRE</span>
+          <ChevronRight size={14} style={{ marginLeft: "auto", color: "var(--t3)" }} />
         </button>
-        <button className="btn-ghost" style={{ flex: 1, gap: 6, display: "flex", alignItems: "center", justifyContent: "center" }}
-          onClick={() => onNavigate?.("investments")}>
-          <TrendingUp size={14} /> Ver Carteira
+        <button className="future-nav-btn" onClick={() => onNavigate?.("investments")}>
+          <TrendingUp size={15} style={{ color: "var(--green)" }} />
+          <span>Minha Carteira</span>
+          <ChevronRight size={14} style={{ marginLeft: "auto", color: "var(--t3)" }} />
         </button>
       </div>
     </div>

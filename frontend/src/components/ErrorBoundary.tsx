@@ -1,7 +1,11 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import { MonitoringService } from '@/lib/monitoring';
+import { captureException } from '@/lib/sentry';
+
+interface ImportMetaEnvShape {
+  DEV?: boolean;
+}
 
 interface Props {
   children: ReactNode;
@@ -39,10 +43,10 @@ export class ErrorBoundary extends Component<Props, State> {
       componentStack: errorInfo.componentStack,
     });
 
-    // Send to Monitoring (Sentry Mock)
-    MonitoringService.captureError(error, {
+    // Send to Sentry
+    captureException(error, {
       feature: featureName,
-      componentStack: errorInfo.componentStack,
+      componentStack: errorInfo.componentStack ?? '',
     });
 
     this.setState({ errorInfo });
@@ -80,7 +84,7 @@ export class ErrorBoundary extends Component<Props, State> {
               We encountered an error in {featureName}. Don't worry, your data is safe.
             </p>
 
-            {((import.meta as any).env.DEV) && error && (
+            {((import.meta.env as ImportMetaEnvShape).DEV) && error && (
               <details className="mb-6 text-left">
                 <summary className="cursor-pointer text-xs text-red-400 hover:text-red-300 mb-2">
                   Error Details (Dev Only)

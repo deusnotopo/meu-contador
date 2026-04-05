@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { lazy, Suspense, useState, useEffect } from "react";
-import { useLanguage } from "./context/LanguageContext";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { BottomNav } from "./components/layout/BottomNav";
 import { LoginForm } from "./components/auth/LoginForm";
@@ -11,90 +11,79 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MonitoringService } from "./lib/monitoring";
 import { useTransactions } from "./hooks/useTransactions";
 import { useGamification } from "./hooks/useGamification";
-import { LaunchScreen } from "./components/transactions/LaunchScreen";
-import { TransactionsView } from "./components/transactions/TransactionsView";
-import { NotificationsView } from "./components/notifications/NotificationsView";
-import { HealthSection } from "./components/health/HealthSection";
-import { PersonalInflation } from "./components/health/PersonalInflation";
-import { FinancialCheckin } from "./components/health/FinancialCheckin";
-import { InsurancePlanner } from "./components/planning/InsurancePlanner";
 import { PhoneShell } from "./components/layout/PhoneShell";
 import type { TabType } from "./types/navigation";
 import { TourProvider } from "./context/TourContext";
-import "./styles/finapp-v3.css";
+import { Celebration } from "./components/ui/Celebration";
+import { LevelUpOverlay } from "./components/mastery/LevelUpOverlay";
+import { AdviserOverlay, AdviserTrigger, useAdviser } from "./components/ai/AdviserOverlay";
+import { SmartLaunchMenu } from "./components/layout/SmartLaunchMenu";
+import { VoiceCommander } from "./components/ai/VoiceCommander";
+import {
+  AIAssistantView,
+  AnalyticsDashboard,
+  CashFlowCalendar,
+  DebtPayoffPlanner,
+  EducationSection,
+  EnvelopesView,
+  FunctionsHub,
+  GlobalDashboard,
+  HealthSection,
+  InsurancePlanner,
+  InvestCompostosView,
+  InvestDividasView,
+  InvestmentsSection,
+  LaunchScreen,
+  NotificationsView,
+  OnboardingWizard,
+  PersonalInflation,
+  PlanningView,
+  ProvisaoView,
+  RetireFireView,
+  RetireProjView,
+  RetirementView,
+  SettingsSection,
+  TransactionsView,
+  FinancialCheckin,
+  MasterySection,
+  TAB_PATHS,
+  PATH_TO_TAB,
+} from "./app/routes";
+import { PremiumGate } from "./components/ui/PremiumGate";
 
 // Initialize monitoring
 MonitoringService.init();
 
-// ─── Lazy Views ────────────────────────────────────────────
-const GlobalDashboard = lazy(() =>
-  import("./components/GlobalDashboard").then((m) => ({ default: m.GlobalDashboard }))
-);
-const PlanningView = lazy(() =>
-  import("./components/planning/PlanningView").then((m) => ({ default: m.PlanningView }))
-);
-const EnvelopesView = lazy(() =>
-  import("./components/planning/EnvelopesView").then((m) => ({ default: m.EnvelopesView }))
-);
-const InvestCompostosView = lazy(() =>
-  import("./components/investments/InvestCompostosView").then((m) => ({ default: m.InvestCompostosView }))
-);
-const InvestDividasView = lazy(() =>
-  import("./components/investments/InvestDividasView").then((m) => ({ default: m.InvestDividasView }))
-);
-const RetireFireView = lazy(() =>
-  import("./components/planning/RetireFireView").then((m) => ({ default: m.RetireFireView }))
-);
-const RetireProjView = lazy(() =>
-  import("./components/planning/RetireProjView").then((m) => ({ default: m.RetireProjView }))
-);
-const InvestmentsSection = lazy(() =>
-  import("./components/investments/InvestmentsSection").then((m) => ({ default: m.InvestmentsSection }))
-);
-const EducationSection = lazy(() =>
-  import("./components/education/EducationSection").then((m) => ({ default: m.EducationSection }))
-);
-const AIAssistantView = lazy(() =>
-  import("./components/ai/AIAssistantView").then((m) => ({ default: m.AIAssistantView }))
-);
-const SettingsSection = lazy(() =>
-  import("./components/settings/SettingsSection").then((m) => ({ default: m.SettingsSection }))
-);
-const RetirementView = lazy(() =>
-  import("./components/planning/RetirementView").then((m) => ({ default: m.RetirementView }))
-);
-const AnalyticsDashboard = lazy(() =>
-  import("./components/analytics/AnalyticsDashboard").then((m) => ({ default: m.AnalyticsDashboard }))
-);
-const FunctionsHub = lazy(() =>
-  import("./components/FunctionsHub").then((m) => ({ default: m.FunctionsHub }))
-);
-const OnboardingWizard = lazy(() =>
-  import("./components/onboarding/OnboardingWizard").then((m) => ({ default: m.OnboardingWizard }))
-);
-const ProvisaoView = lazy(() =>
-  import("./components/financial/ProvisaoView").then((m) => ({ default: m.ProvisaoView }))
-);
-const DebtPayoffPlanner = lazy(() =>
-  import("./components/financial/DebtPayoffPlanner").then((m) => ({ default: m.DebtPayoffPlanner }))
-);
-const CashFlowCalendar = lazy(() =>
-  import("./components/financial/CashFlowCalendar").then((m) => ({ default: m.CashFlowCalendar }))
-);
-
 import LoadingSkeleton from "./components/ui/LoadingSkeleton";
 function LoadingFallback() { return <LoadingSkeleton />; }
 
+function resolveTabFromPath(pathname: string): TabType {
+  return PATH_TO_TAB[pathname] ?? "inicio";
+}
+
 // ─── App Root ──────────────────────────────────────────────
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>("inicio");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabType>(() => resolveTabFromPath(location.pathname));
   const [showFunctions, setShowFunctions] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  useLanguage();
+  const [showCelebration, setShowCelebration] = useState(false);
   const { user, loading } = useAuth();
   const { transactions } = useTransactions();
+  const { isOpen: adviserOpen, open: openAdviser, close: closeAdviser } = useAdviser();
+  const [isLaunchMenuOpen, setIsLaunchMenuOpen] = useState(false);
+  const [voiceMenuActive, setVoiceMenuActive] = useState(false);
 
   const { claimDailyLogin } = useGamification();
+
+  useEffect(() => {
+    setActiveTab(resolveTabFromPath(location.pathname));
+  }, [location.pathname]);
+
+  const triggerCelebration = useCallback(() => {
+    setShowCelebration(true);
+  }, []);
 
   useEffect(() => {
     if (user && !loading) {
@@ -111,16 +100,99 @@ export default function App() {
     }
   }, [user, loading, claimDailyLogin]);
 
+  const navTo = useCallback((t: TabType) => {
+    setShowFunctions(false);
+    if (t === "launch") {
+      setIsLaunchMenuOpen(true);
+      return;
+    }
+    navigate(TAB_PATHS[t]);
+  }, [navigate]);
+
+  const handleLaunchMenuAction = (action: "expense" | "income" | "voice" | "asset") => {
+    setIsLaunchMenuOpen(false);
+    if (action === "expense" || action === "income") {
+      navigate(TAB_PATHS["launch"] + `?type=${action}`);
+    } else if (action === "voice") {
+       setVoiceMenuActive(true);
+    } else if (action === "asset") {
+       navigate(TAB_PATHS["investir"] + "?add=true");
+    }
+  };
+  const goHome = useCallback(() => navTo("inicio"), [navTo]);
+  const goBack = useCallback((to: TabType = "inicio") => navTo(to), [navTo]);
+
+  const renderedView = (() => {
+    switch (activeTab) {
+      case "inicio": return <GlobalDashboard onNavigate={navTo} />;
+      case "mastery": return <MasterySection onBack={() => goBack("inicio")} />;
+      case "health": return <HealthSection onBack={goHome} onNavigate={navTo} />;
+      case "personal_inflation": return <PersonalInflation onBack={() => goBack("health")} />;
+      case "financial_checkin": return <FinancialCheckin onBack={() => goBack("health")} />;
+      case "insurance_planner": return <InsurancePlanner onBack={() => goBack("health")} />;
+      case "notifications": return <NotificationsView onBack={goHome} />;
+      case "budget": return <EnvelopesView onBack={goHome} onNavigate={navTo} />;
+      case "caixa":
+      case "personal": return <TransactionsView onBack={() => goBack(activeTab === "personal" ? "budget" : "inicio")} />;
+      case "analytics": return (
+        <PremiumGate feature="premium_analytics">
+          <AnalyticsDashboard transactions={transactions} />
+        </PremiumGate>
+      );
+      case "envelopes":
+      case "envelope_detail": return <EnvelopesView onBack={() => goBack("budget")} onNavigate={navTo} />;
+      case "cash_flow": return <CashFlowCalendar onBack={() => goBack("budget")} onNavigate={navTo} />;
+      case "futuro":
+      case "retirement": return <RetirementView onBack={() => goBack(activeTab === "futuro" ? "futuro" : "futuro")} />;
+      case "planos":
+      case "planning": return <PlanningView onBack={() => goBack("futuro")} onNavigate={navTo} />;
+      case "retire_fire": return <RetireFireView onBack={() => goBack("futuro")} />;
+      case "retire_proj": return <RetireProjView onBack={() => goBack("futuro")} />;
+      case "investir":
+      case "investments": return (
+        <PremiumGate feature="investments">
+          <InvestmentsSection onBack={() => goBack(activeTab === "investir" ? "inicio" : "investir")} />
+        </PremiumGate>
+      );
+      case "invest_compostos": return (
+        <PremiumGate feature="investments">
+          <InvestCompostosView onBack={() => goBack("investir")} />
+        </PremiumGate>
+      );
+      case "invest_dividas": return (
+        <PremiumGate feature="investments">
+          <InvestDividasView onBack={() => goBack("investir")} />
+        </PremiumGate>
+      );
+      case "academia":
+      case "education": return <EducationSection onBack={() => goBack(activeTab === "academia" ? "inicio" : "academia")} onNavigate={navTo} />;
+      case "ai": return (
+        <PremiumGate feature="ai_advisor">
+          <AIAssistantView onBack={() => goBack("academia")} />
+        </PremiumGate>
+      );
+      case "provisoes": return <ProvisaoView onBack={() => goBack("budget")} />;
+      case "debt_payoff": return <DebtPayoffPlanner onBack={() => goBack("budget")} />;
+      case "launch": return <LaunchScreen onBack={goHome} onSuccess={triggerCelebration} />;
+      case "business":
+      case "invoices": return (
+        <PremiumGate feature="invoices">
+          <GlobalDashboard onNavigate={navTo} />
+        </PremiumGate>
+      );
+      case "settings":
+      case "profile": return <SettingsSection onBack={goHome} />;
+      default: return <GlobalDashboard onNavigate={navTo} />;
+    }
+  })();
+
   if (loading) return <LoadingFallback />;
   if (!user) return <LoginForm />;
-
-  const goHome = () => setActiveTab("inicio");
-  const navTo = (t: TabType) => { setActiveTab(t); setShowFunctions(false); };
-  const goBack = (to: TabType = "inicio") => setActiveTab(to);
 
   const handleWizardComplete = () => {
     localStorage.setItem(`onboarding_done_${user.id}`, 'true');
     setShowWizard(false);
+    triggerCelebration();
   };
 
   const handleWizardSkip = () => {
@@ -134,6 +206,8 @@ export default function App() {
       <ScreenReaderAnnouncer />
       <ToastProvider />
       <GlobalLoadingProgress />
+      <LevelUpOverlay />
+      <Celebration isVisible={showCelebration} onComplete={() => setShowCelebration(false)} />
 
       {/* ─── Onboarding Wizard overlay ─────────────────────── */}
       {showWizard && (
@@ -146,120 +220,85 @@ export default function App() {
       )}
 
       {/* ─── Main App Layout ────────────────────────────────── */}
-      <PhoneShell
-        tabBar={
-          <BottomNav
-            currentTab={activeTab}
-            onTabChange={setActiveTab}
-            onOpenFunctions={() => setShowFunctions(true)}
+      <ErrorBoundary featureName="PhoneShell">
+        {/* Floating Adviser FAB - visible on all screens */}
+        <AdviserTrigger onClick={openAdviser} />
+        <AdviserOverlay isOpen={adviserOpen} onClose={closeAdviser} />
+        <PhoneShell
+          tabBar={
+            <BottomNav
+              currentTab={isLaunchMenuOpen ? "launch" : activeTab}
+              onTabChange={navTo}
+              onOpenFunctions={() => setShowFunctions(true)}
+            />
+          }
+        >
+          <SmartLaunchMenu 
+            isOpen={isLaunchMenuOpen} 
+            onClose={() => setIsLaunchMenuOpen(false)} 
+            onAction={handleLaunchMenuAction} 
           />
-        }
-      >
-        {/* ─── FunctionsHub Bottom Sheet Modal ───────────────── */}
-        <AnimatePresence>
-          {showFunctions && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                key="fn-backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowFunctions(false)}
-                style={{
-                  position: "absolute", inset: 0, zIndex: 49,
-                  background: "rgba(0,0,0,0.6)",
-                  backdropFilter: "blur(4px)",
-                }}
-              />
-              {/* Sheet */}
-              <motion.div
-                key="fn-sheet"
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                style={{
-                  position: "absolute", bottom: 0, left: 0,
-                  width: "100%",
-                  maxHeight: "85dvh",
-                  zIndex: 50,
-                  borderRadius: "28px 28px 0 0",
-                  overflowY: "auto",
-                  overflowX: "hidden",
-                }}
-                className="no-scrollbar"
-              >
-                <Suspense fallback={<LoadingFallback />}>
-                  <FunctionsHub
-                    onNavigate={navTo}
-                  />
-                </Suspense>
-              </motion.div>
-            </>
+          {voiceMenuActive && (
+            <VoiceCommander onClose={() => setVoiceMenuActive(false)} />
           )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {showFunctions && (
+              <>
+                <motion.div
+                  key="fn-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowFunctions(false)}
+                  style={{
+                    position: "absolute", inset: 0, zIndex: 49,
+                    background: "rgba(0,0,0,0.6)",
+                    backdropFilter: "blur(4px)",
+                  }}
+                />
+                <motion.div
+                  key="fn-sheet"
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                  style={{
+                    position: "absolute", bottom: 0, left: 0,
+                    width: "100%",
+                    maxHeight: "85dvh",
+                    zIndex: 50,
+                    borderRadius: "28px 28px 0 0",
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                  }}
+                  className="no-scrollbar"
+                >
+                  <Suspense fallback={<LoadingFallback />}>
+                    <FunctionsHub onNavigate={navTo} />
+                  </Suspense>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
 
-        <ErrorBoundary featureName="Main Content">
-          <Suspense fallback={<LoadingFallback />}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.02 }}
-                transition={{ duration: 0.22, ease: "easeOut" }}
-                className="w-full"
-              >
-                {/* ── Pilar 1: Início ── */}
-                {activeTab === "inicio"        && <GlobalDashboard onNavigate={navTo} />}
-                {activeTab === "health"        && <HealthSection onBack={goHome} onNavigate={navTo} />}
-                {activeTab === "personal_inflation" && <PersonalInflation onBack={() => goBack("health")} />}
-                {activeTab === "financial_checkin" && <FinancialCheckin onBack={() => goBack("health")} />}
-                {activeTab === "insurance_planner" && <InsurancePlanner onBack={() => goBack("health")} />}
-                {activeTab === "notifications" && <NotificationsView onBack={goHome} />}
-
-                {/* ── Pilar 2: Budget / Caixa ── */}
-                {activeTab === "budget"          && <EnvelopesView onBack={goHome} onNavigate={navTo} />}
-                {activeTab === "caixa"           && <TransactionsView onBack={goHome} />}
-                {activeTab === "personal"        && <TransactionsView onBack={() => goBack("budget")} />}
-                {activeTab === "analytics"       && <AnalyticsDashboard transactions={transactions} />}
-                {activeTab === "envelopes"       && <EnvelopesView onBack={() => goBack("budget")} onNavigate={navTo} />}
-                {activeTab === "envelope_detail" && <EnvelopesView onBack={() => goBack("budget")} onNavigate={navTo} />}
-                {activeTab === "cash_flow"       && <CashFlowCalendar onBack={() => goBack("budget")} onNavigate={navTo} />}
-
-                {/* ── Pilar 3: Futuro ── */}
-                {activeTab === "futuro"       && <RetirementView onBack={goHome} />}
-                {activeTab === "planos"        && <PlanningView onBack={() => goBack("futuro")} onNavigate={navTo} />}
-                {activeTab === "planning"      && <PlanningView onBack={() => goBack("futuro")} onNavigate={navTo} />}
-                {activeTab === "retirement"    && <RetirementView onBack={() => goBack("futuro")} />}
-                {activeTab === "retire_fire"   && <RetireFireView onBack={() => goBack("futuro")} />}
-                {activeTab === "retire_proj"   && <RetireProjView onBack={() => goBack("futuro")} />}
-
-                {/* ── Pilar 4: Patrimônio / Investir ── */}
-                {activeTab === "investir"         && <InvestmentsSection onBack={goHome} />}
-                {activeTab === "investments"      && <InvestmentsSection onBack={() => goBack("investir")} />}
-                {activeTab === "invest_compostos" && <InvestCompostosView onBack={() => goBack("investir")} />}
-                {activeTab === "invest_dividas"   && <InvestDividasView onBack={() => goBack("investir")} />}
-
-                {/* ── Pilar 5: Academia ── */}
-                {activeTab === "academia"   && <EducationSection onBack={goHome} />}
-                {activeTab === "education"  && <EducationSection onBack={() => goBack("academia")} />}
-                {activeTab === "ai"         && <AIAssistantView onBack={() => goBack("academia")} />}
-
-                {/* ── Ferramentas Financeiras Brasileiras ── */}
-                {activeTab === "provisoes"   && <ProvisaoView onBack={() => goBack("budget")} />}
-                {activeTab === "debt_payoff" && <DebtPayoffPlanner onBack={() => goBack("budget")} />}
-
-                {/* ── Global / Modal ── */}
-                {activeTab === "launch"   && <LaunchScreen onBack={goHome} />}
-                {activeTab === "settings" && <SettingsSection onBack={goHome} />}
-                {activeTab === "profile"  && <SettingsSection onBack={goHome} />}
-              </motion.div>
-            </AnimatePresence>
-          </Suspense>
-        </ErrorBoundary>
-      </PhoneShell>
+          <ErrorBoundary featureName="Main Content">
+            <Suspense fallback={<LoadingFallback />}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.02 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  className="w-full"
+                >
+                  {renderedView}
+                </motion.div>
+              </AnimatePresence>
+            </Suspense>
+          </ErrorBoundary>
+        </PhoneShell>
+      </ErrorBoundary>
     </TourProvider>
   );
 }

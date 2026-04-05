@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
+interface UserPreferencesResponse {
+  completedTours?: string[];
+  data?: {
+    completedTours?: string[];
+  };
+}
+
 interface TourContextType {
   completedTours: string[];
   markTourAsCompleted: (tourId: string) => void;
@@ -24,7 +31,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Sincroniza com o backend se o usuário estiver logado
-        const response = await api.get('/users/preferences') as any;
+        const response = await api.get<UserPreferencesResponse>('/users/preferences');
         if (response.completedTours) {
           const remote = response.completedTours;
           setCompletedTours(remote);
@@ -55,7 +62,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Persiste no backend nas preferências do usuário usando PATCH
       await api.patch('/users/preferences', { completedTours: newTours });
-    } catch (error) {
+    } catch (_error) {
       console.warn('Falha ao sincronizar conclusão do tour com o servidor');
     }
   };

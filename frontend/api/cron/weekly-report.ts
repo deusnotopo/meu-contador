@@ -5,9 +5,6 @@ import { Resend } from "resend";
 import { generateWeeklyEmailHtml } from "../../src/lib/reports/email-template.ts";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const APP_URL = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:5173";
 
 export default async function handler(
   request: VercelRequest,

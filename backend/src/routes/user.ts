@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../lib/db';
 import { dataReliabilityValues, type UpdateUserProfileDto, type UserPreferencesDto } from '../../../shared/contracts';
+import { validatePreferences } from '../lib/schemas/user-preferences';
 
 const preferencesSchema = z.object({
   theme: z.string(),
@@ -130,11 +131,17 @@ export async function userRoutes(app: FastifyInstance) {
       throw new Error('User not found');
     }
 
-    // preferences is now a Json field — Prisma returns it as a plain object
-    const defaults: UserPreferencesDto = { theme: 'dark', language: 'pt', privacyMode: false };
-    const prefs = (user.preferences && typeof user.preferences === 'object')
-      ? user.preferences as unknown as UserPreferencesDto
-      : defaults;
+    let prefs = { theme: 'dark', language: 'pt', privacyMode: false, completedTours: [] } as UserPreferencesDto;
+    
+    if (user.preferences) {
+      if (typeof user.preferences === 'object') {
+        prefs = { ...prefs, ...(user.preferences as any) };
+      } else if (typeof user.preferences === 'string') {
+        try {
+          prefs = { ...prefs, ...JSON.parse(user.preferences) };
+        } catch(e) {}
+      }
+    }
 
     return prefs;
   });
@@ -172,21 +179,29 @@ export async function userRoutes(app: FastifyInstance) {
     }
 
     // preferences is now Json — merge objects directly, no parse/stringify
-    const defaults: UserPreferencesDto = { theme: 'dark', language: 'pt', privacyMode: false };
-    const current = (user.preferences && typeof user.preferences === 'object')
-      ? user.preferences as unknown as UserPreferencesDto
-      : defaults;
+    let current = { theme: 'dark', language: 'pt', privacyMode: false, completedTours: [] } as UserPreferencesDto;
+    if (user.preferences) {
+      if (typeof user.preferences === 'object') {
+        current = { ...current, ...(user.preferences as any) };
+      } else if (typeof user.preferences === 'string') {
+        try {
+          current = { ...current, ...JSON.parse(user.preferences) };
+        } catch(e) {}
+      }
+    }
 
-    const newPreferences: UserPreferencesDto = { ...current, ...incoming };
+    // Validate merged preferences using robust schema
+    const mergedPreferences = { ...current, ...incoming };
+    const validatedPreferences = validatePreferences(mergedPreferences);
 
     await db.user.update({
       where: { id: request.user.id },
-      data: { preferences: newPreferences as any },
+      data: { preferences: validatedPreferences as any },
     });
 
     return {
       success: true,
-      preferences: newPreferences,
+      preferences: validatedPreferences,
     };
   });
 
@@ -306,7 +321,6 @@ export async function userRoutes(app: FastifyInstance) {
                   limit: b.amount || 0,
                   month: currentMonth,
                 })),
-              skipDuplicates: true,
             })
           : Promise.resolve(),
 
@@ -388,10 +402,14 @@ export async function userRoutes(app: FastifyInstance) {
           ? (async () => {
               const user = await db.user.findUnique({ where: { id: userId }, select: { preferences: true } });
               if (!user) return;
-              const currentPrefs = (user.preferences && typeof user.preferences === 'object')
-                ? user.preferences as Record<string, unknown>
-                : {};
-              await db.user.update({
+              let currentPrefs = {} as Record<string, unknown>;
+              if (user.preferences) {
+                if (typeof user.preferences === 'object') {
+                  currentPrefs = user.preferences as Record<string, unknown>;
+                } else if (typeof user.preferences === 'string') {
+                  try { currentPrefs = JSON.parse(user.preferences); } catch(e) {}
+                }
+              }              await db.user.update({
                 where: { id: userId },
                 data: { preferences: { ...currentPrefs, ...data.preferences } as any },
               });
@@ -410,6 +428,235 @@ export async function userRoutes(app: FastifyInstance) {
       console.error('Onboarding error:', err);
       return reply.status(500).send({ success: false, message: 'Falha ao concluir onboarding' });
     }
+  });
+
+  // GET /users/gamification - Get user's gamification data
+  app.get('/users/gamification', {
+    schema: {
+      description: 'Obtém os dados de gamificação do usuário logado',
+      tags: ['User'],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: z.object({
+          gamificationData: z.any().optional(),
+        }),
+        404: userErrorSchema,
+      },
+    },
+    preHandler: [app.authenticate],
+  }, async (request, reply) => {
+    const user = await db.user.findUnique({
+      where: { id: request.user.id },
+      select: { gamificationData: true },
+    });
+
+    if (!user) {
+      return reply.status(404).send({ message: 'User not found' });
+    }
+
+    let data = null;
+    if (user.gamificationData) {
+      try {
+        data = typeof user.gamificationData === 'string' 
+          ? JSON.parse(user.gamificationData) 
+          : user.gamificationData;
+      } catch (e) {
+        data = null;
+      }
+    }
+
+    return { gamificationData: data };
+  });
+
+  // PUT /users/gamification - Update user's gamification data
+  app.put('/users/gamification', {
+    schema: {
+      description: 'Atualiza os dados de gamificação do usuário logado',
+      tags: ['User'],
+      security: [{ bearerAuth: [] }],
+      body: z.object({
+        gamificationData: z.any(),
+      }),
+      response: {
+        200: z.object({
+          success: z.boolean(),
+          gamificationData: z.any(),
+        }),
+        500: userErrorSchema,
+      },
+    },
+    preHandler: [app.authenticate],
+  }, async (request, reply) => {
+    const { gamificationData } = request.body as { gamificationData: unknown };
+
+    try {
+      const dataToStore = typeof gamificationData === 'string' 
+        ? gamificationData 
+        : JSON.stringify(gamificationData);
+
+      await db.user.update({
+        where: { id: request.user.id },
+        data: { gamificationData: dataToStore },
+      });
+
+      return {
+        success: true,
+        gamificationData,
+      };
+    } catch (err) {
+      console.error('Gamification update error:', err);
+      return reply.status(500).send({ message: 'Failed to update gamification data' });
+    }
+  });
+
+  // GET /users/emotional - Get user's emotional journal entries
+  app.get('/users/emotional', {
+    schema: {
+      description: 'Obtém os registros emocionais do usuário logado',
+      tags: ['User'],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: z.object({
+          emotionalData: z.any().optional(),
+        }),
+        404: userErrorSchema,
+      },
+    },
+    preHandler: [app.authenticate],
+  }, async (request, reply) => {
+    const user = await db.user.findUnique({
+      where: { id: request.user.id },
+      select: { emotionalData: true },
+    });
+
+    if (!user) {
+      return reply.status(404).send({ message: 'User not found' });
+    }
+
+    let data = null;
+    if (user.emotionalData) {
+      try {
+        data = typeof user.emotionalData === 'string' 
+          ? JSON.parse(user.emotionalData) 
+          : user.emotionalData;
+      } catch (e) {
+        data = null;
+      }
+    }
+
+    return { emotionalData: data };
+  });
+
+  // PUT /users/emotional - Update user's emotional journal entries
+  app.put('/users/emotional', {
+    schema: {
+      description: 'Atualiza os registros emocionais do usuário logado',
+      tags: ['User'],
+      security: [{ bearerAuth: [] }],
+      body: z.object({
+        emotionalData: z.any(),
+      }),
+      response: {
+        200: z.object({
+          success: z.boolean(),
+          emotionalData: z.any(),
+        }),
+        500: userErrorSchema,
+      },
+    },
+    preHandler: [app.authenticate],
+  }, async (request, reply) => {
+    const { emotionalData } = request.body as { emotionalData: unknown };
+
+    try {
+      const dataToStore = typeof emotionalData === 'string' 
+        ? emotionalData 
+        : JSON.stringify(emotionalData);
+
+      await db.user.update({
+        where: { id: request.user.id },
+        data: { emotionalData: dataToStore },
+      });
+
+      return {
+        success: true,
+        emotionalData,
+      };
+    } catch (err) {
+      console.error('Emotional data update error:', err);
+      return reply.status(500).send({ message: 'Failed to update emotional data' });
+    }
+  });
+
+  // GET /users/export - LGPD Data Export
+  app.get('/users/export', {
+    schema: {
+      description: 'Exporta todos os dados do usuário (LGPD compliance)',
+      tags: ['User'],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: z.any(),
+        404: userErrorSchema,
+      },
+    },
+    preHandler: [app.authenticate, (app as any).proGuard],
+  }, async (request, reply) => {
+    const userId = request.user.id;
+
+    const userData = await db.user.findUnique({
+      where: { id: userId },
+      include: {
+        transactions: {
+          where: { deletedAt: null },
+          orderBy: { date: 'desc' },
+        },
+        budgets: {
+          where: { deletedAt: null },
+        },
+        goals: {
+          where: { deletedAt: null },
+        },
+        investments: {
+          where: { deletedAt: null },
+          include: {
+            dividends: true,
+            sales: true,
+          },
+        },
+        debts: {
+          where: { deletedAt: null },
+        },
+        reminders: {
+          where: { deletedAt: null },
+        },
+        bankAccounts: {
+          where: { deletedAt: null },
+        },
+      },
+    });
+
+    if (!userData) {
+      return reply.status(404).send({ message: 'User not found' });
+    }
+
+    // Remove sensitive fields
+    const { passwordHash, ...exportData } = userData;
+
+    // Log export for audit
+    await db.auditLog.create({
+      data: {
+        userId,
+        action: 'DATA_EXPORT',
+        resource: 'user',
+        resourceId: userId,
+        metadata: JSON.stringify({ exportedAt: new Date().toISOString() }),
+      },
+    });
+
+    reply.header('Content-Type', 'application/json');
+    reply.header('Content-Disposition', `attachment; filename="user-data-${userId}.json"`);
+    
+    return exportData;
   });
 }
 

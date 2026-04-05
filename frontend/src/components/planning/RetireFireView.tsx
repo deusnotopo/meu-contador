@@ -6,6 +6,8 @@ import { useDebts } from "@/hooks/useDebts";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatters";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/ui/HelpButton";
 import { AreaTutorialButton } from "@/components/ui/AreaTutorialButton";
 import { useFireCalculation } from "@/hooks/useFireCalculation";
 
@@ -60,7 +62,7 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
 
   // Year of FIRE
   const anoFire = new Date().getFullYear() + Math.round(meses / 12);
-  const idadeAtual = (user as any)?.age || 30;
+  const idadeAtual = user?.age || 30;
   const idadeFire = idadeAtual + Math.round(meses / 12);
 
   // Lean FIRE and Fat FIRE — use months from hook (fix: was using undeclared taxaMes)
@@ -73,9 +75,9 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
     return (
       <div style={{ paddingTop: "10px", display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <button className="back-btn" onClick={() => onBack?.()}>
+          <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
             <ArrowLeft size={16} />
-          </button>
+          </Button>
           <div style={{ flex: 1 }}>
             <div className="eyebrow">Independência financeira</div>
             <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Calculadora FIRE</div>
@@ -93,12 +95,15 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
     <div style={{ paddingTop: "10px", animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <button className="back-btn" onClick={() => onBack?.()}>
+        <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
           <ArrowLeft size={16} />
-        </button>
+        </Button>
         <div style={{ flex: 1 }}>
           <div className="eyebrow">Independência financeira</div>
-          <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Calculadora FIRE</div>
+          <div className="page-title" style={{ margin: 0, fontSize: 22, display: "flex", alignItems: "center", gap: 8 }}>
+            Calculadora FIRE
+            <HelpButton tooltipText="Projete sua independência financeira com patrimônio atual, aporte mensal, despesas desejadas e taxa de retorno." />
+          </div>
         </div>
         <AreaTutorialButton area="futuro" onNavigate={onNavigate} />
       </div>

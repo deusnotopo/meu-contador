@@ -55,13 +55,17 @@ export const ActionGrid: React.FC<ActionGridProps> = ({ onNavigate }) => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 7,
+            gap: 8,
             cursor: "pointer",
             background: "none",
             border: "none",
             padding: 0,
             fontFamily: "var(--font)",
+            transition: "transform 0.2s cubic-bezier(0.34,1.5,0.64,1)",
           }}
+          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
+          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
           <div
             style={{

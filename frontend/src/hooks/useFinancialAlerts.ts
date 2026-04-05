@@ -11,7 +11,7 @@ export interface FinancialAlert {
 }
 
 export const useFinancialAlerts = () => {
-  const { transactions, totals, categoryData } = useTransactions("personal");
+  const { totals, categoryData } = useTransactions("personal");
   const budgets = useMemo(() => loadBudgets(), []);
 
   const alerts = useMemo(() => {
@@ -68,7 +68,7 @@ export const useFinancialAlerts = () => {
     }
 
     return list;
-  }, [transactions, totals, categoryData, budgets]);
+  }, [totals, categoryData, budgets]);
 
   return { alerts };
 };

@@ -127,8 +127,8 @@ export const CollaborationPanel = ({
       // Force reload to sync data from new context
       await syncAllData(userId);
       window.location.reload();
-    } catch (error: any) {
-      showError(error.message || "Erro ao entrar no Espaço");
+    } catch (error: unknown) {
+      showError(error instanceof Error ? error.message : "Erro ao entrar no Espaço");
     } finally {
       setIsLoading(false);
     }

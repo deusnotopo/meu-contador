@@ -116,7 +116,7 @@ export const ReceiptScanner = ({
       showSuccess("Transação criada a partir do recibo!");
       onTransactionCreated?.();
       onClose();
-    } catch (e) {
+    } catch (_e) {
       showError("Erro ao processar criação da transação");
     }
   };

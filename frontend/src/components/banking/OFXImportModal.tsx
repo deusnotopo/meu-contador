@@ -33,6 +33,15 @@ interface ImportResult {
   message?: string;
 }
 
+interface ImportErrorLike {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 export const OFXImportModal = ({
   isOpen,
   onClose,
@@ -89,11 +98,12 @@ export const OFXImportModal = ({
         showSuccess(`${data.imported} transações importadas com sucesso!`);
         onSuccess(data.imported);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as ImportErrorLike;
       setStage("error");
       setErrorMsg(
-        err?.response?.data?.message ||
-          err?.message ||
+        error?.response?.data?.message ||
+          error?.message ||
           "Erro ao processar o arquivo OFX."
       );
       showError("Falha na importação do extrato.");

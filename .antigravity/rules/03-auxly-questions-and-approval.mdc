@@ -116,6 +116,12 @@ await mcp_extension-auxly_auxly_update_task({
 
 ---
 
+### After **Keep in In Progress** (Review handoff)
+
+If the user chose **Keep in In Progress** on a Move-to-Review question, that means **stop the handoff loop** — do **not** immediately add research again, set `aiWorkingOn: true`, or ask Move-to-Review again. Auxly MCP **blocks** those until the user clearly asks to continue; then call **`auxly_update_task` with `resumeAfterReviewDefer: true`** once, then continue.
+
+---
+
 ## Why This Rule Exists:
 
 ✅ **Questions tracked** - All in task Q&A history  

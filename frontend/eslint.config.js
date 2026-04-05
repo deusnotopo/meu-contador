@@ -4,7 +4,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist/**", "dev-dist/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -22,8 +22,33 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
       "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
+  {
+    files: [
+      "src/app/routes.tsx",
+      "src/components/ui/badge.tsx",
+      "src/components/ui/button.tsx",
+      "src/context/AuthContext.tsx",
+      "src/context/CurrencyContext.tsx",
+      "src/context/FeatureFlagsContext.tsx",
+      "src/context/LanguageContext.tsx",
+      "src/context/ThemeContext.tsx",
+      "src/context/TourContext.tsx",
+      "src/lib/accessibility.tsx",
+      "src/lib/toast.tsx",
+    ],
+    rules: {
+      "react-refresh/only-export-components": "off",
     },
   }
 );

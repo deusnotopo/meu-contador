@@ -1,5 +1,29 @@
 import { useState, useEffect } from "react";
 
+interface TesouroApiItem {
+  TrsrBd?: {
+    nm?: string;
+    mtrtyDt?: string;
+    anulInvstmtRate?: string;
+    untrInvstmtVal?: string;
+    bd?: { cd?: string };
+  };
+}
+
+interface TesouroApiResponse {
+  response?: {
+    TrsrBdTradgList?: TesouroApiItem[];
+  };
+}
+
+const FALLBACK_TITLES: TesouroTitle[] = [
+  { nome: "Tesouro IPCA+ 2035", vencimento: "15/05/2035", taxa: 6.12, preco: 3215.45, tipo: "IPCA+" },
+  { nome: "Tesouro Prefixado 2029", vencimento: "01/01/2029", taxa: 11.85, preco: 892.30, tipo: "Prefixado" },
+  { nome: "Tesouro Selic 2029", vencimento: "01/03/2029", taxa: 0.15, preco: 13145.67, tipo: "Selic" },
+  { nome: "Tesouro IPCA+ 2045", vencimento: "15/05/2045", taxa: 6.25, preco: 2890.2, tipo: "IPCA+" },
+  { nome: "Tesouro Prefixado 2033", vencimento: "01/01/2033", taxa: 12.1, preco: 745.8, tipo: "Prefixado" },
+];
+
 interface TesouroTitle {
   nome: string;
   vencimento: string;
@@ -12,14 +36,6 @@ export const TesouroDiretoRates = () => {
   const [titles, setTitles] = useState<TesouroTitle[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fallbackTitles: TesouroTitle[] = [
-    { nome: "Tesouro IPCA+ 2035", vencimento: "15/05/2035", taxa: 6.12, preco: 3215.45, tipo: "IPCA+" },
-    { nome: "Tesouro Prefixado 2029", vencimento: "01/01/2029", taxa: 11.85, preco: 892.30, tipo: "Prefixado" },
-    { nome: "Tesouro Selic 2029", vencimento: "01/03/2029", taxa: 0.15, preco: 13145.67, tipo: "Selic" },
-    { nome: "Tesouro IPCA+ 2045", vencimento: "15/05/2045", taxa: 6.25, preco: 2890.2, tipo: "IPCA+" },
-    { nome: "Tesouro Prefixado 2033", vencimento: "01/01/2033", taxa: 12.1, preco: 745.8, tipo: "Prefixado" },
-  ];
-
   const fmt = (n: number) => "R$\u00a0" + n.toFixed(2).replace(".", ",");
   const fmtPct = (n: number) => n.toFixed(2) + "% a.a.";
 
@@ -30,7 +46,7 @@ export const TesouroDiretoRates = () => {
       // Não existe rota backend para este recurso neste ambiente local.
       // Em dev, usamos fallback silencioso para evitar 404 no console.
       if (import.meta.env.DEV) {
-        setTitles(fallbackTitles);
+        setTitles(FALLBACK_TITLES);
         setLoading(false);
         return;
       }
@@ -42,24 +58,28 @@ export const TesouroDiretoRates = () => {
         });
         
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as TesouroApiResponse;
           if (data.response && data.response.TrsrBdTradgList) {
-            const formatted = data.response.TrsrBdTradgList.map((item: any) => ({
-              nome: item.TrsrBd?.nm || "Título",
-              vencimento: item.TrsrBd?.mtrtyDt || "N/A",
-              taxa: parseFloat(item.TrsrBd?.anulInvstmtRate) || 0,
-              preco: parseFloat(item.TrsrBd?.untrInvstmtVal) || 0,
-              tipo: item.TrsrBd?.bd?.cd === "NTN-B" ? "IPCA+" : 
-                    item.TrsrBd?.bd?.cd === "LTN" ? "Prefixado" : "Selic",
-            }));
+            const formatted = data.response.TrsrBdTradgList.map((item) => {
+              const cd = item.TrsrBd?.bd?.cd;
+              const tipo: TesouroTitle['tipo'] =
+                cd === 'NTN-B' ? 'IPCA+' : cd === 'LTN' ? 'Prefixado' : 'Selic';
+              return {
+                nome: item.TrsrBd?.nm || 'Título',
+                vencimento: item.TrsrBd?.mtrtyDt || 'N/A',
+                taxa: parseFloat(item.TrsrBd?.anulInvstmtRate ?? '0') || 0,
+                preco: parseFloat(item.TrsrBd?.untrInvstmtVal ?? '0') || 0,
+                tipo,
+              };
+            });
             setTitles(formatted.slice(0, 6));
             return;
           }
         }
         throw new Error("API not available");
-      } catch (error) {
+      } catch (_error) {
         // Use fallback data on any error (CORS, timeout, etc.)
-        setTitles(fallbackTitles);
+        setTitles(FALLBACK_TITLES);
       } finally {
         setLoading(false);
       }

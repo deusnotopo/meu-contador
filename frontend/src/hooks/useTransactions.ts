@@ -31,9 +31,24 @@ export const useTransactions = (
     setError(null);
     
     try {
-      const data = await api.get<Transaction[]>(`/transactions?scope=${scope}`);
+      const response = await api.get<Transaction[] | { items?: Transaction[] }>(`/transactions?scope=${scope}`);
       if (!cancelled) { // ← Verifica se componente ainda está montado
-        setTransactions(data);
+        const items = Array.isArray(response) ? response : (response?.items || []);
+        setTransactions(items);
+
+        // Fase 4: Detector de Recorrências (Algoritmo Heurístico Local)
+        const expenses = items.filter(i => i.type === 'expense');
+        const counts: Record<string, number> = {};
+        expenses.forEach(item => {
+          if (!item.recurring) {
+            const nom = item.description.trim().toUpperCase();
+            if (nom.length > 2) counts[nom] = (counts[nom] || 0) + 1;
+          }
+        });
+        const detected = Object.entries(counts).filter(([_, c]) => c >= 3).map(([n]) => n);
+        if (detected.length > 0) {
+          window.dispatchEvent(new CustomEvent('recurring-detected', { detail: detected }));
+        }
       }
     } catch (err) {
       if (!cancelled) {
@@ -50,44 +65,17 @@ export const useTransactions = (
   }, [scope, user]);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelFn = () => {};
+    fetchTransactions().then(fn => { if (fn) cancelFn = fn; });
     
-    const loadData = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-      
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const data = await api.get<Transaction[]>(`/transactions?scope=${scope}`);
-        if (!cancelled) {
-          setTransactions(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Transactions API Error:", err);
-          setError("Não foi possível conectar ao servidor. Verifique sua conexão.");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-    
-    loadData();
-    
-    const handleRefresh = () => { loadData(); };
+    const handleRefresh = () => { fetchTransactions(); };
     window.addEventListener("transaction-updated", handleRefresh);
 
     return () => { 
-      cancelled = true; 
+      cancelFn();
       window.removeEventListener("transaction-updated", handleRefresh);
     }; // ← Cleanup!
-  }, [scope, user?.uid]);
+  }, [fetchTransactions]);
 
   const addTransaction = async (formData: TransactionFormData) => {
     try {
@@ -104,8 +92,33 @@ export const useTransactions = (
       }
       
       showSuccess("Transação adicionada com sucesso!");
+
+      // Fase 2: Monitor Ulisses Ativo (Heurística sem IA)
+      if (payload.type === 'expense') {
+        try {
+          // Buscamos os budgets diretamente para não engessar o fluxo com hooks externos
+          api.get<any[]>(`/budgets?scope=${scope}`).then(response => {
+            const budgets = Array.isArray(response) ? response : (response as any).items || [];
+            const catBudget = budgets.find((b: any) => b.category.toLowerCase() === payload.category.toLowerCase());
+            
+            if (catBudget) {
+              const newTotal = catBudget.spent + payload.amount;
+              const pct = newTotal / catBudget.limit;
+              
+              if (pct >= 1) {
+                showError(`🔴 ULISSES: Alerta Crítico! Você estourou o orçamento de ${catBudget.category}.`);
+              } else if (pct >= 0.8) {
+                showError(`⚠️ ULISSES: Cuidado! Você atingiu ${(pct*100).toFixed(0)}% do orçamento de ${catBudget.category}.`);
+              }
+            }
+          });
+        } catch (e) { /* ignore silently */ }
+      }
+
+      return newTransaction;
     } catch (error) {
       showError("Erro ao adicionar transação. Verifique o servidor.");
+      throw error;
     }
   };
 
@@ -126,7 +139,7 @@ export const useTransactions = (
       }
       
       showSuccess("Transação atualizada com sucesso!");
-    } catch (error) {
+    } catch (_error) {
       showError("Erro ao atualizar transação.");
     }
   };
@@ -143,7 +156,7 @@ export const useTransactions = (
         }
         
         showSuccess("Transação excluída com sucesso!");
-      } catch (error) {
+      } catch (_error) {
         showError("Erro ao excluir transação.");
       }
     }

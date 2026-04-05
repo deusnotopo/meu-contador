@@ -11,6 +11,7 @@ export default defineConfig({
     visualizer({
       filename: './dist/stats.html',
       open: false,
+      template: 'treemap',
       gzipSize: true,
       brotliSize: true,
     }),
@@ -73,22 +74,33 @@ export default defineConfig({
     }),
   ],
   resolve: {
+    preserveSymlinks: true,
+    dedupe: ['react', 'react-dom', 'framer-motion', 'lucide-react', 'react-router-dom'],
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
+    sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          'ui-vendor': ['framer-motion', 'lucide-react'],
-          'charts': ['recharts'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase')) return 'firebase';
+            if (id.includes('recharts')) return 'charts';
+            if (id.includes('framer-motion') || id.includes('lucide-react')) return 'ui-vendor';
+            if (id.includes('react')) return 'react-vendor';
+          }
+
+          if (id.includes('/components/ai/') || id.includes('/lib/ai/')) return 'ai-module';
+          if (id.includes('/components/onboarding/')) return 'onboarding-module';
+          if (id.includes('/components/investments/')) return 'investments-module';
+          if (id.includes('/components/education/')) return 'education-module';
+          if (id.includes('/components/settings/')) return 'settings-module';
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 700,
   },
   server: {
     port: 5173,

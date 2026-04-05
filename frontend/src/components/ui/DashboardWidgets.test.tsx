@@ -1,3 +1,4 @@
+import type { HTMLAttributes, ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { StatCard, MiniChart, DollarSign } from './DashboardWidgets';
@@ -5,7 +6,7 @@ import { StatCard, MiniChart, DollarSign } from './DashboardWidgets';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    div: ({ children, ...props }: { children?: ReactNode } & HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
   },
 }));
 

@@ -30,6 +30,8 @@ export function SwipeToDelete({ children, onDelete, className = '' }: SwipeToDel
     rubberband: true
   });
 
+  const bindProps = bind() as any;
+
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {/* Background Delete Action */}
@@ -39,7 +41,7 @@ export function SwipeToDelete({ children, onDelete, className = '' }: SwipeToDel
 
       {/* Foreground Content */}
       <motion.div
-        {...(bind() as any)}
+        {...bindProps}
         animate={controls}
         className="relative z-10 bg-slate-900 touch-pan-y"
         style={{ touchAction: 'pan-y' }}

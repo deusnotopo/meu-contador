@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, setDoc, DocumentSnapshot } from "firebase/firestore";
 import { db, auth } from "./firebase";
 
 const FIRESTORE_SYNC_ENABLED =
@@ -75,7 +75,7 @@ export const loadFromCloud = async (
     const snap = await Promise.race([
       getDoc(userRef),
       timeoutPromise
-    ]) as any;
+    ]) as DocumentSnapshot;
 
     if (snap && snap.exists && snap.exists()) {
       return snap.data().payload;

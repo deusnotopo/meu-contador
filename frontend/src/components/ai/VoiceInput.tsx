@@ -2,6 +2,36 @@ import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Waves } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
+interface SpeechRecognitionEventLike {
+  results?: ArrayLike<ArrayLike<{ transcript?: string }>>;
+}
+
+interface SpeechRecognitionErrorEventLike {
+  error?: string;
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+interface SpeechRecognitionConstructorLike {
+  new (): SpeechRecognitionLike;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructorLike;
+    webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
+  }
+}
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
   isProcessing?: boolean;
@@ -12,7 +42,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   isProcessing = false,
 }) => {
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<any | null>(
+  const [recognition, setRecognition] = useState<SpeechRecognitionLike | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +54,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     ) {
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) { setError("Seu navegador não suporta reconhecimento de voz."); return; }
       const recognitionInstance = new SpeechRecognition();
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = false;
@@ -38,7 +69,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         setIsListening(false);
       };
 
-      recognitionInstance.onerror = (event) => {
+      recognitionInstance.onerror = (event: SpeechRecognitionErrorEventLike) => {
         console.error("Speech recognition error", event.error);
         setIsListening(false);
         if (event.error === "not-allowed") {
@@ -48,7 +79,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         }
       };
 
-      recognitionInstance.onresult = (event: any) => {
+      recognitionInstance.onresult = (event: SpeechRecognitionEventLike) => {
         const transcript = event.results?.[0]?.[0]?.transcript;
         if (transcript) {
           onTranscript(transcript);

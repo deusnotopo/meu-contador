@@ -42,9 +42,37 @@ describe('Transaction Routes', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const transactions = JSON.parse(response.payload)
-    expect(transactions.length).toBe(1)
-    expect(transactions[0].description).toBe('Test Transaction')
+    const payload = JSON.parse(response.payload)
+    expect(payload.items.length).toBe(1)
+    expect(payload.total).toBe(1)
+    expect(payload.items[0].description).toBe('Test Transaction')
+  })
+
+  it('should paginate transactions', async () => {
+    await db.transaction.createMany({
+      data: Array.from({ length: 3 }).map((_, index) => ({
+        description: `Tx ${index}`,
+        amount: index + 1,
+        type: 'income',
+        category: 'salary',
+        date: new Date(Date.now() + index * 1000),
+        scope: 'personal',
+        userId: testUser.id,
+      })),
+    })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/transactions?page=2&limit=2',
+      headers: { authorization: `Bearer ${authToken}` },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const payload = JSON.parse(response.payload)
+    expect(payload.page).toBe(2)
+    expect(payload.limit).toBe(2)
+    expect(payload.total).toBe(3)
+    expect(payload.items).toHaveLength(1)
   })
 
   it('should create a new transaction', async () => {

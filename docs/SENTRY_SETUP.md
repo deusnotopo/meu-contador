@@ -163,9 +163,34 @@ Access your dashboard at: `https://sentry.io/organizations/YOUR_ORG/projects/YOU
 
 Configure alerts in Sentry dashboard:
 
+**Recommended Alert Rules:**
+
+1. **High Error Rate**
+   - Trigger: Error rate > 5% of sessions in 5 minutes
+   - Action: Email + Slack notification
+   
+2. **New Issue Created**
+   - Trigger: First occurrence of a new error
+   - Action: Email notification
+   
+3. **Regression Alert**
+   - Trigger: Resolved issue reoccurs
+   - Action: Email + Slack notification
+   
+4. **Performance Degradation**
+   - Trigger: P95 latency > 3 seconds
+   - Action: Email notification
+   
+5. **Crash Free Rate Drop**
+   - Trigger: Crash free rate < 99%
+   - Action: Email + Slack notification
+
+**Integration Options:**
 - Email notifications
 - Slack integration
 - PagerDuty integration
+- Discord webhooks
+- Microsoft Teams
 
 ---
 

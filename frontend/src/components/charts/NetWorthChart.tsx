@@ -13,7 +13,17 @@ interface Props {
   data: { month: string; value: number }[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayloadItem {
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const isPrivacy =
       localStorage.getItem("meu_contador_privacy_mode") === "true";
@@ -29,7 +39,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             : new Intl.NumberFormat("pt-BR", {
                 style: "currency",
                 currency: "BRL",
-              }).format(payload[0].value)}
+              }).format(payload[0]?.value ?? 0)}
         </p>
       </div>
     );

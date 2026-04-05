@@ -4,6 +4,21 @@ import { PluggyConnect } from 'react-pluggy-connect';
 import { Landmark, AlertCircle, RefreshCw, Plus, CheckCircle2 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/toast';
 
+interface PluggyWidgetSuccess {
+  item: {
+    id: string;
+  };
+}
+
+interface PluggyWidgetError {
+  message?: string;
+  type?: string;
+}
+
+interface AccountWithCurrencyCode {
+  currencyCode?: string;
+}
+
 export const BankConnectionsView = () => {
   const { connections, isLoading, fetchConnections, getConnectToken, forceSync } = useOpenFinance();
   const [connectToken, setConnectToken] = useState<string | null>(null);
@@ -18,8 +33,9 @@ export const BankConnectionsView = () => {
       showSuccess('Gerando token seguro de conexão...');
       const token = await getConnectToken();
       setConnectToken(token);
-    } catch (err: any) {
-      showError(err.message || 'Erro ao conectar Open Finance');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao conectar Open Finance';
+      showError(message);
     }
   };
 
@@ -28,14 +44,15 @@ export const BankConnectionsView = () => {
     try {
       await forceSync(itemId);
       showSuccess('Sincronização concluída com sucesso!');
-    } catch (err: any) {
-      showError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Falha ao sincronizar';
+      showError(message);
     } finally {
       setIsSyncing(null);
     }
   };
 
-  const handleOnSuccess = (itemData: any) => {
+  const handleOnSuccess = (itemData: PluggyWidgetSuccess) => {
     console.log("Item conectado com sucesso:", itemData);
     setConnectToken(null);
     showSuccess('Conexão estabelecida! Importando dados em plano de fundo...');
@@ -43,7 +60,7 @@ export const BankConnectionsView = () => {
     handleSync(itemData.item.id);
   };
 
-  const handleOnError = (error: any) => {
+  const handleOnError = (error: PluggyWidgetError) => {
     console.error("Erro no Widget do Pluggy (Detalhes):", JSON.stringify(error, null, 2));
     setConnectToken(null);
     if (error?.message?.includes('closed') || error?.type === 'USER_ACTION_CANCELED') {
@@ -126,7 +143,7 @@ export const BankConnectionsView = () => {
                         <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "1px" }}>{acc.type} • {acc.subtype}</div>
                       </div>
                       <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: (acc as any).currencyCode || 'BRL' }).format(acc.balance)}
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: (acc as AccountWithCurrencyCode).currencyCode || 'BRL' }).format(acc.balance)}
                       </div>
                     </div>
                   ))}
@@ -150,7 +167,6 @@ export const BankConnectionsView = () => {
           includeSandbox={true}
           onSuccess={handleOnSuccess}
           onError={handleOnError}
-          {...( { onClose: () => setConnectToken(null) } as any )}
         />
       )}
     </div>

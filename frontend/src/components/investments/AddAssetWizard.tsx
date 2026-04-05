@@ -27,6 +27,18 @@ interface Props {
   onClose: () => void;
 }
 
+interface AddAssetWizardData {
+  name?: string;
+  ticker?: string;
+  type?: Investment["type"];
+  amount?: number | string;
+  averagePrice?: number | string;
+  currentPrice?: number | string;
+  currency?: Investment["currency"];
+  sector?: string;
+  targetAllocation?: number | string;
+}
+
 const STEPS = [
   { id: "type", title: "Tipo de Ativo" },
   { id: "details", title: "Identificação" },
@@ -53,7 +65,7 @@ const ASSET_TYPES = [
 
 export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
   const [step, setStep] = useState(0);
-  const [data, setData] = useState<Partial<Investment>>({
+  const [data, setData] = useState<AddAssetWizardData>({
     currency: "BRL",
     type: "stock",
   });
@@ -74,11 +86,12 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
         type: data.type!,
         amount: Number(data.amount),
         averagePrice: Number(data.averagePrice),
-        currentPrice: Number(data.averagePrice), // Start with same price
+        currentPrice: Number(data.averagePrice),
         currency: data.currency!,
         sector: data.sector || "Geral",
         targetAllocation: allocationNum,
-      } as any);
+        lastUpdate: new Date().toISOString(),
+      });
     }
   };
 
@@ -138,7 +151,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                   <button
                     key={type.id}
                     onClick={() => {
-                      setData({ ...data, type: type.id as any });
+                      setData({ ...data, type: type.id as Investment["type"] });
                       handleNext();
                     }}
                     className={`
@@ -221,7 +234,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                       autoFocus
                       value={data.amount}
                       onChange={(e) =>
-                        setData({ ...data, amount: e.target.value as any })
+                        setData({ ...data, amount: e.target.value })
                       }
                       className="h-14 bg-white/5 border-white/10 rounded-xl text-lg font-bold"
                     />
@@ -233,7 +246,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     <Select
                       value={data.currency}
                       onValueChange={(v) =>
-                        setData({ ...data, currency: v as any })
+                        setData({ ...data, currency: v as Investment["currency"] })
                       }
                     >
                       <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-xl">
@@ -260,7 +273,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                       step="0.01"
                       value={data.averagePrice}
                       onChange={(e) =>
-                        setData({ ...data, averagePrice: e.target.value as any })
+                        setData({ ...data, averagePrice: e.target.value })
                       }
                       className="h-14 bg-white/5 border-white/10 rounded-xl pl-10 text-lg font-bold"
                     />
@@ -294,7 +307,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     placeholder="0%"
                     value={data.targetAllocation}
                     onChange={(e) =>
-                      setData({ ...data, targetAllocation: e.target.value as any })
+                      setData({ ...data, targetAllocation: e.target.value })
                     }
                     className="h-14 bg-white/5 border-white/10 rounded-xl text-center text-xl font-black"
                   />

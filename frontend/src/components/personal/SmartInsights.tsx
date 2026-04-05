@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import { detectPatterns } from "@/lib/recurring-detector";
+import type { Pattern } from "@/lib/recurring-detector";
 import { useInvestments } from "@/hooks/useInvestments";
 import { addReminder, loadReminders } from "@/lib/storage";
 import { showSuccess } from "@/lib/toast";
 import type { SavingsGoal, Transaction } from "@/types";
+import type { TabType } from "@/types/navigation";
 import { motion } from "framer-motion";
 import { PieChart, Sparkles, TrendingUp, Zap } from "lucide-react";
 import { useState } from "react";
@@ -14,7 +16,7 @@ import { EmptyState } from "../ui/EmptyState";
 interface Props {
   transactions: Transaction[];
   goals: SavingsGoal[];
-  onNavigate?: (tab: any) => void;
+  onNavigate?: (tab: TabType) => void;
 }
 
 export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
@@ -33,7 +35,7 @@ export const SmartInsights = ({ transactions, goals, onNavigate }: Props) => {
     );
   }
 
-  const handleAddReminder = async (p: any) => {
+  const handleAddReminder = async (p: Pattern) => {
     // Set next month as default due date
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);

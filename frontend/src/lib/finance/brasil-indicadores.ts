@@ -468,7 +468,7 @@ export function simularAposentadoriaINSS(
   const tetoINSS = 7786.02;
   const valorFinal = Math.min(valorEstimado, tetoINSS);
 
-  let regraAplicada = 'Regra Permanente (2024)';
+  const regraAplicada = 'Regra Permanente (2024)';
   let recomendacao = '';
 
   if (anosParaAposentar > 20) {

@@ -28,6 +28,15 @@ import { TransactionList } from "@/components/contador/TransactionList";
 
 import { useCurrency } from "@/context/CurrencyContext";
 
+interface PresetBudgetInput {
+  category: string;
+  amount: number;
+}
+
+interface BusinessPresetData {
+  budgets?: PresetBudgetInput[];
+}
+
 export const BusinessFinance = () => {
   const { convert } = useCurrency();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -79,10 +88,10 @@ export const BusinessFinance = () => {
     setEditingTransaction(null);
   };
 
-  const handleApplyPreset = (data: any) => {
+  const handleApplyPreset = (data: BusinessPresetData) => {
     if (data.budgets) {
-      saveBudgets(data.budgets.map((b: any, i: number) => ({
-        id: Date.now() + i,
+      saveBudgets(data.budgets.map((b, i: number) => ({
+        id: String(Date.now() + i),
         category: b.category,
         limit: b.amount,
         spent: 0,
