@@ -41,7 +41,7 @@ function buildCookie(name: string, value: string, options: {
 }) {
   const isProd = process.env.NODE_ENV === 'production';
   // Allow cross-origin cookies between Render and Firebase domains by using SameSite=None
-  const sameSite = isProd ? 'SameSite=None' : 'SameSite=Lax';
+  const sameSite = isProd ? 'SameSite=None; X-Deploy-Test=V2' : 'SameSite=Lax';
   
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
@@ -56,7 +56,7 @@ function buildCookie(name: string, value: string, options: {
 
 function buildExpiredCookie(name: string) {
   const isProd = process.env.NODE_ENV === 'production';
-  const sameSite = isProd ? 'SameSite=None' : 'SameSite=Lax';
+  const sameSite = isProd ? 'SameSite=None; X-Deploy-Test=V2' : 'SameSite=Lax';
   return `${name}=; Path=/; Max-Age=0; ${sameSite}${isProd ? '; Secure' : ''}; HttpOnly`;
 }
 
@@ -493,7 +493,7 @@ export async function authRoutes(app: FastifyInstance) {
     reply.header('Set-Cookie', [
       buildExpiredCookie(ACCESS_COOKIE_NAME),
       buildExpiredCookie(REFRESH_COOKIE_NAME),
-      `${CSRF_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
+      buildExpiredCookie(CSRF_COOKIE_NAME),
     ]);
 
     await writeAuditLog({
