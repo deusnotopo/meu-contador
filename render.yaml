@@ -4,7 +4,7 @@ services:
     runtime: node
     rootDir: backend
     buildCommand: bash render-build.sh
-    startCommand: node dist/server.js
+    startCommand: node dist/backend/src/server.js
     healthCheckPath: /health
     autoDeploy: true
     plan: free
