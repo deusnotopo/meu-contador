@@ -39,19 +39,25 @@ function buildCookie(name: string, value: string, options: {
   maxAge?: number;
   httpOnly?: boolean;
 }) {
+  const isProd = process.env.NODE_ENV === 'production';
+  // Allow cross-origin cookies between Render and Firebase domains by using SameSite=None
+  const sameSite = isProd ? 'SameSite=None' : 'SameSite=Lax';
+  
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     'Path=/',
-    process.env.NODE_ENV === 'production' ? 'SameSite=Strict' : 'SameSite=Lax',
+    sameSite,
     ...(options.maxAge ? [`Max-Age=${options.maxAge}`] : []),
-    ...(process.env.NODE_ENV === 'production' ? ['Secure'] : []),
+    ...(isProd ? ['Secure'] : []),
     ...(options.httpOnly === false ? [] : ['HttpOnly']),
   ];
   return parts.join('; ');
 }
 
 function buildExpiredCookie(name: string) {
-  return `${name}=; Path=/; Max-Age=0; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}; HttpOnly`;
+  const isProd = process.env.NODE_ENV === 'production';
+  const sameSite = isProd ? 'SameSite=None' : 'SameSite=Lax';
+  return `${name}=; Path=/; Max-Age=0; ${sameSite}${isProd ? '; Secure' : ''}; HttpOnly`;
 }
 
 async function createSession(userId: string, request: any) {

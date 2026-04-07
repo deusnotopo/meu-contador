@@ -129,9 +129,13 @@ app.register(helmet, {
   frameguard: { action: 'deny' },
 });
 app.register(cors, {
-  origin: corsOrigin,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  // origin: true allows the request's Origin header to be reflected back 
+  // as the Access-Control-Allow-Origin header, which handles multiple frontend 
+  // domains flawlessly when credentials=true is required.
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   credentials: true,
+  exposedHeaders: ['set-cookie'],
 });
 app.register(rateLimit, {
   global: true,
