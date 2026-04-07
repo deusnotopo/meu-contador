@@ -62,7 +62,17 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
     startTour('dashboard');
   }, [startTour]);
   
-  const hasError = personal.error || business.error || investError || debtError;
+  // Derive a single "has error" flag from hooks
+  const hasError = !!(investError || debtError);
+  
+  // Delay error indicator to avoid false alarm on initial auth restoration
+  const [showError, setShowError] = React.useState(false);
+  React.useEffect(() => {
+    if (!hasError) { setShowError(false); return; }
+    const t = setTimeout(() => setShowError(true), 3000);
+    return () => clearTimeout(t);
+  }, [hasError]);
+
   const { user } = useAuth();
   const dashboardUser = user as (AuthUser & { username?: string }) | null;
   const firstName = dashboardUser?.name?.split(' ')[0]
@@ -202,8 +212,8 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <span className="text-[9px] font-bold text-emerald-400 tracking-wider whitespace-nowrap">NVL {level.level}</span>
               </button>
-              {hasError && (
-                <div className="flex-shrink-0 w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Offline" />
+              {showError && user && (
+                <div className="flex-shrink-0 w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Erro ao carregar dados" />
               )}
             </div>
           </div>

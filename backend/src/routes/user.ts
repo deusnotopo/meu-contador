@@ -96,8 +96,9 @@ const onboardingHistoricalExpenseSchema = z.object({
   description: z.string().trim().max(200).optional(),
   amount: z.number().nonnegative().max(1_000_000_000).optional(),
   category: z.string().trim().max(80).optional(),
-  date: z.string().datetime().optional(),
-});
+  date: z.string().optional(),
+  month: z.string().optional(),
+}).passthrough();
 const onboardingBodySchema = z.object({
   profile: onboardingProfileSchema.optional(),
   budgets: z.array(onboardingBudgetSchema).max(50).optional(),
@@ -105,7 +106,7 @@ const onboardingBodySchema = z.object({
   reminders: z.array(onboardingReminderSchema).max(50).optional(),
   investments: z.array(onboardingInvestmentSchema).max(50).optional(),
   historicalExpenses: z.array(onboardingHistoricalExpenseSchema).max(200).optional(),
-  preferences: patchPreferencesSchema.optional(),
+  preferences: z.record(z.unknown()).optional(),
   completed: z.boolean().optional(),
   completedAt: z.string().datetime().optional(),
 });
@@ -380,7 +381,7 @@ export async function userRoutes(app: FastifyInstance) {
                 description: exp.description || 'Gasto do histórico',
                 amount: exp.amount || 0,
                 category: exp.category || 'Outros',
-                date: exp.date ? new Date(exp.date) : now,
+                date: exp.date ? new Date(exp.date) : exp.month ? new Date(exp.month + '-01T00:00:00Z') : now,
                 scope: 'personal',
                 classification: 'necessity',
               })),

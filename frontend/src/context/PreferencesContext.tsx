@@ -1,5 +1,11 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+
+interface FireConfig {
+  expense?: number;
+  contribution?: number;
+  rate?: number;
+}
 
 interface PreferencesContextType {
   privacyMode: boolean;
@@ -8,6 +14,8 @@ interface PreferencesContextType {
   setLanguage: (lang: string) => void;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
+  fireConfig: FireConfig;
+  updateFireConfig: (config: FireConfig) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined);
@@ -16,6 +24,8 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [privacyMode, setPrivacyMode] = useState(false);
   const [language, setLanguageState] = useState('pt');
   const [theme, setThemeState] = useState<'light' | 'dark'>('dark');
+  const [fireConfig, setFireConfig] = useState<FireConfig>({});
+  const fireDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const applyTheme = useCallback((nextTheme: 'light' | 'dark') => {
     setThemeState(nextTheme);
@@ -25,11 +35,12 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   useEffect(() => {
     // Initial fetch of preferences (optional: wait for auth, or fire globally)
-    api.get<{ privacyMode: boolean; language: string; theme: 'light' | 'dark' }>("/users/preferences")
+    api.get<{ privacyMode: boolean; language: string; theme: 'light' | 'dark'; fireConfig?: FireConfig }>("/users/preferences")
       .then((prefs) => {
         setPrivacyMode(prefs.privacyMode || false);
         setLanguageState(prefs.language || 'pt');
         applyTheme((prefs.theme || 'dark') as 'light' | 'dark');
+        if (prefs.fireConfig) setFireConfig(prefs.fireConfig);
       })
       .catch((e) => {
          console.warn("Preferences timeout/error, using defaults", e);
@@ -65,14 +76,30 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [applyTheme]);
 
+  // Debounced FIRE config — saves 1.5s after last change, silently in background
+  const updateFireConfig = useCallback((config: FireConfig) => {
+    const merged = { ...fireConfig, ...config };
+    setFireConfig(merged);
+    if (fireDebounceRef.current) clearTimeout(fireDebounceRef.current);
+    fireDebounceRef.current = setTimeout(async () => {
+      try {
+        await api.patch("/users/preferences", { fireConfig: merged });
+      } catch (e) {
+        console.warn("Failed to sync FIRE config:", e);
+      }
+    }, 1500);
+  }, [fireConfig]);
+
   const value = useMemo(() => ({
     privacyMode,
     togglePrivacy,
     language,
     setLanguage,
     theme,
-    setTheme
-  }), [privacyMode, togglePrivacy, language, setLanguage, theme, setTheme]);
+    setTheme,
+    fireConfig,
+    updateFireConfig,
+  }), [privacyMode, togglePrivacy, language, setLanguage, theme, setTheme, fireConfig, updateFireConfig]);
 
   return (
     <PreferencesContext.Provider value={value}>

@@ -12,6 +12,11 @@ export const UserPreferencesSchema = z.object({
   currency: z.string().length(3).default('BRL'),
   dateFormat: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']).default('DD/MM/YYYY'),
   completedTours: z.array(z.string()).optional(),
+  fireConfig: z.object({
+    expense: z.number().nonnegative().optional(),
+    contribution: z.number().nonnegative().optional(),
+    rate: z.number().nonnegative().optional(),
+  }).optional(),
 });
 
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;

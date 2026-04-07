@@ -13,6 +13,11 @@ export interface UserPreferencesDto {
   language: string;
   privacyMode: boolean;
   completedTours?: string[];
+  fireConfig?: {
+    expense?: number;
+    contribution?: number;
+    rate?: number;
+  };
 }
 
 export interface UpdateUserProfileDto {

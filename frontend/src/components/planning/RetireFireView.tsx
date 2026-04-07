@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { TabType } from "@/types/navigation";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDebts } from "@/hooks/useDebts";
 import { useAuth } from "@/context/AuthContext";
+import { usePreferences } from "@/context/PreferencesContext";
 import { formatCurrency } from "@/lib/formatters";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,10 @@ import { useFireCalculation } from "@/hooks/useFireCalculation";
 interface RetireFireViewProps {
   onBack?: (tab?: TabType) => void;
   onNavigate?: (tab: TabType) => void;
+  isTab?: boolean;
 }
 
-export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
+export const RetireFireView = ({ onBack, onNavigate, isTab }: RetireFireViewProps) => {
   const { user } = useAuth();
   const { totals: invTotals, loading: invLoading } = useInvestments();
   const personal = useTransactions("personal");
@@ -33,14 +35,23 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
   );
   const rendaAtual = personal.totals.income + business.totals.income;
 
-  // ── Controlled state ──
+  const { fireConfig, updateFireConfig } = usePreferences();
+
+  // ── Controlled state — initializes from saved prefs, falls back to calculated defaults ──
   const [despesa, setDespesa] = useState(() =>
-    Math.round((personal.totals.expense || 8000))
+    fireConfig.expense ?? Math.round((personal.totals.expense || 8000))
   );
   const [aporte, setAporte] = useState(() =>
-    Math.round((rendaAtual * 0.2) || 2000)
+    fireConfig.contribution ?? Math.round((rendaAtual * 0.2) || 2000)
   );
-  const [taxaAnual, setTaxaAnual] = useState(10); // % ao ano
+  const [taxaAnual, setTaxaAnual] = useState(() => fireConfig.rate ?? 10); // % ao ano
+
+  // Sync from prefs once they load (async)
+  useEffect(() => {
+    if (fireConfig.expense !== undefined) setDespesa(fireConfig.expense);
+    if (fireConfig.contribution !== undefined) setAporte(fireConfig.contribution);
+    if (fireConfig.rate !== undefined) setTaxaAnual(fireConfig.rate);
+  }, [fireConfig.expense, fireConfig.contribution, fireConfig.rate]);
 
   // ── FIRE calculation (fully reactive) ──
   const WITHDRAWAL_RATE = 0.032; // 3.2% — conservative for Brazil
@@ -73,16 +84,18 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
 
   if (isLoading) {
     return (
-      <div style={{ paddingTop: "10px", display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
-            <ArrowLeft size={16} />
-          </Button>
-          <div style={{ flex: 1 }}>
-            <div className="eyebrow">Independência financeira</div>
-            <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Calculadora FIRE</div>
+      <div style={{ paddingTop: isTab ? "0px" : "10px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {!isTab && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
+              <ArrowLeft size={16} />
+            </Button>
+            <div style={{ flex: 1 }}>
+              <div className="eyebrow">Independência financeira</div>
+              <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Calculadora FIRE</div>
+            </div>
           </div>
-        </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12, color: "var(--t3)" }}>
           <Loader2 size={20} style={{ animation: "spin 1s linear infinite" }} />
           <span style={{ fontSize: 14 }}>Carregando dados financeiros...</span>
@@ -92,21 +105,23 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
   }
 
   return (
-    <div style={{ paddingTop: "10px", animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
+    <div style={{ paddingTop: isTab ? "0px" : "10px", animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
-          <ArrowLeft size={16} />
-        </Button>
-        <div style={{ flex: 1 }}>
-          <div className="eyebrow">Independência financeira</div>
-          <div className="page-title" style={{ margin: 0, fontSize: 22, display: "flex", alignItems: "center", gap: 8 }}>
-            Calculadora FIRE
-            <HelpButton tooltipText="Projete sua independência financeira com patrimônio atual, aporte mensal, despesas desejadas e taxa de retorno." />
+      {!isTab && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
+            <ArrowLeft size={16} />
+          </Button>
+          <div style={{ flex: 1 }}>
+            <div className="eyebrow">Independência financeira</div>
+            <div className="page-title" style={{ margin: 0, fontSize: 22, display: "flex", alignItems: "center", gap: 8 }}>
+              Calculadora FIRE
+              <HelpButton tooltipText="Projete sua independência financeira com patrimônio atual, aporte mensal, despesas desejadas e taxa de retorno." />
+            </div>
           </div>
+          <AreaTutorialButton area="futuro" onNavigate={onNavigate} />
         </div>
-        <AreaTutorialButton area="futuro" onNavigate={onNavigate} />
-      </div>
+      )}
 
       {/* Hero — FIRE result */}
       <div className="hero" style={{ textAlign: "center", padding: "24px 20px" }}>
@@ -178,7 +193,7 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{formatCurrency(despesa)}</div>
           </div>
           <input type="range" min="2000" max="30000" step="500" value={despesa}
-            onChange={e => setDespesa(+e.target.value)}
+            onChange={e => { const v = +e.target.value; setDespesa(v); updateFireConfig({ expense: v }); }}
             style={{ width: "100%", accentColor: "#7B6FFF", cursor: "pointer" }} />
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--t3)", marginTop: 2 }}>
             <span>R$ 2.000 (Lean)</span><span>R$ 30.000 (Fat)</span>
@@ -192,7 +207,7 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{formatCurrency(aporte)}</div>
           </div>
           <input type="range" min="100" max="15000" step="100" value={aporte}
-            onChange={e => setAporte(+e.target.value)}
+            onChange={e => { const v = +e.target.value; setAporte(v); updateFireConfig({ contribution: v }); }}
             style={{ width: "100%", accentColor: "#7B6FFF", cursor: "pointer" }} />
           {rendaAtual > 0 && (
             <div style={{ fontSize: 9, color: "var(--t3)", marginTop: 2 }}>
@@ -208,7 +223,7 @@ export const RetireFireView = ({ onBack, onNavigate }: RetireFireViewProps) => {
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{taxaAnual}%</div>
           </div>
           <input type="range" min="1" max="20" step="0.5" value={taxaAnual}
-            onChange={e => setTaxaAnual(+e.target.value)}
+            onChange={e => { const v = +e.target.value; setTaxaAnual(v); updateFireConfig({ rate: v }); }}
             style={{ width: "100%", accentColor: "#7B6FFF", cursor: "pointer" }} />
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--t3)", marginTop: 2 }}>
             <span>Poupança</span><span>CDI</span><span>Ações BR</span><span>Ações EUA</span>
