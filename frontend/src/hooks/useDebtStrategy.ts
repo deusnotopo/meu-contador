@@ -34,7 +34,7 @@ export interface DebtInsight {
   impact?: string;
 }
 
-export function useDebtStrategy() {
+export function useDebtStrategy(extrasMensais: number = 0) {
   const { debts } = useDebts();
   const personal = useTransactions('personal');
 
@@ -84,10 +84,12 @@ export function useDebtStrategy() {
     
     // Simulate payoff
     const simulatedDebts = sorted.map(d => ({ ...d, remaining: d.balance }));
-    let extraPayment = 0;
+    let freedUpMinPayments = 0;
     
     while (simulatedDebts.some(d => d.remaining > 0) && months < 600) {
       months++;
+      
+      let availableExtras = extrasMensais + freedUpMinPayments;
       
       simulatedDebts.forEach(debt => {
         if (debt.remaining <= 0) return;
@@ -95,14 +97,24 @@ export function useDebtStrategy() {
         const interest = debt.remaining * (debt.interestRate / 100);
         totalInterest += interest;
         
-        let payment = debt.minPayment + extraPayment;
-        if (debt.remaining + interest <= payment) {
-          payment = debt.remaining + interest;
-          payoffOrder.push({ month: months, debtName: debt.name, amount: payment });
-          extraPayment = debt.minPayment; // Redirect to next debt
+        let payment = debt.minPayment;
+        if (availableExtras > 0) {
+          payment += availableExtras;
+          availableExtras = 0; // The first active debt in the sorted list absorbs all available extras
         }
-        
-        debt.remaining = Math.max(0, debt.remaining + interest - payment);
+
+        if (debt.remaining + interest <= payment) {
+          // Debt is paid off this month
+          const paymentNeeded = debt.remaining + interest;
+          payoffOrder.push({ month: months, debtName: debt.name, amount: paymentNeeded });
+          
+          // Overflow any remaining payment (modulo minPayment) and permanently add its minPayment to freedUp
+          availableExtras += (payment - paymentNeeded);
+          freedUpMinPayments += debt.minPayment;
+          debt.remaining = 0;
+        } else {
+          debt.remaining = debt.remaining + interest - payment;
+        }
       });
     }
 
@@ -130,10 +142,12 @@ export function useDebtStrategy() {
     const payoffOrder: DebtStrategy['payoffOrder'] = [];
     
     const simulatedDebts = sorted.map(d => ({ ...d, remaining: d.balance }));
-    let extraPayment = 0;
+    let freedUpMinPayments = 0;
     
     while (simulatedDebts.some(d => d.remaining > 0) && months < 600) {
       months++;
+      
+      let availableExtras = extrasMensais + freedUpMinPayments;
       
       simulatedDebts.forEach(debt => {
         if (debt.remaining <= 0) return;
@@ -141,14 +155,22 @@ export function useDebtStrategy() {
         const interest = debt.remaining * (debt.interestRate / 100);
         totalInterest += interest;
         
-        let payment = debt.minPayment + extraPayment;
-        if (debt.remaining + interest <= payment) {
-          payment = debt.remaining + interest;
-          payoffOrder.push({ month: months, debtName: debt.name, amount: payment });
-          extraPayment = debt.minPayment;
+        let payment = debt.minPayment;
+        if (availableExtras > 0) {
+          payment += availableExtras;
+          availableExtras = 0;
         }
-        
-        debt.remaining = Math.max(0, debt.remaining + interest - payment);
+
+        if (debt.remaining + interest <= payment) {
+          const paymentNeeded = debt.remaining + interest;
+          payoffOrder.push({ month: months, debtName: debt.name, amount: paymentNeeded });
+          
+          availableExtras += (payment - paymentNeeded);
+          freedUpMinPayments += debt.minPayment;
+          debt.remaining = 0;
+        } else {
+          debt.remaining = debt.remaining + interest - payment;
+        }
       });
     }
 

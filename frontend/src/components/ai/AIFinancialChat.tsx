@@ -8,17 +8,11 @@ import { useFinancialContext } from "@/hooks/useFinancialContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Loader2, Send, User as LucideUser, X, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import { VoiceInput } from "./VoiceInput";
 import { AIThinkingIndicator } from "./AIThinkingIndicator";
 
-const LEARNING_MODES = [
-  "Explique como professor",
-  "Explique sem economês",
-  "Mostre exemplo brasileiro",
-  "Explique como contador",
-  "Me diga a próxima ação",
-  "Monte um plano de 7 dias",
-];
+
 
 const TUTOR_RESPONSE_RULES = [
   "responder em camadas: básico, prático, avançado quando fizer sentido",
@@ -421,12 +415,12 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
                     </div>
                   )}
                   <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium" dangerouslySetInnerHTML={{ 
-                    __html: message.content
-                      .replace(/&/g, '&')
-                      .replace(/</g, '<')
-                      .replace(/>/g, '>')
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\n/g, '<br/>')
+                    __html: DOMPurify.sanitize(
+                      message.content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br/>'),
+                      { ALLOWED_TAGS: ['strong', 'em', 'br', 'ul', 'ol', 'li', 'p'], ALLOWED_ATTR: [] }
+                    )
                   }} />
                 </div>
                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mt-2 px-1">
@@ -446,74 +440,36 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggested & Input */}
-      <div
-        className="p-6 border-t border-white/10 bg-white/[0.02]"
-        id="ai-input-area"
-      >
+      {/* Input */}
+      <div className="px-3 py-2 border-t border-white/10 bg-white/[0.02]" id="ai-input-area">
         {messages.length === 1 && (
-          <>
-            <div className="mb-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Modos de aprendizagem</p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {LEARNING_MODES.map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setInput(mode)}
-                    className="px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black uppercase tracking-widest text-indigo-300 hover:text-white hover:bg-indigo-500/20 transition-all"
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mb-6">
-              {suggestedQuestions.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => setInput(q)}
-                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {suggestedQuestions.slice(0, 3).map((q) => (
+              <button key={q} onClick={() => setInput(q)}
+                className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all whitespace-nowrap">
+                {q}
+              </button>
+            ))}
+          </div>
         )}
-
         <div className="flex gap-2 items-center">
-          <VoiceInput
-            onTranscript={(text) => setInput(text)}
-            isProcessing={isLoading}
-          />
-
+          <VoiceInput onTranscript={(text) => setInput(text)} isProcessing={isLoading} />
           <div className="relative group flex-1">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Comando de Auditoria..."
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium"
+              placeholder="Pergunte algo..."
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium text-sm"
               disabled={isLoading}
             />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className="absolute right-2 top-2 bottom-2 px-5 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-800 transition-all"
-            >
-              {isLoading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Send size={16} />
-              )}
+            <button onClick={handleSend} disabled={!input.trim() || isLoading}
+              className="absolute right-2 top-1.5 bottom-1.5 px-4 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-800 transition-all">
+              {isLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             </button>
           </div>
         </div>
-        <p className="text-center text-[9px] font-black text-slate-700 uppercase tracking-[0.3em] mt-4">
-          MNT-OS v2.5 • ENCRYPTED PAYLOAD
-        </p>
       </div>
     </div>
   );

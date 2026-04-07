@@ -18,48 +18,49 @@ const defaultConfig: BackupConfig = {
   compress: true,
 };
 
+/**
+ * Cria um backup do banco de dados
+ */
 export async function createBackup(config: BackupConfig = defaultConfig) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const filename = `backup-${timestamp}.sql`;
   const filepath = path.join(config.backupDir, filename);
 
   try {
-    // Ensure backup directory exists
+    // Garantir que o diretório de backup existe
     if (!fs.existsSync(config.backupDir)) {
       fs.mkdirSync(config.backupDir, { recursive: true });
     }
 
-    // Extract connection details from DATABASE_URL
-    const dbUrl = new URL(process.env.DATABASE_URL!);
+    // Extrair detalhes de conexão do DATABASE_URL
+    const databaseUrl = process.env.DATABASE_URL!;
     
-    // Create backup using pg_dump
-    const pgDumpCmd = `pg_dump -h ${dbUrl.hostname} -p ${dbUrl.port} -U ${dbUrl.username} -d ${dbUrl.pathname.slice(1)} -f ${filepath}`;
-    
-    await execAsync(pgDumpCmd, {
-      env: { ...process.env, PGPASSWORD: dbUrl.password },
-    });
-
-    // Compress if enabled
-    if (config.compress) {
-      await execAsync(`gzip ${filepath}`);
-      const compressedPath = `${filepath}.gz`;
+    // Se for SQLite, usar comando cp
+    if (databaseUrl.startsWith('file:')) {
+      const dbPath = databaseUrl.replace('file:', '');
+      const targetPath = config.compress ? `${filepath}.gz` : filepath;
       
-      // Log backup
-      await db.auditLog.create({
-        data: {
-          action: 'BACKUP_CREATED',
-          resource: 'database',
-          metadata: JSON.stringify({ 
-            filename: `${filename}.gz`,
-            size: fs.statSync(compressedPath).size,
-            timestamp: new Date().toISOString(),
-            compressed: true,
-          }),
-        },
+      if (config.compress) {
+        await execAsync(`gzip -c ${dbPath} > ${targetPath}`);
+      } else {
+        fs.copyFileSync(dbPath, filepath);
+      }
+    } else {
+      // Caso contrário, assumir PostgreSQL
+      const dbUrl = new URL(databaseUrl);
+      const pgDumpCmd = `pg_dump -h ${dbUrl.hostname} -p ${dbUrl.port} -U ${dbUrl.username} -d ${dbUrl.pathname.slice(1)} -f ${filepath}`;
+      
+      await execAsync(pgDumpCmd, {
+        env: { ...process.env, PGPASSWORD: dbUrl.password },
       });
 
-      return { success: true, filename: `${filename}.gz`, filepath: compressedPath };
+      if (config.compress) {
+        await execAsync(`gzip ${filepath}`);
+      }
     }
+
+    const finalFilepath = config.compress ? `${filepath}.gz` : filepath;
+    const finalFilename = config.compress ? `${filename}.gz` : filename;
 
     // Log backup
     await db.auditLog.create({
@@ -67,15 +68,15 @@ export async function createBackup(config: BackupConfig = defaultConfig) {
         action: 'BACKUP_CREATED',
         resource: 'database',
         metadata: JSON.stringify({ 
-          filename,
-          size: fs.statSync(filepath).size,
+          filename: finalFilename,
+          size: fs.statSync(finalFilepath).size,
           timestamp: new Date().toISOString(),
-          compressed: false,
+          compressed: config.compress,
         }),
       },
     });
 
-    return { success: true, filename, filepath };
+    return { success: true, filename: finalFilename, filepath: finalFilepath };
   } catch (error) {
     console.error('Backup failed:', error);
     
@@ -95,6 +96,9 @@ export async function createBackup(config: BackupConfig = defaultConfig) {
   }
 }
 
+/**
+ * Remove backups antigos
+ */
 export async function cleanupOldBackups(config: BackupConfig = defaultConfig) {
   try {
     const files = fs.readdirSync(config.backupDir);
@@ -139,32 +143,9 @@ export async function cleanupOldBackups(config: BackupConfig = defaultConfig) {
   }
 }
 
-// Schedule daily backup at 2 AM
-import cron from 'node-cron';
-
-export function startBackupScheduler() {
-  // Run backup daily at 2 AM
-  cron.schedule('0 2 * * *', async () => {
-    console.log('Starting scheduled backup...');
-    try {
-      await createBackup();
-      console.log('Backup completed successfully');
-      
-      // Cleanup old backups weekly (Sunday at 3 AM)
-      const now = new Date();
-      if (now.getDay() === 0 && now.getHours() === 3) {
-        await cleanupOldBackups();
-        console.log('Backup cleanup completed');
-      }
-    } catch (error) {
-      console.error('Scheduled backup failed:', error);
-    }
-  });
-  
-  console.log('Backup scheduler started');
-}
-
-// Manual backup function for immediate execution
+/**
+ * Função de backup manual para execução imediata
+ */
 export async function runManualBackup() {
   console.log('Starting manual backup...');
   try {

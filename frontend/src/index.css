@@ -102,13 +102,24 @@ body {
 .stime{font-size:15px;font-weight:600;color:var(--t1);letter-spacing:-0.2px;font-family:var(--mono)}
 .sicons{display:flex;gap:5px;align-items:center}
 
-/* Screen */
-.screen{flex:1;overflow:hidden;display:flex;flex-direction:column}
+/* Screen — único container de scroll é o .scontent */
+.screen{
+  flex:1;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
 .scontent{
-  flex:1;overflow-y:auto;
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
   padding:0 16px 96px;
   scrollbar-width:none;
   scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  /* Garante que o flex child possa crescer e rolar */
+  min-height:0;
 }
 .scontent::-webkit-scrollbar{display:none}
 
@@ -950,7 +961,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 
 .future-root {
   padding-top: 10px;
-  padding-bottom: 100px;
+  padding-bottom: 24px;
   animation: fsu 0.26s ease;
 }
 
@@ -1466,4 +1477,397 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 
 
 
+/* ===========================================================
+   ── RESPONSIVE DESIGN SYSTEM ─────────────────────────────
+   Mobile-first, fluid breakpoints para qualquer aparelho
+   =========================================================== */
 
+/* ── App Root Container ── */
+.app-root {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  /* overflow: hidden apenas no X para não quebrar scroll vertical */
+  overflow-x: hidden;
+  overflow-y: hidden; /* .scontent é o único scrollable */
+  background: var(--bg);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Mobile (< 640px): Full bleed, native app feel ── */
+@media (max-width: 639px) {
+  body { overflow: hidden; }
+
+  /* Mobile: app ocupa 100% da viewport, scontent é quem rola */
+  .app-root {
+    width: 100vw;
+    height: 100dvh;          /* altura fixa = viewport exata */
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;         /* isola o layout, scontent rola internamente */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;         /* não rola aqui */
+    min-height: 0;            /* crucial para flex child poder rolar */
+  }
+
+  /* scontent já tem overflow-y:auto definido globalmente */
+
+  .scontent {
+    padding: 0 16px calc(88px + env(safe-area-inset-bottom, 0px)) 16px;
+  }
+
+  /* Typography mobile */
+  .page-title { font-size: 24px; }
+  .bignum { font-size: 36px; letter-spacing: -2px; }
+  .m-val { font-size: 20px; }
+
+  /* Keypad mobile - touch-friendly */
+  .key { font-size: 24px; padding: 18px; }
+
+  /* Bento grid mobile: full width cols */
+  .bento-grid { gap: 10px; }
+
+  /* QA grid 4 cols (inalterado em mobile) */
+  .qa-ico { width: 48px; height: 48px; border-radius: 16px; }
+  .qa-lbl { font-size: 9.5px; }
+
+  /* Tabbar safe area */
+  .tabbar {
+    height: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Toast acima da tabbar */
+  .toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Adviser fab acima da tabbar */
+  .adviser-fab { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Modal sheet cobre tudo no mobile */
+  .adviser-sheet { left: 0; right: 0; border-radius: 28px 28px 0 0; }
+
+  /* Onboarding wizard: sem padding lateral extra */
+  .wizard-container { max-width: 100%; }
+}
+
+/* ── Tablet (640px – 1023px): Centered card layout ── */
+@media (min-width: 640px) and (max-width: 1023px) {
+  body { overflow: auto; background: #020509; }
+
+  .app-root {
+    max-width: 600px;
+    margin: 24px auto;        /* centraliza como card flutuante */
+    min-height: calc(100dvh - 48px);
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.07),
+      0 40px 120px rgba(0,0,0,0.9);
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 48px); /* altura fixa do card */
+  }
+
+  .screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .scontent { padding: 0 20px 100px 20px; }
+
+  /* Typography tablet */
+  .page-title { font-size: 26px; }
+  .bignum { font-size: 38px; }
+
+  /* Bento grid: destaque em tablet */
+  .bento-grid { gap: 12px; }
+  .bento-card { border-radius: 22px; }
+
+  /* Adviser sheet: largura limitada */
+  .adviser-sheet { left: 0; right: 0; }
+  .adviser-fab { bottom: 92px; right: 20px; }
+
+  /* Onboarding wizard */
+  .wizard-container { max-width: 100%; }
+}
+
+/* ── Tablet Landscape (640px – 1023px landscape) ── */
+@media (min-width: 640px) and (max-width: 1023px) and (orientation: landscape) {
+  .app-root {
+    max-width: 780px;
+    border-radius: 32px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* Compensar altura menor do landscape */
+  .scontent { padding-bottom: 80px; }
+  .tabbar { height: 64px; }
+}
+
+/* ── Desktop (≥ 1024px): Sidebar + main content ── */
+@media (min-width: 1024px) {
+  body {
+    overflow: hidden; /* o scroll acontece dentro do .scontent, não no body */
+    background: #020408;
+    height: 100dvh;
+  }
+
+  .app-root {
+    flex-direction: row;
+    height: 100dvh;           /* desktop: altura fixa */
+    max-width: 1440px;
+    margin: 0 auto;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  /* Screen ocupa o resto ao lado da sidebar */
+  .screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;         /* scontent rola internamente */
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .scontent {
+    flex: 1;
+    overflow-y: auto;         /* único scroll no desktop */
+    padding: 0 28px 40px 28px;
+    max-width: 980px;
+  }
+
+  /* Tabbar oculta em desktop (sidebar navega) */
+  .tabbar { display: none !important; }
+
+  /* Typography desktop */
+  .page-title { font-size: 30px; }
+  .bignum { font-size: 44px; }
+  .m-val { font-size: 24px; }
+
+  /* Bento grid desktop: até 3 cols para cards menores */
+  .bento-grid { gap: 16px; }
+  .bento-card { border-radius: 20px; padding: 20px; }
+
+  /* Adviser sheet: panel lateral no desktop */
+  .adviser-sheet {
+    left: auto;
+    right: 0;
+    bottom: 0;
+    top: 0;
+    width: 420px;
+    height: 100dvh;
+    border-radius: 24px 0 0 24px;
+    max-height: 100dvh;
+  }
+
+  /* FAB posição desktop */
+  .adviser-fab { bottom: 28px; right: 28px; }
+
+  /* Keypad: teclas menos altas em desktop */
+  .key { padding: 18px; font-size: 22px; }
+
+  /* Modal sheet: centrado em desktop */
+  .modal-backdrop { position: fixed; border-radius: 0; }
+  .modal-sheet { max-width: 560px; margin: 0 auto; border-radius: 28px; padding-bottom: 32px; }
+
+  /* Onboarding wizard: centeliza */
+  .wizard-container {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  /* QA grid 5+ itens em desktop */
+  .qa-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* ── Large desktop (≥ 1280px) ── */
+@media (min-width: 1280px) {
+  .scontent { max-width: 1100px; padding: 0 36px 40px 36px; }
+
+  /* Bento 3 cols total no grande */
+  .bento-grid { grid-template-columns: repeat(3, 1fr); }
+  .bento-full { grid-column: span 3; }
+}
+
+/* ── Ultra-wide (≥ 1600px): max-cap ── */
+@media (min-width: 1600px) {
+  .app-root { max-width: 1600px; }
+  .scontent { max-width: 1200px; padding: 0 48px 40px 48px; }
+}
+
+/* ── Print ── */
+@media print {
+  .tabbar, .adviser-fab, .adviser-backdrop, .tabbar, .statusbar { display: none !important; }
+  .app-root { max-width: 100%; box-shadow: none; }
+  .scontent { padding: 0; overflow: visible; }
+}
+
+/* ── Reduced Motion (Acessibilidade) ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── High Contrast ── */
+@media (forced-colors: active) {
+  .bento-card, .card, .metric {
+    border: 2px solid ButtonText;
+  }
+}
+
+/* ── Touch devices: increase tap targets ── */
+@media (hover: none) and (pointer: coarse) {
+  .tab { min-height: 44px; }
+  .btn-p, .btn-s { min-height: 48px; }
+  .row { min-height: 56px; }
+  .key { aspect-ratio: 1.2; }
+  input[type=range]::-webkit-slider-thumb { width: 24px; height: 24px; }
+}
+
+/* ── Landscape phone (orientation fix) ── */
+@media (max-width: 639px) and (orientation: landscape) {
+  .scontent { padding-top: 0; }
+  .statusbar { height: 40px; padding-top: 8px; }
+  .tabbar { height: 56px; }
+  .bignum { font-size: 28px; }
+  /* Keypad: landscape usa rows de 6 */
+  .keypad { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* ── Focus visible (keyboard nav) ── */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── Overflow utilities ── */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.overflow-x-auto { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── Sidebar styles (Desktop) ── */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  height: 100dvh;
+  overflow-y: auto;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: rgba(4,7,15,0.96);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 12px 24px;
+  scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+.sidebar-collapsed {
+  width: 72px;
+  min-width: 72px;
+  padding: 24px 8px;
+}
+
+@media (min-width: 1280px) {
+  .sidebar { width: 260px; min-width: 260px; }
+}
+
+/* ── Grid responsive helpers ── */
+.grid-auto-fit-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+.grid-auto-fit-md {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+.grid-auto-fit-lg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* ── Safe area helpers  ── */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 24px); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+
+/* ── Container queries para componentes ── */
+@container (max-width: 400px) {
+  .bento-grid { grid-template-columns: 1fr; }
+  .bento-full { grid-column: span 1; }
+  .metric-grid { grid-template-columns: 1fr; }
+  .qa-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Habilita container queries nos cards */
+.bento-card, .card, .metric { container-type: inline-size; }
+
+
+
+/* -- Sistema de scroll corrigido -- */
+/* .scontent já tem overflow-x: hidden definido acima */
+/* .screen usa overflow:hidden para conter layout, scontent é quem rola */
+
+/* -- Sticky header responsivo -- */
+.sticky-header {
+  position: sticky;
+  top: 8px;
+  z-index: 60;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(10,18,32,0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  margin: 0 4px 20px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Em telas muito pequenas (<375px) ainda menores */
+@media (max-width: 374px) {
+  .sticky-header { padding: 8px 10px; margin: 0 2px 16px; border-radius: 18px; }
+  .page-title { font-size: 20px !important; }
+  .bignum { font-size: 30px !important; }
+  .bento-grid { grid-template-columns: 1fr !important; }
+  .metric-grid { grid-template-columns: 1fr !important; }
+  .qa-grid { grid-template-columns: repeat(3,1fr) !important; }
+}
+/* -- Recharts responsive wrapper -- */
+.chart-wrapper {
+  width: 100%;
+  height: 240px;  /* altura padr�o */
+}
+@media (min-width: 640px) {
+  .chart-wrapper { height: 280px; }
+}
+@media (min-width: 1024px) {
+  .chart-wrapper { height: 320px; }
+}
+@media (max-width: 374px) {
+  .chart-wrapper { height: 200px; }
+}

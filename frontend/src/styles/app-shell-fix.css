@@ -1,6 +1,10 @@
-/* Correções emergenciais de shell/layout visual
-   Carregado por último para vencer conflitos entre index.css, finapp-v3.css e mobile.css */
+/* ==========================================================
+   APP SHELL FIX — Layout corrigido e responsivo
+   Carregado por último para vencer conflitos entre
+   index.css, finapp-v3.css e mobile.css
+   ========================================================== */
 
+/* ── Base Root ─────────────────────────────────────────── */
 #root {
   width: 100%;
   min-height: 100vh;
@@ -10,17 +14,19 @@ body {
   overflow-x: hidden;
 }
 
+/* ── App Root (Mobile-first: layout em coluna) ──────────── */
 .app-root {
   width: 100%;
   min-height: 100dvh;
   height: 100dvh;
   display: flex;
-  flex-direction: column;
+  flex-direction: column;   /* mobile: vertical */
   background: var(--bg);
   position: relative;
   overflow: hidden;
 }
 
+/* ── Screen (área de conteúdo) ───────────────────────────── */
 .screen {
   flex: 1;
   min-height: 0;
@@ -29,6 +35,7 @@ body {
   overflow: hidden;
 }
 
+/* ── Conteúdo rolável ────────────────────────────────────── */
 .scontent {
   flex: 1;
   min-height: 0;
@@ -42,6 +49,7 @@ body {
   display: none;
 }
 
+/* ── Tab Bar ─────────────────────────────────────────────── */
 .tabbar {
   position: relative !important;
   bottom: auto !important;
@@ -85,21 +93,92 @@ body {
   width: 100%;
 }
 
-@media (min-width: 768px) {
+/* ── Tablet (768px–1023px): centralizado com margem ─────── */
+@media (min-width: 768px) and (max-width: 1023px) {
   .app-root {
-    width: 430px;
-    max-width: 430px;
-    height: min(900px, 96vh);
+    /* Mantém coluna, mas centraliza horizontalmente */
+    max-width: 640px;
     margin: 0 auto;
-    border-radius: 32px;
-    box-shadow:
-      0 0 0 1px rgba(255,255,255,0.08),
-      0 40px 80px rgba(0,0,0,0.6),
-      0 0 80px rgba(74,139,255,0.07);
+    border-left: 1px solid rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.06);
   }
 
   .scontent {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+/* ── Desktop (≥1024px): Layout lateral com sidebar ──────── */
+@media (min-width: 1024px) {
+  /* Volta ao tamanho pleno da tela */
+  .app-root {
+    flex-direction: row;  /* sidebar | conteúdo */
+    max-width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  /* A área de conteúdo (screen) também usa row para sidebar + scontent */
+  .screen {
+    flex: 1;
+    flex-direction: row;
+    overflow: hidden;
+  }
+
+  /* Conteúdo com padding generoso, max-width para leitura */
+  .scontent {
+    flex: 1;
+    padding: 28px 40px 60px;
+    padding-bottom: 60px;  /* sem bottom-nav em desktop */
+    max-width: none;
+  }
+
+  /* Grid de métricas vai para 3 col em desktop */
+  .metric-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Quick actions: 6 colunas */
+  .qa-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  /* Stats: 4 colunas */
+  .stat3 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Números maiores */
+  .bignum {
+    font-size: 52px;
+    letter-spacing: -2px;
+  }
+
+  .page-title {
+    font-size: 28px;
+  }
+
+  /* Tab bar some em desktop (substituída pela Sidebar) */
+  .tabbar {
+    display: none !important;
+  }
+}
+
+/* ── Large Desktop (≥1440px) ─────────────────────────────── */
+@media (min-width: 1440px) {
+  .scontent {
+    padding: 32px 56px 80px;
+    max-width: 1280px;
+  }
+
+  .bignum {
+    font-size: 60px;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }

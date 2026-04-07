@@ -1,22 +1,17 @@
 import { app } from "./app";
-import { startWorkers } from "./workers/notifier";
-import { startBackupScheduler } from "./workers/backup-worker";
-import { startOpenFinanceSync } from "./workers/openFinance-sync";
-import { startReconciliationWorker } from "./workers/reconciliation-worker";
 import { db } from "./lib/db";
+import { startAllJobs } from "./jobs";
 
 async function bootstrap() {
   try {
     const port = Number(process.env.PORT) || 3000;
     await app.listen({ port, host: '0.0.0.0' });
     app.log.info(`🚀 Server running at http://localhost:${port}`);
-    startWorkers();
-    startBackupScheduler();
-    startOpenFinanceSync();
-    startReconciliationWorker();
-    app.log.info('📦 Backup scheduler started');
-    app.log.info('🔄 Open Finance sync worker started');
-    app.log.info('💰 Reconciliação de saldo worker started');
+    
+    // Iniciar infraestrutura de filas (Substitui workers individuais node-cron)
+    await startAllJobs();
+    
+    app.log.info('📦 BullMQ Infrastructure initialized (Distributed Workers)');
   } catch (err) {
     app.log.error(err);
     process.exit(1);

@@ -28,6 +28,12 @@ const updateUserProfileSchema = z.object({
   age: z.number().int().min(0).max(120).optional(),
   dependents: z.number().int().min(0).max(20).optional(),
   investmentHorizon: z.string().trim().min(1).max(40).optional(),
+  investorProfile: z.string().trim().max(40).optional(),
+  retirementAge: z.number().int().min(18).max(99).optional(),
+  fireTargetIncome: z.number().nonnegative().max(1_000_000_000).optional(),
+  lgpdConsent: z.boolean().optional(),
+  openFinanceBank: z.string().trim().max(80).optional(),
+  insuranceTypes: z.array(z.string().trim().max(40)).optional(),
   onboardingCompleted: z.boolean().optional(),
 });
 
@@ -196,7 +202,7 @@ export async function userRoutes(app: FastifyInstance) {
 
     await db.user.update({
       where: { id: request.user.id },
-      data: { preferences: validatedPreferences as any },
+      data: { preferences: JSON.stringify(validatedPreferences) },
     });
 
     return {
@@ -283,15 +289,24 @@ export async function userRoutes(app: FastifyInstance) {
             financialGoal: data.profile.financialGoal || undefined,
             riskProfile: data.profile.riskProfile || undefined,
             employmentType: data.profile.employmentType || undefined,
-            hasEmergencyFund: data.profile.hasEmergencyFund || false,
-            hasDebts: data.profile.hasDebts || false,
-            initialBalance: data.profile.initialBalance || 0,
+            hasEmergencyFund: data.profile.hasEmergencyFund ?? false,
+            hasDebts: data.profile.hasDebts ?? false,
+            initialBalance: data.profile.initialBalance ?? 0,
             businessName: data.profile.businessName || undefined,
             businessCnpj: data.profile.businessCnpj || undefined,
             businessSector: data.profile.businessSector || undefined,
             age: data.profile.age || undefined,
-            dependents: data.profile.dependents || undefined,
+            dependents: data.profile.dependents ?? undefined,
             investmentHorizon: data.profile.investmentHorizon || undefined,
+            investorProfile: data.profile.investorProfile || undefined,
+            retirementAge: data.profile.retirementAge || undefined,
+            fireTargetIncome: data.profile.fireTargetIncome || undefined,
+            lgpdConsent: data.profile.lgpdConsent ?? false,
+            lgpdConsentAt: data.profile.lgpdConsent ? new Date() : undefined,
+            openFinanceBank: data.profile.openFinanceBank || undefined,
+            insuranceTypes: data.profile.insuranceTypes?.length
+              ? JSON.stringify(data.profile.insuranceTypes)
+              : undefined,
           }
         }) : Promise.resolve(),
 
@@ -411,7 +426,7 @@ export async function userRoutes(app: FastifyInstance) {
                 }
               }              await db.user.update({
                 where: { id: userId },
-                data: { preferences: { ...currentPrefs, ...data.preferences } as any },
+                data: { preferences: JSON.stringify({ ...currentPrefs, ...data.preferences }) },
               });
             })()
           : Promise.resolve(),

@@ -1,41 +1,40 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+﻿import { useCallback, useEffect, useState, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { ArrowLeft, Briefcase, User as UserIcon, Lock, Sparkles, AlertCircle, Zap, Mic } from "lucide-react";
+import { ArrowLeft, Briefcase, User as UserIcon, Sparkles, AlertCircle, Zap, Mic } from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useAuth } from "@/context/AuthContext";
 import { useBudgets } from "@/hooks/useBudgets";
 import { EmotionalCheckIn } from "@/components/emotional/EmotionalCheckIn";
 import { HelpButton } from "@/components/ui/HelpButton";
-import { UpgradeModal } from "@/components/ui/UpgradeModal";
+
 import type { TabType } from "@/types/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { EMOTION_CONFIG, type EmotionType } from "@/types/emotional";
 
 
-// ── Expense categories ──────────────────────────────────
+// â”€â”€ Expense categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const EXPENSE_CATS = [
-  { id: "Moradia",       ico: "🏠", nm: "Moradia" },
-  { id: "Mercado",       ico: "🛒", nm: "Mercado" },
-  { id: "Delivery",      ico: "🍕", nm: "Delivery" },
-  { id: "Transporte",    ico: "🚗", nm: "Transp." },
-  { id: "Saúde",         ico: "💊", nm: "Saúde" },
-  { id: "Lazer",         ico: "🎬", nm: "Lazer" },
-  { id: "Roupas",        ico: "👕", nm: "Roupas" },
-  { id: "Educação",      ico: "📚", nm: "Educação" },
-  { id: "Assinaturas",   ico: "📱", nm: "Assina." },
-  { id: "Outros",        ico: "📦", nm: "Outros" },
+  { id: "Moradia",       ico: "ðŸ ", nm: "Moradia" },
+  { id: "Mercado",       ico: "ðŸ›’", nm: "Mercado" },
+  { id: "Delivery",      ico: "ðŸ•", nm: "Delivery" },
+  { id: "Transporte",    ico: "ðŸš—", nm: "Transp." },
+  { id: "SaÃºde",         ico: "ðŸ’Š", nm: "SaÃºde" },
+  { id: "Lazer",         ico: "ðŸŽ¬", nm: "Lazer" },
+  { id: "Roupas",        ico: "ðŸ‘•", nm: "Roupas" },
+  { id: "EducaÃ§Ã£o",      ico: "ðŸ“š", nm: "EducaÃ§Ã£o" },
+  { id: "Assinaturas",   ico: "ðŸ“±", nm: "Assina." },
+  { id: "Outros",        ico: "ðŸ“¦", nm: "Outros" },
 ];
 
-// ── Income categories ───────────────────────────────────
+// â”€â”€ Income categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const INCOME_CATS = [
-  { id: "Salário",       ico: "💼", nm: "Salário" },
-  { id: "Freelance",     ico: "💻", nm: "Freelance" },
-  { id: "Aluguel",       ico: "🏘️",  nm: "Aluguel" },
-  { id: "Investimentos", ico: "📈", nm: "Investim." },
-  { id: "Dividendos",    ico: "💰", nm: "Dividendos" },
-  { id: "Bônus",         ico: "🎁", nm: "Bônus" },
-  { id: "Reembolso",     ico: "🔄", nm: "Reembolso" },
-  { id: "Outros",        ico: "✨", nm: "Outros" },
+  { id: "SalÃ¡rio",       ico: "ðŸ’¼", nm: "SalÃ¡rio" },
+  { id: "Freelance",     ico: "ðŸ’»", nm: "Freelance" },
+  { id: "Aluguel",       ico: "ðŸ˜ï¸",  nm: "Aluguel" },
+  { id: "Investimentos", ico: "ðŸ“ˆ", nm: "Investim." },
+  { id: "Dividendos",    ico: "ðŸ’°", nm: "Dividendos" },
+  { id: "BÃ´nus",         ico: "ðŸŽ", nm: "BÃ´nus" },
+  { id: "Reembolso",     ico: "ðŸ”„", nm: "Reembolso" },
+  { id: "Outros",        ico: "âœ¨", nm: "Outros" },
 ];
 
 interface LaunchScreenProps {
@@ -55,7 +54,6 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
   const [loading, setLoading] = useState(false);
   const [showEmotional, setShowEmotional] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [showUpgradeScope, setShowUpgradeScope] = useState(false);
   const [savedTransaction, setSavedTransaction] = useState<{ amount: number; category: string } | null>(null);
   const [scope, setScope] = useState<"personal" | "business">("personal");
   const [selectedMood, setSelectedMood] = useState<EmotionType | null>(null);
@@ -63,8 +61,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
 
   const categories = tipo === "expense" ? EXPENSE_CATS : INCOME_CATS;
   const isExpense = tipo === "expense";
-  const { user } = useAuth();
-  const isPro = user?.isPro || false;
+
 
   const resetFields = useCallback(() => {
     setAmtStr("0");
@@ -79,11 +76,11 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
     if (amountVal === 0) return { status: 'neutral', message: '' };
     
     const budget = budgets.find(b => b.category.toLowerCase().includes(catId.toLowerCase()));
-    if (!budget) return { status: 'unknown', message: '💸 Categoria sem orçamento definido' };
+    if (!budget) return { status: 'unknown', message: 'ðŸ’¸ Categoria sem orÃ§amento definido' };
     
     const remaining = budget.limit - budget.spent;
-    if (amountVal > remaining) return { status: 'critical', message: '⚠️ Ultrapassa o orçamento restante!' };
-    if (amountVal / remaining > 0.7) return { status: 'warning', message: 'Próximo ao limite do orçamento' };
+    if (amountVal > remaining) return { status: 'critical', message: 'âš ï¸ Ultrapassa o orÃ§amento restante!' };
+    if (amountVal / remaining > 0.7) return { status: 'warning', message: 'PrÃ³ximo ao limite do orÃ§amento' };
     return { status: 'safe', message: 'Dentro das metas estabelecidas' };
   }, [amtStr, catId, budgets, isExpense]);
 
@@ -97,7 +94,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
   // Reset category when type changes
   const handleTipoChange = (t: "expense" | "income") => {
     setTipo(t);
-    setCatId(t === "expense" ? "Mercado" : "Salário");
+    setCatId(t === "expense" ? "Mercado" : "SalÃ¡rio");
     setSelectedMood(null);
   };
 
@@ -110,7 +107,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
   const isZero = amountRaw === 0;
 
   const handleKey = (k: string) => {
-    if (k === "⌫") {
+    if (k === "âŒ«") {
       setAmtStr((p) => (p.length <= 1 ? "0" : p.slice(0, -1)));
     } else {
       setAmtStr((p) => (p === "0" ? k : p + k));
@@ -152,7 +149,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
   const startListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Reconhecimento de voz não suportado neste navegador.");
+      alert("Reconhecimento de voz nÃ£o suportado neste navegador.");
       return;
     }
     
@@ -205,7 +202,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
         handleKey(event.key);
       } else if (event.key === "Backspace" || event.key === "Delete") {
         event.preventDefault();
-        handleKey("⌫");
+        handleKey("âŒ«");
       } else if (event.key === "Enter") {
         event.preventDefault();
         void handleConfirm();
@@ -236,8 +233,8 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
             <ArrowLeft size={16} />
           </button>
           <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px", display: "flex", alignItems: "center", gap: 8 }}>
-            Novo lançamento
-            <HelpButton tooltipText="Registre receitas e gastos com inteligência emocional." />
+            Novo lanÃ§amento
+            <HelpButton tooltipText="Registre receitas e gastos com inteligÃªncia emocional." />
           </div>
         </div>
 
@@ -245,8 +242,8 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
           <button onClick={() => setScope("personal")} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${scope === 'personal' ? 'bg-white/10 border-white/20 text-white' : 'bg-transparent border-white/5 text-slate-500'}`}>
             <UserIcon size={14} className="mr-2 inline" /> Pessoal
           </button>
-          <button onClick={() => isPro ? setScope("business") : setShowUpgradeScope(true)} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${scope === 'business' ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300' : 'bg-transparent border-white/5 text-slate-500'}`}>
-            <Briefcase size={14} className="mr-2 inline" /> Empresarial {!isPro && <Lock size={10} className="ml-1 text-amber-500" />}
+          <button onClick={() => setScope("business")} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${scope === 'business' ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300' : 'bg-transparent border-white/5 text-slate-500'}`}>
+            <Briefcase size={14} className="mr-2 inline" /> Empresarial
           </button>
         </div>
 
@@ -258,7 +255,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
               onClick={() => handleTipoChange(t)}
               style={tipo === t ? { color: t === "expense" ? "#F05A7E" : "#00D991", borderBottom: `2px solid ${t === "expense" ? "#F05A7E" : "#00D991"}` } : {}}
             >
-              {t === "expense" ? "💸 Gasto" : "💰 Receita"}
+              {t === "expense" ? "ðŸ’¸ Gasto" : "ðŸ’° Receita"}
             </motion.button>
           ))}
         </div>
@@ -279,7 +276,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
           <button 
             onClick={startListening}
             className={`absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full transition-all ${isListening ? 'bg-red-500/20 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] animate-pulse' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'}`}
-            title="Lançar por voz"
+            title="LanÃ§ar por voz"
           >
             <Mic size={24} />
           </button>
@@ -313,7 +310,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
                   </button>
                 ))}
               </div>
-              <input className="input-field" placeholder="Descrição opcional" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <input className="input-field" placeholder="DescriÃ§Ã£o opcional" value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
           )}
         </div>
@@ -341,13 +338,13 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
 
       <div style={{ flexShrink: 0, marginTop: 16 }}>
         <div className="keypad">
-          {["1","2","3","4","5","6","7","8","9",",","0","⌫"].map((k) => (
+          {["1","2","3","4","5","6","7","8","9",",","0","âŒ«"].map((k) => (
             <motion.button
               whileTap={{ scale: 0.88, opacity: 0.85 }}
               key={k}
-              className={`key${k === "⌫" ? " del" : ""}`}
+              className={`key${k === "âŒ«" ? " del" : ""}`}
               onClick={() => handleKey(k)}
-              aria-label={k === "⌫" ? "Apagar" : k}
+              aria-label={k === "âŒ«" ? "Apagar" : k}
             >
               {k}
             </motion.button>
@@ -378,7 +375,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
               Processando...
             </span>
           ) : (
-            isExpense ? "✓  Confirmar Gasto" : "✓  Confirmar Receita"
+            isExpense ? "âœ“  Confirmar Gasto" : "âœ“  Confirmar Receita"
           )}
         </motion.button>
       </div>
@@ -391,7 +388,8 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
         onComplete={handleEmotionalComplete}
         initialEmotion={selectedMood}
       />
-      <UpgradeModal isOpen={showUpgradeScope} onClose={() => setShowUpgradeScope(false)} />
+
     </motion.div>
   );
 };
+

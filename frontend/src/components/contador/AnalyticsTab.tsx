@@ -50,7 +50,7 @@ export const AnalyticsTab = ({
         </CardHeader>
         <CardContent>
           {monthlyTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <div className="chart-wrapper"><ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlyTrend}>
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -84,7 +84,7 @@ export const AnalyticsTab = ({
                   dot={{ fill: "hsl(var(--danger))" }}
                 />
               </LineChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer></div>
           ) : (
             <p className="text-center text-muted-foreground py-8">
               Sem dados para exibir
@@ -106,7 +106,7 @@ export const AnalyticsTab = ({
         </CardHeader>
         <CardContent>
           {categoryData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <div className="chart-wrapper"><ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -136,7 +136,7 @@ export const AnalyticsTab = ({
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer></div>
           ) : (
             <p className="text-center text-muted-foreground py-8">
               Sem dados para exibir
@@ -159,7 +159,7 @@ export const AnalyticsTab = ({
           </CardHeader>
           <CardContent>
             {incomeChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <div className="chart-wrapper"><ResponsiveContainer width="100%" height="100%">
                 <RePieChart>
                   <Pie
                     data={incomeChartData}
@@ -184,7 +184,7 @@ export const AnalyticsTab = ({
                     formatter={(value: number) => formatCurrency(value)}
                   />
                 </RePieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             ) : (
               <p className="text-center text-muted-foreground py-16">
                 Sem receitas para exibir
@@ -205,7 +205,7 @@ export const AnalyticsTab = ({
           </CardHeader>
           <CardContent>
             {expenseChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <div className="chart-wrapper"><ResponsiveContainer width="100%" height="100%">
                 <RePieChart>
                   <Pie
                     data={expenseChartData}
@@ -230,7 +230,7 @@ export const AnalyticsTab = ({
                     formatter={(value: number) => formatCurrency(value)}
                   />
                 </RePieChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             ) : (
               <p className="text-center text-muted-foreground py-16">
                 Sem despesas para exibir

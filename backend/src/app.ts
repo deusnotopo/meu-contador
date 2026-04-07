@@ -65,6 +65,13 @@ if (missingEnvVars.length > 0) {
 
 console.log('✅ Validação de ambiente concluída');
 
+const PRODUCTION_FALLBACK_ORIGINS = [
+  'https://meucontador-367cf.web.app',
+  'https://meucontador-367cf.firebaseapp.com',
+  'https://meucontador.com.br',
+  'https://www.meucontador.com.br',
+];
+
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
@@ -75,7 +82,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const corsOrigin = allowedOrigins.length > 0
   ? allowedOrigins
   : isProduction
-    ? false
+    ? PRODUCTION_FALLBACK_ORIGINS
     : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:4173', 'http://localhost:3000'];
 
 if (!process.env.JWT_SECRET) {

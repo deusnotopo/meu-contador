@@ -8,17 +8,11 @@
  * O app mostra ambos lado a lado com data de quitação e juros totais economizados.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { ArrowLeft, Plus, Trash2, TrendingDown, Calculator } from "lucide-react";
+import { useDebts } from "@/hooks/useDebts";
+import { useDebtStrategy } from "@/hooks/useDebtStrategy";
 
-interface Divida {
-  id: string;
-  nome: string;
-  saldo: number;
-  taxaMensal: number; // % ao mês
-  parcela: number;
-  emoji: string;
-}
 
 const DIVIDA_TEMPLATES: Array<{
   nome: string;
@@ -36,73 +30,14 @@ const DIVIDA_TEMPLATES: Array<{
 const fmt = (n: number) =>
   "R$\u00a0" + Math.abs(n).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-function calcularPayoff(
-  dividas: Divida[],
-  extras: number,
-  metodo: "avalanche" | "bola-de-neve"
-): { totalMeses: number; totalJuros: number; ordem: string[] } {
-  if (!dividas.length) return { totalMeses: 0, totalJuros: 0, ordem: [] };
 
-  // Clonar para não mutar state
-  const lista = dividas.map((d) => ({ ...d, saldoRestante: d.saldo }));
-  let meses = 0;
-  let totalJuros = 0;
-  const ordem: string[] = [];
-  const maxMeses = 600; // limite de segurança
-
-  while (lista.some((d) => d.saldoRestante > 0) && meses < maxMeses) {
-    meses++;
-
-    // Ordenar pela estratégia escolhida
-    const ativos = lista.filter((d) => d.saldoRestante > 0);
-    const ordenados =
-      metodo === "avalanche"
-        ? [...ativos].sort((a, b) => b.taxaMensal - a.taxaMensal)
-        : [...ativos].sort((a, b) => a.saldoRestante - b.saldoRestante);
-
-    // Juros do mês em todas
-    lista.forEach((d) => {
-      if (d.saldoRestante > 0) {
-        const juros = d.saldoRestante * (d.taxaMensal / 100);
-        d.saldoRestante += juros;
-        totalJuros += juros;
-      }
-    });
-
-    // Pagamentos mínimos
-    lista.forEach((d) => {
-      if (d.saldoRestante > 0) {
-        const pago = Math.min(d.saldoRestante, d.parcela);
-        d.saldoRestante = Math.max(0, d.saldoRestante - pago);
-        if (d.saldoRestante === 0 && !ordem.includes(d.id)) {
-          ordem.push(d.id);
-        }
-      }
-    });
-
-    // Extras para o topo da estratégia
-    let extrasRestante = extras;
-    for (const d of ordenados) {
-      if (d.saldoRestante > 0 && extrasRestante > 0) {
-        const pago = Math.min(d.saldoRestante, extrasRestante);
-        d.saldoRestante = Math.max(0, d.saldoRestante - pago);
-        extrasRestante -= pago;
-        if (d.saldoRestante === 0 && !ordem.includes(d.id)) {
-          ordem.push(d.id);
-        }
-      }
-    }
-  }
-
-  return { totalMeses: meses, totalJuros: Math.round(totalJuros), ordem };
-}
 
 interface Props {
   onBack?: () => void;
 }
 
 export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
-  const [dividas, setDividas] = useState<Divida[]>([]);
+  const { addDebt, deleteDebt } = useDebts();
   const [extras, setExtras] = useState("200");
   const [showForm, setShowForm] = useState(false);
   const [metodoAtivo, setMetodoAtivo] = useState<"avalanche" | "bola-de-neve">("avalanche");
@@ -111,17 +46,28 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
     nome: "", saldo: "", taxaMensal: "", parcela: "", emoji: "💳",
   });
 
+  const extrasNum = Math.max(0, parseFloat(extras) || 0);
+
+  // Magic here: Use our robust hook instead of local calculation
+  const { debtsWithMetrics, totalDebt, avalancheStrategy, snowballStrategy } = useDebtStrategy(extrasNum);
+  
+  // We rename them purely to keep compatibility with existing JSX if possible
+  const dividas = debtsWithMetrics.map((d) => ({
+    id: d.id, nome: d.name, saldo: d.balance, taxaMensal: d.interestRate, parcela: d.minPayment, emoji: "💳" // Emoji is hardcoded purely for visual since API doesn't hold it natively
+  }));
+
   const addDivida = () => {
     if (!form.nome || !form.saldo || !form.taxaMensal || !form.parcela) return;
-    const nova: Divida = {
-      id: Date.now().toString(),
-      nome: form.nome,
-      saldo: parseFloat(form.saldo),
-      taxaMensal: parseFloat(form.taxaMensal),
-      parcela: parseFloat(form.parcela),
-      emoji: form.emoji,
-    };
-    setDividas((prev) => [...prev, nova]);
+    
+    addDebt({
+      name: form.nome,
+      balance: parseFloat(form.saldo),
+      interestRate: parseFloat(form.taxaMensal),
+      minPayment: parseFloat(form.parcela),
+      category: 'other', 
+      dueDate: new Date().toISOString().substring(0, 10),
+    });
+    
     setForm({ nome: "", saldo: "", taxaMensal: "", parcela: "", emoji: "💳" });
     setShowForm(false);
   };
@@ -136,21 +82,25 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
     setShowForm(true);
   };
 
-  const remove = (id: string) => setDividas((prev) => prev.filter((d) => d.id !== id));
+  const remove = (id: string) => {
+    deleteDebt(id);
+  };
 
-  const extrasNum = Math.max(0, parseFloat(extras) || 0);
+  const totalSaldo = totalDebt;
+  
+  const resultAvalanche = {
+    totalMeses: avalancheStrategy.monthsToFreedom,
+    totalJuros: avalancheStrategy.totalInterestPaid,
+    ordem: avalancheStrategy.payoffOrder.map(o => o.debtName) // Map by name for the UI visual
+  };
+  
+  const resultBolaDeNeve = {
+    totalMeses: snowballStrategy.monthsToFreedom,
+    totalJuros: snowballStrategy.totalInterestPaid,
+    ordem: snowballStrategy.payoffOrder.map(o => o.debtName)
+  };
 
-  const resultAvalanche = useMemo(
-    () => calcularPayoff(dividas, extrasNum, "avalanche"),
-    [dividas, extrasNum]
-  );
-  const resultBolaDeNeve = useMemo(
-    () => calcularPayoff(dividas, extrasNum, "bola-de-neve"),
-    [dividas, extrasNum]
-  );
-
-  const totalSaldo = dividas.reduce((s, d) => s + d.saldo, 0);
-  const economiaBolaNeve = resultBolaDeNeve.totalJuros - resultAvalanche.totalJuros;
+  const economiaBolaNeve = Math.max(0, resultBolaDeNeve.totalJuros - resultAvalanche.totalJuros);
   const result = metodoAtivo === "avalanche" ? resultAvalanche : resultBolaDeNeve;
 
   const dataQuitacao = (meses: number) => {
@@ -159,8 +109,8 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
     return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   };
 
-  // Ordem de quitação com estratégia selecionada
-  const ordemNomes = result.ordem.map((id) => dividas.find((d) => d.id === id)?.nome || "").filter(Boolean);
+  // Ordem de quitação única
+  const ordemNomes = Array.from(new Set(result.ordem));
 
   return (
     <div style={{ paddingTop: "10px", animation: "fsu 0.25s ease" }}>
@@ -442,11 +392,7 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
 
       {/* Cards de dívidas */}
       {dividas.map((d) => {
-        const isFirst = result.ordem.length === 0
-          ? metodoAtivo === "avalanche"
-            ? [...dividas].sort((a, b) => b.taxaMensal - a.taxaMensal)[0]?.id === d.id
-            : [...dividas].sort((a, b) => a.saldo - b.saldo)[0]?.id === d.id
-          : false;
+        const isFirst = ordemNomes[0] === d.nome;
 
         return (
           <div

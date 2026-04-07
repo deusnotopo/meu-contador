@@ -84,23 +84,15 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('firebase')) return 'firebase';
-            if (id.includes('recharts')) return 'charts';
-            if (id.includes('framer-motion') || id.includes('lucide-react')) return 'ui-vendor';
-            if (id.includes('react')) return 'react-vendor';
-          }
-
-          if (id.includes('/components/ai/') || id.includes('/lib/ai/')) return 'ai-module';
-          if (id.includes('/components/onboarding/')) return 'onboarding-module';
-          if (id.includes('/components/investments/')) return 'investments-module';
-          if (id.includes('/components/education/')) return 'education-module';
-          if (id.includes('/components/settings/')) return 'settings-module';
+        // Simple object form = safe, no circular dep issues
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/analytics', 'firebase/messaging', 'firebase/functions'],
+          'charts': ['recharts'],
         },
       },
     },
-    chunkSizeWarningLimit: 700,
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     port: 5173,

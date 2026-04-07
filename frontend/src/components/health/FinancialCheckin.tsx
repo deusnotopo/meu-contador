@@ -116,7 +116,7 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <div className="premium-card p-3 text-center">
             <div className="text-lg font-bold text-green-400">
               {totals.income > 0 ? `${((totals.balance / totals.income) * 100).toFixed(0)}%` : "0%"}

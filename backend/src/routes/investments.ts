@@ -73,7 +73,7 @@ const investmentErrorSchema = z.object({ message: z.string() });
 export async function investmentRoutes(app: FastifyInstance) {
   // GET all investments for authenticated user
   app.get('/investments', {
-    preHandler: [app.authenticate, (app as any).proGuard],
+    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -105,7 +105,7 @@ export async function investmentRoutes(app: FastifyInstance) {
 
   // POST create new investment
   app.post('/investments', {
-    preHandler: [app.authenticate, (app as any).proGuard],
+    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -132,7 +132,7 @@ export async function investmentRoutes(app: FastifyInstance) {
 
   // PUT update investment
   app.put('/investments/:id', {
-    preHandler: [app.authenticate, (app as any).proGuard],
+    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -161,7 +161,7 @@ export async function investmentRoutes(app: FastifyInstance) {
 
   // DELETE investment
   app.delete('/investments/:id', {
-    preHandler: [app.authenticate, (app as any).proGuard],
+    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -181,7 +181,7 @@ export async function investmentRoutes(app: FastifyInstance) {
 
   // POST add dividend
   app.post('/investments/:id/dividends', {
-    preHandler: [app.authenticate, (app as any).proGuard],
+    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -210,9 +210,34 @@ export async function investmentRoutes(app: FastifyInstance) {
     return dividend;
   });
 
+  // DELETE dividend
+  app.delete('/investments/:id/dividends/:dividendId', {
+    preHandler: [app.authenticate],
+    schema: {
+      tags: ['Investments'],
+      security: [{ bearerAuth: [] }],
+      params: z.object({
+        id: z.string().min(1).max(191),
+        dividendId: z.string().min(1).max(191),
+      }),
+      response: {
+        204: z.null(),
+        404: investmentErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
+    const { id, dividendId } = request.params as { id: string; dividendId: string };
+    const userId = (request.user as any).id;
+    const investment = await db.investment.findFirst({ where: { id, userId } });
+    if (!investment) return reply.status(404).send({ message: 'Investment not found' });
+    const deleted = await db.dividend.deleteMany({ where: { id: dividendId, investmentId: id } });
+    if (deleted.count === 0) return reply.status(404).send({ message: 'Dividend not found' });
+    return reply.status(204).send();
+  });
+
   // POST add sale
   app.post('/investments/:id/sales', {
-    preHandler: [app.authenticate, (app as any).proGuard],
+    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],

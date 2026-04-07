@@ -1,13 +1,146 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { TabType } from "@/types/navigation";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDebts } from "@/hooks/useDebts";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatters";
-import { ArrowLeft, TrendingUp, Zap, Loader2, Target, Landmark, Flame, ChevronRight } from "lucide-react";
+import { ArrowLeft, TrendingUp, Loader2, Target, Landmark, Flame, ChevronRight, Zap } from "lucide-react";
 import { useRetirement } from "@/hooks/useRetirement";
 import { motion } from "framer-motion";
+
+// ── FIRE inline calculator ─────────────────────────────────
+const WITHDRAWAL_RATE = 0.04;
+function calcFireMonths(despesa: number, aporte: number, patrimonioAtual: number, taxaAnual: number): number {
+  const meta = (despesa * 12) / WITHDRAWAL_RATE;
+  if (patrimonioAtual >= meta) return 0;
+  const taxaMes = (1 + taxaAnual / 100) ** (1 / 12) - 1;
+  if (aporte <= 0 && taxaMes <= 0) return 9999;
+  let pat = patrimonioAtual;
+  for (let m = 1; m <= 600; m++) {
+    pat = pat * (1 + taxaMes) + aporte;
+    if (pat >= meta) return m;
+  }
+  return 9999;
+}
+function FireTab({ patrimonioAtual }: { patrimonioAtual: number }) {
+  const [despesa, setDespesa] = useState(8000);
+  const [aporte, setAporte] = useState(2000);
+  const [taxaAnual, setTaxaAnual] = useState(8);
+
+  const meta = useMemo(() => (despesa * 12) / WITHDRAWAL_RATE, [despesa]);
+  const meses = useMemo(() => calcFireMonths(despesa, aporte, patrimonioAtual, taxaAnual), [despesa, aporte, patrimonioAtual, taxaAnual]);
+  const anos = (meses / 12).toFixed(1);
+  const atingivel = meses < 600;
+  const progresso = Math.min(100, Math.round((patrimonioAtual / meta) * 100));
+  const anoAlvo = new Date().getFullYear() + Math.round(meses / 12);
+
+  const leanMeta = useMemo(() => (despesa * 0.6 * 12) / WITHDRAWAL_RATE, [despesa]);
+  const leanMeses = useMemo(() => calcFireMonths(despesa * 0.6, aporte, patrimonioAtual, taxaAnual), [despesa, aporte, patrimonioAtual, taxaAnual]);
+  const fatMeta = useMemo(() => (despesa * 1.8 * 12) / WITHDRAWAL_RATE, [despesa]);
+  const fatMeses = useMemo(() => calcFireMonths(despesa * 1.8, aporte, patrimonioAtual, taxaAnual), [despesa, aporte, patrimonioAtual, taxaAnual]);
+
+  return (
+    <div style={{ paddingBottom: 24 }}>
+      {/* Hero */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        className="future-hero-card" style={{ marginBottom: 14 }}>
+        <div className="future-hero-top">
+          <div className="future-hero-main">
+            <div className="future-hero-eyebrow">🔥 Independência Financeira</div>
+            <div className="future-hero-value" style={{ color: atingivel ? "var(--amber)" : "var(--t2)", fontSize: 28 }}>
+              {atingivel ? `${anos} anos` : "> 50 anos"}
+            </div>
+            <div className="future-hero-sub">
+              {atingivel ? `Meta em ${anoAlvo} · ${formatCurrency(meta)}` : "Ajuste os parâmetros"}
+            </div>
+          </div>
+          <div className="future-hero-badge" style={{ background: "rgba(255,176,0,0.1)", borderColor: "rgba(255,176,0,0.25)" }}>
+            <div className="future-badge-pct" style={{ color: "var(--amber)" }}>{progresso}%</div>
+            <div className="future-badge-label">do alvo</div>
+          </div>
+        </div>
+        <div className="future-progress-track">
+          <motion.div className="future-progress-fill"
+            style={{ background: "linear-gradient(90deg,var(--amber),var(--green))" }}
+            initial={{ width: 0 }} animate={{ width: `${progresso}%` }}
+            transition={{ duration: 1, ease: "easeOut", delay: 0.2 }} />
+        </div>
+        <div className="future-metrics-row" style={{ marginTop: 10 }}>
+          {[
+            { label: "Alvo", value: meta >= 1e6 ? `R$ ${(meta / 1e6).toFixed(1)}M` : formatCurrency(meta), color: "var(--amber)" },
+            { label: "Atual", value: patrimonioAtual >= 1e6 ? `R$ ${(patrimonioAtual / 1e6).toFixed(2)}M` : formatCurrency(patrimonioAtual), color: "var(--blue)" },
+            { label: "Retirada", value: `${(WITHDRAWAL_RATE * 100).toFixed(0)}% a.a.`, color: "var(--green)" },
+          ].map((m, i) => (
+            <div key={i} className="future-metric-pill" style={{ borderColor: `${m.color}22`, background: `${m.color}0D` }}>
+              <div className="future-metric-val" style={{ color: m.color }}>{m.value}</div>
+              <div className="future-metric-lbl">{m.label}</div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Simulator */}
+      <div className="future-section-title">Simulador — ajuste sua meta</div>
+      <div className="future-bento-card">
+        {[
+          { label: "Despesa mensal desejada", val: despesa, set: setDespesa, min: 2000, max: 30000, step: 500, color: "var(--green)", fmt: formatCurrency, hint: "R$ 2k (Lean) → R$ 30k (Fat FIRE)" },
+          { label: "Aporte mensal", val: aporte, set: setAporte, min: 0, max: 20000, step: 100, color: "var(--blue)", fmt: formatCurrency },
+          { label: "Rentabilidade real a.a.", val: taxaAnual, set: setTaxaAnual, min: 1, max: 20, step: 0.5, color: "var(--purple)", fmt: (v: number) => `${v}%`, hint: "Poupança (~1%) · CDI real (~5%) · Ações (~12%)" },
+        ].map(({ label, val, set, min, max, step, color, fmt, hint }) => (
+          <div key={label} className="future-slider-field">
+            <div className="future-slider-header">
+              <span className="future-slider-label">{label}</span>
+              <span className="future-slider-value" style={{ color }}>{fmt(val)}</span>
+            </div>
+            <input type="range" min={min} max={max} step={step} value={val}
+              onChange={e => set(Number(e.target.value))}
+              className="future-slider" style={{ "--accent": color } as React.CSSProperties} />
+            {hint && <div className="future-slider-hint">{hint}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* FIRE modalities */}
+      <div className="future-section-title">Tipos de FIRE</div>
+      {[
+        { em: "🥗", nm: "Lean FIRE", color: "var(--green)", meta: leanMeta, meses: leanMeses, desc: `${formatCurrency(Math.round(despesa * 0.6))}/mês · vida simples` },
+        { em: "🎯", nm: "Regular FIRE", color: "var(--blue)", meta, meses, desc: `${formatCurrency(despesa)}/mês · você agora`, isActive: true },
+        { em: "💎", nm: "Fat FIRE", color: "var(--amber)", meta: fatMeta, meses: fatMeses, desc: `${formatCurrency(Math.round(despesa * 1.8))}/mês · vida premium` },
+      ].map(({ em, nm, color, meta: m, meses: ms, desc, isActive }) => {
+        const y = (ms / 12).toFixed(1);
+        return (
+          <div key={nm} className="future-bento-card" style={{
+            marginBottom: 10, padding: "14px 16px",
+            borderColor: isActive ? color : "transparent",
+            borderWidth: isActive ? 1.5 : 1, borderStyle: "solid",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 26 }}>{em}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", display: "flex", alignItems: "center", gap: 6 }}>
+                  {nm} {isActive && <span style={{ fontSize: 10, background: `${color}20`, color, padding: "2px 6px", borderRadius: 6, fontWeight: 700 }}>você</span>}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 2 }}>{desc}</div>
+                <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 3 }}>
+                  Alvo: {m >= 1e6 ? `R$ ${(m / 1e6).toFixed(1)}M` : formatCurrency(m)}
+                </div>
+              </div>
+              <div style={{ textAlign: "right", minWidth: 60 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color, fontFamily: "var(--mono)" }}>
+                  {ms >= 600 ? ">50a" : `${y}a`}
+                </div>
+                <div style={{ fontSize: 9, color: "var(--t3)" }}>
+                  {ms < 600 ? new Date().getFullYear() + Math.round(ms / 12) : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 interface RetirementViewProps {
   onBack?: (tab?: TabType) => void;
@@ -118,6 +251,7 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
   const personal = useTransactions("personal");
   const business = useTransactions("business");
   const { totals: debtTotals, isLoading: debtLoading } = useDebts();
+  const [activeTab, setActiveTab] = useState<"aposentadoria" | "fire">("aposentadoria");
 
   const isLoading = invLoading || personal.isLoading || business.isLoading || debtLoading;
 
@@ -170,11 +304,30 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
       <div className="future-header-row">
         <button className="back-btn" onClick={() => onBack?.()}><ArrowLeft size={16} /></button>
         <div style={{ flex: 1 }}>
-          <div className="eyebrow" style={{ color: "var(--blue)" }}>Projeção FIRE</div>
+          <div className="eyebrow" style={{ color: "var(--blue)" }}>Planejamento</div>
           <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Futuro</div>
         </div>
       </div>
 
+      {/* ── Tabs ── */}
+      <div className="tnav" style={{ marginBottom: 16 }}>
+        <button
+          className={`tnav-i flex-1 flex gap-2 items-center justify-center${activeTab === "aposentadoria" ? " active" : ""}`}
+          onClick={() => setActiveTab("aposentadoria")}
+        >
+          <Landmark size={14} /> Aposentadoria
+        </button>
+        <button
+          className={`tnav-i flex-1 flex gap-2 items-center justify-center${activeTab === "fire" ? " active" : ""}`}
+          onClick={() => setActiveTab("fire")}
+        >
+          <Flame size={14} /> FIRE
+        </button>
+      </div>
+
+      {activeTab === "fire" && <FireTab patrimonioAtual={trueNetWorth} />}
+
+      {activeTab === "aposentadoria" && <>
       {/* ── Hero Status Card ── */}
       <motion.div
         className="future-hero-card"
@@ -343,7 +496,7 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
 
       {/* ── Quick nav ── */}
       <div className="future-nav-row">
-        <button className="future-nav-btn" onClick={() => onNavigate?.("retire_fire")}>
+        <button className="future-nav-btn" onClick={() => setActiveTab("fire")}>
           <Zap size={15} style={{ color: "var(--amber)" }} />
           <span>Calculadora FIRE</span>
           <ChevronRight size={14} style={{ marginLeft: "auto", color: "var(--t3)" }} />
@@ -354,6 +507,7 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
           <ChevronRight size={14} style={{ marginLeft: "auto", color: "var(--t3)" }} />
         </button>
       </div>
+      </>}
     </div>
   );
 };

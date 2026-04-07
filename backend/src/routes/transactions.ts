@@ -80,11 +80,6 @@ export async function transactionRoutes(app: FastifyInstance) {
     const { scope, page, limit } = request.query as z.infer<typeof paginationQuerySchema>;
     const user = request.user as { id: string; isPro: boolean };
 
-    // Security Guard: Only PRO can access business scope
-    if (scope === 'business' && !user.isPro) {
-      return reply.status(403).send({ message: 'Escopo empresarial exige plano PRO' });
-    }
-
     const cacheKey = `transactions:list:${user.id}:${scope || 'all'}:${page}:${limit}`;
     const cachedResult = await getCacheValue(cacheKey);
     if (cachedResult) {
@@ -134,11 +129,6 @@ export async function transactionRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const body = request.body as z.infer<typeof transactionBodySchema>;
     const user = request.user as { id: string; isPro: boolean };
-
-    // Security Guard: Only PRO can create business transactions
-    if (body.scope === 'business' && !user.isPro) {
-      return reply.status(403).send({ message: 'Lançamentos empresariais exigem plano PRO' });
-    }
 
     const { date, amount, description, category, ...restBody } = body;
     const numericAmount: number = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -244,11 +234,6 @@ export async function transactionRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { cursor, limit, scope } = request.query as z.infer<typeof cursorPaginationQuerySchema>;
     const user = request.user as { id: string; isPro: boolean };
-
-    // Security Guard: Only PRO can access business scope via cursor
-    if (scope === 'business' && !user.isPro) {
-      return reply.status(403).send({ message: 'Escopo empresarial exige plano PRO' });
-    }
 
     const where: any = {
       userId: user.id,

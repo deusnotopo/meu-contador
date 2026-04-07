@@ -52,12 +52,11 @@ const fmtM = (n: number) => n >= 1e6 ? 'R$\u00a0' + (n / 1e6).toFixed(2).replace
 export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) => void }) => {
   const personal = useTransactions("personal");
   const business = useTransactions("business");
-  const { totals: investTotals, error: investError } = useInvestments();
-  const { totals: debtTotals, error: debtError } = useDebts();
+  const { totals: investTotals, assets, error: investError } = useInvestments();
+  const { totals: debtTotals, debts, error: debtError } = useDebts();
   const { goals } = useGoals();
   const { startTour } = useTour();
-  const { streaks, level } = useGamification();
-  const loginStreak = streaks['login'];
+  const { level } = useGamification();
   
   React.useEffect(() => {
     startTour('dashboard');
@@ -177,61 +176,201 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
       initial="hidden"
       animate="visible"
     >
-      {/* ── Header Zen (Flutuante de Elite) ─────────────────────────────────────────── */}
-      <motion.div variants={itemVariants} className="flex justify-between items-center gap-3 mb-6 sticky top-2 z-[60] bg-[#0A1220]/70 backdrop-blur-2xl px-4 py-3.5 rounded-[28px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-2">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.03] backdrop-blur-md border border-white/[0.08] flex items-center justify-center shadow-md overflow-hidden flex-shrink-0">
+      {/* ── Header Zen (Flutuante de Elite) ── */}
+      <motion.div variants={itemVariants} className="flex justify-between items-center gap-2 mb-6 sticky top-2 z-[60] bg-[#0A1220]/80 backdrop-blur-2xl px-3 py-2.5 rounded-[24px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-1">
+        {/* Lado esquerdo: logo + saudacao */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
+          {/* Logo */}
+          <div className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center overflow-hidden flex-shrink-0">
             <img src="/logo-new.png" alt="Logo" className="w-full h-full object-contain p-1" />
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="eyebrow" style={{ color: "var(--t3)", fontSize: "10px", margin: 0, textTransform: "uppercase" }}>{capitalizedDate}</div>
-            <div className="flex items-center gap-2">
+          {/* Texto */}
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--t3)" }}>{capitalizedDate}</div>
+            <div className="flex items-center gap-1.5 min-w-0">
               <div
-                className="page-title truncate"
-                style={{ fontSize: "18px", letterSpacing: "-0.5px", color: "var(--t1)" }}
+                className="text-[17px] font-bold truncate leading-tight"
+                style={{ color: "var(--t1)", letterSpacing: "-0.4px", maxWidth: "160px" }}
               >
                 {greeting}, {firstName}
               </div>
+              {/* NVL badge — sempre visível, fora do truncate */}
               <button
                 onClick={() => onNavigate?.('mastery')}
-                className="flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full hover:bg-white/10 transition-colors"
+                className="flex-shrink-0 flex items-center gap-1 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full hover:bg-white/10 transition-colors"
               >
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-emerald-400 tracking-wider">NVL {level.level}</span>
+                <span className="text-[9px] font-bold text-emerald-400 tracking-wider whitespace-nowrap">NVL {level.level}</span>
               </button>
               {hasError && (
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Offline" />
+                <div className="flex-shrink-0 w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Offline" />
               )}
             </div>
           </div>
         </div>
 
-        {/* Ações primárias compactas */}
-        <div className="flex items-center gap-1.5 flex-shrink-0 bg-white/[0.02] border border-white/[0.05] p-1 rounded-2xl">
+        {/* Lado direito: ações compactas */}
+        <div className="flex items-center gap-1 flex-shrink-0 bg-white/[0.02] border border-white/[0.05] p-1 rounded-2xl">
           <button
             onClick={() => onNavigate?.('mastery')}
-            className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-white/[0.04] active:scale-95"
+            className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 hover:bg-white/[0.06] active:scale-95"
             aria-label="Maestria e Conquistas"
           >
-            <Trophy size={16} className="text-amber-500 opacity-90" />
-            {(loginStreak?.current ?? 0) > 0 && <span className="absolute top-0 right-0 w-2 h-2 bg-amber-500 rounded-full" />}
+            <Trophy size={15} className="text-amber-500 opacity-90" />
           </button>
           <button
             onClick={() => onNavigate?.('notifications')}
-            className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-white/[0.04] active:scale-95"
+            className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 hover:bg-white/[0.06] active:scale-95"
+            aria-label="Notificações"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.8" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="1.8" strokeLinecap="round">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
             </svg>
           </button>
-          <div className="w-[1px] h-4 bg-white/10 mx-1" />
-          <div className="w-[1px] h-4 bg-white/10 mx-1" />
+          <div className="w-px h-4 bg-white/10" />
           <UserNav onNavigate={onNavigate} collapsed={true} />
         </div>
       </motion.div>
 
       {/* ── BENTO GRID ───────────────────────────────────────── */}
       <div className="px-2">
+
+        {/* ── Setup Journey Widget (desaparece quando 100% completo) ── */}
+        {(() => {
+          const setupMissions = [
+            {
+              id: 'debts',
+              emoji: '💳',
+              label: 'Mapeie suas dívidas',
+              sub: 'Habilita a Rota de Saída Avalanche',
+              xp: 150,
+              done: debts.length > 0,
+              tab: 'debts' as TabType,
+            },
+            {
+              id: 'investments',
+              emoji: '📈',
+              label: 'Adicione seus investimentos',
+              sub: 'Ativa o Painel de Carteira',
+              xp: 200,
+              done: assets.length > 0,
+              tab: 'investments' as TabType,
+            },
+            {
+              id: 'goals',
+              emoji: '🎯',
+              label: 'Defina uma meta financeira',
+              sub: 'Ativa o Termômetro de Metas',
+              xp: 100,
+              done: goals.length > 0,
+              tab: 'goals' as TabType,
+            },
+            {
+              id: 'fire',
+              emoji: '🔥',
+              label: 'Configure sua aposentadoria',
+              sub: 'Ativa o Simulador FIRE',
+              xp: 250,
+              done: !!(user?.retirementAge),
+              tab: 'retirement' as TabType,
+            },
+            {
+              id: 'pj',
+              emoji: '🏢',
+              label: 'Configure sua empresa PJ',
+              sub: 'Separa finanças pessoal / empresa',
+              xp: 150,
+              done: !!(user?.businessCnpj),
+              tab: 'profile' as TabType,
+              hide: user?.employmentType !== 'pj',
+            },
+            {
+              id: 'academy',
+              emoji: '🎓',
+              label: 'Complete uma aula na Academia',
+              sub: 'Desbloqueia conquistas de aprendizado',
+              xp: 100,
+              done: false,
+              tab: 'education' as TabType,
+            },
+          ].filter(m => !m.hide);
+
+          const doneMissions = setupMissions.filter(m => m.done);
+          const pct = Math.round((doneMissions.length / setupMissions.length) * 100);
+          const totalXpPossible = setupMissions.reduce((s, m) => s + m.xp, 0);
+          const xpEarned = doneMissions.reduce((s, m) => s + m.xp, 0);
+
+          if (pct === 100) return null; // Hide widget when all done
+
+          return (
+            <motion.div variants={itemVariants} className="mb-4 rounded-[20px] border border-white/[0.07] bg-gradient-to-br from-indigo-500/10 via-white/[0.02] to-purple-500/10 p-5 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-0.5">Jornada de Setup</div>
+                  <div className="text-[13px] font-bold text-white">Desbloqueie o poder total do app</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xl font-black text-amber-400">+{xpEarned} XP</div>
+                  <div className="text-[10px] text-white/30">de {totalXpPossible} XP</div>
+                </div>
+              </div>
+
+              {/* Barra de progresso */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-[10px] text-white/40 font-bold">
+                  <span>{doneMissions.length}/{setupMissions.length} módulos</span>
+                  <span>{pct}%</span>
+                </div>
+                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Missões */}
+              <div className="space-y-2">
+                {setupMissions.filter(m => !m.done).slice(0, 3).map(mission => (
+                  <button
+                    key={mission.id}
+                    type="button"
+                    onClick={() => onNavigate?.(mission.tab)}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] hover:border-indigo-500/30 transition-all active:scale-[0.98] text-left"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center text-xl shrink-0">
+                      {mission.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-bold text-white truncate">{mission.label}</div>
+                      <div className="text-[10px] text-white/40 truncate">{mission.sub}</div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-[11px] font-black text-amber-400">+{mission.xp} XP</div>
+                      <div className="text-[9px] text-white/20 mt-0.5">↗</div>
+                    </div>
+                  </button>
+                ))}
+
+                {setupMissions.filter(m => m.done).length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {setupMissions.filter(m => m.done).map(mission => (
+                      <div key={mission.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="text-[11px]">{mission.emoji}</span>
+                        <span className="text-[10px] font-bold text-emerald-400 line-through opacity-70">{mission.label.split(' ').slice(0, 2).join(' ')}</span>
+                        <span className="text-[9px] text-emerald-400/60">✓</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })()}
+
         <motion.div variants={itemVariants} className="bento-grid">
         
         {/* HERO PATRIMÔNIO */}

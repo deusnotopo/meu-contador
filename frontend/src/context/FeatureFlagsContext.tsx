@@ -1,5 +1,4 @@
 import { createContext, useContext, ReactNode, useState } from 'react';
-import { useAuth } from './AuthContext';
 
 type FeatureFlag = 'premium_analytics' | 'ai_advisor' | 'multi_currency' | 'investments' | 'invoices';
 
@@ -11,23 +10,13 @@ interface FeatureFlagsContextType {
 const FeatureFlagsContext = createContext<FeatureFlagsContextType | null>(null);
 
 export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
-  const { isPro } = useAuth();
-  // Can be connected to remote configuration (Firebase Remote Config, LaunchDarkly, etc.)
-  const [overrides, setOverrides] = useState<Record<string, boolean>>({}); // eslint-disable-line
+  // Todas as features liberadas — usuário paga antes de acessar o app
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
 
   const isEnabled = (feature: FeatureFlag): boolean => {
-    if (overrides[feature] !== undefined) return overrides[feature] ?? false;
-    
-    // Default flags configuration
-    const flags: Record<FeatureFlag, boolean> = {
-      premium_analytics: isPro,
-      ai_advisor: isPro,
-      multi_currency: false,
-      investments: isPro,
-      invoices: isPro,
-    };
-
-    return flags[feature] ?? false;
+    if (overrides[feature] !== undefined) return overrides[feature] ?? true;
+    // Todas as features ativas por padrão
+    return true;
   };
 
   const setOverride = (feature: FeatureFlag, value: boolean) => {

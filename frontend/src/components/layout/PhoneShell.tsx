@@ -7,9 +7,11 @@ interface PhoneShellProps {
 }
 
 /**
- * PhoneShell v2 — Without fictitious iPhone frame.
- * Renders children in a full-screen responsive container.
- * The app fills the real device viewport natively.
+ * PhoneShell v3 — Layout responsivo full-screen.
+ * 
+ * • Mobile (<1024px): coluna vertical (conteúdo + tabbar)
+ * • Desktop (≥1024px): linha horizontal (sidebar inclusa via children + tela de conteúdo)
+ *   A `.tabbar` é ocultada via CSS em desktop.
  */
 export const PhoneShell: React.FC<PhoneShellProps> = ({
   children,
@@ -19,11 +21,13 @@ export const PhoneShell: React.FC<PhoneShellProps> = ({
   return (
     <div className="app-root" id="app-root">
       {statusBar}
+      {/* Em desktop, os `children` já incluem a <Sidebar> como primeiro filho,
+          então o .screen cresce ao lado dela via flex-direction: row */}
       <div className="screen" id="screen">
-        <div className="scontent" id="content">
-          {children}
-        </div>
+        {children}
       </div>
+      {/* A tabBar é nula em desktop (controlado pelo App.tsx),
+          e o .tabbar é display:none via CSS também como failsafe */}
       {tabBar}
     </div>
   );

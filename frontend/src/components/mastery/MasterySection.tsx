@@ -125,7 +125,7 @@ export const MasterySection: React.FC<MasterySectionProps> = ({ onBack }) => {
       </motion.div>
 
       {/* --- STREAKS HUD --- */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
         {['login', 'budget', 'savings'].map((type) => {
           const streak = streaks[type];
           const labels = { login: 'Acesso', budget: 'Gastos', savings: 'Poupado' };
@@ -164,7 +164,7 @@ export const MasterySection: React.FC<MasterySectionProps> = ({ onBack }) => {
 
       <motion.div 
         variants={containerVariants} 
-        className="grid grid-cols-4 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
       >
         {achievements.map((a: Achievement) => (
           <motion.div 

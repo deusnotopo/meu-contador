@@ -194,9 +194,13 @@ export interface UserProfile {
   subscriptionPlan?: "free" | "pro";
   age?: number;
   retirementAge?: number;
+  fireTargetIncome?: number;
   investorProfile?: string;
   investmentHorizon?: string;
   dependents?: number;
+  lgpdConsent?: boolean;
+  openFinanceBank?: string;
+  insuranceTypes?: string[];
 }
 
 export interface OnboardingBudget {
@@ -228,6 +232,14 @@ export interface OnboardingExpense {
   category: string;
   amount: number;
   month: string; // YYYY-MM
+}
+
+export interface OnboardingDebt {
+  name: string;
+  balance: number;
+  interestRate: number; // %/mês
+  minPayment: number;
+  category: 'credit_card' | 'loan' | 'overdraft' | 'other';
 }
 
 export interface OnboardingData {

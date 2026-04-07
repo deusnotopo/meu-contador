@@ -140,7 +140,7 @@ export const OFXImportModal = ({
                 sem duplicatas.
               </p>
 
-              <div className="grid grid-cols-3 gap-2 text-xs text-center text-slate-500">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-center text-slate-500">
                 {["Itaú", "Bradesco", "Nubank", "BB", "Santander", "Inter"].map(
                   (b) => (
                     <div

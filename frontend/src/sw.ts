@@ -149,8 +149,57 @@ self.addEventListener('message', (event: any) => {
   }
 });
 
-setInterval(() => {
-  if (navigator.onLine) {
-    processOfflineQueue();
+// Push Notification Event Handler
+self.addEventListener('push', (event: any) => {
+  if (!(self.Notification && self.Notification.permission === 'granted')) {
+    return;
   }
-}, 30000);
+
+  let data = { title: 'Meu Contador', body: 'Nova atualização disponível!' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { title: 'Meu Contador', body: event.data.text() };
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    },
+    actions: [
+      { action: 'explore', title: 'Ver Detalhes', icon: '/pwa-192x192.png' },
+      { action: 'close', title: 'Fechar', icon: '/pwa-192x192.png' },
+    ]
+  };
+
+  event.waitUntil(
+    (self as any).registration.showNotification(data.title, options)
+  );
+});
+
+// Notification Click Handler
+self.addEventListener('notificationclick', (event: any) => {
+  event.notification.close();
+
+  event.waitUntil(
+    (self as any).clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList: any[]) => {
+      if (clientList.length > 0) {
+        let client = clientList[0];
+        for (let i = 0; i < clientList.length; i++) {
+          if (clientList[i].focused) {
+            client = clientList[i];
+          }
+        }
+        return client.focus();
+      }
+      return (self as any).clients.openWindow('/');
+    })
+  );
+});

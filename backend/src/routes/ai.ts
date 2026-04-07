@@ -143,7 +143,7 @@ export async function aiRoutes(app: FastifyInstance) {
         401: aiErrorSchema,
       },
     },
-    preHandler: [app.authenticate, (app as any).proGuard],
+    preHandler: [app.authenticate],
   }, async (request, reply) => {
     const body = request.body as AiProxyRequestDto;
     request.log.info(buildAiAuditLog(body, (request.user as { id?: string } | undefined)?.id));

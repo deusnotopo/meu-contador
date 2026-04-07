@@ -1,21 +1,59 @@
 {
-  "name": "Meu Contador - Gestor Inteligente",
+  "name": "Meu Contador — Gestão Financeira com IA",
   "short_name": "Meu Contador",
-  "description": "Seu gestor financeiro inteligente com IA.",
+  "description": "Super App Financeiro com IA para gestão pessoal e empresarial. Envelopes, investimentos, aposentadoria e análises em tempo real.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#020617",
   "theme_color": "#020617",
-  "icons": [
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["finance", "productivity"],
+  "shortcuts": [
     {
-      "src": "/icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "name": "Lançar Transação",
+      "short_name": "Lançar",
+      "description": "Adicionar uma nova transação rapidamente",
+      "url": "/launch",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     },
     {
-      "src": "/icon.png",
+      "name": "Dashboard",
+      "short_name": "Início",
+      "description": "Ver resumo financeiro",
+      "url": "/",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard do Meu Contador em mobile"
     }
   ]
 }

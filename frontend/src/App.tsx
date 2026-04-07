@@ -3,6 +3,22 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { BottomNav } from "./components/layout/BottomNav";
+import Sidebar from "./components/layout/Sidebar";
+import { useEffect as useEffectMedia, useState as useStateMedia } from "react";
+
+/** Retorna true quando a largura da janela é >= 1024px */
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useStateMedia(
+    () => typeof window !== "undefined" && window.innerWidth >= 1024
+  );
+  useEffectMedia(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isDesktop;
+}
 import { LoginForm } from "./components/auth/LoginForm";
 import { ToastProvider } from "./lib/toast";
 import { GlobalLoadingProgress } from "./components/ui/GlobalLoadingProgress";
@@ -63,6 +79,7 @@ function resolveTabFromPath(pathname: string): TabType {
 
 // ─── App Root ──────────────────────────────────────────────
 export default function App() {
+  const isDesktop = useIsDesktop();
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>(() => resolveTabFromPath(location.pathname));
@@ -195,9 +212,34 @@ export default function App() {
     triggerCelebration();
   };
 
-  const handleWizardSkip = () => {
+  const handleWizardSkip = async () => {
     localStorage.setItem(`onboarding_done_${user.id}`, 'skipped');
     setShowWizard(false);
+    // Persiste defaults mínimos no backend para evitar erros em campos obrigatórios
+    try {
+      await import('@/lib/api').then(({ api }) =>
+        api.put('/users/onboarding', {
+          profile: {
+            lgpdConsent: false,
+            investmentHorizon: 'medium',
+            riskProfile: 'moderate',
+            financialGoal: 'save',
+            employmentType: 'clt',
+            hasEmergencyFund: false,
+            hasDebts: false,
+          },
+          budgets: [],
+          goals: [],
+          reminders: [],
+          investments: [],
+          historicalExpenses: [],
+          completed: false,
+          completedAt: new Date().toISOString(),
+        })
+      );
+    } catch {
+      // falha silenciosa — o usuário já fechou o wizard
+    }
   };
 
   return (
@@ -220,23 +262,31 @@ export default function App() {
       )}
 
       {/* ─── Main App Layout ────────────────────────────────── */}
-      <ErrorBoundary featureName="PhoneShell">
-        {/* Floating Adviser FAB - visible on all screens */}
+      <ErrorBoundary featureName="AppShell">
+        {/* Floating Adviser FAB */}
         <AdviserTrigger onClick={openAdviser} />
         <AdviserOverlay isOpen={adviserOpen} onClose={closeAdviser} />
+
         <PhoneShell
           tabBar={
-            <BottomNav
-              currentTab={isLaunchMenuOpen ? "launch" : activeTab}
-              onTabChange={navTo}
-              onOpenFunctions={() => setShowFunctions(true)}
-            />
+            !isDesktop ? (
+              <BottomNav
+                currentTab={isLaunchMenuOpen ? "launch" : activeTab}
+                onTabChange={navTo}
+                onOpenFunctions={() => setShowFunctions(true)}
+              />
+            ) : undefined
           }
         >
-          <SmartLaunchMenu 
-            isOpen={isLaunchMenuOpen} 
-            onClose={() => setIsLaunchMenuOpen(false)} 
-            onAction={handleLaunchMenuAction} 
+          {/* Desktop Sidebar */}
+          {isDesktop && (
+            <Sidebar currentTab={activeTab} onTabChange={navTo} />
+          )}
+
+          <SmartLaunchMenu
+            isOpen={isLaunchMenuOpen}
+            onClose={() => setIsLaunchMenuOpen(false)}
+            onAction={handleLaunchMenuAction}
           />
           {voiceMenuActive && (
             <VoiceCommander onClose={() => setVoiceMenuActive(false)} />
@@ -286,11 +336,12 @@ export default function App() {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.02 }}
-                  transition={{ duration: 0.22, ease: "easeOut" }}
-                  className="w-full"
+                  initial={{ opacity: 0, y: isDesktop ? 0 : 4, scale: isDesktop ? 1 : 0.99 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="scontent w-full"
+                  id="main-scontent"
                 >
                   {renderedView}
                 </motion.div>

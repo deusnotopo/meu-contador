@@ -145,7 +145,7 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
   return (
     <div style={{ animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
       {/* ── Header Flutuante Zen ── */}
-      <div className="flex items-center gap-3 mb-6 sticky top-2 z-[60] bg-[#0A1220]/70 backdrop-blur-2xl px-4 py-3.5 rounded-[28px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-2">
+      <div className="flex items-center gap-3 mb-6 sticky top-2 z-[60] bg-[#0A1220]/80 backdrop-blur-2xl px-3 py-2.5 rounded-[22px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-1">
         {onBack && (
           <button className="w-10 h-10 rounded-xl bg-white/[0.03] backdrop-blur-md border border-white/[0.08] flex items-center justify-center shadow-md transition-transform hover:scale-105 active:scale-95" onClick={() => onBack("inicio")}>
             <ArrowLeft size={16} />

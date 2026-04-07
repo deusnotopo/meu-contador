@@ -16,6 +16,7 @@ import type {
   OnboardingReminder,
   UserProfile,
   OnboardingInvestment,
+  OnboardingDebt,
 } from "@/types";
 import {
   budgetTemplates,
@@ -40,6 +41,11 @@ import {
   X,
   CreditCard,
   Zap,
+  Plus,
+  Flame,
+  Home,
+  Trash2,
+  BellRing,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -87,15 +93,24 @@ interface SummaryItemProps {
 const STEPS = [
   { id: "welcome", title: "Boas-vindas", act: 0 },
   { id: "identity", title: "Quem é Você", act: 1 },
+  { id: "business", title: "Sua Empresa", act: 1 },      // condicional: PJ
   { id: "income", title: "Sua Renda", act: 1 },
   { id: "expenses", title: "Seus Gastos", act: 1 },
   { id: "balance", title: "Seu Patrimônio", act: 1 },
+  { id: "debts", title: "Suas Dívidas", act: 2 },        // condicional: hasDebts
   { id: "investments", title: "Perfil de Investidor", act: 2 },
   { id: "goals", title: "Suas Metas", act: 2 },
   { id: "automation", title: "Piloto Automático", act: 2 },
   { id: "strategy", title: "Sua Estratégia", act: 3 },
+  { id: "fire_goal", title: "Sua Aposentadoria", act: 3 }, // novo
   { id: "summary", title: "Diagnóstico Final", act: 3 },
 ];
+
+// Steps que são condicionais e podem ser pulados
+const CONDITIONAL_STEPS: Record<string, (profile: OnboardingProfile, debts: OnboardingDebt[]) => boolean> = {
+  business: (profile) => profile.employmentType !== 'pj',
+  debts: (profile) => !profile.hasDebts,
+};
 
 // ----------------------------------------------------------------------------
 // Main Component
@@ -184,6 +199,10 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
   const [goals, setGoals] = useState<OnboardingGoal[]>(goalPresets);
   const [reminders, setReminders] = useState<OnboardingReminder[]>(commonBillReminders);
   const [investments] = useState<OnboardingInvestment[]>([]);
+  const [onboardingDebts, setOnboardingDebts] = useState<OnboardingDebt[]>([]);
+  const [pushGranted, setPushGranted] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSent, setInviteSent] = useState(false);
   const [preferences] = useState({
     showScore: true,
     showPredictions: true,
@@ -239,8 +258,14 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
     if (newDirection === 1 && !validateCurrentStep()) return;
     
     let nextStepIndex = currentStep + newDirection;
-    // Pular a etapa de empresa se for CLT
-    if (STEPS[nextStepIndex]?.id === "business" && profile.employmentType === "clt") {
+
+    // Pular steps condicionais que não se aplicam ao perfil atual
+    while (
+      nextStepIndex >= 0 &&
+      nextStepIndex < STEPS.length &&
+      STEPS[nextStepIndex]?.id &&
+      CONDITIONAL_STEPS[STEPS[nextStepIndex]!.id]?.(profile, onboardingDebts)
+    ) {
       nextStepIndex += newDirection;
     }
 
@@ -281,7 +306,20 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
       const payload = {
         profile: {
           ...sanitizedProfile,
-          investmentHorizon: sanitizedProfile.riskProfile === "conservative" ? "long" : sanitizedProfile.riskProfile === "moderate" ? "medium" : "short",
+          // Preserva a trilha da academia escolhida pelo usuário (investmentHorizon)
+          // só usa fallback se não foi selecionada manualmente
+          investmentHorizon: sanitizedProfile.investmentHorizon || (
+            sanitizedProfile.riskProfile === "conservative" ? "long"
+            : sanitizedProfile.riskProfile === "moderate" ? "medium"
+            : "short"
+          ),
+          // Novos campos coletados no Wizard
+          retirementAge: sanitizedProfile.retirementAge,
+          fireTargetIncome: sanitizedProfile.fireTargetIncome,
+          investorProfile: sanitizedProfile.investorProfile,
+          lgpdConsent: sanitizedProfile.lgpdConsent ?? false,
+          openFinanceBank: sanitizedProfile.openFinanceBank,
+          insuranceTypes: sanitizedProfile.insuranceTypes,
         },
         budgets,
         goals,
@@ -292,6 +330,22 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
         completedAt: new Date().toISOString(),
       };
       await api.put('/users/onboarding', payload);
+
+      // Salvar dívidas se houver
+      if (onboardingDebts.length > 0) {
+        await Promise.allSettled(
+          onboardingDebts.map(debt =>
+            api.post('/debts', {
+              name: debt.name,
+              balance: debt.balance,
+              interestRate: debt.interestRate,
+              minPayment: debt.minPayment,
+              category: debt.category,
+            })
+          )
+        );
+      }
+
       saveOnboarding(data);
       applyOnboardingConfig(data);
       await refreshUser();
@@ -424,7 +478,7 @@ export const OnboardingWizard = ({ onComplete, onSkip }: Props) => {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="w-full max-w-lg mx-auto"
           >
-            {renderStep(currentStep, profile, handleProfileChange, goals, setGoals, reminders, setReminders, validationErrors, strategyRules, academySignal)}
+            {renderStep(currentStep, profile, handleProfileChange, goals, setGoals, reminders, setReminders, validationErrors, strategyRules, academySignal, onboardingDebts, setOnboardingDebts, pushGranted, setPushGranted, inviteEmail, setInviteEmail, inviteSent, setInviteSent)}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -476,7 +530,15 @@ function renderStep(
   setReminders: React.Dispatch<React.SetStateAction<OnboardingReminder[]>>,
   validationErrors: Record<string, string>,
   strategyRules: ReturnType<typeof useStrategyRules>,
-  academySignal: AcademySignal
+  academySignal: AcademySignal,
+  onboardingDebts: OnboardingDebt[],
+  setOnboardingDebts: React.Dispatch<React.SetStateAction<OnboardingDebt[]>>,
+  pushGranted: boolean,
+  setPushGranted: React.Dispatch<React.SetStateAction<boolean>>,
+  inviteEmail: string,
+  setInviteEmail: React.Dispatch<React.SetStateAction<string>>,
+  inviteSent: boolean,
+  setInviteSent: React.Dispatch<React.SetStateAction<boolean>>
 ) {
   const step = STEPS[index];
   const stepId = step?.id;
@@ -503,6 +565,60 @@ function renderStep(
           <div className="grid grid-cols-2 gap-3 pt-4">
             <FeatureCard icon={Brain} label="Inteligência BR" />
             <FeatureCard icon={Shield} label="Privacidade Total" />
+          </div>
+
+          {/* ── Perfil Emocional Financeiro ── */}
+          <div className="pt-2 space-y-4">
+            <p className="text-sm font-bold text-white/60 uppercase tracking-widest text-[10px]">Como você se sente com suas finanças hoje?</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { emoji: '😰', label: 'Ansioso com dívidas', value: 'anxious' },
+                { emoji: '😐', label: 'Estagnado, sem evoluir', value: 'stuck' },
+                { emoji: '📈', label: 'Animado para investir', value: 'excited' },
+                { emoji: '🛡️', label: 'Quero me proteger', value: 'protective' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onChange('investorProfile', opt.value)}
+                  className={`p-4 rounded-2xl border text-left transition-all space-y-1 ${
+                    profile.investorProfile === opt.value
+                      ? 'bg-indigo-600/25 border-indigo-400 text-white'
+                      : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
+                  }`}
+                >
+                  <div className="text-2xl">{opt.emoji}</div>
+                  <div className="text-xs font-bold leading-tight">{opt.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── LGPD Consent ── */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => onChange('lgpdConsent', !profile.lgpdConsent)}
+              className={`w-full flex items-start gap-3 p-4 rounded-2xl border transition-all ${
+                profile.lgpdConsent
+                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                  : 'bg-white/5 border-white/10 hover:border-white/20'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded-md border-2 shrink-0 mt-0.5 flex items-center justify-center transition-all ${
+                profile.lgpdConsent ? 'bg-emerald-500 border-emerald-500' : 'border-white/20'
+              }`}>
+                {profile.lgpdConsent && <Check size={12} className="text-white" />}
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-white">Autorizo o uso dos meus dados financeiros</p>
+                <p className="text-[10px] text-white/40 mt-0.5">
+                  Seus dados ficam <strong>apenas no Brasil</strong>, em servidores seguros, nunca
+                  compartilhados com terceiros. Conformável com a LGPD. 
+                  Você pode excluir tudo a qualquer momento no Perfil.
+                </p>
+              </div>
+            </button>
           </div>
         </div>
       );
@@ -570,6 +686,86 @@ function renderStep(
               />
             </div>
           </div>
+
+          {/* ── Proteção Patrimonial ── */}
+          <div className="space-y-3">
+            <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Proteção Patrimonial (selecione os que possui)</Label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: 'life', label: '☠️ Seguro de Vida', sub: 'Protege a família' },
+                { value: 'health', label: '🏥 Plano de Saúde', sub: 'Cobertura médica' },
+                { value: 'auto', label: '🚗 Seguro Auto', sub: 'Cobertura do veículo' },
+                { value: 'none', label: '❌ Nenhum', sub: 'Sem seguros ativos' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    const current = (profile.insuranceTypes as string[] | undefined) || [];
+                    if (opt.value === 'none') {
+                      onChange('insuranceTypes' as keyof typeof profile, ['none']);
+                    } else {
+                      const filtered = current.filter(v => v !== 'none');
+                      const updated = filtered.includes(opt.value)
+                        ? filtered.filter(v => v !== opt.value)
+                        : [...filtered, opt.value];
+                      onChange('insuranceTypes' as keyof typeof profile, updated);
+                    }
+                  }}
+                  className={`p-4 rounded-2xl border text-left space-y-0.5 transition-all ${
+                    ((profile.insuranceTypes as string[] | undefined) || []).includes(opt.value)
+                      ? 'bg-indigo-600/20 border-indigo-500 text-white'
+                      : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
+                  }`}
+                >
+                  <div className="text-sm font-bold">{opt.label}</div>
+                  <div className="text-[10px] text-white/40">{opt.sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {profile.employmentType === 'clt' && (
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Seus Benefícios CLT (estimativa anual)</p>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-sm font-black text-emerald-300">{(profile.monthlyIncome || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>
+                  <p className="text-[9px] text-white/40">13° Salário</p>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-emerald-300">{((profile.monthlyIncome || 0) * 0.96 * 12).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>
+                  <p className="text-[9px] text-white/40">FGTS/ano</p>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-emerald-300">{((profile.monthlyIncome || 0) * 1.3).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>
+                  <p className="text-[9px] text-white/40">Férias (+1/3)</p>
+                </div>
+              </div>
+              <p className="text-[9px] text-white/30 text-center">⚠️ Adicionados automaticamente ao planejamento anual.</p>
+            </div>
+          )}
+
+          {profile.employmentType === 'pj' && (
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Obrigações PJ Mensais Estimadas</p>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-sm font-black text-indigo-300">{((profile.monthlyIncome || 0) * 0.28).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>
+                  <p className="text-[9px] text-white/40">IR + CSLL</p>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-indigo-300">{Math.min((profile.monthlyIncome || 0) * 0.11, 908).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>
+                  <p className="text-[9px] text-white/40">INSS pro-lab.</p>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-indigo-300">{((profile.monthlyIncome || 0) * 0.06).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>
+                  <p className="text-[9px] text-white/40">DAS Simples</p>
+                </div>
+              </div>
+              <p className="text-[9px] text-white/30 text-center">⚠️ Estimativa. Configure valores reais no step da Empresa.</p>
+            </div>
+          )}
         </div>
       );
 
@@ -771,6 +967,42 @@ function renderStep(
                 <p className="mt-3 font-bold text-sm">Possuo Dívidas Atuais</p>
               </div>
             </div>
+          </div>
+
+          {/* ── Open Finance ── */}
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0">
+                <span className="text-xl">🏦</span>
+              </div>
+              <div>
+                <p className="font-bold text-sm">Conectar meu banco automaticamente</p>
+                <p className="text-xs text-white/50">Importa extrato e saldo em tempo real via Open Finance</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {['Nubank', 'Itaú', 'Bradesco', 'Bb', 'Caixa', 'Inter'].map(bank => (
+                <button
+                  key={bank}
+                  type="button"
+                  onClick={() => onChange('openFinanceBank' as keyof typeof profile, bank)}
+                  className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
+                    profile.openFinanceBank === bank
+                      ? 'bg-blue-600/20 border-blue-500 text-white'
+                      : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
+                  }`}
+                >
+                  {bank}
+                </button>
+              ))}
+            </div>
+            {profile.openFinanceBank ? (
+              <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                <Check size={14} /> Banco selecionado — conexão será finalizada após o setup
+              </div>
+            ) : (
+              <p className="text-[10px] text-white/30 text-center">Opcional — você também pode lançar manualmente</p>
+            )}
           </div>
         </div>
       );
@@ -1017,6 +1249,363 @@ function renderStep(
             >
               <span className="text-lg">＋</span> Adicionar conta personalizada
             </button>
+
+            {/* ── Push Notification Banner ── */}
+            <div className="mt-4 p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+                  <BellRing size={20} className="text-indigo-400" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Notificações Inteligentes</p>
+                  <p className="text-xs text-white/50">Receba alertas 1 dia antes de cada vencimento</p>
+                </div>
+              </div>
+              {pushGranted ? (
+                <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold">
+                  <Check size={16} /> Notificações ativadas neste aparelho!
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const permission = await Notification.requestPermission();
+                      if (permission === 'granted' && 'serviceWorker' in navigator) {
+                        setPushGranted(true);
+                        showSuccess('Notificações ativadas! Você não vai mais perder nenhum vencimento.');
+                      }
+                    } catch (_e) {
+                      // silently ignore if not supported
+                    }
+                  }}
+                  className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-sm transition-all active:scale-95"
+                >
+                  🔔 Ativar Alertas Automáticos
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ── Provisões Sazonais IPVA/IPTU ── */}
+          <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <span className="text-xl">📅</span>
+              </div>
+              <div>
+                <p className="font-bold text-sm">Provisões Sazonais</p>
+                <p className="text-xs text-white/50">Reserve mensalmente para não ser pego de surpresa</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {[
+                { label: 'IPVA (auto)', emoji: '🚗', monthly: Math.round((profile.monthlyIncome || 3000) * 0.02 / 12 * 100) / 100 },
+                { label: 'IPTU (imóvel)', emoji: '🏠', monthly: Math.round((profile.monthlyIncome || 3000) * 0.04 / 12 * 100) / 100 },
+                { label: 'Matrícula escolar', emoji: '��', monthly: Math.round((profile.monthlyIncome || 3000) * 0.03 / 12 * 100) / 100, hide: (profile.dependents || 0) === 0 },
+                { label: '13° / Gratificação', emoji: '🎁', monthly: Math.round((profile.monthlyIncome || 3000) / 12 * 100) / 100, clt: true },
+              ].filter(p => !p.hide && (!p.clt || profile.employmentType !== 'pj')).map(provision => (
+                <div key={provision.label} className="flex items-center justify-between py-1.5">
+                  <div className="flex items-center gap-2 text-sm text-white/70">
+                    <span>{provision.emoji}</span>
+                    <span>{provision.label}</span>
+                  </div>
+                  <div className="text-sm font-black text-amber-300">
+                    {provision.monthly.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-white/30 text-center">
+              Total já incluído na sua alíquota de <strong>Futuro {(strategyRules?.pF * 100 || 20).toFixed(0)}%</strong>
+            </p>
+          </div>
+        </div>
+      );
+
+    case "business":
+      return (
+        <div className="space-y-8 pt-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                <Building2 size={20} className="text-indigo-400" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold">Sua Empresa</h2>
+                <p className="text-white/50 text-sm">Dados do seu CNPJ para separar finanças PJ/PF</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Nome da Empresa</Label>
+              <Input
+                value={profile.businessName || ''}
+                onChange={e => onChange('businessName', e.target.value)}
+                placeholder="Ex: João Silva MEI"
+                className="h-14 bg-white/5 border-white/10 rounded-2xl text-base font-semibold"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">CNPJ</Label>
+              <Input
+                value={profile.businessCnpj || ''}
+                onChange={e => {
+                  // Máscara: XX.XXX.XXX/XXXX-XX
+                  const raw = e.target.value.replace(/\D/g, '').slice(0, 14);
+                  const masked = raw
+                    .replace(/^(\d{2})(\d)/, '$1.$2')
+                    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+                    .replace(/(\d{4})(\d)/, '$1-$2');
+                  onChange('businessCnpj', masked);
+                }}
+                placeholder="00.000.000/0000-00"
+                className="h-14 bg-white/5 border-white/10 rounded-2xl text-base font-mono font-semibold tracking-wider"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Ramo de Atividade</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'technology', label: '💻 Tecnologia' },
+                  { value: 'commerce', label: '🛒 Comércio' },
+                  { value: 'services', label: '🔧 Serviços' },
+                  { value: 'health', label: '🏥 Saúde' },
+                  { value: 'education', label: '🎓 Educação' },
+                  { value: 'other', label: '📦 Outros' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChange('businessSector', opt.value)}
+                    className={`p-4 rounded-2xl border text-sm font-bold transition-all text-left ${
+                      profile.businessSector === opt.value
+                        ? 'bg-indigo-600/20 border-indigo-500 text-white'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-xs text-emerald-300 flex gap-3">
+            <Shield size={18} className="shrink-0 mt-0.5" />
+            <p>Seus dados de CNPJ são usados <strong>apenas internamente</strong> para separar as transações PJ das pessoais no seu painel.</p>
+          </div>
+        </div>
+      );
+
+    case "debts":
+      return (
+        <div className="space-y-6 pt-6">
+          <div className="space-y-2 text-center">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-500/20 flex items-center justify-center mb-4">
+              <Flame size={32} className="text-rose-400" />
+            </div>
+            <h2 className="text-3xl font-bold">Vamos zerar as dívidas</h2>
+            <p className="text-white/50 text-sm">Registre as suas dívidas e o app vai montar a estratégia de quitação ideal (Método Avalanche).</p>
+          </div>
+
+          <div className="space-y-3">
+            {onboardingDebts.map((debt, i) => (
+              <div key={i} className="p-5 rounded-2xl bg-white/5 border border-rose-500/20 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">Dívida {i + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingDebts(prev => prev.filter((_, idx) => idx !== i))}
+                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={14} className="text-white/40" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1 block">Credor</label>
+                    <input
+                      type="text"
+                      value={debt.name}
+                      placeholder="Ex: Cartão Nubank"
+                      onChange={e => {
+                        const updated = [...onboardingDebts];
+                        if (updated[i]) updated[i].name = e.target.value;
+                        setOnboardingDebts(updated);
+                      }}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-rose-500/50"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1 block">Saldo (R$)</label>
+                      <input
+                        type="number"
+                        value={debt.balance || ''}
+                        placeholder="0"
+                        onChange={e => {
+                          const updated = [...onboardingDebts];
+                          if (updated[i]) updated[i].balance = Number(e.target.value);
+                          setOnboardingDebts(updated);
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-rose-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1 block">Juros %/mês</label>
+                      <input
+                        type="number"
+                        value={debt.interestRate || ''}
+                        placeholder="0"
+                        step="0.1"
+                        onChange={e => {
+                          const updated = [...onboardingDebts];
+                          if (updated[i]) updated[i].interestRate = Number(e.target.value);
+                          setOnboardingDebts(updated);
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-rose-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1 block">Parcela (R$)</label>
+                      <input
+                        type="number"
+                        value={debt.minPayment || ''}
+                        placeholder="0"
+                        onChange={e => {
+                          const updated = [...onboardingDebts];
+                          if (updated[i]) updated[i].minPayment = Number(e.target.value);
+                          setOnboardingDebts(updated);
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-rose-500/50"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {onboardingDebts.length < 5 && (
+              <button
+                type="button"
+                onClick={() => setOnboardingDebts(prev => [...prev, {
+                  name: '',
+                  balance: 0,
+                  interestRate: 0,
+                  minPayment: 0,
+                  category: 'credit_card',
+                }])}
+                className="w-full py-4 rounded-2xl border border-dashed border-rose-500/30 text-rose-400/70 text-sm font-semibold hover:border-rose-500/60 hover:text-rose-400 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={16} /> Adicionar dívida
+              </button>
+            )}
+
+            {onboardingDebts.length === 0 && (
+              <div className="text-center py-4 text-white/30 text-sm">
+                Clique acima para registrar sua primeira dívida
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-xs text-rose-300 flex gap-3">
+            <Zap size={18} className="shrink-0 mt-0.5" />
+            <p>Com essas informações, o <strong>Painel de Quitação</strong> vai calcular automaticamente em quanto tempo você fica livre de dívidas usando a Estratégia Avalanche.</p>
+          </div>
+        </div>
+      );
+
+    case "fire_goal":
+      return (
+        <div className="space-y-8 pt-6 text-center">
+          <div className="space-y-3">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/20 flex items-center justify-center mb-2">
+              <Home size={32} className="text-amber-400" />
+            </div>
+            <h2 className="text-3xl font-bold">Com quantos anos você quer se aposentar?</h2>
+            <p className="text-white/50 text-sm">Seu Número Mágico FIRE vai aparecer no painel de Aposentadoria.</p>
+          </div>
+
+          <div className="space-y-6">
+            {/* Slider de Idade */}
+            <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 space-y-6">
+              <div>
+                <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-2">Idade Alvo</p>
+                <div className="text-6xl font-black tabular-nums text-amber-400">
+                  {profile.retirementAge ?? 60}
+                  <span className="text-2xl text-white/30 ml-2">anos</span>
+                </div>
+              </div>
+              <Slider
+                value={[profile.retirementAge ?? 60]}
+                onValueChange={([v]) => onChange('retirementAge', v)}
+                min={35} max={80} step={1}
+                className="py-4"
+              />
+              <div className="flex justify-between text-[10px] font-black text-white/20 uppercase tracking-widest">
+                <span>35 anos</span>
+                <span>80 anos</span>
+              </div>
+            </div>
+
+            {/* Renda desejada na aposentadoria */}
+            <div className="space-y-3 text-left">
+              <Label className="text-amber-400 font-bold uppercase tracking-widest text-[10px]">Renda Mensal Desejada na Aposentadoria (R$)</Label>
+              <div className="relative">
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-lg font-bold text-white/30">R$</div>
+                <Input
+                  type="number"
+                  value={profile.fireTargetIncome ?? profile.monthlyIncome}
+                  onChange={e => onChange('fireTargetIncome', parseFloat(e.target.value) || 0)}
+                  className="h-16 pl-14 bg-white/5 border-white/10 rounded-2xl text-2xl font-black"
+                  placeholder={String(profile.monthlyIncome)}
+                />
+              </div>
+              <p className="text-xs text-white/30 text-center">Pré-preenchido com sua renda atual. Ajuste se quiser mais ou menos no futuro.</p>
+            </div>
+
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs text-amber-300 flex gap-3 text-left">
+              <TrendingUp size={18} className="shrink-0 mt-0.5" />
+              <p>Com base nesses números, o <strong>Simulador FIRE</strong> vai calcular exatamente quanto patrimônio você precisa acumular e quanto te falta.</p>
+            </div>
+
+            {/* ── Trilha da Academia ── */}
+            <div className="space-y-4 pt-2">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Qual assunto te interessa mais na Academia?</p>
+                <p className="text-xs text-white/30">Isso define sua trilha prioritária de aprendizado.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'base', emoji: '🏗️', label: 'Educação Financeira' },
+                  { value: 'renda_var', emoji: '📈', label: 'Renda Variável (B3)' },
+                  { value: 'dividendos', emoji: '💰', label: 'Dividendos' },
+                  { value: 'fire', emoji: '🔥', label: 'Independência FIRE' },
+                  { value: 'cripto', emoji: '₿', label: 'Cripto' },
+                  { value: 'contabilidade', emoji: '🧾', label: 'Contabilidade PJ' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChange('investmentHorizon', opt.value)}
+                    className={`p-4 rounded-2xl border text-sm font-bold transition-all text-left flex items-center gap-3 ${
+                      profile.investmentHorizon === opt.value
+                        ? 'bg-amber-500/20 border-amber-400 text-white'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
+                    }`}
+                  >
+                    <span className="text-xl">{opt.emoji}</span>
+                    <span className="text-xs leading-tight">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -1115,6 +1704,76 @@ function renderStep(
                 <p className="text-xs text-white/50 leading-relaxed">{academySignal.reason}</p>
               </div>
             </div>
+          </motion.div>
+
+          {/* ── Badge de Segurança e Backup ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-3"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <Shield size={18} className="text-emerald-400" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-white">Seus dados estão 100% protegidos</p>
+              <ul className="text-[10px] text-white/40 space-y-0.5">
+                <li>• Armazenagem criptografada no Brasil</li>
+                <li>• Nunca compartilhados com terceiros (LGPD)</li>
+                <li>• Backup automático diário</li>
+                <li>• Exclusão completa da conta a qualquer momento (Perfil → Excluir Conta)</li>
+              </ul>
+            </div>
+          </motion.div>
+
+          {/* Convite de Parceiro ou Sócio */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65 }}
+            className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                <span className="text-lg">👥</span>
+              </div>
+              <div>
+                <p className="font-bold text-sm">Gerenciar junto com alguém?</p>
+                <p className="text-xs text-white/40">Convide seu cônjuge ou sócio para compartilhar o painel</p>
+              </div>
+            </div>
+            {inviteSent ? (
+              <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold">
+                <Check size={16} /> Convite enviado com sucesso!
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                  placeholder="email@exemplo.com"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white font-medium focus:outline-none focus:border-purple-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!inviteEmail.trim()) return;
+                    try {
+                      await api.post('/workspace/invite', { email: inviteEmail });
+                      setInviteSent(true);
+                      showSuccess(`Convite enviado para ${inviteEmail}!`);
+                    } catch (_e) {
+                      showError('Não foi possível enviar o convite agora.');
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-bold text-xs transition-all"
+                >
+                  Convidar
+                </button>
+              </div>
+            )}
           </motion.div>
         </div>
       );

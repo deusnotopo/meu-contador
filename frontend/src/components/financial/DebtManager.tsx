@@ -211,7 +211,7 @@ export function DebtManager() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase tracking-widest">Saldo</p>
                     <p className="text-sm font-bold text-white">{formatCurrency(debt.balance)}</p>

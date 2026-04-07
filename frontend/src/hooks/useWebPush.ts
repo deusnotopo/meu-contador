@@ -78,5 +78,29 @@ export function useWebPush() {
     }
   };
 
-  return { isSupported, isSubscribed, loading, subscribe };
+  const unsubscribe = async () => {
+    try {
+      setLoading(true);
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        await subscription.unsubscribe();
+        // Notifica o backend para remover a subscrição
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
+        }).catch(() => { /* falha silenciosa */ });
+      }
+      setIsSubscribed(false);
+    } catch (error) {
+      console.error('Falha ao cancelar WebPush:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { isSupported, isSubscribed, loading, subscribe, unsubscribe };
 }

@@ -1,12 +1,14 @@
-import { useAuth } from "@/context/AuthContext";
+﻿import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useDebts } from "@/hooks/useDebts";
 import { loadProfile } from "@/lib/storage";
+import { useWebPush } from "@/hooks/useWebPush";
+import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { HelpButton } from "@/components/ui/HelpButton";
-import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, ShieldCheck, Globe, HelpCircle, Bell, Trash2, Users, History, Edit2, Lock } from "lucide-react";
+import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, ShieldCheck, Globe, HelpCircle, Bell, BellOff, Trash2, Users, History, Edit2 } from "lucide-react";
 import { BankConnectionsView } from "@/components/banking/BankConnectionsView";
 import { HelpCenter } from "@/components/support/HelpCenter";
 import { CollaborationPanel } from "@/components/profile/CollaborationPanel";
@@ -14,7 +16,7 @@ import { AuditLogViewer } from "@/components/profile/AuditLogViewer";
 import { MFASetup } from "@/components/security/MFASetup";
 import { WorkspaceManager } from "@/components/settings/WorkspaceManager";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { TabType } from "@/types/navigation";
 
@@ -62,6 +64,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   const { totals: investTotals } = useInvestments();
   const { totals: debtTotals } = useDebts();
   const profile = loadProfile();
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, loading: pushLoading, subscribe: pushSubscribe, unsubscribe: pushUnsubscribe } = useWebPush();
 
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [darkTheme, setDarkTheme] = useState<boolean>(() => {
@@ -69,15 +72,34 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
     return saved ? saved === 'dark' : true;
   });
   const [bioActive, setBioActive] = useState(true);
-  const [notifTransactions, setNotifTransactions] = useState(true);
-  const [notifBudgets, setNotifBudgets] = useState(true);
-  const [notifGoals, setNotifGoals] = useState(true);
-  const [notifReminders, setNotifReminders] = useState(true);
+  // Notif toggles â€” persistidos no localStorage
+  const [notifTransactions, setNotifTransactions] = useState(() => localStorage.getItem('notif_transactions') !== 'false');
+  const [notifBudgets, setNotifBudgets] = useState(() => localStorage.getItem('notif_budgets') !== 'false');
+  const [notifGoals, setNotifGoals] = useState(() => localStorage.getItem('notif_goals') !== 'false');
+  const [notifReminders, setNotifReminders] = useState(() => localStorage.getItem('notif_reminders') !== 'false');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCollaboration, setShowCollaboration] = useState(false);
   const [showMFA, setShowMFA] = useState(false);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+
+  // Persistir toggles no localStorage quando mudarem
+  useEffect(() => { localStorage.setItem('notif_transactions', String(notifTransactions)); }, [notifTransactions]);
+  useEffect(() => { localStorage.setItem('notif_budgets', String(notifBudgets)); }, [notifBudgets]);
+  useEffect(() => { localStorage.setItem('notif_goals', String(notifGoals)); }, [notifGoals]);
+  useEffect(() => { localStorage.setItem('notif_reminders', String(notifReminders)); }, [notifReminders]);
+
+  // Toggle push notifications master switch
+  const handlePushToggle = useCallback(async () => {
+    if (!pushSupported) { showError('Push notifications nÃ£o suportadas neste dispositivo.'); return; }
+    if (pushSubscribed) {
+      await pushUnsubscribe?.();
+      showSuccess('NotificaÃ§Ãµes push desativadas.');
+    } else {
+      await pushSubscribe();
+      showSuccess('NotificaÃ§Ãµes push ativadas! ðŸ””');
+    }
+  }, [pushSupported, pushSubscribed, pushSubscribe, pushUnsubscribe]);
 
   const globalTotals = {
     income: personal.totals.income + business.totals.income,
@@ -104,8 +126,8 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   const grossIncome = globalTotals.income;
   const netIncome = grossIncome * 0.84;
   const userAge = profile?.age || 0;
-  const investorProfile = profile?.investorProfile || "Não definido";
-  const investmentHorizon = profile?.investmentHorizon || "Não definido";
+  const investorProfile = profile?.investorProfile || "NÃ£o definido";
+  const investmentHorizon = profile?.investmentHorizon || "NÃ£o definido";
   const dependents = profile?.dependents || 0;
 
   useEffect(() => {
@@ -137,7 +159,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <Button variant="outline" size="sm" onClick={() => setShowEditProfile(true)} className="rounded-xl gap-1">
           <Edit2 size={14} /> Editar
         </Button>
-        <HelpButton tooltipText="Gerencie sua conta, preferências e segurança" />
+        <HelpButton tooltipText="Gerencie sua conta, preferÃªncias e seguranÃ§a" />
       </div>
 
       {/* Profile Hero */}
@@ -145,27 +167,21 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-2xl font-bold text-white mx-auto mb-3 shadow-lg shadow-indigo-500/20 ring-4 ring-indigo-500/20">
           {user?.name?.substring(0, 2).toUpperCase() || "MC"}
         </div>
-        <div className="text-lg font-bold">{user?.name || "Usuário"}</div>
+        <div className="text-lg font-bold">{user?.name || "UsuÃ¡rio"}</div>
         <div className="text-sm text-slate-400 mt-1">{user?.email || "contato@meucontador.com"}</div>
 
         <div className="flex justify-center gap-2 mt-3 flex-wrap">
-          {user?.isPro ? (
-            <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full text-xs font-bold flex items-center gap-1">
-              💎 Premium
-            </span>
-          ) : (
-            <span className="px-3 py-1 bg-slate-500/20 text-slate-400 rounded-full text-xs font-bold">
-              Plano Free
-            </span>
-          )}
+          <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full text-xs font-bold flex items-center gap-1">
+            âœ¨ Ativo
+          </span>
           {healthScore > 0 && <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold">Score {healthScore}</span>}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mt-4">
           {[
-            ["🗓️", daysInApp > 0 ? daysInApp.toString() : "-", "dias no app"],
-            ["📊", healthScore > 0 ? healthScore.toString() : "-", "score saúde"],
-            ["🎯", fireProgress > 0 ? `${fireProgress}%` : "-", "rumo FIRE"]
+            ["ðŸ—“ï¸", daysInApp > 0 ? daysInApp.toString() : "-", "dias no app"],
+            ["ðŸ“Š", healthScore > 0 ? healthScore.toString() : "-", "score saÃºde"],
+            ["ðŸŽ¯", fireProgress > 0 ? `${fireProgress}%` : "-", "rumo FIRE"]
           ].map(([em, vl, lb], i) => (
             <div key={i} className="text-center">
               <div className="text-xl mb-1">{em}</div>
@@ -181,10 +197,10 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-3">
         {([
           ["Renda bruta mensal", grossIncome > 0 ? `R$ ${Math.round(grossIncome).toLocaleString('pt-BR')}` : "-", null],
-          ["Renda líquida", netIncome > 0 ? `R$ ${Math.round(netIncome).toLocaleString('pt-BR')}` : "-", null],
-          ["Faixa etária", userAge > 0 ? `${userAge} anos` : "-", null],
-          ["Perfil investidor", investorProfile, investorProfile !== "Não definido" ? "b" : null],
-          ["Horizonte", investmentHorizon, investmentHorizon !== "Não definido" ? "g" : null],
+          ["Renda lÃ­quida", netIncome > 0 ? `R$ ${Math.round(netIncome).toLocaleString('pt-BR')}` : "-", null],
+          ["Faixa etÃ¡ria", userAge > 0 ? `${userAge} anos` : "-", null],
+          ["Perfil investidor", investorProfile, investorProfile !== "NÃ£o definido" ? "b" : null],
+          ["Horizonte", investmentHorizon, investmentHorizon !== "NÃ£o definido" ? "g" : null],
           ["Dependentes", dependents > 0 ? dependents.toString() : "Nenhum", null]
         ] as [string, string, string | null][]).map(([lb, vl, badge], i) => (
           <div key={i} className="flex items-center justify-between py-2">
@@ -202,13 +218,25 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Open Finance</h3>
       <div className="mb-5"><BankConnectionsView /></div>
 
-      {/* Notificações */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Notificações</h3>
+      {/* NotificaÃ§Ãµes */}
+      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">NotificaÃ§Ãµes</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
+        {/* Toggle master de push notifications */}
+        {pushSupported && (
+          <SettingsToggleRow
+            icon={pushSubscribed
+              ? <Bell size={16} className="text-indigo-400" />
+              : <BellOff size={16} className="text-slate-500" />}
+            title="NotificaÃ§Ãµes Push"
+            subtitle={pushSubscribed ? 'Alertas ativos no dispositivo' : 'Toque para ativar alertas'}
+            checked={pushSubscribed}
+            onToggle={handlePushToggle}
+          />
+        )}
         {(
           [
-            ["Transações", "Alertas de novas transações", notifTransactions, setNotifTransactions],
-            ["Orçamentos", "Alertas de limite de gastos", notifBudgets, setNotifBudgets],
+            ["TransaÃ§Ãµes", "Alertas de novas transaÃ§Ãµes", notifTransactions, setNotifTransactions],
+            ["OrÃ§amentos", "Alertas de limite de gastos", notifBudgets, setNotifBudgets],
             ["Metas", "Progresso e conquistas", notifGoals, setNotifGoals],
             ["Lembretes", "Contas a pagar e vencimentos", notifReminders, setNotifReminders],
           ] as [string, string, boolean, Dispatch<SetStateAction<boolean>>][]
@@ -222,10 +250,11 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
             onToggle={() => setVal(!val)}
           />
         ))}
+        {pushLoading && <p className="text-[10px] text-slate-500 text-center py-1">Configurando notificaÃ§Ãµes...</p>}
       </div>
 
-      {/* Configurações */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Configurações</h3>
+      {/* ConfiguraÃ§Ãµes */}
+      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">ConfiguraÃ§Ãµes</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
         <SettingsToggleRow
           icon={darkTheme ? <Moon size={16} className="text-slate-400" /> : <Sun size={16} className="text-slate-400" />}
@@ -237,7 +266,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
 
         <SettingsToggleRow
           icon={<Fingerprint size={16} className="text-slate-400" />}
-          title="Acesso Biométrico"
+          title="Acesso BiomÃ©trico"
           subtitle="Face ID / Touch ID"
           checked={bioActive}
           onToggle={() => setBioActive(!bioActive)}
@@ -246,23 +275,20 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setLanguage(language === "pt-BR" ? "en-US" : "pt-BR")}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><Globe size={16} className="text-slate-400" /></div>
-            <div><div className="text-sm font-medium">Idioma</div><div className="text-xs text-slate-500">{language === "pt-BR" ? "Português (BR)" : "English (US)"}</div></div>
+            <div><div className="text-sm font-medium">Idioma</div><div className="text-xs text-slate-500">{language === "pt-BR" ? "PortuguÃªs (BR)" : "English (US)"}</div></div>
           </div>
-          <span className="text-slate-500 text-sm">›</span>
+          <span className="text-slate-500 text-sm">â€º</span>
         </div>
 
         <div className="flex items-center justify-between py-3 cursor-pointer group">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><Download size={16} className="text-slate-400" /></div>
             <div>
-              <div className="text-sm font-medium flex items-center gap-2">
-                Exportar Dados
-                {!user?.isPro && <span className="text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded-md font-bold border border-amber-500/20">PRO</span>}
-              </div>
-              <div className="text-xs text-slate-500">PDF · CSV · OFX</div>
+              <div className="text-sm font-medium">Exportar Dados</div>
+              <div className="text-xs text-slate-500">PDF Â· CSV Â· OFX</div>
             </div>
           </div>
-          <span className="text-slate-500 text-sm">{!user?.isPro ? <Lock size={12} className="text-amber-500/50" /> : '›'}</span>
+          <span className="text-slate-500 text-sm">â€º</span>
         </div>
 
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowHelpCenter(true)}>
@@ -270,19 +296,19 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
             <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><HelpCircle size={16} className="text-slate-400" /></div>
             <div><div className="text-sm font-medium">Central de Ajuda</div><div className="text-xs text-slate-500">FAQ, tutoriais e suporte</div></div>
           </div>
-          <span className="text-slate-500 text-sm">›</span>
+          <span className="text-slate-500 text-sm">â€º</span>
         </div>
       </div>
 
-      {/* Segurança */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Segurança</h3>
+      {/* SeguranÃ§a */}
+      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">SeguranÃ§a</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowMFA(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center"><ShieldCheck size={16} className="text-emerald-400" /></div>
-            <div><div className="text-sm font-medium">Autenticação 2FA</div><div className="text-xs text-slate-500">Proteção adicional com SMS</div></div>
+            <div><div className="text-sm font-medium">AutenticaÃ§Ã£o 2FA</div><div className="text-xs text-slate-500">ProteÃ§Ã£o adicional com SMS</div></div>
           </div>
-          <span className="text-slate-500 text-sm">›</span>
+          <span className="text-slate-500 text-sm">â€º</span>
         </div>
       </div>
 
@@ -292,15 +318,15 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <WorkspaceManager />
       </div>
 
-      {/* Colaboração */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Colaboração</h3>
+      {/* ColaboraÃ§Ã£o */}
+      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">ColaboraÃ§Ã£o</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowCollaboration(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-pink-500/10 flex items-center justify-center"><Users size={16} className="text-pink-400" /></div>
-            <div><div className="text-sm font-medium">Espaços Colaborativos</div><div className="text-xs text-slate-500">Compartilhe dados com familiares</div></div>
+            <div><div className="text-sm font-medium">EspaÃ§os Colaborativos</div><div className="text-xs text-slate-500">Compartilhe dados com familiares</div></div>
           </div>
-          <span className="text-slate-500 text-sm">›</span>
+          <span className="text-slate-500 text-sm">â€º</span>
         </div>
       </div>
 
@@ -310,9 +336,9 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowAuditLog(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center"><History size={16} className="text-amber-400" /></div>
-            <div><div className="text-sm font-medium">Histórico de Atividades</div><div className="text-xs text-slate-500">Log de ações do workspace</div></div>
+            <div><div className="text-sm font-medium">HistÃ³rico de Atividades</div><div className="text-xs text-slate-500">Log de aÃ§Ãµes do workspace</div></div>
           </div>
-          <span className="text-slate-500 text-sm">›</span>
+          <span className="text-slate-500 text-sm">â€º</span>
         </div>
       </div>
 
@@ -322,7 +348,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       {showCollaboration && (
         <div className="fixed inset-0 bg-black/80 z-[100] overflow-auto p-5">
           <div className="max-w-2xl mx-auto relative">
-            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowCollaboration(false)}>✕ Fechar</Button>
+            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowCollaboration(false)}>âœ• Fechar</Button>
             <CollaborationPanel profile={profile || {}} onUpdate={() => {}} userId={user?.id || ""} />
           </div>
         </div>
@@ -330,7 +356,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       {showMFA && (
         <div className="fixed inset-0 bg-black/80 z-[100] overflow-auto p-5">
           <div className="max-w-lg mx-auto relative">
-            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowMFA(false)}>✕ Fechar</Button>
+            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowMFA(false)}>âœ• Fechar</Button>
             <MFASetup />
           </div>
         </div>
@@ -338,7 +364,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       {showAuditLog && (
         <div className="fixed inset-0 bg-black/80 z-[100] overflow-auto p-5">
           <div className="max-w-2xl mx-auto relative">
-            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowAuditLog(false)}>✕ Fechar</Button>
+            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowAuditLog(false)}>âœ• Fechar</Button>
             <AuditLogViewer workspaceId={profile?.currentWorkspaceId || user?.id || ""} />
           </div>
         </div>
@@ -357,7 +383,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-5">
           <div className="bg-[#0B1220] rounded-2xl p-6 max-w-sm w-full border border-white/10">
             <div className="text-lg font-bold text-center mb-2">Excluir conta?</div>
-            <div className="text-sm text-slate-400 text-center mb-5">Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos.</div>
+            <div className="text-sm text-slate-400 text-center mb-5">Esta aÃ§Ã£o Ã© irreversÃ­vel. Todos os seus dados serÃ£o permanentemente excluÃ­dos.</div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>Cancelar</Button>
               <Button variant="destructive" className="flex-1" onClick={() => { setShowDeleteConfirm(false); logout(); }}>Excluir</Button>
@@ -367,7 +393,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       )}
 
       <div className="text-center text-[10px] text-slate-600 mt-6 mb-10 uppercase tracking-wider">
-        Versão 3.0.0 — Silicon Valley Standard
+        VersÃ£o 3.0.0 â€” Silicon Valley Standard
       </div>
     </div>
   );

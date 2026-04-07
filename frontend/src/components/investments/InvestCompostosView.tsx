@@ -1,13 +1,24 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { TabType } from "@/types/navigation";
 import { useCompoundInterest } from "@/hooks/useCompoundInterest";
+import { useTransactions } from "@/hooks/useTransactions";
 
 interface InvestCompostosViewProps {
   onBack?: (tab?: TabType) => void;
 }
 
 export const InvestCompostosView = ({ onBack }: InvestCompostosViewProps) => {
-  const [aporte, setAporte] = useState(2000);
+  const personal = useTransactions("personal");
+  const business = useTransactions("business");
+
+  // Derive a smart default from the user's real income: 20% savings rate, clamped to slider range
+  const rendaReal = personal.totals.income + business.totals.income;
+  const aporteRecomendado = useMemo(() => {
+    if (rendaReal <= 0) return 2000; // fallback only if no data yet
+    return Math.min(10000, Math.max(200, Math.round((rendaReal * 0.2) / 200) * 200));
+  }, [rendaReal]);
+
+  const [aporte, setAporte] = useState(() => aporteRecomendado);
   const [taxa, setTaxa] = useState(10);
   const [anos, setAnos] = useState(20);
 

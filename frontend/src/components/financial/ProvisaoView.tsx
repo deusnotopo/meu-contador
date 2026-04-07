@@ -8,18 +8,12 @@
  * Armazenado em localStorage (simples, funciona offline, zero backend).
  */
 
-import React, { useState, useEffect } from "react";
-import { ArrowLeft, Plus, Trash2, CheckCircle } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowLeft, Plus, Trash2, CheckCircle, Loader2 } from "lucide-react";
+import { useGoals } from "@/hooks/useGoals";
 
-interface Provisao {
-  id: string;
-  nome: string;
-  valorAnual: number;
-  mes: number; // mês de vencimento (1-12)
-  emoji: string;
-  cor: string;
-  acumulado: number; // quanto já foi separado
-}
+
+// We don't need a local interface anymore, we will adapt to SavingsGoal inline or extract via computed properties.
 
 const EMOJIS = ["🏠", "🚗", "📚", "🏥", "🎓", "✈️", "🎁", "🛡️", "💰", "🔧"];
 const CORES = [
@@ -27,7 +21,7 @@ const CORES = [
   "#00C4B4", "#FF6B35", "#A8E063", "#FF90A3", "#64B5F6",
 ];
 
-const SUGESTOES_BR: Omit<Provisao, "id" | "acumulado">[] = [
+const SUGESTOES_BR = [
   { nome: "IPTU", valorAnual: 1800, mes: 2, emoji: "🏠", cor: "#4A8BFF" },
   { nome: "IPVA", valorAnual: 1500, mes: 1, emoji: "🚗", cor: "#FFB84A" },
   { nome: "Seguro do carro", valorAnual: 2400, mes: 6, emoji: "🛡️", cor: "#9B7FFF" },
@@ -36,8 +30,6 @@ const SUGESTOES_BR: Omit<Provisao, "id" | "acumulado">[] = [
   { nome: "13º salário (reserva)", valorAnual: 3000, mes: 12, emoji: "💰", cor: "#A8E063" },
   { nome: "Revisão do carro", valorAnual: 1200, mes: 6, emoji: "🔧", cor: "#64B5F6" },
 ];
-
-const STORAGE_KEY = "meu_contador_provisoes";
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 const fmt = (n: number) =>
@@ -48,7 +40,7 @@ interface Props {
 }
 
 export const ProvisaoView: React.FC<Props> = ({ onBack }) => {
-  const [provisoes, setProvisoes] = useState<Provisao[]>([]);
+  const { goals, addGoal, deleteGoal, updateGoalProgress, loading } = useGoals();
   const [showForm, setShowForm] = useState(false);
   const [showSugestoes, setShowSugestoes] = useState(false);
 
@@ -60,48 +52,71 @@ export const ProvisaoView: React.FC<Props> = ({ onBack }) => {
     cor: "#4A8BFF",
   });
 
-  // Carregar do localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setProvisoes(JSON.parse(saved));
-    } catch (error) {
-      console.warn('Falha ao carregar provisões do localStorage', error);
+  // Mapear SavingsGoal para o formato Visual da tela
+  const provisoes = goals.map(g => {
+    // Tentamos extrair o mês da data limite de vencimento
+    let mesVencimento = 12;
+    if (g.deadline) {
+      const date = new Date(g.deadline);
+      if (!isNaN(date.getTime())) {
+        mesVencimento = date.getMonth() + 1;
+      }
     }
-  }, []);
+    return {
+      id: g.id,
+      nome: g.name,
+      valorAnual: g.targetAmount,
+      mes: mesVencimento,
+      emoji: g.icon || "💰",
+      cor: g.color || "#4A8BFF",
+      acumulado: g.currentAmount
+    };
+  });
 
-  const save = (list: Provisao[]) => {
-    setProvisoes(list);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  const getDeadlineForMonth = (month: number) => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    // Se o mês escolhido já passou neste ano, cria para o ano que vem
+    const ano = month < currentMonth ? currentYear + 1 : currentYear;
+    return new Date(ano, month - 1, 15).toISOString();
   };
 
-  const addProvisao = () => {
+  const handleAddProvisao = () => {
     if (!form.nome || !form.valorAnual) return;
-    const nova: Provisao = {
-      id: Date.now().toString(),
-      nome: form.nome,
-      valorAnual: parseFloat(form.valorAnual),
-      mes: form.mes,
-      emoji: form.emoji,
-      cor: form.cor,
-      acumulado: 0,
-    };
-    save([...provisoes, nova]);
+    
+    addGoal({
+      name: form.nome,
+      targetAmount: parseFloat(form.valorAnual),
+      currentAmount: 0,
+      deadline: getDeadlineForMonth(form.mes),
+      icon: form.emoji,
+      color: form.cor
+    });
+
     setForm({ nome: "", valorAnual: "", mes: new Date().getMonth() + 1, emoji: "💰", cor: "#4A8BFF" });
     setShowForm(false);
   };
 
-  const addSugestao = (s: Omit<Provisao, "id" | "acumulado">) => {
-    const nova: Provisao = { ...s, id: Date.now().toString(), acumulado: 0 };
-    save([...provisoes, nova]);
+  const addSugestao = (s: typeof SUGESTOES_BR[number]) => {
+    addGoal({
+      name: s.nome,
+      targetAmount: s.valorAnual,
+      currentAmount: 0,
+      deadline: getDeadlineForMonth(s.mes),
+      icon: s.emoji,
+      color: s.cor
+    });
   };
 
   const addAporte = (id: string, valor: number) => {
-    save(provisoes.map((p) => p.id === id ? { ...p, acumulado: Math.min(p.valorAnual, p.acumulado + valor) } : p));
+    const prov = provisoes.find(p => p.id === id);
+    if (!prov) return;
+    const newAmount = Math.min(prov.valorAnual, prov.acumulado + valor);
+    updateGoalProgress(id, newAmount);
   };
 
   const remove = (id: string) => {
-    save(provisoes.filter((p) => p.id !== id));
+    deleteGoal(id);
   };
 
   const mesAtual = new Date().getMonth() + 1;
@@ -127,7 +142,9 @@ export const ProvisaoView: React.FC<Props> = ({ onBack }) => {
           </button>
         )}
         <div>
-          <div className="eyebrow">Planejamento</div>
+          <div className="eyebrow" style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            Planejamento {loading && <Loader2 size={12} className="animate-spin text-blue-500" />}
+          </div>
           <div className="page-title" style={{ margin: 0, fontSize: "22px" }}>
             💰 Provisões Mensais
           </div>
@@ -358,7 +375,7 @@ export const ProvisaoView: React.FC<Props> = ({ onBack }) => {
           <button
             className="btn btn-primary"
             style={{ width: "100%" }}
-            onClick={addProvisao}
+            onClick={handleAddProvisao}
             disabled={!form.nome || !form.valorAnual}
           >
             Criar provisão

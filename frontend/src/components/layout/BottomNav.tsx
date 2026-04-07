@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { TAB_TO_PILLAR } from "@/types/navigation";
-import { useFeatureFlags } from "@/context/FeatureFlagsContext";
-import { Lock } from "lucide-react";
-
 import type { TabType, PrimaryTab } from "@/types/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, ArrowRightLeft, Target, Sparkles, Flame, PiggyBank } from "lucide-react";
 
 interface BottomNavProps {
   currentTab: TabType;
@@ -10,198 +10,330 @@ interface BottomNavProps {
   onOpenFunctions?: () => void;
 }
 
+// SVG icons – crisp, 1.6px stroke, style top-tier
+const HomeIcon = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 24 24" width={20} height={20} fill="none"
+    stroke={active ? "#fff" : "rgba(148,163,184,0.7)"} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1v-9.5z"/>
+    <path d="M9 21V12h6v9"/>
+  </svg>
+);
+
+const BudgetIcon = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 24 24" width={20} height={20} fill="none"
+    stroke={active ? "#fff" : "rgba(148,163,184,0.7)"} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2.5"/>
+    <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+    <line x1="12" y1="12" x2="12" y2="16"/>
+    <line x1="10" y1="14" x2="14" y2="14"/>
+  </svg>
+);
+
+const FuturoIcon = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 24 24" width={20} height={20} fill="none"
+    stroke={active ? "#fff" : "rgba(148,163,184,0.7)"} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+    <polyline points="16 7 22 7 22 13"/>
+  </svg>
+);
+
+const AcademiaIcon = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 24 24" width={20} height={20} fill="none"
+    stroke={active ? "#fff" : "rgba(148,163,184,0.7)"} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+    <path d="M6 12v5c3.5 2 8.5 2 12 0v-5"/>
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg viewBox="0 0 24 24" width={22} height={22} fill="none"
+    stroke="#fff" strokeWidth={2.2} strokeLinecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
+
+const NAV_ITEMS = [
+  { id: "inicio" as PrimaryTab,  tab: "inicio" as TabType,   label: "Início",   Icon: HomeIcon },
+  { id: "budget" as PrimaryTab,  tab: "budget" as TabType,   label: "Budget",   Icon: BudgetIcon },
+  { id: "launch" as PrimaryTab,  tab: "launch" as TabType,   label: null,       Icon: null }, // FAB
+  { id: "futuro" as PrimaryTab,  tab: "investir" as TabType, label: "Investir", Icon: FuturoIcon },
+  { id: "academia" as PrimaryTab,tab: "academia" as TabType, label: "Academia", Icon: AcademiaIcon },
+];
+
 export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
-  const { isEnabled } = useFeatureFlags();
   const activePillar = TAB_TO_PILLAR[currentTab] ?? "inicio";
-  const isActive = (pillar: PrimaryTab) => activePillar === pillar;
-  
-  const isPatrimonioLocked = !isEnabled("premium_analytics");
-
-  const baseTabStyle: React.CSSProperties = {
-    flex: 1,
-    minWidth: 0,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: 4,
-    padding: "4px 0 2px",
-    border: "none",
-    background: "transparent",
-    cursor: "pointer",
-    fontFamily: "var(--font)",
-    WebkitTapHighlightColor: "transparent",
-  };
-
-  const pipStyle = (active: boolean): React.CSSProperties => ({
-    width: 46,
-    height: 28,
-    borderRadius: 14,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: active ? "rgba(74,139,255,0.14)" : "transparent",
-    transition: "all 0.25s ease",
-  });
-
-  const labelStyle = (active: boolean): React.CSSProperties => ({
-    fontSize: 9,
-    lineHeight: 1,
-    fontWeight: 600,
-    letterSpacing: "0.04em",
-    textTransform: "uppercase",
-    color: active ? "#4A8BFF" : "rgba(136,153,196,0.72)",
-  });
-
-  const iconColor = (active: boolean) => (active ? "#4A8BFF" : "rgba(136,153,196,0.72)");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <div
-      className="tabbar"
       id="main-navigation"
+      role="navigation"
+      aria-label="Navegação principal"
       style={{
+        position: "relative",
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "space-around",
-        gap: 0,
-        minHeight: 64,
         width: "100%",
-        padding: "8px 4px 0",
-        paddingBottom: "max(env(safe-area-inset-bottom, 10px), 10px)",
-        background: "rgba(6,9,20,0.96)",
-        borderTop: "1px solid rgba(255,255,255,0.08)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
+        minHeight: 68,
+        paddingTop: 6,
+        paddingBottom: "max(env(safe-area-inset-bottom, 12px), 12px)",
+        paddingLeft: 8,
+        paddingRight: 8,
+        background: "rgba(5,8,18,0.96)",
+        borderTop: "1px solid rgba(255,255,255,0.07)",
+        backdropFilter: "blur(28px)",
+        WebkitBackdropFilter: "blur(28px)",
         flexShrink: 0,
-        overflow: "hidden",
-        zIndex: 40,
+        zIndex: 50,
+        // subtle top highlight to emulate glass edge
+        boxShadow: "0 -1px 0 rgba(255,255,255,0.04)",
       }}
     >
+      {NAV_ITEMS.map((item) => {
+        const isFAB = item.id === "launch";
+        const isActive = !isFAB && activePillar === item.id;
 
-      {/* 1. Início */}
-      <button
-        className={`tab ${isActive("inicio") ? "active" : ""}`}
-        onClick={() => onTabChange("inicio")}
-        aria-label="Início"
-        style={baseTabStyle}
-      >
-        <div className="tab-pip" style={pipStyle(isActive("inicio"))}>
-          <svg viewBox="0 0 24 24" style={{ width: 20, height: 20, fill: "none", stroke: iconColor(isActive("inicio")), strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }}>
-            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/>
-            <path d="M9 21V12h6v9"/>
-          </svg>
-        </div>
-        <span className="tab-lbl" style={labelStyle(isActive("inicio"))}>Início</span>
-      </button>
+        if (isFAB) {
+          return (
+            <button
+              key="launch"
+              onClick={() => setIsMenuOpen(true)}
+              aria-label="Menu Rápido"
+              id="quick-actions-fab"
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                padding: "0 0 2px",
+                WebkitTapHighlightColor: "transparent",
+                position: "relative",
+                zIndex: 10,
+              }}
+            >
+              <motion.div
+                whileTap={{ scale: 0.85 }}
+                whileHover={{ scale: 1.08 }}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  background: currentTab === "launch"
+                    ? "linear-gradient(145deg, #6366f1, #4f46e5)"
+                    : "linear-gradient(145deg, #4f46e5, #4338ca)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: "translateY(-10px)",
+                  boxShadow: currentTab === "launch"
+                    ? "0 0 0 4px rgba(99,102,241,0.25), 0 12px 28px rgba(79,70,229,0.55)"
+                    : "0 8px 24px rgba(79,70,229,0.45), 0 0 0 1px rgba(99,102,241,0.3)",
+                  transition: "box-shadow 0.25s ease, background 0.25s ease",
+                }}
+              >
+                <PlusIcon />
+              </motion.div>
+            </button>
+          );
+        }
 
-      {/* 2. Budget (Envelopes) */}
-      <button
-        className={`tab ${isActive("budget") ? "active" : ""}`}
-        onClick={() => onTabChange("budget")}
-        aria-label="Budget"
-        style={baseTabStyle}
-      >
-        <div className="tab-pip" style={pipStyle(isActive("budget"))}>
-          <svg viewBox="0 0 24 24" style={{ width: 20, height: 20, fill: "none", stroke: iconColor(isActive("budget")), strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }}>
-            <rect x="2" y="5" width="20" height="16" rx="2"/>
-            <path d="M2 10l10 6 10-6"/>
-          </svg>
-        </div>
-        <span className="tab-lbl" style={labelStyle(isActive("budget"))}>Budget</span>
-      </button>
+        const { Icon, label, tab } = item;
 
-      {/* 3. Lançar (FAB Transbordante) */}
-      <button
-        className={`tab ${currentTab === "launch" ? "active" : ""}`}
-        onClick={() => onTabChange("launch")}
-        aria-label="Lançar"
-        id="quick-actions-fab"
-        style={{ ...baseTabStyle, zIndex: 10, position: "relative" }}
-      >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            background: currentTab === "launch"
-              ? "linear-gradient(135deg, #5048E8, #2F62D9)"
-              : "linear-gradient(135deg, #2F62D9, #5048E8)",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 8px 24px rgba(80,72,232,0.45), inset 0 2px 4px rgba(255,255,255,0.2)",
-            transform: "translateY(-10px)",
-            transition: "all 0.25s cubic-bezier(0.34,1.4,0.64,1)",
-            flexShrink: 0,
-          }}
-        >
-          <svg viewBox="0 0 24 24" style={{ stroke: "#fff", strokeWidth: 2.2, width: 24, height: 24, fill: "none", strokeLinecap: "round" }}>
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </div>
-        <span className="tab-lbl" style={{ ...labelStyle(currentTab === "launch"), marginTop: "2px" }}>Lançar</span>
-      </button>
-
-
-
-      {/* 4. Futuro */}
-      <button
-        className={`tab ${isActive("futuro") ? "active" : ""}`}
-        onClick={() => onTabChange("futuro")}
-        aria-label="Futuro"
-        style={{ ...baseTabStyle, opacity: isPatrimonioLocked && !isActive("futuro") ? 0.6 : 1 }}
-      >
-        <div className="tab-pip" style={{ ...pipStyle(isActive("futuro")), position: "relative" }}>
-          <svg viewBox="0 0 24 24" style={{ width: 20, height: 20, fill: "none", stroke: iconColor(isActive("futuro")), strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }}>
-            <path d="M12 3v18" />
-            <path d="M7 8l5-5 5 5" />
-            <path d="M7 16l5 5 5-5" opacity="0.45" />
-          </svg>
-          {isPatrimonioLocked && (
-            <div style={{ position: "absolute", top: -4, right: -4, background: "#F59E0B", borderRadius: 4, width: 12, height: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Lock size={8} color="#000" strokeWidth={3} />
+        return (
+          <button
+            key={item.id}
+            onClick={() => onTabChange(tab)}
+            aria-label={label ?? ""}
+            aria-current={isActive ? "page" : undefined}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "flex-start",
+              gap: 3,
+              padding: "4px 0 2px",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              WebkitTapHighlightColor: "transparent",
+              position: "relative",
+            }}
+          >
+            {/* Pill background */}
+            <div style={{ position: "relative", width: 48, height: 30, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-pill"
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.7 }}
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      borderRadius: 14,
+                      background: "linear-gradient(135deg, rgba(99,102,241,0.28), rgba(79,70,229,0.18))",
+                      border: "1px solid rgba(99,102,241,0.25)",
+                    }}
+                  />
+                )}
+              </AnimatePresence>
+              <motion.div
+                animate={{ scale: isActive ? 1.05 : 1, y: isActive ? -0.5 : 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              >
+                {Icon && <Icon active={isActive} />}
+              </motion.div>
             </div>
-          )}
-        </div>
-        <span className="tab-lbl" style={{ ...labelStyle(isActive("futuro")), display: "flex", alignItems: "center", gap: 2 }}>
-          Futuro
-          {isPatrimonioLocked && <span style={{ fontSize: 7, background: "rgba(245,158,11,0.2)", color: "#F59E0B", padding: "1px 3px", borderRadius: 3, fontWeight: "bold" }}>PRO</span>}
-        </span>
-      </button>
 
-      {/* 5. Investir */}
-      <button
-        className={`tab ${isActive("futuro") && currentTab === "investir" ? "active" : ""}`}
-        onClick={() => onTabChange("investir")}
-        aria-label="Investir"
-        style={baseTabStyle}
-      >
-        <div className="tab-pip" style={pipStyle(isActive("futuro"))}>
-          <svg viewBox="0 0 24 24" style={{ width: 20, height: 20, fill: "none", stroke: iconColor(isActive("futuro")), strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }}>
-            <path d="M12 2v20M17 5L9 12l8 7" />
-          </svg>
-        </div>
-        <span className="tab-lbl" style={labelStyle(isActive("futuro"))}>Investir</span>
-      </button>
+            {/* Label */}
+            <motion.span
+              animate={{
+                color: isActive ? "#e0e7ff" : "rgba(100,116,139,0.75)",
+                fontWeight: isActive ? 700 : 500,
+              }}
+              transition={{ duration: 0.15 }}
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                lineHeight: 1,
+                fontFamily: "var(--font)",
+              }}
+            >
+              {label}
+            </motion.span>
+          </button>
+        );
+      })}
 
-      {/* 6. Academia */}
-      <button
-        className={`tab ${isActive("academia") ? "active" : ""}`}
-        onClick={() => onTabChange("academia")}
-        aria-label="Academia"
-        style={{ ...baseTabStyle, position: "relative" }}
-      >
-        <div className="tab-pip" style={pipStyle(isActive("academia"))}>
-          <svg viewBox="0 0 24 24" style={{ width: 20, height: 20, fill: "none", stroke: iconColor(isActive("academia")), strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }}>
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <span className="tab-lbl" style={labelStyle(isActive("academia"))}>Academia</span>
-      </button>
+      {/* Speed Dial Menu Overlay */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+              pointerEvents: "none",
+            }}
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(3, 7, 18, 0.75)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                pointerEvents: "auto",
+              }}
+            />
+
+            {/* Menu Items Container */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: "calc(max(env(safe-area-inset-bottom, 12px), 12px) + 80px)",
+                left: 0,
+                right: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 16,
+                pointerEvents: "none",
+                paddingBottom: 16,
+              }}
+            >
+              {[
+                { id: "ai", label: "Consultar Advisor IA", icon: Sparkles, color: "text-purple-400", bg: "bg-purple-500/20" },
+                { id: "provisoes", label: "Novo Cofrinho", icon: PiggyBank, color: "text-blue-400", bg: "bg-blue-500/20" },
+                { id: "debt_payoff", label: "Projeto Quitação", icon: Flame, color: "text-rose-400", bg: "bg-rose-500/20" },
+                { id: "planos", label: "Nova Meta", icon: Target, color: "text-amber-400", bg: "bg-amber-500/20" },
+                { id: "launch", label: "Nova Transação", icon: ArrowRightLeft, color: "text-emerald-400", bg: "bg-emerald-500/20" },
+              ].map((action, i) => (
+                <motion.button
+                  key={action.id}
+                  initial={{ opacity: 0, y: 30, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 30, scale: 0.8 }}
+                  transition={{ delay: 0.05 * (4 - i), type: "spring", stiffness: 350, damping: 25 }}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onTabChange(action.id as TabType);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    pointerEvents: "auto",
+                    background: "rgba(30, 32, 45, 0.9)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    borderRadius: 32,
+                    padding: "10px 24px 10px 12px",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                    transformOrigin: "bottom center",
+                    minWidth: 220,
+                  }}
+                >
+                  <div className={`w-10 h-10 ${action.bg} rounded-full flex items-center justify-center shrink-0`}>
+                    <action.icon size={20} className={action.color} />
+                  </div>
+                  <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>
+                    {action.label}
+                  </span>
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Closing FAB over the original position */}
+            <motion.button
+              initial={{ scale: 0.8, opacity: 0, rotate: -90 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ scale: 0.8, opacity: 0, rotate: 90 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              whileTap={{ scale: 0.85 }}
+              onClick={() => setIsMenuOpen(false)}
+              style={{
+                position: "absolute",
+                left: "50%",
+                bottom: "calc(max(env(safe-area-inset-bottom, 12px), 12px) + 22px)",
+                transform: "translateX(-50%)",
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "linear-gradient(145deg, #ef4444, #dc2626)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "none",
+                color: "white",
+                boxShadow: "0 8px 24px rgba(220, 38, 38, 0.5), 0 0 0 1px rgba(239, 68, 68, 0.3)",
+                pointerEvents: "auto",
+                zIndex: 10,
+              }}
+            >
+              <X size={26} strokeWidth={2.5} />
+            </motion.button>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
