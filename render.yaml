@@ -1,36 +1,26 @@
 services:
   - type: web
-    name: meu-contador
+    name: meu-contador-backend
     runtime: node
     rootDir: backend
     buildCommand: bash render-build.sh
     startCommand: node dist/server.js
     healthCheckPath: /health
     autoDeploy: true
+    plan: free
+
     envVars:
       - key: NODE_ENV
         value: production
+
+      # ── Banco de Dados (Neon PostgreSQL) ─────────────────────────────
       - key: DATABASE_URL
-        sync: false
+        sync: false          # pooled — para a aplicação
       - key: DIRECT_URL
-        sync: false
+        sync: false          # direto — para migrations (prisma migrate deploy)
+
+      # ── Auth ─────────────────────────────────────────────────────────
       - key: JWT_SECRET
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: PLUGGY_CLIENT_ID
-        sync: false
-      - key: PLUGGY_CLIENT_SECRET
-        sync: false
-      - key: PUBLIC_VAPID_KEY
-        sync: false
-      - key: PRIVATE_VAPID_KEY
-        sync: false
-      - key: BRAPI_TOKEN
-        sync: false
-      - key: UPSTASH_REDIS_REST_URL
-        sync: false
-      - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: FIREBASE_PROJECT_ID
         sync: false
@@ -38,7 +28,37 @@ services:
         sync: false
       - key: FIREBASE_PRIVATE_KEY
         sync: false
+
+      # ── AI ───────────────────────────────────────────────────────────
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # ── Open Finance ─────────────────────────────────────────────────
+      - key: PLUGGY_CLIENT_ID
+        sync: false
+      - key: PLUGGY_CLIENT_SECRET
+        sync: false
       - key: OPEN_FINANCE_WEBHOOK_SECRET
         sync: false
-      - key: CORS_ORIGINS
+
+      # ── Push Notifications ───────────────────────────────────────────
+      - key: PUBLIC_VAPID_KEY
         sync: false
+      - key: PRIVATE_VAPID_KEY
+        sync: false
+
+      # ── Cache / Queue (Upstash Redis) ─────────────────────────────────
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+
+      # ── Mercado Financeiro ────────────────────────────────────────────
+      - key: BRAPI_TOKEN
+        sync: false
+
+      # ── CORS ─────────────────────────────────────────────────────────
+      - key: CORS_ORIGINS
+        value: "https://meucontador.com.br,https://meucontador-367cf.web.app"
+      - key: FRONTEND_URL
+        value: "https://meucontador.com.br"

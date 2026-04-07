@@ -2,17 +2,16 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Seed configuration
-// Run with: npm run db:seed
-
 datasource db {
-  provider  = "sqlite"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // =====================================================
-// TYPES (SQLite doesn't support enums)
-// Using String fields with validation in application layer
+// PostgreSQL — supports enums natively.
+// String fields kept for backward compat; can be
+// migrated to @db.Enum in a future refactor.
 // =====================================================
 
 model User {
@@ -42,6 +41,15 @@ model User {
   age             Int?
   dependents      Int?
   investmentHorizon String?
+  investorProfile  String?    // anxious | stuck | excited | protective
+  retirementAge    Int?
+  fireTargetIncome Float?
+
+  // Proteção e Compliance
+  lgpdConsent      Boolean    @default(false)
+  lgpdConsentAt    DateTime?
+  insuranceTypes   String?    // JSON: ['life','health','auto'] 
+  openFinanceBank  String?    // banco selecionado para Open Finance
 
   workspaces      Workspace[] @relation("UserWorkspaces")
   currentWorkspaceId String?
