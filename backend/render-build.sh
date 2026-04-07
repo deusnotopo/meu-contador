@@ -15,4 +15,7 @@ npx prisma db push --accept-data-loss
 echo "==> Compiling TypeScript..."
 npm run build
 
+echo "==> Creating entry point wrapper..."
+echo "require('./backend/src/server');" > dist/server.js
+
 echo "==> Build complete!"
