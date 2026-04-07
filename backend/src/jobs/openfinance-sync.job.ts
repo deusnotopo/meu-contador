@@ -14,7 +14,7 @@ export const openFinanceWorker = createWorker(QUEUE_NAME, async (job) => {
 });
 
 export async function startOpenFinanceSyncJob() {
-  await openFinanceQueue.add(
+  await openFinanceQueue?.add(
     'sync-connections',
     {},
     {

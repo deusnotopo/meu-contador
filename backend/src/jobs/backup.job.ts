@@ -20,7 +20,7 @@ export const backupWorker = createWorker(QUEUE_NAME, async (job) => {
 });
 
 export async function startBackupJob() {
-  await backupQueue.add(
+  await backupQueue?.add(
     'run-backup',
     {},
     {

@@ -18,7 +18,7 @@ export const notificationsWorker = createWorker(QUEUE_NAME, async (job) => {
 export async function startNotificationsJob() {
   // Add recurring jobs
   // 9:00 AM every day
-  await notificationsQueue.add(
+  await notificationsQueue?.add(
     'daily-alerts',
     {},
     {
@@ -28,7 +28,7 @@ export async function startNotificationsJob() {
   );
 
   // 3:30 AM every day
-  await notificationsQueue.add(
+  await notificationsQueue?.add(
     'data-purge',
     {},
     {

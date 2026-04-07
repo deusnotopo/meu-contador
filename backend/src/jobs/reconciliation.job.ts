@@ -14,7 +14,7 @@ export const reconciliationWorker = createWorker(QUEUE_NAME, async (job) => {
 });
 
 export async function startReconciliationJob() {
-  await reconciliationQueue.add(
+  await reconciliationQueue?.add(
     'reconcile-balances',
     {},
     {
