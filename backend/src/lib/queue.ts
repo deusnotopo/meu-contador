@@ -4,19 +4,31 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const redisUrl = process.env.REDIS_URL;
+const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL;
 
-if (!redisUrl) {
-  console.warn('⚠️ REDIS_URL not found in environment variables. Background jobs will not work.');
+// Only connect to Redis if URL is provided — no fallback to localhost
+let connection: IORedis | null = null;
+
+if (redisUrl) {
+  try {
+    connection = new IORedis(redisUrl, {
+      maxRetriesPerRequest: null, // Essential for BullMQ
+      tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+      lazyConnect: true,
+    });
+    console.log('✅ Redis connection configured for BullMQ jobs');
+  } catch (err) {
+    console.warn('⚠️ Failed to create Redis connection:', err);
+    connection = null;
+  }
+} else {
+  console.warn('⚠️ REDIS_URL not set — background jobs (BullMQ) are DISABLED. App runs fine without them.');
 }
 
-export const connection = new IORedis(redisUrl || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null, // Essential for BullMQ
-  tls: redisUrl?.startsWith('rediss://') ? {} : undefined,
-});
+export { connection };
 
 export const defaultQueueOptions: QueueOptions = {
-  connection,
+  connection: connection as IORedis,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -31,6 +43,10 @@ export const defaultQueueOptions: QueueOptions = {
 };
 
 export function createQueue(name: string, options?: QueueOptions) {
+  if (!connection) {
+    console.warn(`⚠️ Skipping queue "${name}" — no Redis connection`);
+    return null;
+  }
   return new Queue(name, {
     ...defaultQueueOptions,
     ...options,
@@ -38,8 +54,16 @@ export function createQueue(name: string, options?: QueueOptions) {
 }
 
 export function createWorker(name: string, processor: Processor, options?: WorkerOptions) {
+  if (!connection) {
+    console.warn(`⚠️ Skipping worker "${name}" — no Redis connection`);
+    return null;
+  }
   return new Worker(name, processor, {
     connection,
     ...options,
   });
+}
+
+export function isQueueAvailable(): boolean {
+  return connection !== null;
 }
