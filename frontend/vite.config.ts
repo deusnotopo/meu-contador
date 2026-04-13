@@ -111,15 +111,27 @@ export default defineConfig({
     headers: {
       'Cross-Origin-Opener-Policy': 'unsafe-none',
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
-      // Dev-only CSP: allow eval para React Refresh (HMR) e inline styles do Vite
+      // Dev-only CSP — allows Google Auth, Firebase Analytics, and Vite HMR
       'Content-Security-Policy': [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+        // React HMR + Google Identity Services + GTM Analytics
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.googletagmanager.com https://www.gstatic.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com data:",
         "img-src 'self' data: blob: https:",
-        "connect-src 'self' http://localhost:3000 ws://localhost:5173 https://firebase*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseapp.com",
-        "frame-src 'self' https://accounts.google.com",
+        // API + WS + all Firebase/Google domains
+        "connect-src 'self' http://localhost:3000 ws://localhost:5173 wss://localhost:5173 " +
+          "https://firebase.googleapis.com " +
+          "https://firebaseinstallations.googleapis.com " +
+          "https://identitytoolkit.googleapis.com " +
+          "https://securetoken.googleapis.com " +
+          "https://firebaseapp.com " +
+          "https://*.firebaseio.com " +
+          "https://www.googletagmanager.com " +
+          "https://www.google-analytics.com " +
+          "https://region1.google-analytics.com",
+        // Google Auth popup + Firebase Auth iframe
+        "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com",
         "worker-src 'self' blob:",
       ].join('; '),
     },
