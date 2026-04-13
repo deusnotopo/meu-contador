@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -70,7 +70,7 @@ export const HelpCenter = ({ onClose }: { onClose: () => void }) => {
               <h2 className="text-xl font-black tracking-tight">
                 Central de Ajuda
               </h2>
-              <p className="text-xs text-slate-400 font-medium">
+              <p className="text-xs text-neutral-500 font-medium">
                 Suporte Oficial & Tutoriais
               </p>
             </div>
@@ -87,7 +87,7 @@ export const HelpCenter = ({ onClose }: { onClose: () => void }) => {
 
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
             size={16}
           />
           <Input
@@ -110,7 +110,7 @@ export const HelpCenter = ({ onClose }: { onClose: () => void }) => {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">Chat com IA</h4>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-neutral-500">
                     Tire dúvidas instantâneas
                   </p>
                 </div>
@@ -123,7 +123,7 @@ export const HelpCenter = ({ onClose }: { onClose: () => void }) => {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">Suporte Humano</h4>
-                  <p className="text-xs text-slate-400">Resposta em 24h</p>
+                  <p className="text-xs text-neutral-500">Resposta em 24h</p>
                 </div>
               </CardContent>
             </Card>
@@ -150,7 +150,7 @@ export const HelpCenter = ({ onClose }: { onClose: () => void }) => {
                     {openIndex === index ? (
                       <ChevronUp size={16} className="text-indigo-400" />
                     ) : (
-                      <ChevronDown size={16} className="text-slate-500" />
+                      <ChevronDown size={16} className="text-neutral-500" />
                     )}
                   </button>
                   <AnimatePresence>
@@ -161,7 +161,7 @@ export const HelpCenter = ({ onClose }: { onClose: () => void }) => {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="p-4 pt-0 text-sm text-slate-400 leading-relaxed border-t border-white/5">
+                        <div className="p-4 pt-0 text-sm text-neutral-500 leading-relaxed border-t border-white/5">
                           {faq.answer}
                         </div>
                       </motion.div>
@@ -170,7 +170,7 @@ export const HelpCenter = ({ onClose }: { onClose: () => void }) => {
                 </div>
               ))}
               {filteredFaqs.length === 0 && (
-                <div className="text-center py-8 text-slate-500 text-sm">
+                <div className="text-center py-8 text-neutral-500 text-sm">
                   Nenhum resultado encontrado para "{search}"
                 </div>
               )}
@@ -181,3 +181,4 @@ export const HelpCenter = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
+

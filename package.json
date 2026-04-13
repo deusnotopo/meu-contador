@@ -12,7 +12,7 @@
     "build": "npm run build --workspaces",
     "test": "npm run test:run -w backend && npm run test -w frontend -- --run",
     "lint": "npm run lint -w frontend",
-    "typecheck": "npm exec tsc --noEmit -w frontend && npm exec tsc --noEmit -w backend",
+    "typecheck": "npm --workspace frontend exec tsc -- --noEmit && npm --workspace backend exec tsc -- --noEmit",
     "vercel-build": "npm run build -w frontend",
     "docker:up": "docker-compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker-compose -f docker/docker-compose.yml down",

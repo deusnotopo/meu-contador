@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileText, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -151,22 +151,22 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
             <CardContent className="p-6">
               {step === 'upload' && (
                 <div className="space-y-6">
-                  <p className="text-slate-400 text-sm">
+                  <p className="text-neutral-500 text-sm">
                     Faça upload de um arquivo CSV, OFX, PDF ou imagem do seu extrato bancário.
                   </p>
                   <div
                     className="border-2 border-dashed border-white/20 rounded-xl p-12 text-center cursor-pointer hover:border-indigo-500/50 transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Upload size={48} className="mx-auto mb-4 text-slate-500" />
-                    <p className="text-slate-300 font-medium mb-2">
+                    <Upload size={48} className="mx-auto mb-4 text-neutral-500" />
+                    <p className="text-neutral-400 font-medium mb-2">
                       Arraste o arquivo ou clique para selecionar
                     </p>
-                    <p className="text-slate-500 text-sm">
+                    <p className="text-neutral-500 text-sm">
                       Suporta CSV, OFX, PDF e imagens (JPG, PNG, WEBP)
                     </p>
                   </div>
-                  {fileName && <p className="text-slate-500 text-xs">Arquivo: {fileName}</p>}
+                  {fileName && <p className="text-neutral-500 text-xs">Arquivo: {fileName}</p>}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -177,7 +177,7 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
                   {isProcessing && (
                     <div className="text-center py-4">
                       <Loader2 className="animate-spin text-indigo-400 mx-auto mb-2" size={32} />
-                      <p className="text-slate-400">Processando arquivo...</p>
+                      <p className="text-neutral-500">Processando arquivo...</p>
                     </div>
                   )}
                 </div>
@@ -188,10 +188,10 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-white font-bold">{transactions.length} transações encontradas</p>
-                      <p className="text-slate-500 text-xs">
+                      <p className="text-neutral-500 text-xs">
                         {duplicateCount} duplicadas ignoradas · {lowConfidenceCount} com baixa confiança · {heuristicCount} estimadas/heurísticas
                       </p>
-                      <p className="text-slate-400 text-sm">
+                      <p className="text-neutral-500 text-sm">
                         {confirmedCount} confirmadas · R$ {totalIncome.toFixed(2)} receita · R$ {totalExpense.toFixed(2)} despesa
                       </p>
                     </div>
@@ -220,9 +220,9 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
                             />
                             <div>
                               <p className="text-white font-medium text-sm">{tx.description}</p>
-                              <p className="text-slate-400 text-xs">{tx.date} · {tx.category}</p>
+                              <p className="text-neutral-500 text-xs">{tx.date} · {tx.category}</p>
                               {tx.provenance && (
-                                <p className="text-slate-500 text-[11px]">
+                                <p className="text-neutral-500 text-[11px]">
                                   Origem: {tx.provenance.origin} · Confiabilidade: {tx.provenance.reliability}
                                 </p>
                               )}
@@ -243,7 +243,7 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
                             <p className={`font-bold text-sm ${tx.type === 'income' ? 'text-green-400' : 'text-red-400'}`}>
                               {tx.type === 'income' ? '+' : '-'} R$ {tx.amount.toFixed(2)}
                             </p>
-                            <p className="text-slate-500 text-xs">
+                            <p className="text-neutral-500 text-xs">
                               {Math.round((tx.categoryConfidence || 0) * 100)}% confiança
                             </p>
                           </div>
@@ -267,7 +267,7 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
                 <div className="text-center py-12">
                   <Loader2 className="animate-spin text-indigo-400 mx-auto mb-4" size={48} />
                   <p className="text-white font-bold text-lg">Importando transações...</p>
-                  <p className="text-slate-400">Aguarde enquanto processamos seus dados</p>
+                  <p className="text-neutral-500">Aguarde enquanto processamos seus dados</p>
                   {importErrors.length > 0 && (
                     <div className="mt-4 text-left text-xs text-red-300">
                       {importErrors.map((error) => (

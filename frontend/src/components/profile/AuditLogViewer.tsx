@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { History, Clock, Info } from "lucide-react";
@@ -32,7 +32,7 @@ export const AuditLogViewer = ({ workspaceId }: { workspaceId: string }) => {
 
   if (logs.length === 0) return (
      <div className="pt-10 border-t border-white/5 opacity-50 text-center py-10">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
           Nenhuma atividade registrada ainda
         </p>
      </div>
@@ -45,11 +45,11 @@ export const AuditLogViewer = ({ workspaceId }: { workspaceId: string }) => {
           <div className="p-2 bg-pink-500/10 rounded-lg text-pink-400">
             <History size={16} />
           </div>
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
             Histórico da <span className="text-white">Equipe</span>
           </h4>
         </div>
-        <span className="text-[8px] font-black px-2 py-1 rounded bg-white/5 text-slate-500 uppercase tracking-widest">
+        <span className="text-[8px] font-black px-2 py-1 rounded bg-white/5 text-neutral-500 uppercase tracking-widest">
           {logs.length} EVENTOS RECENTES
         </span>
       </div>
@@ -74,7 +74,7 @@ export const AuditLogViewer = ({ workspaceId }: { workspaceId: string }) => {
                         {log.action.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 font-medium truncate max-w-[200px]">
+                    <p className="text-[10px] text-neutral-500 font-medium truncate max-w-[200px]">
                       {log.details}
                     </p>
                   </div>
@@ -83,20 +83,20 @@ export const AuditLogViewer = ({ workspaceId }: { workspaceId: string }) => {
                 <div className="flex items-center gap-4">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button className="text-slate-600 hover:text-white transition-colors">
+                      <button className="text-neutral-700 hover:text-white transition-colors">
                         <Info size={14} />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent className="bg-slate-900 border-white/10 text-white text-[10px]">
+                    <TooltipContent className="bg-neutral-950 border-white/10 text-white text-[10px]">
                       <p>{log.details}</p>
                     </TooltipContent>
                   </Tooltip>
                   <div className="text-right shrink-0">
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-600 group-hover:text-slate-400 transition-colors uppercase tracking-widest">
+                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-neutral-700 group-hover:text-neutral-500 transition-colors uppercase tracking-widest">
                       <Clock size={10} />
                       {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     </div>
-                    <div className="text-[8px] text-slate-700 group-hover:text-slate-500 font-bold uppercase">
+                    <div className="text-[8px] text-neutral-800 group-hover:text-neutral-500 font-bold uppercase">
                       {date.toLocaleDateString("pt-BR")}
                     </div>
                   </div>
@@ -109,3 +109,4 @@ export const AuditLogViewer = ({ workspaceId }: { workspaceId: string }) => {
     </div>
   );
 };
+

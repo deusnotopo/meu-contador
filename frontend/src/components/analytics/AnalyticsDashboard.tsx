@@ -176,12 +176,12 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
             return (
               <div key={category} className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-300">{category}</span>
+                  <span className="text-neutral-400">{category}</span>
                   <span className="text-white font-semibold">
                     R$ {amount.toLocaleString('pt-BR')}
                   </span>
                 </div>
-                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-2 bg-neutral-900 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
@@ -213,7 +213,7 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
                 <p className="text-sm text-emerald-300 font-semibold">
                   Receitas em Alta
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-neutral-500">
                   Suas receitas aumentaram {trends.incomeChange.toFixed(1)}% este mês!
                 </p>
               </div>
@@ -226,7 +226,7 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
                 <p className="text-sm text-amber-300 font-semibold">
                   Atenção: Despesas Aumentando
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-neutral-500">
                   Suas despesas aumentaram {trends.expenseChange.toFixed(1)}% este mês.
                 </p>
               </div>
@@ -239,7 +239,7 @@ function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
                 <p className="text-sm text-indigo-300 font-semibold">
                   Saldo Positivo
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-neutral-500">
                   Você economizou R$ {totals.balance.toLocaleString('pt-BR')} este período!
                 </p>
               </div>

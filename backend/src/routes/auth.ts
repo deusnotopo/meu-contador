@@ -40,8 +40,7 @@ function buildCookie(name: string, value: string, options: {
   httpOnly?: boolean;
 }) {
   const isProd = process.env.NODE_ENV === 'production';
-  // Allow cross-origin cookies between Render and Firebase domains by using SameSite=None
-  const sameSite = isProd ? 'SameSite=None; X-Deploy-Test=V2' : 'SameSite=Lax';
+  const sameSite = isProd ? 'SameSite=None' : 'SameSite=Lax';
   
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
@@ -56,7 +55,7 @@ function buildCookie(name: string, value: string, options: {
 
 function buildExpiredCookie(name: string) {
   const isProd = process.env.NODE_ENV === 'production';
-  const sameSite = isProd ? 'SameSite=None; X-Deploy-Test=V2' : 'SameSite=Lax';
+  const sameSite = isProd ? 'SameSite=None' : 'SameSite=Lax';
   return `${name}=; Path=/; Max-Age=0; ${sameSite}${isProd ? '; Secure' : ''}; HttpOnly`;
 }
 
@@ -139,11 +138,10 @@ try {
       });
       console.log('[Firebase Admin] Initialized with service account credentials ✅');
     } else {
-      // Fallback: only projectId — verifyIdToken will fail, uses tokeninfo fallback
       firebaseAdmin.initializeApp({ projectId });
       console.warn(
         '[Firebase Admin] ⚠️  Running without service account. ' +
-        'Set FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL in .env for production.'
+        'Google auth ficará indisponível até configurar FIREBASE_PRIVATE_KEY e FIREBASE_CLIENT_EMAIL.'
       );
     }
   }
@@ -252,46 +250,15 @@ export async function authRoutes(app: FastifyInstance) {
       let email: string | undefined;
       let name: string | undefined;
 
-      // Try Firebase Admin first (works if real service account is configured)
       try {
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
         email = decodedToken.email;
         name = decodedToken.name;
       } catch (_adminErr) {
-        // Em PRODUÇÃO: falhar FECHADO, sem fallback. Fallback apenas em desenvolvimento.
-        if (process.env.NODE_ENV === 'production') {
-          console.error('[PROD] Firebase Admin verification failed, no fallback allowed');
-          return (reply as any).status(401).send({ message: 'Invalid Google token' });
-        }
-        
-        // Fallback APENAS em desenvolvimento: verify token via Google's tokeninfo endpoint (no private key needed)
-        try {
-          const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
-          if (!res.ok) {
-            return (reply as any).status(401).send({ message: 'Invalid Google token' });
-          }
-          const info = await res.json() as { email?: string; name?: string; aud?: string | string[]; exp?: string };
-
-          // Validate audience matches our Firebase project (exact match, not substring)
-          const expectedAud = process.env.FIREBASE_PROJECT_ID || 'meucontador-367cf';
-          const audMatches = Array.isArray(info.aud)
-            ? info.aud.includes(expectedAud)
-            : info.aud === expectedAud;
-          if (!audMatches) {
-            return (reply as any).status(401).send({ message: 'Token audience mismatch' });
-          }
-
-          // Check expiry
-          if (info.exp && parseInt(info.exp) * 1000 < Date.now()) {
-            return (reply as any).status(401).send({ message: 'Token expired' });
-          }
-
-          email = info.email;
-          name = info.name;
-        } catch (googleErr) {
-          console.error('Google token verification failed');
-          return (reply as any).status(401).send({ message: 'Unable to verify token' });
-        }
+        console.error('[Auth] Google token verification failed via Firebase Admin');
+        return (reply as any).status(401).send({
+          message: 'Não foi possível validar o login Google. Verifique a configuração do Firebase Admin.',
+        });
       }
 
       if (!email) {
@@ -517,18 +484,29 @@ export async function authRoutes(app: FastifyInstance) {
     preHandler: [(app as any).authenticate]
   }, async (request, reply) => {
     const jwtUser = request.user as { id: string };
-    const user = await db.user.findUnique({
-      where: { id: jwtUser.id },
-      include: { workspaces: true }
-    });
+    try {
+      const user = await db.user.findUnique({
+        where: { id: jwtUser.id },
+        include: { workspaces: true }
+      });
 
-    if (!user) {
-      return reply.status(404).send({ message: 'User not found' });
+      if (!user) {
+        return reply.status(404).send({ message: 'User not found' });
+      }
+      
+      // Remove passwordHash from response
+      const { passwordHash, ...userProfile } = user;
+      return userProfile;
+    } catch (error) {
+      request.log.error(error);
+      const fallbackUser = request.user as { id: string; email: string; name: string | null; isPro: boolean };
+      return {
+        id: fallbackUser.id,
+        email: fallbackUser.email,
+        name: fallbackUser.name,
+        isPro: fallbackUser.isPro,
+      };
     }
-    
-    // Remove passwordHash from response
-    const { passwordHash, ...userProfile } = user;
-    return userProfile;
   });
 
   // POST /auth/upgrade - Simulate Payment / Upgrade to PRO

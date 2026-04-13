@@ -237,3 +237,35 @@ export const exportDRE = (
 
   doc.save(`DRE-${new Date().toISOString().split("T")[0]}.pdf`);
 };
+
+// ── CSV / Excel Export ─────────────────────────────────────────────────────
+
+export const exportTransactionsCSV = (
+  transactions: Transaction[],
+  filename = "transacoes"
+) => {
+  const BOM = "\uFEFF"; // UTF-8 BOM so Excel opens correctly
+  const header = ["Data", "Descrição", "Categoria", "Tipo", "Valor (R$)", "Escopo"].join(";");
+  const rows = transactions
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map(t => [
+      new Date(t.date).toLocaleDateString("pt-BR"),
+      `"${(t.description || "").replace(/"/g, '""')}"`,
+      t.category,
+      t.type === "income" ? "Receita" : "Despesa",
+      t.amount.toFixed(2).replace(".", ","),
+      t.scope || "personal",
+    ].join(";"));
+
+  const content = BOM + [header, ...rows].join("\n");
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// Alias — Excel opens CSV natively
+export const exportTransactionsExcel = exportTransactionsCSV;

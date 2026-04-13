@@ -142,7 +142,7 @@ export const NotificationCenter = () => {
             <Bell className="text-indigo-400" size={32} />
             Centro de Notificações
           </h2>
-          <p className="text-slate-400 mt-2">
+          <p className="text-[var(--t3)] mt-2">
             Mantenha-se informado sobre suas finanças
           </p>
         </div>
@@ -155,7 +155,7 @@ export const NotificationCenter = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex gap-2 bg-slate-800/50 p-1 rounded-2xl border border-slate-700/50">
+      <div className="flex gap-2 bg-[var(--card)]/50 p-1 rounded-2xl border border-[var(--border)]/50">
         <Button
           variant={activeTab === "notifications" ? "default" : "ghost"}
           onClick={() => setActiveTab("notifications")}
@@ -186,11 +186,11 @@ export const NotificationCenter = () => {
           )}
 
           {notifications.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-[var(--card)]/50 border-[var(--border)]/50">
               <CardContent className="p-12 text-center">
-                <BellOff className="text-slate-500 w-16 h-16 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-slate-400 mb-2">Nenhuma notificação</h3>
-                <p className="text-slate-500">Você está em dia com suas finanças!</p>
+                <BellOff className="text-[var(--t4)] w-16 h-16 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-[var(--t3)] mb-2">Nenhuma notificação</h3>
+                <p className="text-[var(--t4)]">Você está em dia com suas finanças!</p>
               </CardContent>
             </Card>
           ) : (
@@ -198,7 +198,7 @@ export const NotificationCenter = () => {
               {notifications.map((notification) => (
                 <Card
                   key={notification.id}
-                  className={`border transition-all hover:bg-slate-800/70 ${getNotificationColor(notification.type)} ${!notification.read ? 'ring-1 ring-indigo-500/50' : ''}`}
+                  className={`border transition-all hover:bg-[var(--card)]/70 ${getNotificationColor(notification.type)} ${!notification.read ? 'ring-1 ring-indigo-500/50' : ''}`}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -210,9 +210,9 @@ export const NotificationCenter = () => {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <h4 className="font-bold text-lg mb-1">{notification.title}</h4>
-                            <p className="text-slate-300 mb-3 leading-relaxed">{notification.message}</p>
+                            <p className="text-[var(--t2)] mb-3 leading-relaxed">{notification.message}</p>
 
-                            <div className="flex items-center gap-4 text-sm text-slate-500">
+                            <div className="flex items-center gap-4 text-sm text-[var(--t4)]">
                               <span className="flex items-center gap-1">
                                 <Clock size={14} />
                                 {formatTimeAgo(notification.timestamp)}
@@ -237,7 +237,7 @@ export const NotificationCenter = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => markAsRead(notification.id)}
-                                className="text-slate-400 hover:text-white"
+                                className="text-[var(--t3)] hover:text-white"
                               >
                                 <Check size={16} />
                               </Button>
@@ -247,7 +247,7 @@ export const NotificationCenter = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => deleteNotification(notification.id)}
-                              className="text-slate-400 hover:text-red-400"
+                              className="text-[var(--t3)] hover:text-red-400"
                             >
                               <X size={16} />
                             </Button>
@@ -265,7 +265,7 @@ export const NotificationCenter = () => {
 
       {activeTab === "settings" && (
         <div className="space-y-6">
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-[var(--card)]/50 border-[var(--border)]/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <Bell size={24} className="text-indigo-400" />
@@ -276,7 +276,7 @@ export const NotificationCenter = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold">Alertas de Orçamento</h4>
-                  <p className="text-slate-400 text-sm">Notificações quando você se aproxima do limite</p>
+                  <p className="text-[var(--t3)] text-sm">Notificações quando você se aproxima do limite</p>
                 </div>
                 <Switch
                   checked={settings.budgetAlerts}
@@ -289,7 +289,7 @@ export const NotificationCenter = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold">Alertas de Gastos</h4>
-                  <p className="text-slate-400 text-sm">Avisos sobre gastos incomuns ou elevados</p>
+                  <p className="text-[var(--t3)] text-sm">Avisos sobre gastos incomuns ou elevados</p>
                 </div>
                 <Switch
                   checked={settings.spendingAlerts}
@@ -302,7 +302,7 @@ export const NotificationCenter = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold">Lembretes de Metas</h4>
-                  <p className="text-slate-400 text-sm">Atualizações sobre progresso das suas metas</p>
+                  <p className="text-[var(--t3)] text-sm">Atualizações sobre progresso das suas metas</p>
                 </div>
                 <Switch
                   checked={settings.goalReminders}
@@ -315,7 +315,7 @@ export const NotificationCenter = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold">Relatórios Semanais</h4>
-                  <p className="text-slate-400 text-sm">Resumo semanal das suas finanças</p>
+                  <p className="text-[var(--t3)] text-sm">Resumo semanal das suas finanças</p>
                 </div>
                 <Switch
                   checked={settings.weeklyReports}
@@ -328,7 +328,7 @@ export const NotificationCenter = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold">Notificações Push</h4>
-                  <p className="text-slate-400 text-sm">Receber alertas no dispositivo móvel</p>
+                  <p className="text-[var(--t3)] text-sm">Receber alertas no dispositivo móvel</p>
                 </div>
                 <Switch
                   checked={settings.pushNotifications}
@@ -348,7 +348,7 @@ export const NotificationCenter = () => {
                 </div>
                 <h3 className="text-lg font-bold">Dica Premium</h3>
               </div>
-              <p className="text-slate-300">
+              <p className="text-[var(--t2)]">
                 Configure suas notificações para receber alertas importantes sem ser sobrecarregado.
                 O equilíbrio certo ajuda você a manter o controle sem ansiedade.
               </p>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { MFAService } from "@/lib/mfa-service";
 import { auth } from "@/lib/firebase";
 import { RecaptchaVerifier } from "firebase/auth";
@@ -66,7 +66,7 @@ export const MFASetup = () => {
           <h3 className="text-xl font-black text-white uppercase tracking-tight">
             Segurança <span className="text-emerald-400">2FA</span>
           </h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">
             Proteção de Nível Bancário
           </p>
         </div>
@@ -82,11 +82,11 @@ export const MFASetup = () => {
             className="space-y-6"
           >
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">
                 Número do Celular (com DDD)
               </label>
               <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
                 <Input
                   type="tel"
                   placeholder="+55 11 99999-9999"
@@ -117,7 +117,7 @@ export const MFASetup = () => {
             className="space-y-6"
           >
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">
                 Código de Verificação
               </label>
               <Input
@@ -153,7 +153,7 @@ export const MFASetup = () => {
             <h4 className="text-lg font-black text-white uppercase tracking-tight">
               MFA Ativado com Sucesso
             </h4>
-            <p className="text-xs text-slate-400 font-medium">
+            <p className="text-xs text-neutral-500 font-medium">
               Sua conta agora está protegida por verificação em duas etapas.
             </p>
           </motion.div>
@@ -162,3 +162,4 @@ export const MFASetup = () => {
     </div>
   );
 };
+

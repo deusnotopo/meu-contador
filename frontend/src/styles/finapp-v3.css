@@ -1579,8 +1579,9 @@ input[type="range"]::-moz-range-thumb {
 .env-sub { font-size: 10px; color: var(--t3); margin-top: 3px; }
 
 /* Tab nav V3 — .tnav / .tnav-i */
-.tnav { display: flex; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--r2); overflow: hidden; background: var(--glass); }
-.tnav-i { flex: 1; padding: 9px 4px; font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; color: var(--t2); background: transparent; transition: all 0.15s; font-family: var(--font); }
+.tnav { display: flex; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--r2); overflow-x: auto; scrollbar-width: none; white-space: nowrap; background: var(--glass); }
+.tnav::-webkit-scrollbar { display: none; }
+.tnav-i { flex: 1 0 auto; padding: 9px 12px; font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; color: var(--t2); background: transparent; transition: all 0.15s; font-family: var(--font); }
 .tnav-i.active { background: var(--blue); color: #fff; }
 .tnav-i:hover:not(.active) { background: var(--glass2); color: var(--t1); }
 
@@ -1729,7 +1730,9 @@ input[type="range"]::-moz-range-thumb {
 .tog-row:last-child { border-bottom: none; }
 
 /* Result grid */
-.res-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 14px 0; }
+.res-grid { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; margin: 14px 0; scrollbar-width: none; padding-bottom: 4px; }
+.res-grid::-webkit-scrollbar { display: none; }
+.res-grid .res-box { min-width: 95px; flex: 1 0 auto; }
 
 /* ── FunctionsHub Card Variants ── */
 .fn-card {

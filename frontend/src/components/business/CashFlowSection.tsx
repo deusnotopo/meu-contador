@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import { exportTransactionsPDF } from "@/lib/pdf-export";
 import { STORAGE_EVENT, STORAGE_KEYS } from "@/lib/storage";
@@ -62,7 +62,7 @@ export const CashFlowSection = ({ transactions }: Props) => {
               Fluxo de <span className="text-emerald-400">Caixa</span>
             </h3>
           </div>
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-neutral-500 font-medium">
             Histórico de entradas e saídas (6 meses)
           </p>
         </div>
@@ -151,8 +151,8 @@ export const CashFlowSection = ({ transactions }: Props) => {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
-            <TrendingUp size={32} className="text-slate-700 mb-4" />
-            <p className="text-slate-500 font-bold text-sm">
+            <TrendingUp size={32} className="text-neutral-800 mb-4" />
+            <p className="text-neutral-500 font-bold text-sm">
               Nenhum dado financeiro capturado
             </p>
           </div>
@@ -161,3 +161,4 @@ export const CashFlowSection = ({ transactions }: Props) => {
     </div>
   );
 };
+

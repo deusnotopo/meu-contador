@@ -1,5 +1,4 @@
 import type {
-  BillReminder,
   Budget,
   CashFlowProjection,
   EducationProgress,
@@ -69,7 +68,6 @@ export const STORAGE_KEYS = {
   TRANSACTIONS: "meu_contador_transactions",
   BUDGETS: "meu_contador_budgets",
   GOALS: "meu_contador_goals",
-  REMINDERS: "meu_contador_reminders",
   INVOICES: "meu_contador_invoices",
   CASH_FLOW: "meu_contador_cash_flow",
   PROFILE: "meu_contador_profile",
@@ -384,25 +382,6 @@ export const saveGoals = (goals: SavingsGoal[]): void => {
   persistData(STORAGE_KEYS.GOALS, goals);
 };
 
-// ============= Reminders =============
-export const loadReminders = (): BillReminder[] => MEMORY_CACHE[STORAGE_KEYS.REMINDERS] || [];
-
-export const saveReminders = (reminders: BillReminder[]): void => {
-  persistData(STORAGE_KEYS.REMINDERS, reminders);
-};
-
-export const addReminder = (
-  reminder: Omit<BillReminder, "id" | "isPaid">
-): void => {
-  const reminders = loadReminders();
-  const newReminder: BillReminder = {
-    ...reminder,
-    id: String(Date.now()),
-    isPaid: false,
-  };
-  saveReminders([...reminders, newReminder]);
-};
-
 // ============= Invoices =============
 export const loadInvoices = (): Invoice[] => MEMORY_CACHE[STORAGE_KEYS.INVOICES] || [];
 
@@ -467,7 +446,6 @@ export const exportFullBackup = () => {
     transactions: loadTransactions(),
     budgets: loadBudgets(),
     goals: loadGoals(),
-    reminders: loadReminders(),
     invoices: loadInvoices(),
     cashFlow: loadCashFlow(),
     investments: loadInvestments(),
@@ -505,7 +483,6 @@ export const importFullBackup = (file: File): Promise<void> => {
         if (backup.transactions) saveTransactions(backup.transactions);
         if (backup.budgets) saveBudgets(backup.budgets);
         if (backup.goals) saveGoals(backup.goals);
-        if (backup.reminders) saveReminders(backup.reminders);
         if (backup.invoices) saveInvoices(backup.invoices);
         if (backup.cashFlow) saveCashFlow(backup.cashFlow);
         if (backup.investments) saveInvestments(backup.investments);

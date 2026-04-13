@@ -112,7 +112,7 @@ export const OFXImporterModal: React.FC<OFXImporterModalProps> = ({ isOpen, onCl
                   <Upload size={28} />
                 </div>
                 <h3 className="text-white font-bold mb-1">Arraste seu arquivo .OFX</h3>
-                <p className="text-sm text-slate-400 max-w-[200px]">Ou clique para procurar nos seus arquivos locais</p>
+                <p className="text-sm text-neutral-500 max-w-[200px]">Ou clique para procurar nos seus arquivos locais</p>
                 <input
                   ref={inputRef}
                   type="file"
@@ -130,7 +130,7 @@ export const OFXImporterModal: React.FC<OFXImporterModalProps> = ({ isOpen, onCl
                   <div key={idx} className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
                     <div className="overflow-hidden">
                       <div className="text-sm font-bold text-white truncate">{tx.description}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{tx.category} • {tx.date}</div>
+                      <div className="text-xs text-neutral-500 mt-0.5">{tx.category} • {tx.date}</div>
                     </div>
                     <div className={`font-mono font-bold whitespace-nowrap ml-2 ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {tx.type === 'income' ? '+' : '-'} R$ {tx.amount.toFixed(2)}

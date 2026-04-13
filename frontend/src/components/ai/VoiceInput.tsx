@@ -120,7 +120,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       className={`transition-all duration-300 ${
         isListening
           ? "bg-red-500 hover:bg-red-600 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse"
-          : "text-slate-400 hover:text-indigo-400"
+          : "text-neutral-500 hover:text-indigo-400"
       }`}
       title={isListening ? "Parar de ouvir" : "Falar comando"}
     >

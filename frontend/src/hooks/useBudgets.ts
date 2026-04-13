@@ -3,63 +3,37 @@ import { showError, showSuccess } from "@/lib/toast";
 import type { Budget } from "@/types";
 import { useEffect, useState, useCallback } from "react";
 
+type BudgetListResponse = { items?: Budget[] };
+
+const normalizeBudgetResponse = (response: Budget[] | BudgetListResponse): Budget[] => (
+  Array.isArray(response) ? response : (response?.items || [])
+);
+
 export const useBudgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBudgets = useCallback(async () => {
-    let cancelled = false; // ← Flag para cleanup
     setLoading(true);
     setError(null);
     
     try {
-      const response = await api.get<Budget[] | { items?: Budget[] }>("/budgets");
-      if (!cancelled) { // ← Verifica se componente ainda está montado
-        const items = Array.isArray(response) ? response : (response?.items || []);
-        setBudgets(items);
-      }
+      const response = await api.get<Budget[] | BudgetListResponse>("/budgets");
+      const items = normalizeBudgetResponse(response);
+      setBudgets(items);
+      return items;
     } catch {
-      if (!cancelled) {
-        setError("Orçamentos indisponíveis. Verifique sua conexão.");
-      }
+      setError("Orçamentos indisponíveis. Verifique sua conexão.");
+      return [];
     } finally {
-      if (!cancelled) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
-    
-    return () => { cancelled = true; }; // ← Cleanup function
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const response = await api.get<Budget[] | { items?: Budget[] }>("/budgets");
-        if (!cancelled) {
-          const items = Array.isArray(response) ? response : (response?.items || []);
-          setBudgets(items);
-        }
-      } catch {
-        if (!cancelled) {
-          setError("Orçamentos indisponíveis. Verifique sua conexão.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-    
-    loadData();
-    
-    return () => { cancelled = true; }; // ← Cleanup!
-  }, []);
+    void fetchBudgets();
+  }, [fetchBudgets]);
 
   const addBudget = async (budget: Omit<Budget, "id" | "spent">) => {
     try {
@@ -75,9 +49,8 @@ export const useBudgets = () => {
     try {
       const current = budgets.find((b) => b.id === id);
       const newLimit = updates.limit ?? current?.limit ?? 0;
-      const newSpent = updates.spent ?? current?.spent ?? 0;
       
-      const updated = await api.put<Budget>(`/budgets/${id}`, { limit: newLimit, spent: newSpent });
+      const updated = await api.put<Budget>(`/budgets/${id}`, { limit: newLimit });
       setBudgets((prev) => prev.map((b) => (b.id === id ? updated : b)));
       showSuccess("Orçamento atualizado!");
     } catch {

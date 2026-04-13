@@ -1,4 +1,4 @@
-import type { Transaction } from "@/types";
+﻿import type { Transaction } from "@/types";
 import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { useMemo } from "react";
 import { PrivacyValue } from "../ui/PrivacyValue";
@@ -68,7 +68,7 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
           <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
             <ShieldCheck size={20} />
           </div>
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500">
             Reserva de <span className="text-white">Emergência</span>
           </h3>
         </div>
@@ -88,7 +88,7 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
           <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
             <ShieldCheck size={20} />
           </div>
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500">
             Reserva de <span className="text-white">Emergência</span>
           </h3>
         </div>
@@ -99,7 +99,7 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
 
             <div className="flex justify-between items-end mb-4">
               <div className="space-y-0.5">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                <p className="text-[9px] font-black uppercase tracking-widest text-neutral-500">
                   Autonomia Financeira
                 </p>
                 <span
@@ -116,7 +116,7 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
                 </span>
               </div>
               <div className="text-right">
-                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[8px] font-black uppercase tracking-widest text-slate-400">
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[8px] font-black uppercase tracking-widest text-neutral-500">
                   Meta: 6 Meses
                 </div>
               </div>
@@ -136,7 +136,7 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
             </div>
 
             <div className="mt-4 flex justify-between items-center">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+              <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500">
                 Progresso
               </span>
               <span className="text-xs font-bold text-white/60">
@@ -148,18 +148,18 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
 
           <div className="grid grid-cols-2 gap-8 px-2">
             <div className="space-y-2">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
+              <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500 block">
                 Custo de Vida
               </span>
               <span className="text-2xl font-black text-white tracking-tighter">
                 <PrivacyValue value={stats.avgMonthlyExpense} />
-                <span className="text-[10px] text-slate-500 ml-1 font-bold">
+                <span className="text-[10px] text-neutral-500 ml-1 font-bold">
                   /mês
                 </span>
               </span>
             </div>
             <div className="space-y-2 text-right">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
+              <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500 block">
                 Total Líquido
               </span>
               <span className="text-2xl font-black text-indigo-400 tracking-tighter">
@@ -183,10 +183,10 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
               )}
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
                 Status do Fundo
               </p>
-              <p className="text-sm font-bold text-slate-300 leading-tight">
+              <p className="text-sm font-bold text-neutral-400 leading-tight">
                 {stats.isSolid
                   ? "Fortaleza construída. Você tem total liberdade estratégica."
                   : stats.isSafe
@@ -200,3 +200,4 @@ export const EmergencyFundCard = ({ transactions }: Props) => {
     </div>
   );
 };
+

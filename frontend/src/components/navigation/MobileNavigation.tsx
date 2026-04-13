@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion } from "framer-motion";
 import {
   Briefcase,
@@ -46,7 +46,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
             className={`relative flex flex-col items-center justify-center py-3 rounded-2xl transition-all duration-500 ${
               currentTab === tab.id
                 ? "text-indigo-400"
-                : "text-slate-500 hover:text-slate-400"
+                : "text-neutral-500 hover:text-neutral-500"
             }`}
             aria-label={`Navigate to ${tab.label}`}
             aria-current={currentTab === tab.id ? 'page' : undefined}
@@ -76,3 +76,4 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
     </nav>
   );
 };
+

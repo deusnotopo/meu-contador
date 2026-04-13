@@ -1,4 +1,4 @@
-﻿import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useInvestments } from "@/hooks/useInvestments";
@@ -42,7 +42,7 @@ function SettingsToggleRow({ icon, title, subtitle, checked, onToggle }: Setting
         <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center">{icon}</div>
         <div>
           <div className="text-sm font-medium">{title}</div>
-          <div className="text-xs text-slate-500">{subtitle}</div>
+          <div className="text-xs text-[var(--t4)]">{subtitle}</div>
         </div>
       </div>
       <div className={`w-10 h-6 rounded-full transition-all relative ${checked ? 'bg-indigo-500' : 'bg-white/10'}`} aria-hidden="true">
@@ -168,7 +168,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
           {user?.name?.substring(0, 2).toUpperCase() || "MC"}
         </div>
         <div className="text-lg font-bold">{user?.name || "UsuÃ¡rio"}</div>
-        <div className="text-sm text-slate-400 mt-1">{user?.email || "contato@meucontador.com"}</div>
+        <div className="text-sm text-[var(--t3)] mt-1">{user?.email || "contato@meucontador.com"}</div>
 
         <div className="flex justify-center gap-2 mt-3 flex-wrap">
           <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full text-xs font-bold flex items-center gap-1">
@@ -186,14 +186,14 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
             <div key={i} className="text-center">
               <div className="text-xl mb-1">{em}</div>
               <div className="text-lg font-bold font-mono">{vl}</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">{lb}</div>
+              <div className="text-[10px] text-[var(--t4)] mt-0.5">{lb}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Perfil Financeiro */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Perfil financeiro</h3>
+      <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Perfil financeiro</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-3">
         {([
           ["Renda bruta mensal", grossIncome > 0 ? `R$ ${Math.round(grossIncome).toLocaleString('pt-BR')}` : "-", null],
@@ -204,30 +204,30 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
           ["Dependentes", dependents > 0 ? dependents.toString() : "Nenhum", null]
         ] as [string, string, string | null][]).map(([lb, vl, badge], i) => (
           <div key={i} className="flex items-center justify-between py-2">
-            <span className="text-sm text-slate-300">{lb}</span>
+            <span className="text-sm text-[var(--t2)]">{lb}</span>
             {badge ? (
               <span className={`px-2 py-1 rounded-full text-xs font-bold ${badge === 'b' ? 'bg-blue-500/20 text-blue-400' : badge === 'g' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-purple-500/20 text-purple-400'}`}>{vl}</span>
             ) : (
-              <span className="text-sm font-semibold text-slate-400 font-mono">{vl}</span>
+              <span className="text-sm font-semibold text-[var(--t3)] font-mono">{vl}</span>
             )}
           </div>
         ))}
       </div>
 
       {/* Open Finance */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Open Finance</h3>
+      <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Open Finance</h3>
       <div className="mb-5"><BankConnectionsView /></div>
 
-      {/* NotificaÃ§Ãµes */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">NotificaÃ§Ãµes</h3>
+      {/* Notificações */}
+      <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Notificações</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
         {/* Toggle master de push notifications */}
         {pushSupported && (
           <SettingsToggleRow
             icon={pushSubscribed
               ? <Bell size={16} className="text-indigo-400" />
-              : <BellOff size={16} className="text-slate-500" />}
-            title="NotificaÃ§Ãµes Push"
+              : <BellOff size={16} className="text-[var(--t4)]" />}
+            title="Notificações Push"
             subtitle={pushSubscribed ? 'Alertas ativos no dispositivo' : 'Toque para ativar alertas'}
             checked={pushSubscribed}
             onToggle={handlePushToggle}
@@ -235,29 +235,29 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         )}
         {(
           [
-            ["TransaÃ§Ãµes", "Alertas de novas transaÃ§Ãµes", notifTransactions, setNotifTransactions],
-            ["OrÃ§amentos", "Alertas de limite de gastos", notifBudgets, setNotifBudgets],
+            ["Transações", "Alertas de novas transações", notifTransactions, setNotifTransactions],
+            ["Orçamentos", "Alertas de limite de gastos", notifBudgets, setNotifBudgets],
             ["Metas", "Progresso e conquistas", notifGoals, setNotifGoals],
             ["Lembretes", "Contas a pagar e vencimentos", notifReminders, setNotifReminders],
           ] as [string, string, boolean, Dispatch<SetStateAction<boolean>>][]
         ).map(([title, sub, val, setVal], i) => (
           <SettingsToggleRow
             key={i}
-            icon={<Bell size={16} className="text-slate-400" />}
+            icon={<Bell size={16} className="text-[var(--t3)]" />}
             title={title}
             subtitle={sub}
             checked={val}
             onToggle={() => setVal(!val)}
           />
         ))}
-        {pushLoading && <p className="text-[10px] text-slate-500 text-center py-1">Configurando notificaÃ§Ãµes...</p>}
+        {pushLoading && <p className="text-[10px] text-[var(--t4)] text-center py-1">Configurando notificações...</p>}
       </div>
 
-      {/* ConfiguraÃ§Ãµes */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">ConfiguraÃ§Ãµes</h3>
+      {/* Configurações */}
+      <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Configurações</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
         <SettingsToggleRow
-          icon={darkTheme ? <Moon size={16} className="text-slate-400" /> : <Sun size={16} className="text-slate-400" />}
+          icon={darkTheme ? <Moon size={16} className="text-[var(--t3)]" /> : <Sun size={16} className="text-[var(--t3)]" />}
           title="Tema Visual"
           subtitle={darkTheme ? "Escuro" : "Claro"}
           checked={darkTheme}
@@ -265,8 +265,8 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         />
 
         <SettingsToggleRow
-          icon={<Fingerprint size={16} className="text-slate-400" />}
-          title="Acesso BiomÃ©trico"
+          icon={<Fingerprint size={16} className="text-[var(--t3)]" />}
+          title="Acesso Biométrico"
           subtitle="Face ID / Touch ID"
           checked={bioActive}
           onToggle={() => setBioActive(!bioActive)}
@@ -274,71 +274,71 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
 
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setLanguage(language === "pt-BR" ? "en-US" : "pt-BR")}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><Globe size={16} className="text-slate-400" /></div>
-            <div><div className="text-sm font-medium">Idioma</div><div className="text-xs text-slate-500">{language === "pt-BR" ? "PortuguÃªs (BR)" : "English (US)"}</div></div>
+            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><Globe size={16} className="text-[var(--t3)]" /></div>
+            <div><div className="text-sm font-medium">Idioma</div><div className="text-xs text-[var(--t4)]">{language === "pt-BR" ? "Português (BR)" : "English (US)"}</div></div>
           </div>
-          <span className="text-slate-500 text-sm">â€º</span>
+          <span className="text-[var(--t4)] text-sm">›</span>
         </div>
 
         <div className="flex items-center justify-between py-3 cursor-pointer group">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><Download size={16} className="text-slate-400" /></div>
+            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><Download size={16} className="text-[var(--t3)]" /></div>
             <div>
               <div className="text-sm font-medium">Exportar Dados</div>
-              <div className="text-xs text-slate-500">PDF Â· CSV Â· OFX</div>
+              <div className="text-xs text-[var(--t4)]">PDF · CSV · OFX</div>
             </div>
           </div>
-          <span className="text-slate-500 text-sm">â€º</span>
+          <span className="text-[var(--t4)] text-sm">›</span>
         </div>
 
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowHelpCenter(true)}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><HelpCircle size={16} className="text-slate-400" /></div>
-            <div><div className="text-sm font-medium">Central de Ajuda</div><div className="text-xs text-slate-500">FAQ, tutoriais e suporte</div></div>
+            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><HelpCircle size={16} className="text-[var(--t3)]" /></div>
+            <div><div className="text-sm font-medium">Central de Ajuda</div><div className="text-xs text-[var(--t4)]">FAQ, tutoriais e suporte</div></div>
           </div>
-          <span className="text-slate-500 text-sm">â€º</span>
+          <span className="text-[var(--t4)] text-sm">›</span>
         </div>
       </div>
 
-      {/* SeguranÃ§a */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">SeguranÃ§a</h3>
+      {/* Segurança */}
+      <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Segurança</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowMFA(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center"><ShieldCheck size={16} className="text-emerald-400" /></div>
-            <div><div className="text-sm font-medium">AutenticaÃ§Ã£o 2FA</div><div className="text-xs text-slate-500">ProteÃ§Ã£o adicional com SMS</div></div>
+            <div><div className="text-sm font-medium">Autenticação 2FA</div><div className="text-xs text-[var(--t4)]">Proteção adicional com SMS</div></div>
           </div>
-          <span className="text-slate-500 text-sm">â€º</span>
+          <span className="text-[var(--t4)] text-sm">›</span>
         </div>
       </div>
 
       {/* Workspaces */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Workspaces</h3>
+      <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Workspaces</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5">
         <WorkspaceManager />
       </div>
 
-      {/* ColaboraÃ§Ã£o */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">ColaboraÃ§Ã£o</h3>
+      {/* Colaboração */}
+      <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Colaboração</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowCollaboration(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-pink-500/10 flex items-center justify-center"><Users size={16} className="text-pink-400" /></div>
-            <div><div className="text-sm font-medium">EspaÃ§os Colaborativos</div><div className="text-xs text-slate-500">Compartilhe dados com familiares</div></div>
+            <div><div className="text-sm font-medium">Espaços Colaborativos</div><div className="text-xs text-[var(--t4)]">Compartilhe dados com familiares</div></div>
           </div>
-          <span className="text-slate-500 text-sm">â€º</span>
+          <span className="text-[var(--t4)] text-sm">›</span>
         </div>
       </div>
 
       {/* Auditoria */}
-      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Auditoria</h3>
+      <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Auditoria</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
         <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowAuditLog(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center"><History size={16} className="text-amber-400" /></div>
-            <div><div className="text-sm font-medium">HistÃ³rico de Atividades</div><div className="text-xs text-slate-500">Log de aÃ§Ãµes do workspace</div></div>
+            <div><div className="text-sm font-medium">Histórico de Atividades</div><div className="text-xs text-[var(--t4)]">Log de ações do workspace</div></div>
           </div>
-          <span className="text-slate-500 text-sm">â€º</span>
+          <span className="text-[var(--t4)] text-sm">›</span>
         </div>
       </div>
 
@@ -348,7 +348,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       {showCollaboration && (
         <div className="fixed inset-0 bg-black/80 z-[100] overflow-auto p-5">
           <div className="max-w-2xl mx-auto relative">
-            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowCollaboration(false)}>âœ• Fechar</Button>
+            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowCollaboration(false)}>✖ Fechar</Button>
             <CollaborationPanel profile={profile || {}} onUpdate={() => {}} userId={user?.id || ""} />
           </div>
         </div>
@@ -356,7 +356,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       {showMFA && (
         <div className="fixed inset-0 bg-black/80 z-[100] overflow-auto p-5">
           <div className="max-w-lg mx-auto relative">
-            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowMFA(false)}>âœ• Fechar</Button>
+            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowMFA(false)}>✖ Fechar</Button>
             <MFASetup />
           </div>
         </div>
@@ -364,7 +364,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       {showAuditLog && (
         <div className="fixed inset-0 bg-black/80 z-[100] overflow-auto p-5">
           <div className="max-w-2xl mx-auto relative">
-            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowAuditLog(false)}>âœ• Fechar</Button>
+            <Button variant="ghost" size="sm" className="absolute top-3 right-3 z-[101] rounded-xl" onClick={() => setShowAuditLog(false)}>✖ Fechar</Button>
             <AuditLogViewer workspaceId={profile?.currentWorkspaceId || user?.id || ""} />
           </div>
         </div>
@@ -375,15 +375,15 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <LogOut size={16} /> Sair da conta
       </Button>
 
-      <Button variant="ghost" className="w-full text-slate-500 hover:text-rose-400 text-xs" onClick={() => setShowDeleteConfirm(true)}>
+      <Button variant="ghost" className="w-full text-[var(--t4)] hover:text-rose-400 text-xs" onClick={() => setShowDeleteConfirm(true)}>
         <Trash2 size={14} /> Excluir minha conta
       </Button>
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-5">
-          <div className="bg-[#0B1220] rounded-2xl p-6 max-w-sm w-full border border-white/10">
+          <div className="bg-[var(--card-obsidian)] rounded-2xl p-6 max-w-sm w-full border border-white/10">
             <div className="text-lg font-bold text-center mb-2">Excluir conta?</div>
-            <div className="text-sm text-slate-400 text-center mb-5">Esta aÃ§Ã£o Ã© irreversÃ­vel. Todos os seus dados serÃ£o permanentemente excluÃ­dos.</div>
+            <div className="text-sm text-[var(--t3)] text-center mb-5">Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos.</div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>Cancelar</Button>
               <Button variant="destructive" className="flex-1" onClick={() => { setShowDeleteConfirm(false); logout(); }}>Excluir</Button>
@@ -392,7 +392,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         </div>
       )}
 
-      <div className="text-center text-[10px] text-slate-600 mt-6 mb-10 uppercase tracking-wider">
+      <div className="text-center text-[10px] text-[var(--t4)] mt-6 mb-10 uppercase tracking-wider">
         VersÃ£o 3.0.0 â€” Silicon Valley Standard
       </div>
     </div>

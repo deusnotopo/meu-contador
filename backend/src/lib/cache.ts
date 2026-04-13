@@ -58,6 +58,14 @@ function memDelete(key: string): void {
   memoryStore.delete(key);
 }
 
+function memDeleteByPrefix(prefix: string): void {
+  for (const key of memoryStore.keys()) {
+    if (key.startsWith(prefix)) {
+      memoryStore.delete(key);
+    }
+  }
+}
+
 // --- API pública ---
 
 /**
@@ -106,6 +114,21 @@ export async function deleteCacheValue(key: string): Promise<void> {
     }
   }
   memDelete(key);
+}
+
+export async function deleteCacheByPrefix(prefix: string): Promise<void> {
+  if (redis) {
+    try {
+      const keys = await (redis as unknown as { keys: (pattern: string) => Promise<string[]> }).keys(`${prefix}*`);
+      if (keys.length > 0) {
+        await Promise.all(keys.map((key) => redis!.del(key)));
+      }
+    } catch (err) {
+      console.warn('[Cache] Redis delete by prefix error, falling back to memory:', err);
+    }
+  }
+
+  memDeleteByPrefix(prefix);
 }
 
 /**

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 export interface StrategyParams {
   monthlyIncome: number;
+  monthlyExpenses?: number;
   hasDebts?: boolean;
   riskProfile?: 'conservative' | 'moderate' | 'aggressive';
   employmentType?: 'clt' | 'pj';
@@ -43,6 +44,7 @@ export const useStrategyRules = (params: StrategyParams) => {
     ];
 
     const monthlyInvest = params.monthlyIncome * pF;
+    const monthlyExpenseBase = Math.max(params.monthlyExpenses || 0, params.monthlyIncome * pE);
     const rate = 0.0087; // approx 10.5% a.a. Focus: CDI BR
     const projection10y = monthlyInvest * ((Math.pow(1 + rate, 120) - 1) / rate);
     const projection20y = monthlyInvest * ((Math.pow(1 + rate, 240) - 1) / rate);
@@ -55,7 +57,7 @@ export const useStrategyRules = (params: StrategyParams) => {
       monthlyInvest,
       projection10y,
       projection20y,
-      reserveTarget: params.monthlyIncome * reserveMonths,
+      reserveTarget: monthlyExpenseBase * reserveMonths,
       essentialsTarget: params.monthlyIncome * pE,
       lifestyleTarget: params.monthlyIncome * pL,
     };

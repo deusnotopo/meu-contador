@@ -4,15 +4,12 @@
  * Dois métodos comprovados para quitação de dívidas:
  * - Bola de Neve (Dave Ramsey): menor saldo primeiro → vitórias psicológicas rápidas
  * - Avalanche: maior juros primeiro → matematicamente ótimo, paga menos no total
- *
- * O app mostra ambos lado a lado com data de quitação e juros totais economizados.
  */
 
 import React, { useState } from "react";
-import { ArrowLeft, Plus, Trash2, TrendingDown, Calculator } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Calculator } from "lucide-react";
 import { useDebts } from "@/hooks/useDebts";
 import { useDebtStrategy } from "@/hooks/useDebtStrategy";
-
 
 const DIVIDA_TEMPLATES: Array<{
   nome: string;
@@ -30,8 +27,6 @@ const DIVIDA_TEMPLATES: Array<{
 const fmt = (n: number) =>
   "R$\u00a0" + Math.abs(n).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-
-
 interface Props {
   onBack?: () => void;
 }
@@ -48,26 +43,22 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
 
   const extrasNum = Math.max(0, parseFloat(extras) || 0);
 
-  // Magic here: Use our robust hook instead of local calculation
   const { debtsWithMetrics, totalDebt, avalancheStrategy, snowballStrategy } = useDebtStrategy(extrasNum);
-  
-  // We rename them purely to keep compatibility with existing JSX if possible
+
   const dividas = debtsWithMetrics.map((d) => ({
-    id: d.id, nome: d.name, saldo: d.balance, taxaMensal: d.interestRate, parcela: d.minPayment, emoji: "💳" // Emoji is hardcoded purely for visual since API doesn't hold it natively
+    id: d.id, nome: d.name, saldo: d.balance, taxaMensal: d.interestRate, parcela: d.minPayment, emoji: "💳"
   }));
 
   const addDivida = () => {
     if (!form.nome || !form.saldo || !form.taxaMensal || !form.parcela) return;
-    
     addDebt({
       name: form.nome,
       balance: parseFloat(form.saldo),
       interestRate: parseFloat(form.taxaMensal),
       minPayment: parseFloat(form.parcela),
-      category: 'other', 
+      category: 'other',
       dueDate: new Date().toISOString().substring(0, 10),
     });
-    
     setForm({ nome: "", saldo: "", taxaMensal: "", parcela: "", emoji: "💳" });
     setShowForm(false);
   };
@@ -82,18 +73,16 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
     setShowForm(true);
   };
 
-  const remove = (id: string) => {
-    deleteDebt(id);
-  };
+  const remove = (id: string) => { deleteDebt(id); };
 
   const totalSaldo = totalDebt;
-  
+
   const resultAvalanche = {
     totalMeses: avalancheStrategy.monthsToFreedom,
     totalJuros: avalancheStrategy.totalInterestPaid,
-    ordem: avalancheStrategy.payoffOrder.map(o => o.debtName) // Map by name for the UI visual
+    ordem: avalancheStrategy.payoffOrder.map(o => o.debtName)
   };
-  
+
   const resultBolaDeNeve = {
     totalMeses: snowballStrategy.monthsToFreedom,
     totalJuros: snowballStrategy.totalInterestPaid,
@@ -109,13 +98,35 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
     return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   };
 
-  // Ordem de quitação única
   const ordemNomes = Array.from(new Set(result.ordem));
 
+  const estrategias = [
+    {
+      id: "avalanche" as const,
+      title: "Avalanche",
+      emoji: "⚡",
+      sub: "Matematizado",
+      desc: "Mata os juros primeiro.",
+      meses: resultAvalanche.totalMeses,
+      juros: resultAvalanche.totalJuros,
+      color: "blue" as const,
+    },
+    {
+      id: "bola-de-neve" as const,
+      title: "Bola de Neve",
+      emoji: "❄️",
+      sub: "Psicológico",
+      desc: "Mata a menor primeiro.",
+      meses: resultBolaDeNeve.totalMeses,
+      juros: resultBolaDeNeve.totalJuros,
+      color: "purple" as const,
+    },
+  ] as const;
+
   return (
-    <div style={{ paddingTop: "10px", animation: "fsu 0.25s ease" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+    <div className="pt-2.5 animate-[fsu_0.25s_ease]">
+      {/* ── Header ── */}
+      <div className="flex items-center gap-3 mb-5">
         {onBack && (
           <button className="back-btn" onClick={onBack}>
             <ArrowLeft size={16} />
@@ -129,179 +140,127 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Educacional */}
-      <div
-        className="nudge"
-        style={{ marginBottom: "16px", borderLeftColor: "var(--red)", borderColor: "rgba(255,79,110,0.2)", background: "rgba(255,79,110,0.05)" }}
-      >
-        <div className="nudge-ttl" style={{ color: "var(--red)" }}>⚠️ Regra #1 do brasileiro</div>
-        <div className="nudge-body">
+      {/* ── Alerta educacional ── */}
+      <div className="bento-card mb-4 border-red-500/20 bg-red-500/[0.05] border-l-2 border-l-[var(--red)]">
+        <div className="text-[11px] font-bold text-[var(--red)] mb-1">⚠️ Regra #1 do brasileiro</div>
+        <div className="text-[12px] text-[var(--t2)] leading-relaxed">
           Cartão de crédito cobra até <strong>400% ao ano</strong> no Brasil. Investir com dívida de cartão pendente é matematicamente impossível de lucrar.
           Quite primeiro, invista depois.
         </div>
       </div>
 
-      {/* Extra mensal */}
-      <div className="card" style={{ marginBottom: "14px" }}>
-        <div style={{ fontSize: "13px", fontWeight: 700, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-          <Calculator size={14} color="var(--blue)" />
+      {/* ── Extra mensal ── */}
+      <div className="bento-card mb-3.5">
+        <div className="flex items-center gap-2 text-[13px] font-bold mb-3">
+          <Calculator size={14} className="text-blue-400" />
           Quanto a mais você pode pagar por mês?
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-          <span style={{ color: "var(--t3)", fontSize: "14px", fontWeight: 600 }}>R$</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[var(--t3)] text-sm font-semibold">R$</span>
           <input
             type="number"
             value={extras}
             onChange={(e) => setExtras(e.target.value)}
             placeholder="0"
-            style={{ flex: 1 }}
+            className="flex-1"
           />
         </div>
-        <div style={{ fontSize: "11px", color: "var(--t3)", marginTop: "6px" }}>
+        <div className="text-[11px] text-[var(--t3)] mt-1.5">
           Este valor extra vai inteiramente para a dívida prioritária da sua estratégia.
         </div>
       </div>
 
-      {/* Seletor de método */}
+      {/* ── Seletor de método ── */}
       {dividas.length > 0 && (
-        <div style={{ marginBottom: "16px" }}>
-          <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t2)", marginBottom: "8px", letterSpacing: "0.05em" }}>
-            ESCOLHA SUA ESTRATÉGIA
+        <div className="mb-5">
+          <div className="text-[10px] font-extrabold text-[var(--t3)] mb-3 tracking-[0.1em] uppercase">
+            Estratégia Ativa
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "8px" }}>
-            {(
-              [
-                {
-                  id: "avalanche" as const,
-                  title: "⚡ Avalanche",
-                  sub: "Maior juros primeiro",
-                  desc: "Você paga menos no total. Matematicamente ótimo.",
-                  meses: resultAvalanche.totalMeses,
-                  juros: resultAvalanche.totalJuros,
-                  cor: "#4A8BFF",
-                },
-                {
-                  id: "bola-de-neve" as const,
-                  title: "❄️ Bola de Neve",
-                  sub: "Menor saldo primeiro",
-                  desc: "Vitórias rápidas. Ótimo para motivação.",
-                  meses: resultBolaDeNeve.totalMeses,
-                  juros: resultBolaDeNeve.totalJuros,
-                  cor: "#9B7FFF",
-                },
-              ] as const
-            ).map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMetodoAtivo(m.id)}
-                style={{
-                  padding: "14px 12px",
-                  borderRadius: "14px",
-                  border: `2px solid ${metodoAtivo === m.id ? m.cor : "rgba(255,255,255,0.08)"}`,
-                  background: metodoAtivo === m.id ? `${m.cor}12` : "rgba(255,255,255,0.02)",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  transition: "all 0.2s",
-                }}
-              >
-                <div style={{ fontSize: "14px", fontWeight: 700, color: metodoAtivo === m.id ? m.cor : "var(--t1)", marginBottom: "2px" }}>{m.title}</div>
-                <div style={{ fontSize: "10px", color: "var(--t3)", marginBottom: "8px" }}>{m.sub}</div>
-                <div style={{ fontSize: "18px", fontWeight: 800, color: metodoAtivo === m.id ? m.cor : "var(--t1)", fontFamily: "var(--mono)" }}>
-                  {m.meses} meses
-                </div>
-                <div style={{ fontSize: "10px", color: "var(--t3)", fontFamily: "var(--mono)" }}>
-                  {fmt(m.juros)} em juros
-                </div>
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-2.5">
+            {estrategias.map((m) => {
+              const isActive = metodoAtivo === m.id;
+              const borderCls = isActive
+                ? m.color === "blue" ? "border-blue-400 bg-blue-400/[0.07]" : "border-[#9B7FFF] bg-[#9B7FFF]/[0.07]"
+                : "border-[var(--border)] bg-[var(--card-obsidian)]";
+              const textCls = isActive
+                ? m.color === "blue" ? "text-blue-400" : "text-[#9B7FFF]"
+                : "text-[var(--t1)]";
+              const dotCls = m.color === "blue" ? "bg-blue-400" : "bg-[#9B7FFF]";
+
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setMetodoAtivo(m.id)}
+                  className={`rounded-[20px] border p-4 text-left transition-all flex flex-col gap-1 ${borderCls}`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className={`text-sm font-black ${textCls}`}>
+                      {m.emoji} {m.title}
+                    </div>
+                    {isActive && <div className={`w-2 h-2 rounded-full ${dotCls}`} />}
+                  </div>
+                  <div className="text-[10px] text-[var(--t3)] font-semibold">{m.sub}</div>
+                  <div className="text-xl font-black text-[var(--t1)] font-mono mt-1">
+                    {m.meses} <span className="text-[10px] text-[var(--t3)] font-normal">meses</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {economiaBolaNeve > 500 && (
-            <div style={{ fontSize: "11px", color: "var(--green)", marginTop: "8px", textAlign: "center", fontWeight: 600 }}>
-              💡 Avalanche economiza {fmt(economiaBolaNeve)} em juros vs Bola de Neve
+            <div className="text-[10px] text-[var(--green)] mt-3 text-center font-bold bg-[var(--green)]/[0.06] py-1.5 rounded-lg">
+              💡 {metodoAtivo === 'bola-de-neve' ? 'Aviso:' : 'Vantagem:'} Avalanche economiza {fmt(economiaBolaNeve)} em juros
             </div>
           )}
         </div>
       )}
 
-      {/* Resultado */}
+      {/* ── Resultado principal ── */}
       {dividas.length > 0 && (
-        <div
-          className="hero"
-          style={{ marginBottom: "16px", padding: "16px 18px" }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-            <TrendingDown size={14} color="var(--green)" />
-            <span style={{ fontSize: "11px", color: "var(--t3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Projeção · {metodoAtivo === "avalanche" ? "Avalanche" : "Bola de Neve"}
-            </span>
-          </div>
-
-          <div className="stat3" style={{ marginBottom: "12px" }}>
-            <div className="s3i">
-              <div className="s3l">Quita em</div>
-              <div className="s3v" style={{ fontSize: "22px", color: "var(--green)" }}>{result.totalMeses}</div>
-              <div style={{ fontSize: "9px", color: "var(--t3)" }}>meses</div>
+        <div className="bento-grid mb-6">
+          {/* Card principal */}
+          <div className="bento-full relative overflow-hidden rounded-3xl border border-[var(--green)]/20 bg-gradient-to-br from-[var(--green)]/10 to-blue-400/[0.05] p-6">
+            {/* Glow blob */}
+            <div className="absolute -top-10 -right-5 w-36 h-36 rounded-full bg-[var(--green)]/15 blur-[50px] pointer-events-none" />
+            <div className="text-[11px] font-extrabold text-[var(--green)] uppercase tracking-[0.1em] mb-1.5">
+              Liberdade Financeira em
             </div>
-            <div className="s3i">
-              <div className="s3l">Total dívidas</div>
-              <div className="s3v">{fmt(totalSaldo)}</div>
-            </div>
-            <div className="s3i">
-              <div className="s3l">Juros pagos</div>
-              <div className="s3v" style={{ color: "var(--red)" }}>{fmt(result.totalJuros)}</div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: "rgba(0,217,145,0.08)",
-              border: "1px solid rgba(0,217,145,0.2)",
-              borderRadius: "10px",
-              padding: "10px 12px",
-            }}
-          >
-            <div style={{ fontSize: "11px", color: "var(--green)", fontWeight: 600, marginBottom: "2px" }}>
-              🎯 Você fica livre das dívidas em:
-            </div>
-            <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--t1)" }}>
+            <div className="text-[32px] font-black text-[var(--t1)] tracking-tight capitalize">
               {dataQuitacao(result.totalMeses)}
             </div>
+            <div className="flex gap-3 mt-3 flex-wrap">
+              {ordemNomes.map((nome, i) => i < 3 && (
+                <span key={nome} className="text-[10px] font-bold text-white/40">
+                  {i + 1}. {nome}
+                </span>
+              ))}
+              {ordemNomes.length > 3 && (
+                <span className="text-[10px] text-white/20">+{ordemNomes.length - 3}</span>
+              )}
+            </div>
           </div>
 
-          {ordemNomes.length > 0 && (
-            <div style={{ marginTop: "10px" }}>
-              <div style={{ fontSize: "10px", color: "var(--t3)", marginBottom: "6px", fontWeight: 600, letterSpacing: "0.06em" }}>ORDEM DE QUITAÇÃO</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                {ordemNomes.map((nome, i) => (
-                  <span
-                    key={nome}
-                    style={{
-                      fontSize: "11px", fontWeight: 600, padding: "3px 10px",
-                      borderRadius: "20px", background: "rgba(74,139,255,0.12)",
-                      color: "#4A8BFF",
-                    }}
-                  >
-                    {i + 1}. {nome}
-                  </span>
-                ))}
-              </div>
+          {/* Tiles secundários */}
+          {[
+            { label: "Total", value: fmt(totalSaldo), cls: "text-[var(--t1)]" },
+            { label: "Juros Pagos", value: fmt(result.totalJuros), cls: "text-[var(--red)]" },
+            { label: "Meses", value: String(result.totalMeses), cls: "text-[var(--green)]" },
+          ].map((tile) => (
+            <div key={tile.label} className="bento-card" style={{ gridColumn: "span 2" }}>
+              <div className="text-[9px] font-extrabold text-[var(--t3)] uppercase mb-1">{tile.label}</div>
+              <div className={`text-[15px] font-black ${tile.cls}`}>{tile.value}</div>
             </div>
-          )}
+          ))}
         </div>
       )}
 
-      {/* Lista de dívidas */}
+      {/* ── Lista de dívidas ── */}
       <div className="sec-hd">
         <span className="sec-title">Suas dívidas</span>
         <button
           onClick={() => setShowForm(!showForm)}
-          style={{
-            display: "flex", alignItems: "center", gap: "4px", padding: "5px 10px",
-            borderRadius: "8px", border: "1px solid rgba(255,79,110,0.3)",
-            background: "rgba(255,79,110,0.08)", color: "var(--red)",
-            fontSize: "11px", cursor: "pointer", fontWeight: 600,
-          }}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/[0.08] text-[var(--red)] text-[11px] font-semibold cursor-pointer"
         >
           <Plus size={12} /> Adicionar
         </button>
@@ -309,36 +268,29 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
 
       {/* Templates */}
       {showForm && dividas.length === 0 && (
-        <div className="card" style={{ marginBottom: "12px" }}>
-          <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t2)", marginBottom: "8px" }}>
-            Adicionar rapidamente:
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div className="bento-card mb-3">
+          <div className="text-[12px] font-bold text-[var(--t2)] mb-2">Adicionar rapidamente:</div>
+          <div className="flex flex-col gap-1.5">
             {DIVIDA_TEMPLATES.map((t) => (
               <button
                 key={t.nome}
                 onClick={() => applyTemplate(t)}
-                style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "10px 12px", borderRadius: "10px",
-                  border: "1px solid rgba(255,79,110,0.15)", background: "rgba(255,79,110,0.05)",
-                  cursor: "pointer", textAlign: "left",
-                }}
+                className="flex justify-between items-center p-2.5 rounded-[10px] border border-red-500/15 bg-red-500/[0.05] cursor-pointer text-left hover:bg-red-500/10 transition-colors"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "18px" }}>{t.emoji}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[18px]">{t.emoji}</span>
                   <div>
-                    <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t1)" }}>{t.nome}</div>
-                    <div style={{ fontSize: "10px", color: "var(--t3)" }}>{t.dica}</div>
+                    <div className="text-[12px] font-bold text-[var(--t1)]">{t.nome}</div>
+                    <div className="text-[10px] text-[var(--t3)]">{t.dica}</div>
                   </div>
                 </div>
-                <div style={{ fontSize: "10px", fontFamily: "var(--mono)", color: "var(--amber)", fontWeight: 700 }}>
+                <div className="text-[10px] font-mono text-amber-400 font-bold">
                   {t.taxaSugerida ? `ref. ${t.taxaSugerida}% a.m.` : 'modelo'}
                 </div>
               </button>
             ))}
           </div>
-          <div style={{ margin: "10px 0 4px", textAlign: "center", fontSize: "11px", color: "var(--t3)" }}>
+          <div className="text-center text-[11px] text-[var(--t3)] mt-2.5">
             Modelos apenas preenchem o formulário. Revise saldo, parcela e taxa com seus dados reais.
           </div>
         </div>
@@ -346,19 +298,18 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
 
       {/* Form manual */}
       {showForm && (
-        <div className="card" style={{ marginBottom: "12px" }}>
-          <div style={{ fontSize: "13px", fontWeight: 700, marginBottom: "12px" }}>Nova dívida</div>
-          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+        <div className="bento-card mb-3">
+          <div className="text-[13px] font-bold mb-3">Nova dívida</div>
+          <div className="flex gap-2 mb-2 flex-wrap">
             {["💳", "🏦", "💵", "🚗", "📋", "🏥", "🏠"].map((e) => (
               <button
                 key={e}
                 onClick={() => setForm((f) => ({ ...f, emoji: e }))}
-                style={{
-                  width: "32px", height: "32px", borderRadius: "8px",
-                  border: `2px solid ${form.emoji === e ? "var(--red)" : "transparent"}`,
-                  background: form.emoji === e ? "rgba(255,79,110,0.15)" : "rgba(255,255,255,0.04)",
-                  fontSize: "16px", cursor: "pointer",
-                }}
+                className={`w-8 h-8 rounded-lg text-base cursor-pointer transition-colors ${
+                  form.emoji === e
+                    ? "border-2 border-[var(--red)] bg-red-500/15"
+                    : "border-2 border-transparent bg-white/[0.04]"
+                }`}
               >
                 {e}
               </button>
@@ -367,94 +318,100 @@ export const DebtPayoffPlanner: React.FC<Props> = ({ onBack }) => {
           <input
             type="text" placeholder="Nome da dívida" value={form.nome}
             onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
-            style={{ marginBottom: "8px" }}
+            className="mb-2"
           />
           <input
             type="number" placeholder="Saldo devedor (R$)" value={form.saldo}
             onChange={(e) => setForm((f) => ({ ...f, saldo: e.target.value }))}
-            style={{ marginBottom: "8px" }}
+            className="mb-2"
           />
           <input
             type="number" placeholder="Taxa mensal (% a.m.) — ex: 15.5 para cartão" value={form.taxaMensal}
             onChange={(e) => setForm((f) => ({ ...f, taxaMensal: e.target.value }))}
-            style={{ marginBottom: "8px" }}
+            className="mb-2"
           />
           <input
             type="number" placeholder="Parcela mínima mensal (R$)" value={form.parcela}
             onChange={(e) => setForm((f) => ({ ...f, parcela: e.target.value }))}
-            style={{ marginBottom: "12px" }}
+            className="mb-3"
           />
-          <button className="btn btn-primary" style={{ width: "100%" }} onClick={addDivida}>
+          <button className="btn btn-primary w-full" onClick={addDivida}>
             Adicionar dívida
           </button>
         </div>
       )}
 
-      {/* Cards de dívidas */}
-      {dividas.map((d) => {
-        const isFirst = ordemNomes[0] === d.nome;
-
-        return (
-          <div
-            key={d.id}
-            className="card"
-            style={{
-              marginBottom: "8px",
-              border: isFirst ? "1px solid rgba(255,79,110,0.3)" : undefined,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "24px" }}>{d.emoji}</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: "14px" }}>
-                    {isFirst && <span style={{ fontSize: "10px", color: "var(--red)", marginRight: "6px", fontWeight: 700 }}>PRIORIDADE</span>}
-                    {d.nome}
-                  </div>
-                  <div style={{ display: "flex", gap: "10px", marginTop: "2px" }}>
-                    <span style={{ fontSize: "10px", color: "var(--red)", fontFamily: "var(--mono)", fontWeight: 600 }}>
-                      {d.taxaMensal}% a.m.
-                    </span>
-                    <span style={{ fontSize: "10px", color: "var(--t3)", fontFamily: "var(--mono)" }}>
-                      mín. {fmt(d.parcela)}/mês
-                    </span>
-                  </div>
+      {/* Grade de dívidas */}
+      <div className="bento-grid mb-7">
+        {dividas.map((d) => {
+          const isFirst = ordemNomes[0] === d.nome;
+          return (
+            <div
+              key={d.id}
+              className={`bento-card flex flex-col gap-3 transition-all ${
+                isFirst ? "border-red-500/40" : ""
+              }`}
+              style={{ gridColumn: "span 3" }}
+            >
+              <div className="flex justify-between items-start">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
+                  isFirst ? "bg-red-500/10" : "bg-white/[0.03]"
+                }`}>
+                  {d.emoji}
                 </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 800, fontSize: "16px", fontFamily: "var(--mono)", color: "var(--red)" }}>
-                    {fmt(d.saldo)}
-                  </div>
-                </div>
-                <button onClick={() => remove(d.id)} style={{ background: "none", border: "none", color: "var(--t4)", cursor: "pointer", padding: "4px" }}>
+                <button
+                  onClick={() => remove(d.id)}
+                  className="text-[var(--t4)] hover:text-[var(--red)] transition-colors p-1"
+                >
                   <Trash2 size={12} />
                 </button>
               </div>
-            </div>
-          </div>
-        );
-      })}
 
+              <div>
+                <div className="font-extrabold text-[13px] text-[var(--t1)] flex items-center gap-1.5">
+                  {d.nome}
+                  {isFirst && <div className="w-1.5 h-1.5 rounded-full bg-[var(--red)]" />}
+                </div>
+                <div className="text-[10px] text-[var(--t3)] font-semibold mt-0.5">
+                  {d.taxaMensal}% a.m. · <span className="font-mono">{fmt(d.parcela)}/mês</span>
+                </div>
+              </div>
+
+              <div className="mt-auto">
+                <div className="text-[16px] font-black font-mono text-[var(--red)]">
+                  {fmt(d.saldo)}
+                </div>
+                {isFirst && (
+                  <div className="text-[9px] font-black text-[var(--red)] mt-1 tracking-[0.1em] uppercase">
+                    Prioridade Máxima
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Empty state */}
       {dividas.length === 0 && !showForm && (
-        <div className="card" style={{ textAlign: "center", padding: "32px 16px" }}>
-          <div style={{ fontSize: "48px", marginBottom: "12px" }}>💳</div>
-          <div style={{ fontWeight: 700, marginBottom: "6px" }}>Calcule sua rota de saída</div>
-          <div style={{ fontSize: "13px", color: "var(--t3)", marginBottom: "16px", lineHeight: 1.5 }}>
+        <div className="bento-card text-center py-8">
+          <div className="text-5xl mb-3">💳</div>
+          <div className="font-bold mb-1.5">Calcule sua rota de saída</div>
+          <div className="text-[13px] text-[var(--t3)] mb-4 leading-relaxed max-w-xs mx-auto">
             Adicione suas dívidas e veja quando e como você vai se livrar de cada uma delas.
           </div>
-          <button className="btn btn-primary" style={{ margin: "0 auto" }} onClick={() => setShowForm(true)}>
+          <button className="btn btn-primary mx-auto" onClick={() => setShowForm(true)}>
             <Plus size={14} /> Adicionar dívida
           </button>
         </div>
       )}
 
       {/* Footer educacional */}
-      <div style={{ marginTop: "20px", padding: "14px 16px", borderRadius: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--t2)", marginBottom: "6px" }}>📖 Sobre os métodos</div>
-        <div style={{ fontSize: "11px", color: "var(--t3)", lineHeight: 1.6 }}>
-          <strong style={{ color: "var(--blue)" }}>Avalanche</strong> → menos juros no total, mais rápido matematicamente.<br />
-          <strong style={{ color: "#9B7FFF" }}>Bola de Neve</strong> → mais motivação, primeiro a quitar a menor dívida.<br />
+      <div className="mt-5 px-4 py-3.5 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+        <div className="text-[11px] font-bold text-[var(--t2)] mb-1.5">📖 Sobre os métodos</div>
+        <div className="text-[11px] text-[var(--t3)] leading-relaxed">
+          <strong className="text-blue-400">Avalanche</strong> → menos juros no total, mais rápido matematicamente.<br />
+          <strong className="text-[#9B7FFF]">Bola de Neve</strong> → mais motivação, primeiro a quitar a menor dívida.<br />
           Ambos são superiores ao mínimo. Escolha o que mantém você comprometido.
         </div>
       </div>

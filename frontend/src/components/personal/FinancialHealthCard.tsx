@@ -1,4 +1,4 @@
-import type { AIInsights } from "@/lib/ai";
+﻿import type { AIInsights } from "@/lib/ai";
 import { getFinancialInsights } from "@/lib/ai";
 import { calculateFinancialHealth } from "@/lib/financial-health";
 import type { Transaction } from "@/types";
@@ -76,14 +76,14 @@ export const FinancialHealthCard = ({
             <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
               <Activity size={20} />
             </div>
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500">
               Health <span className="text-white">Score</span>
             </h3>
           </div>
           {loading && (
             <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5">
               <Loader2 className="animate-spin text-indigo-400" size={12} />
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">
+              <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">
                 AI Analysing
               </span>
             </div>
@@ -110,14 +110,14 @@ export const FinancialHealthCard = ({
                 : "Risk"}
             </div>
           </div>
-          <span className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2">
+          <span className="text-neutral-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2">
             Global Performance Index
           </span>
         </div>
 
         <div className="space-y-6">
           <div className="flex items-center gap-2 mb-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500">
               Distribuição Recomendada
             </p>
             <div className="h-px flex-1 bg-white/5" />
@@ -130,7 +130,7 @@ export const FinancialHealthCard = ({
             {/* Necessity: 50% */}
             <div className="space-y-3">
               <div className="flex justify-between items-end">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500">
                   Essencial (50)
                 </span>
                 <span className="text-xs font-bold text-white">
@@ -153,7 +153,7 @@ export const FinancialHealthCard = ({
             {/* Wants: 30% */}
             <div className="space-y-3">
               <div className="flex justify-between items-end">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500">
                   Estilo de Vida (30)
                 </span>
                 <span className="text-xs font-bold text-white">
@@ -176,7 +176,7 @@ export const FinancialHealthCard = ({
             {/* Investment: 20% */}
             <div className="space-y-3">
               <div className="flex justify-between items-end">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500">
                   Liberdade (20)
                 </span>
                 <span className="text-xs font-bold text-white">
@@ -191,7 +191,7 @@ export const FinancialHealthCard = ({
                 <div
                   className={cn(
                     "h-full transition-all duration-1000",
-                    rule503020.investment.percentage >= 15 ? "bg-emerald-500" : "bg-slate-700"
+                    rule503020.investment.percentage >= 15 ? "bg-emerald-500" : "bg-neutral-800"
                   )}
                   style={{
                     width: `${Math.min(
@@ -220,7 +220,7 @@ export const FinancialHealthCard = ({
               {tips.map((tip, i) => (
                 <div
                   key={i}
-                  className="group/tip flex gap-4 text-sm font-bold text-slate-300 bg-white/5 p-6 rounded-3xl border border-white/10 transition-all hover:bg-white/10 hover:border-white/20"
+                  className="group/tip flex gap-4 text-sm font-bold text-neutral-400 bg-white/5 p-6 rounded-3xl border border-white/10 transition-all hover:bg-white/10 hover:border-white/20"
                 >
                   <div className="mt-1.5 min-w-[8px] h-2 bg-indigo-500 rounded-full group-hover/tip:scale-125 transition-transform shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                   <span className="leading-relaxed">{tip}</span>
@@ -233,3 +233,4 @@ export const FinancialHealthCard = ({
     </div>
   );
 };
+

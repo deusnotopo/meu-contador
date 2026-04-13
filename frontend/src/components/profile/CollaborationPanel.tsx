@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { syncAllData } from "@/lib/storage";
@@ -175,7 +175,7 @@ export const CollaborationPanel = ({
             </div>
 
             <div className="relative z-10">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">
                 Contexto Ativo
               </p>
               <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export const CollaborationPanel = ({
                     <div className="px-2 py-0.5 rounded-full bg-pink-500 text-black text-[9px] font-black tracking-widest uppercase">
                       Shared
                     </div>
-                    <div className="px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[9px] font-black tracking-widest uppercase border border-white/5">
+                    <div className="px-2 py-0.5 rounded-full bg-white/10 text-neutral-400 text-[9px] font-black tracking-widest uppercase border border-white/5">
                       {profile.workspaceRoles?.[currentWorkspaceId] || "OWNER"}
                     </div>
                   </div>
@@ -197,13 +197,13 @@ export const CollaborationPanel = ({
               </div>
               <div className="flex items-center gap-2 mt-4">
                 <div className="flex-1 bg-black/40 px-4 py-2 rounded-xl border border-white/5 flex items-center justify-between group/id">
-                  <code className="text-[10px] text-slate-400 font-mono truncate">
+                  <code className="text-[10px] text-neutral-500 font-mono truncate">
                     ID: {currentWorkspaceId}
                   </code>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-slate-500 hover:text-white transition-colors"
+                    className="h-8 w-8 text-neutral-500 hover:text-white transition-colors"
                     onClick={() => handleReferenceCopy(currentWorkspaceId)}
                   >
                     <Copy size={12} />
@@ -215,7 +215,7 @@ export const CollaborationPanel = ({
 
           {/* Switcher */}
           <div className="space-y-6">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
               Seus Espaços Disponíveis
             </Label>
             <motion.div
@@ -238,7 +238,7 @@ export const CollaborationPanel = ({
                   className={`p-3 rounded-2xl ${
                     isPersonalParams
                       ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                      : "bg-white/10 text-slate-400"
+                      : "bg-white/10 text-neutral-500"
                   }`}
                 >
                   <Users size={20} />
@@ -246,12 +246,12 @@ export const CollaborationPanel = ({
                 <div className="text-left">
                   <h4
                     className={`font-black text-sm uppercase tracking-tight ${
-                      isPersonalParams ? "text-white" : "text-slate-400"
+                      isPersonalParams ? "text-white" : "text-neutral-500"
                     }`}
                   >
                     Pessoal
                   </h4>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">
                     Apenas você
                   </p>
                 </div>
@@ -278,7 +278,7 @@ export const CollaborationPanel = ({
                       className={`p-3 rounded-2xl ${
                         currentWorkspaceId === wsId
                           ? "bg-pink-500 text-white shadow-lg shadow-pink-500/20"
-                          : "bg-white/10 text-slate-400"
+                          : "bg-white/10 text-neutral-500"
                       }`}
                     >
                       <Briefcase size={20} />
@@ -288,12 +288,12 @@ export const CollaborationPanel = ({
                         className={`font-black text-sm uppercase tracking-tight truncate w-32 ${
                           currentWorkspaceId === wsId
                             ? "text-white"
-                            : "text-slate-400"
+                            : "text-neutral-500"
                         }`}
                       >
                         Compartilhado
                       </h4>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">
+                      <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest truncate">
                         Role: {profile.workspaceRoles?.[wsId] || "OWNER"}
                       </p>
                     </div>
@@ -312,7 +312,7 @@ export const CollaborationPanel = ({
                 variants={itemVars}
                 onClick={handleCreateWorkspace}
                 disabled={isLoading}
-                className="p-5 rounded-[2rem] border-2 border-dashed border-white/5 flex flex-col items-center justify-center gap-2 hover:bg-white/[0.02] transition-all text-slate-500 hover:text-emerald-400 hover:border-emerald-500/20 group"
+                className="p-5 rounded-[2rem] border-2 border-dashed border-white/5 flex flex-col items-center justify-center gap-2 hover:bg-white/[0.02] transition-all text-neutral-500 hover:text-emerald-400 hover:border-emerald-500/20 group"
               >
                 <PlusCircle
                   size={24}
@@ -328,7 +328,7 @@ export const CollaborationPanel = ({
           {/* Join Actions */}
           <div className="space-y-6 pt-10 border-t border-white/5">
             <div className="flex flex-col gap-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
                 Conectar a um ID Existente
               </Label>
               <div className="flex gap-4">
@@ -348,7 +348,7 @@ export const CollaborationPanel = ({
               </div>
             </div>
             <div className="p-4 rounded-2xl bg-white/[0.01] border border-white/5">
-              <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+              <p className="text-[10px] text-neutral-500 leading-relaxed font-medium">
                 <span className="text-white font-bold mr-1">Atenção:</span>
                 Ao entrar em um espaço, as modificações são registradas por usuário.
               </p>
@@ -361,3 +361,4 @@ export const CollaborationPanel = ({
     </div>
   );
 };
+

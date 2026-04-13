@@ -106,20 +106,24 @@ export async function processQueue(
   onItemProcessed?: (item: PendingTransaction, success: boolean) => void
 ): Promise<{ success: number; failed: number }> {
   const { pending } = await getQueueStatus();
-  
+
+  // Read auth token — stored by AuthContext in localStorage
+  const token = localStorage.getItem('auth_token') ?? localStorage.getItem('token') ?? '';
+
   let success = 0;
   let failed = 0;
-  
+
   for (const item of pending) {
     try {
       const response = await fetch(item.endpoint, {
         method: item.type === 'create' ? 'POST' : item.type === 'update' ? 'PUT' : 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: item.type !== 'delete' ? JSON.stringify(item.payload) : undefined
+        body: item.type !== 'delete' ? JSON.stringify(item.payload) : undefined,
       });
-      
+
       if (response.ok || response.status === 404) {
         await removeFromQueue(item.id);
         success++;
@@ -135,9 +139,19 @@ export async function processQueue(
       onItemProcessed?.(item, false);
     }
   }
-  
+
   return { success, failed };
 }
+
+/** Remove items that exceeded 3 retries and are older than 24 hours */
+export async function purgeStaleItems(): Promise<number> {
+  const { pending } = await getQueueStatus();
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const stale = pending.filter(i => i.retries >= 3 && i.timestamp < cutoff);
+  await Promise.all(stale.map(i => removeFromQueue(i.id)));
+  return stale.length;
+}
+
 
 async function incrementRetry(id: string): Promise<void> {
   const database = await openDB();

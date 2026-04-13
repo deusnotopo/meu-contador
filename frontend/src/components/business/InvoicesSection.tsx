@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -163,7 +163,7 @@ export const InvoicesSection = () => {
             <h3 className="text-xl font-black uppercase tracking-widest text-white">
               Notas <span className="text-amber-400">Fiscais</span>
             </h3>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-neutral-500 font-medium">
               Controle total do faturamento e recebíveis
             </p>
           </div>
@@ -187,7 +187,7 @@ export const InvoicesSection = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="number"
-                        className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        className="text-[10px] font-black uppercase tracking-widest text-neutral-500"
                       >
                         Número NF
                       </Label>
@@ -205,7 +205,7 @@ export const InvoicesSection = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="amount"
-                        className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        className="text-[10px] font-black uppercase tracking-widest text-neutral-500"
                       >
                         Valor Bruto
                       </Label>
@@ -226,7 +226,7 @@ export const InvoicesSection = () => {
                   <div className="space-y-2">
                     <Label
                       htmlFor="client"
-                      className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                      className="text-[10px] font-black uppercase tracking-widest text-neutral-500"
                     >
                       Cliente / Tomador
                     </Label>
@@ -245,7 +245,7 @@ export const InvoicesSection = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="date"
-                        className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        className="text-[10px] font-black uppercase tracking-widest text-neutral-500"
                       >
                         Data Vencimento
                       </Label>
@@ -263,7 +263,7 @@ export const InvoicesSection = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="status"
-                        className="text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        className="text-[10px] font-black uppercase tracking-widest text-neutral-500"
                       >
                         Status Atual
                       </Label>
@@ -346,10 +346,10 @@ export const InvoicesSection = () => {
                             {config.label}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+                        <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider">
                           {inv.client}{" "}
-                          <span className="mx-2 text-slate-700">|</span>{" "}
-                          <span className="text-slate-400">
+                          <span className="mx-2 text-neutral-800">|</span>{" "}
+                          <span className="text-neutral-500">
                             Venc:{" "}
                             {new Date(inv.dueDate).toLocaleDateString("pt-BR")}
                           </span>
@@ -372,7 +372,7 @@ export const InvoicesSection = () => {
 
                     <div className="flex items-center justify-between md:justify-end gap-10">
                       <div className="text-right">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-700 mb-1">
                           Valor Total
                         </p>
                         <span className="font-black text-2xl text-white tracking-tighter">
@@ -384,7 +384,7 @@ export const InvoicesSection = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-12 w-12 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5"
+                          className="h-12 w-12 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-500 hover:text-white border border-white/5"
                           onClick={() => handleDownloadPDF(inv)}
                           title="Baixar PDF"
                         >
@@ -393,7 +393,7 @@ export const InvoicesSection = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-12 w-12 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5"
+                          className="h-12 w-12 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-500 hover:text-white border border-white/5"
                           onClick={() => handleEdit(inv)}
                         >
                           <Edit2 size={16} />
@@ -401,7 +401,7 @@ export const InvoicesSection = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-12 w-12 rounded-xl bg-white/5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-white/5"
+                          className="h-12 w-12 rounded-xl bg-white/5 hover:bg-rose-500/10 text-neutral-500 hover:text-rose-400 border border-white/5"
                           onClick={() => deleteInvoice(inv.id)}
                         >
                           <Trash2 size={16} />
@@ -418,3 +418,4 @@ export const InvoicesSection = () => {
     </FadeIn>
   );
 };
+

@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 
 
 // Helper to validate and sanitize numbers
@@ -7,6 +9,7 @@ const safeNumber = (n: number, fallback: number = 0): number => {
 
 // SVG Sparkline Component matching finapp_v3.html exactly
 export const Sparkline = ({ data, color = "var(--blue)", h = 44, w = 318 }: { data: number[], color?: string, h?: number, w?: number }) => {
+  const baseId = useId();
   if (!data || data.length === 0) return null;
   
   const validData = data.map(v => safeNumber(v, 0));
@@ -26,8 +29,8 @@ export const Sparkline = ({ data, color = "var(--blue)", h = 44, w = 318 }: { da
   const lastValue = validData[validData.length - 1] || 0;
   const lx = safeNumber(((validData.length - 1) / (validData.length - 1)) * w, w);
   const ly = safeNumber(h - ((lastValue - min) / range) * (h - 6) - 3, h / 2);
-  const gradId = "sg" + Math.random().toString(36).slice(2, 6);
-  const glowId = "glow" + Math.random().toString(36).slice(2, 6);
+  const gradId = `${baseId}-sg`;
+  const glowId = `${baseId}-glow`;
 
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible" }}>
@@ -55,6 +58,7 @@ export const Sparkline = ({ data, color = "var(--blue)", h = 44, w = 318 }: { da
 
 // SVG BarChart Component matching finapp_v3.html exactly
 export const BarChart = ({ data, colors, h = 50, w = 318 }: { data: number[], colors: string | string[], h?: number, w?: number }) => {
+  const filterId = useId();
   if (!data || data.length === 0) return null;
   
   const validData = data.map(v => safeNumber(v, 0));
@@ -66,7 +70,7 @@ export const BarChart = ({ data, colors, h = 50, w = 318 }: { data: number[], co
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible" }}>
       <defs>
-        <filter id="barBloom">
+        <filter id={filterId}>
           <feGaussianBlur stdDeviation="2" result="bloom"/>
           <feColorMatrix in="bloom" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 15 -5" result="glow"/>
           <feComposite in="SourceGraphic" in2="glow" operator="over"/>
@@ -87,7 +91,7 @@ export const BarChart = ({ data, colors, h = 50, w = 318 }: { data: number[], co
             fill={fill} 
             style={{ 
               transition: "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)", 
-              filter: "url(#barBloom)",
+              filter: `url(#${filterId})`,
               opacity: 0.85
             }} 
           />

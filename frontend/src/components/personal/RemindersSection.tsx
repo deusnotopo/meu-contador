@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -16,19 +16,13 @@ import {
 } from "@/components/ui/select";
 import { personalCategories } from "@/lib/constants";
 import { formatCurrency } from "@/lib/formatters";
-import {
-  STORAGE_EVENT,
-  STORAGE_KEYS,
-  loadReminders,
-  saveReminders,
-} from "@/lib/storage";
+import { useReminders } from "@/hooks/useReminders";
 import type { BillReminder } from "@/types";
 import { Bell, Check, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export const RemindersSection = () => {
-  type RemindersStorageDetail = { key?: string; data?: BillReminder[] };
-  const [reminders, setReminders] = useState<BillReminder[]>([]);
+  const { reminders, addReminder, updateReminder, removeReminder } = useReminders();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<BillReminder | null>(
     null
@@ -49,52 +43,30 @@ export const RemindersSection = () => {
 
   const today = new Date();
 
-  useEffect(() => {
-    setReminders(loadReminders());
 
-    const handleStorageChange: EventListener = (event) => {
-      const detail = (event as CustomEvent<RemindersStorageDetail>).detail;
-      if (detail?.key === STORAGE_KEYS.REMINDERS) {
-        setReminders(detail.data || []);
-      }
-    };
-
-    window.addEventListener(STORAGE_EVENT, handleStorageChange);
-    return () => window.removeEventListener(STORAGE_EVENT, handleStorageChange);
-  }, []);
 
   const handleSave = () => {
     if (!formData.name || formData.amount <= 0 || !formData.dueDate) return;
 
-    let updatedReminders: BillReminder[];
     if (editingReminder) {
-      updatedReminders = reminders.map((r) =>
-        r.id === editingReminder.id
-          ? {
-              ...r,
-              name: formData.name,
-              amount: formData.amount,
-              dueDate: formData.dueDate,
-              category: formData.category,
-              recurring: formData.recurring,
-            }
-          : r
-      );
+      updateReminder(editingReminder.id, {
+        name: formData.name,
+        amount: formData.amount,
+        dueDate: formData.dueDate,
+        category: formData.category,
+        recurring: formData.recurring,
+      });
     } else {
-      const newReminder: BillReminder = {
-        id: Date.now().toString(),
+      addReminder({
         name: formData.name,
         amount: formData.amount,
         dueDate: formData.dueDate,
         category: formData.category,
         isPaid: false,
         recurring: formData.recurring,
-      };
-      updatedReminders = [...reminders, newReminder];
+      });
     }
 
-    setReminders(updatedReminders);
-    saveReminders(updatedReminders);
     setIsDialogOpen(false);
     setEditingReminder(null);
     setFormData({
@@ -119,17 +91,11 @@ export const RemindersSection = () => {
   };
 
   const handleDelete = (id: string) => {
-    const updatedReminders = reminders.filter((r) => r.id !== id);
-    setReminders(updatedReminders);
-    saveReminders(updatedReminders);
+    removeReminder(id);
   };
 
   const handleTogglePaid = (reminder: BillReminder) => {
-    const updatedReminders = reminders.map((r) =>
-      r.id === reminder.id ? { ...r, isPaid: !r.isPaid } : r
-    );
-    setReminders(updatedReminders);
-    saveReminders(updatedReminders);
+    updateReminder(reminder.id, { isPaid: !reminder.isPaid });
   };
 
   const openNewDialog = () => {
@@ -162,7 +128,7 @@ export const RemindersSection = () => {
           <div className="p-2 bg-rose-500/10 rounded-xl text-rose-400">
             <Bell size={20} />
           </div>
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500">
             Gestão de <span className="text-white">Pagamentos</span>
           </h3>
         </div>
@@ -185,7 +151,7 @@ export const RemindersSection = () => {
             </DialogHeader>
             <div className="space-y-6 pt-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
                   Nome da Conta
                 </label>
                 <Input
@@ -199,7 +165,7 @@ export const RemindersSection = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
                     Valor (R$)
                   </label>
                   <Input
@@ -216,7 +182,7 @@ export const RemindersSection = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
                     Vencimento
                   </label>
                   <Input
@@ -230,7 +196,7 @@ export const RemindersSection = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
                   Categoria
                 </label>
                 <Select
@@ -242,7 +208,7 @@ export const RemindersSection = () => {
                   <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-rose-500/20 text-white">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectContent className="bg-neutral-950 border-white/10 text-white">
                     {personalCategories.expense.map((cat) => (
                       <SelectItem
                         key={cat}
@@ -256,7 +222,7 @@ export const RemindersSection = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
                   Frequência
                 </label>
                 <Select
@@ -268,7 +234,7 @@ export const RemindersSection = () => {
                   <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl focus:ring-rose-500/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectContent className="bg-neutral-950 border-white/10 text-white">
                     <SelectItem value="monthly">Mensal</SelectItem>
                     <SelectItem value="yearly">Anual</SelectItem>
                     <SelectItem value="once">Uma única vez</SelectItem>
@@ -279,7 +245,7 @@ export const RemindersSection = () => {
                 <Button
                   variant="ghost"
                   onClick={() => setIsDialogOpen(false)}
-                  className="flex-1 h-12 rounded-xl text-slate-400 font-bold"
+                  className="flex-1 h-12 rounded-xl text-neutral-500 font-bold"
                 >
                   Descartar
                 </Button>
@@ -301,7 +267,7 @@ export const RemindersSection = () => {
           <h4 className="text-xl font-black text-white mb-2 tracking-tight">
             Nenhuma Conta Pendente
           </h4>
-          <p className="text-sm text-slate-500 mb-8 max-w-sm mx-auto">
+          <p className="text-sm text-neutral-500 mb-8 max-w-sm mx-auto">
             Organize seus boletos e pagamentos recorrentes para evitar multas e
             juros.
           </p>
@@ -337,7 +303,7 @@ export const RemindersSection = () => {
                           ? "bg-emerald-500 text-black scale-90"
                           : isOverdue
                           ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
-                          : "bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5"
+                          : "bg-white/5 text-neutral-500 hover:bg-white/10 border border-white/5"
                       }`}
                     >
                       <Check size={20} strokeWidth={r.isPaid ? 3 : 2} />
@@ -347,22 +313,22 @@ export const RemindersSection = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <h4
                           className={`font-black tracking-tight truncate ${
-                            r.isPaid ? "text-slate-500" : "text-white"
+                            r.isPaid ? "text-neutral-500" : "text-white"
                           }`}
                         >
                           {r.name}
                         </h4>
                         {r.category && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 px-1.5 py-0.5 bg-white/5 rounded">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500 px-1.5 py-0.5 bg-white/5 rounded">
                             {r.category}
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 flex items-center gap-2">
                         {isOverdue ? "Venceu" : "Vence"}:{" "}
                         <span
                           className={
-                            isOverdue ? "text-rose-500" : "text-slate-300"
+                            isOverdue ? "text-rose-500" : "text-neutral-400"
                           }
                         >
                           {formatDate(r.dueDate)}
@@ -381,7 +347,7 @@ export const RemindersSection = () => {
                       <p
                         className={`text-xl font-black tracking-tighter ${
                           r.isPaid
-                            ? "text-slate-500 line-through"
+                            ? "text-neutral-500 line-through"
                             : "text-white"
                         }`}
                       >
@@ -408,7 +374,7 @@ export const RemindersSection = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                        className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-500 hover:text-white"
                         onClick={() => handleEdit(r)}
                       >
                         <Pencil size={12} />
@@ -432,3 +398,4 @@ export const RemindersSection = () => {
     </div>
   );
 };
+

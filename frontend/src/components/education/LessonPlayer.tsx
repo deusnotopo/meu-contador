@@ -60,8 +60,8 @@ export const LessonPlayer = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden bg-[#0a0a0a] border-slate-800 text-slate-100">
-        <DialogHeader className="p-6 border-b border-white/10 bg-slate-900/50">
+      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden bg-[#0a0a0a] border-neutral-900 text-neutral-200">
+        <DialogHeader className="p-6 border-b border-white/10 bg-neutral-950/50">
           <DialogTitle className="text-2xl font-black flex items-center gap-2">
             {lesson.title}
           </DialogTitle>

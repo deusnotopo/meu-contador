@@ -41,22 +41,22 @@ function FireTab({ patrimonioAtual }: { patrimonioAtual: number }) {
   const fatMeses = useMemo(() => calcFireMonths(despesa * 1.8, aporte, patrimonioAtual, taxaAnual), [despesa, aporte, patrimonioAtual, taxaAnual]);
 
   return (
-    <div style={{ paddingBottom: 24 }}>
+    <div className="pb-6">
       {/* Hero */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="future-hero-card" style={{ marginBottom: 14 }}>
+        className="future-hero-card mb-3.5">
         <div className="future-hero-top">
           <div className="future-hero-main">
             <div className="future-hero-eyebrow">🔥 Independência Financeira</div>
-            <div className="future-hero-value" style={{ color: atingivel ? "var(--amber)" : "var(--t2)", fontSize: 28 }}>
+            <div className="future-hero-value text-[28px]" style={{ color: atingivel ? "var(--amber)" : "var(--t2)" }}>
               {atingivel ? `${anos} anos` : "> 50 anos"}
             </div>
             <div className="future-hero-sub">
               {atingivel ? `Meta em ${anoAlvo} · ${formatCurrency(meta)}` : "Ajuste os parâmetros"}
             </div>
           </div>
-          <div className="future-hero-badge" style={{ background: "rgba(255,176,0,0.1)", borderColor: "rgba(255,176,0,0.25)" }}>
-            <div className="future-badge-pct" style={{ color: "var(--amber)" }}>{progresso}%</div>
+          <div className="future-hero-badge bg-[rgba(255,176,0,0.1)] border-[rgba(255,176,0,0.25)]">
+            <div className="future-badge-pct text-[var(--amber)]">{progresso}%</div>
             <div className="future-badge-label">do alvo</div>
           </div>
         </div>
@@ -66,7 +66,7 @@ function FireTab({ patrimonioAtual }: { patrimonioAtual: number }) {
             initial={{ width: 0 }} animate={{ width: `${progresso}%` }}
             transition={{ duration: 1, ease: "easeOut", delay: 0.2 }} />
         </div>
-        <div className="future-metrics-row" style={{ marginTop: 10 }}>
+        <div className="future-metrics-row mt-2.5">
           {[
             { label: "Alvo", value: meta >= 1e6 ? `R$ ${(meta / 1e6).toFixed(1)}M` : formatCurrency(meta), color: "var(--amber)" },
             { label: "Atual", value: patrimonioAtual >= 1e6 ? `R$ ${(patrimonioAtual / 1e6).toFixed(2)}M` : formatCurrency(patrimonioAtual), color: "var(--blue)" },
@@ -110,27 +110,39 @@ function FireTab({ patrimonioAtual }: { patrimonioAtual: number }) {
       ].map(({ em, nm, color, meta: m, meses: ms, desc, isActive }) => {
         const y = (ms / 12).toFixed(1);
         return (
-          <div key={nm} className="future-bento-card" style={{
-            marginBottom: 10, padding: "14px 16px",
-            borderColor: isActive ? color : "transparent",
-            borderWidth: isActive ? 1.5 : 1, borderStyle: "solid",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 26 }}>{em}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", display: "flex", alignItems: "center", gap: 6 }}>
-                  {nm} {isActive && <span style={{ fontSize: 10, background: `${color}20`, color, padding: "2px 6px", borderRadius: 6, fontWeight: 700 }}>você</span>}
+          <div
+            key={nm}
+            className="future-bento-card mb-2.5 p-[14px_16px]"
+            style={{
+              borderColor: isActive ? color : "transparent",
+              borderWidth: isActive ? 1.5 : 1,
+              borderStyle: "solid",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="text-[26px]">{em}</div>
+              <div className="flex-1">
+                <div className="text-[14px] font-bold text-[var(--t1)] flex items-center gap-1.5">
+                  {nm}{" "}
+                  {isActive && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-[2px] rounded-[6px]"
+                      style={{ background: `${color}20`, color }}
+                    >
+                      você
+                    </span>
+                  )}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 2 }}>{desc}</div>
-                <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 3 }}>
+                <div className="text-[11px] text-[var(--t2)] mt-0.5">{desc}</div>
+                <div className="text-[10px] text-[var(--t3)] mt-0.5">
                   Alvo: {m >= 1e6 ? `R$ ${(m / 1e6).toFixed(1)}M` : formatCurrency(m)}
                 </div>
               </div>
-              <div style={{ textAlign: "right", minWidth: 60 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color, fontFamily: "var(--mono)" }}>
+              <div className="text-right min-w-[60px]">
+                <div className="text-[16px] font-extrabold font-mono" style={{ color }}>
                   {ms >= 600 ? ">50a" : `${y}a`}
                 </div>
-                <div style={{ fontSize: 9, color: "var(--t3)" }}>
+                <div className="text-[9px] text-[var(--t3)]">
                   {ms < 600 ? new Date().getFullYear() + Math.round(ms / 12) : "—"}
                 </div>
               </div>
@@ -286,12 +298,12 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
         <div className="future-header-row">
           <button className="back-btn" onClick={() => onBack?.()}><ArrowLeft size={16} /></button>
           <div>
-            <div className="eyebrow" style={{ color: "var(--blue)" }}>Projeção FIRE</div>
-            <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Futuro</div>
+            <div className="eyebrow text-[var(--blue)]">Projeção FIRE</div>
+            <div className="page-title m-0 text-[22px]">Futuro</div>
           </div>
         </div>
         <div className="future-loading-inner">
-          <Loader2 size={28} className="animate-spin" style={{ color: "var(--blue)" }} />
+          <Loader2 size={28} className="animate-spin text-[var(--blue)]" />
           <span>Calculando projeções...</span>
         </div>
       </div>
@@ -303,14 +315,14 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
       {/* ── Header ── */}
       <div className="future-header-row">
         <button className="back-btn" onClick={() => onBack?.()}><ArrowLeft size={16} /></button>
-        <div style={{ flex: 1 }}>
-          <div className="eyebrow" style={{ color: "var(--blue)" }}>Planejamento</div>
-          <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Futuro</div>
+        <div className="flex-1">
+          <div className="eyebrow text-[var(--blue)]">Planejamento</div>
+          <div className="page-title text-[22px] m-0">Futuro</div>
         </div>
       </div>
 
       {/* ── Tabs ── */}
-      <div className="tnav" style={{ marginBottom: 16 }}>
+      <div className="tnav mb-4">
         <button
           className={`tnav-i flex-1 flex gap-2 items-center justify-center${activeTab === "aposentadoria" ? " active" : ""}`}
           onClick={() => setActiveTab("aposentadoria")}
@@ -339,7 +351,7 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
         <div className="future-hero-top">
           <div className="future-hero-main">
             <div className="future-hero-eyebrow">Patrimônio projetado</div>
-            <div className="future-hero-value" style={{ color: isOnTrack ? "var(--green)" : "var(--blue)" }}>
+            <div className="future-hero-value text-[28px]" style={{ color: isOnTrack ? "var(--green)" : "var(--blue)" }}>
               {formatCurrency(futureValue)}
             </div>
             <div className="future-hero-sub">aos {retireAge} anos</div>
@@ -367,9 +379,9 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
 
         <div className="future-hero-status">
           {isOnTrack ? (
-            <span style={{ color: "var(--green)" }}>✅ No caminho certo — supera a meta em {formatCurrency(futureValue - fireTarget)}</span>
+            <span className="text-[var(--green)]">✅ No caminho certo — supera a meta em {formatCurrency(futureValue - fireTarget)}</span>
           ) : (
-            <span style={{ color: "var(--amber)" }}>⚠ Faltam {formatCurrency(fireTarget - futureValue)} para a meta FIRE</span>
+            <span className="text-[var(--amber)]">⚠ Faltam {formatCurrency(fireTarget - futureValue)} para a meta FIRE</span>
           )}
         </div>
 
@@ -443,11 +455,11 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
             <div className="future-compound-stat-lbl">Você vai investir</div>
           </div>
           <div className="future-compound-stat">
-            <div className="future-compound-stat-val" style={{ color: "var(--green)" }}>+{formatCurrency(compoundGains)}</div>
+            <div className="future-compound-stat-val text-[var(--green)]">+{formatCurrency(compoundGains)}</div>
             <div className="future-compound-stat-lbl">Juros gerados</div>
           </div>
           <div className="future-compound-stat">
-            <div className="future-compound-stat-val" style={{ color: "var(--amber)" }}>{compoundPct}%</div>
+            <div className="future-compound-stat-val text-[var(--amber)]">{compoundPct}%</div>
             <div className="future-compound-stat-lbl">Veio dos juros</div>
           </div>
         </div>
@@ -457,11 +469,9 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
       {milestones.length > 0 && (
         <>
           <div className="future-section-title">Marcos da jornada</div>
-          <div className="future-bento-card" style={{ padding: "6px 0" }}>
+          <div className="future-bento-card p-[6px_0]">
             {milestones.slice(0, 5).map((m, i) => (
-              <div key={i} className="future-milestone-row" style={{
-                borderBottom: i < Math.min(milestones.length, 5) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none"
-              }}>
+              <div key={i} className={`future-milestone-row ${i < Math.min(milestones.length, 5) - 1 ? 'border-b border-white/[0.04]' : ''}`}>
                 <div className="future-milestone-year" style={{ color: m.color }}>{m.year}</div>
                 <div className="future-milestone-info">
                   <div className="future-milestone-label">{m.label}</div>
@@ -475,18 +485,16 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
 
       {/* ── Sensitivity ── */}
       <div className="future-section-title">Sensibilidade de aportes</div>
-      <div className="future-bento-card" style={{ padding: "6px 0" }}>
+      <div className="future-bento-card p-[6px_0]">
         <div className="future-sensitivity-hint">
           Impacto de aumentar o aporte em {yearsToRetire} anos · {expectedReturnPct}% a.a.
         </div>
         {sensitivity.map(({ extra, total }, i) => (
-          <div key={extra} className="future-sensitivity-row" style={{
-            borderBottom: i < sensitivity.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none"
-          }}>
+          <div key={extra} className={`future-sensitivity-row ${i < sensitivity.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
             <div className="future-sensitivity-extra">
               {extra === 0 ? "Plano atual" : `+${formatCurrency(extra)}/mês`}
             </div>
-            <div style={{ textAlign: "right" }}>
+            <div className="text-right">
               <div className="future-sensitivity-total">{formatCurrency(total)}</div>
               {extra > 0 && <div className="future-sensitivity-gain">+{formatCurrency(total - sensitivity[0]!.total)}</div>}
             </div>
@@ -497,14 +505,14 @@ export const RetirementView = ({ onBack, onNavigate }: RetirementViewProps) => {
       {/* ── Quick nav ── */}
       <div className="future-nav-row">
         <button className="future-nav-btn" onClick={() => setActiveTab("fire")}>
-          <Zap size={15} style={{ color: "var(--amber)" }} />
+          <Zap size={15} className="text-[var(--amber)]" />
           <span>Calculadora FIRE</span>
-          <ChevronRight size={14} style={{ marginLeft: "auto", color: "var(--t3)" }} />
+          <ChevronRight size={14} className="ml-auto text-[var(--t3)]" />
         </button>
         <button className="future-nav-btn" onClick={() => onNavigate?.("investments")}>
-          <TrendingUp size={15} style={{ color: "var(--green)" }} />
+          <TrendingUp size={15} className="text-[var(--green)]" />
           <span>Minha Carteira</span>
-          <ChevronRight size={14} style={{ marginLeft: "auto", color: "var(--t3)" }} />
+          <ChevronRight size={14} className="ml-auto text-[var(--t3)]" />
         </button>
       </div>
       </>}

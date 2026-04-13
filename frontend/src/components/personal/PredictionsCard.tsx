@@ -1,4 +1,4 @@
-import type { AIInsights } from "@/lib/ai";
+﻿import type { AIInsights } from "@/lib/ai";
 import { getFinancialInsights } from "@/lib/ai";
 import { formatCurrency } from "@/lib/formatters";
 import type { Transaction } from "@/types";
@@ -98,14 +98,14 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
             <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
               <Brain size={20} />
             </div>
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500">
               Previsão <span className="text-white">Inteligente</span>
             </h3>
           </div>
           {loading && (
             <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5">
               <Loader2 className="animate-spin text-purple-400" size={12} />
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">
+              <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">
                 Processing IA
               </span>
             </div>
@@ -115,12 +115,12 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
         {predictions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center bg-white/5 rounded-[2.5rem] border border-dashed border-white/10">
             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-6">
-              <TrendingUp size={24} className="text-slate-600" />
+              <TrendingUp size={24} className="text-neutral-700" />
             </div>
             <h4 className="text-sm font-black text-white uppercase tracking-widest mb-2">
               Motor Desligado
             </h4>
-            <p className="text-slate-500 text-xs font-bold max-w-[240px] leading-relaxed">
+            <p className="text-neutral-500 text-xs font-bold max-w-[240px] leading-relaxed">
               Precisamos de mais dados para calibrar os algoritmos de previsão e
               projetar seu futuro financeiro.
             </p>
@@ -155,7 +155,7 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
                       <h4 className="text-lg font-black text-white tracking-tight truncate uppercase">
                         {p.category}
                       </h4>
-                      <p className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em]">
+                      <p className="text-[9px] text-neutral-500 uppercase font-black tracking-[0.2em]">
                         Estimativa Próximo Mês
                       </p>
                     </div>
@@ -183,7 +183,7 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
                 </div>
                 {p.reason && (
                   <div className="mt-4 pt-4 border-t border-white/5 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <p className="text-[11px] text-slate-400 font-bold leading-relaxed">
+                    <p className="text-[11px] text-neutral-500 font-bold leading-relaxed">
                       <span className="text-indigo-400 mr-2">CONTEXTO:</span>
                       {p.reason}
                     </p>
@@ -197,3 +197,4 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
     </div>
   );
 };
+

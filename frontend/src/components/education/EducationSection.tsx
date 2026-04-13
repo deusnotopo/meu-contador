@@ -1,46 +1,103 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useDebts } from "@/hooks/useDebts";
 import { useGoals } from "@/hooks/useGoals";
 import { useInvestments } from "@/hooks/useInvestments";
+import { useInvoices } from "@/hooks/useInvoices";
+import { motion, AnimatePresence } from "framer-motion";
 
-import { EDUCATION_MODULES, ACADEMY_RITUALS, AULAS_TRILHAS, getLessonDependencyInfo, getLessonObjective, getLessonOutcomeType, getPrimaryTrailForProfile } from "@/data/educationData";
+import {
+  EDUCATION_MODULES,
+  ACADEMY_RITUALS,
+  AULAS_TRILHAS,
+  getLessonDependencyInfo,
+  getLessonObjective,
+  getLessonOutcomeType,
+  getPrimaryTrailForProfile,
+} from "@/data/educationData";
 import { useEducation } from "@/hooks/useEducation";
 import { LessonDetailView } from "./LessonDetailView";
-import { showSuccess } from "@/lib/toast";
+import { showSuccess, showError } from "@/lib/toast";
 import type { Debt, SavingsGoal } from "@/types";
-import type { TabType } from "@/types/navigation";
+import { TAB_TO_PILLAR, type TabType } from "@/types/navigation";
+import { analyticsEvents, trackEvent } from "@/lib/analytics";
+import {
+  Search, BookOpen, Zap, Flame, Target, Trophy, ChevronRight, Lock, CheckCircle2, Star, Map, Sparkles
+} from "lucide-react";
 
-export const EducationSection = ({ onBack: _onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabType) => void } = {}) => {
+const LESSON_VIEW_SETTINGS_KEY = "mc_education_lesson_view_settings";
+
+type LessonViewSettings = {
+  focusMode: boolean;
+  expandGuideByDefault: boolean;
+};
+
+const DEFAULT_LESSON_VIEW_SETTINGS: LessonViewSettings = {
+  focusMode: true,
+  expandGuideByDefault: false,
+};
+
+// ── helpers ────────────────────────────────────────────────────────────────
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
+const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+
+// ── main ───────────────────────────────────────────────────────────────────
+export const EducationSection = ({
+  onBack: _onBack,
+  onNavigate,
+}: { onBack?: () => void; onNavigate?: (tab: TabType) => void } = {}) => {
   const { user } = useAuth();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
-  const [activeTrilha, setActiveTrilha] = useState<string>('todas');
-  const [showPanorama, setShowPanorama] = useState(false);
-  const [showLibrary, setShowLibrary] = useState(false);
-  const [showJourney, setShowJourney] = useState(false);
-  const [showMissions, setShowMissions] = useState(false);
+  const [activeTrilha, setActiveTrilha] = useState<string>("todas");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSection, setActiveSection] = useState<"home" | "library" | "achievements" | "rituals">("home");
+  const [lessonViewSettings, setLessonViewSettings] = useState<LessonViewSettings>(() => {
+    try {
+      const raw = localStorage.getItem(LESSON_VIEW_SETTINGS_KEY);
+      return raw ? { ...DEFAULT_LESSON_VIEW_SETTINGS, ...JSON.parse(raw) } : DEFAULT_LESSON_VIEW_SETTINGS;
+    } catch {
+      return DEFAULT_LESSON_VIEW_SETTINGS;
+    }
+  });
 
   const primaryTrailId = getPrimaryTrailForProfile(user || undefined);
   const { debts } = useDebts();
   const { goals } = useGoals();
   const { assets } = useInvestments();
+  const { invoices } = useInvoices();
 
-  // Estado para rituais interativos
   const [ritualChecked, setRitualChecked] = useState<Record<string, Record<number, boolean>>>({});
 
-  const educationProfile = useMemo(() => ({
-    ...(user || {}),
-    debtBalance: debts.reduce((sum: number, debt: Debt) => sum + Number(debt.balance || 0), 0),
-    goalsCount: goals.filter((goal: SavingsGoal & { completed?: boolean }) => !goal.completed).length,
-    hasInvestments: assets.length > 0,
-  }), [assets.length, debts, goals, user]);
+  const educationProfile = useMemo(
+    () => ({
+      ...(user || {}),
+      userId: user?.id,
+      debtBalance: debts.reduce((sum: number, debt: Debt) => sum + Number(debt.balance || 0), 0),
+      goalsCount: goals.filter((g: SavingsGoal & { completed?: boolean }) => !g.completed).length,
+      hasInvestments: assets.length > 0,
+      pendingInvoicesAmount: invoices.filter((i) => i.status === "pending").reduce((s, i) => s + Number(i.amount || 0), 0),
+      overdueInvoicesCount: invoices.filter((i) => i.status === "overdue").length,
+    }),
+    [assets.length, debts, goals, invoices, user]
+  );
 
-  const { state, completeModule, saveLessonProgress, isModuleCompleted, getModuleProgress, getNextRecommendedLesson, getContextualRecommendation, getJourneyStage, getProgressPct, getReviewRecommendation, getMaturityRoadmap } = useEducation(educationProfile);
+  const {
+    state, error, isLoading, completeModule, saveLessonProgress,
+    isModuleCompleted, getModuleProgress, getNextRecommendedLesson,
+    getContextualRecommendation, getJourneyStage, getProgressPct,
+    getReviewRecommendation, getMaturityRoadmap,
+  } = useEducation(educationProfile);
 
-  // ✅ Todos os hooks declarados ANTES de qualquer return condicional
-  const filteredLessons = activeTrilha === 'todas'
-    ? EDUCATION_MODULES
-    : EDUCATION_MODULES.filter(l => l.trilha === activeTrilha);
+  const filteredLessons = (
+    activeTrilha === "todas"
+      ? EDUCATION_MODULES
+      : EDUCATION_MODULES.filter((l) => l.trilha === activeTrilha)
+  ).filter(
+    (l) =>
+      !searchQuery ||
+      l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.sub || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const nextLesson = getNextRecommendedLesson(primaryTrailId);
   const contextualRecommendation = getContextualRecommendation();
@@ -49,104 +106,82 @@ export const EducationSection = ({ onBack: _onBack, onNavigate }: { onBack?: () 
   const progressPct = getProgressPct();
   const maturityRoadmap = getMaturityRoadmap();
 
-  const doneCount = EDUCATION_MODULES.filter(l => isModuleCompleted(l.id)).length;
+  const doneCount = EDUCATION_MODULES.filter((l) => isModuleCompleted(l.id)).length;
   const totalCount = EDUCATION_MODULES.length;
+  const streak = state.streak || 0;
+  const xp = state.xp || 0;
+  const primaryTrail = AULAS_TRILHAS.find((t) => t.id === primaryTrailId);
+  const topRecommendation = contextualRecommendation.lesson || nextLesson || null;
 
   const dynamicAchievements = useMemo(() => {
     const completedIds = new Set(state.completedModules);
-    const completedTrails = new Set(EDUCATION_MODULES.filter(l => completedIds.has(l.id)).map(l => l.trilha));
-
+    const completedTrails = new Set(EDUCATION_MODULES.filter((l) => completedIds.has(l.id)).map((l) => l.trilha));
+    const allOf = (trail: string) => EDUCATION_MODULES.filter((l) => l.trilha === trail).every((l) => completedIds.has(l.id));
     return [
-      {
-        emoji: '🇧🇷', nome: 'Sobrevivente do Serasa', desc: 'Completou a Trilha Sobrevivência',
-        ok: completedTrails.has('start') && EDUCATION_MODULES.filter(l => l.trilha === 'start').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '🏗️', nome: 'Fundador de Base', desc: 'Completou a Trilha Fundamentos',
-        ok: completedTrails.has('base') && EDUCATION_MODULES.filter(l => l.trilha === 'base').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '🧾', nome: 'Contador Prático', desc: 'Completou Contabilidade Leve',
-        ok: completedTrails.has('contabilidade') && EDUCATION_MODULES.filter(l => l.trilha === 'contabilidade').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '🛡️', nome: 'Reserva Blindada', desc: 'Concluiu aulas de proteção e reserva',
-        ok: completedIds.has('br_reserva') && completedIds.has('rf_fgc'),
-      },
-      {
-        emoji: '📈', nome: 'Sócio de Empresas', desc: 'Completou Renda Variável',
-        ok: completedTrails.has('renda_var') && EDUCATION_MODULES.filter(l => l.trilha === 'renda_var').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '🔥', nome: 'Matemática do FIRE BR', desc: 'Dominou a SWR de 3,2%',
-        ok: completedIds.has('fire_math_br'),
-      },
-      {
-        emoji: '💰', nome: 'Discípulo de Bazin', desc: 'Completou Dividendos BR',
-        ok: completedTrails.has('dividendos') && EDUCATION_MODULES.filter(l => l.trilha === 'dividendos').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '₿', nome: 'Hodler Consciente', desc: 'Completou a Trilha Cripto',
-        ok: completedTrails.has('cripto') && EDUCATION_MODULES.filter(l => l.trilha === 'cripto').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '📜', nome: 'Patrimônio Blindado', desc: 'Completou Blindagem Sucessória',
-        ok: completedTrails.has('sucessao') && EDUCATION_MODULES.filter(l => l.trilha === 'sucessao').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '🚀', nome: 'Renda Ativa Dominada', desc: 'Completou Milhas e Renda Ativa',
-        ok: completedTrails.has('renda_ativa') && EDUCATION_MODULES.filter(l => l.trilha === 'renda_ativa').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '🧠', nome: 'Mente Blindada', desc: 'Completou Psicologia Financeira',
-        ok: completedTrails.has('mental') && EDUCATION_MODULES.filter(l => l.trilha === 'mental').every(l => completedIds.has(l.id)),
-      },
-      {
-        emoji: '🎓', nome: 'Mestre da Academia', desc: `Completou ${doneCount}/${totalCount} aulas`,
-        ok: doneCount === totalCount,
-      },
-      {
-        emoji: '⚡', nome: 'XP Grandmaster', desc: 'Acumulou 1000+ XP',
-        ok: (state.xp || 0) >= 1000,
-      },
-      {
-        emoji: '🔥', nome: 'Streak de Ouro', desc: 'Manteve sequência de 30+ dias',
-        ok: (state.streak || 0) >= 30,
-      },
+      { emoji: "🇧🇷", nome: "Sobrevivente do Serasa", desc: "Trilha Sobrevivência", ok: completedTrails.has("start") && allOf("start") },
+      { emoji: "🏗️", nome: "Fundador de Base", desc: "Trilha Fundamentos", ok: completedTrails.has("base") && allOf("base") },
+      { emoji: "🧾", nome: "Contador Prático", desc: "Contabilidade Leve", ok: completedTrails.has("contabilidade") && allOf("contabilidade") },
+      { emoji: "🛡️", nome: "Reserva Blindada", desc: "Reserva + FGC", ok: completedIds.has("br_reserva") && completedIds.has("rf_fgc") },
+      { emoji: "📈", nome: "Sócio de Empresas", desc: "Renda Variável", ok: completedTrails.has("renda_var") && allOf("renda_var") },
+      { emoji: "🔥", nome: "Matemática do FIRE", desc: "Dominou SWR 3,2%", ok: completedIds.has("fire_math_br") },
+      { emoji: "💰", nome: "Discípulo de Bazin", desc: "Dividendos BR", ok: completedTrails.has("dividendos") && allOf("dividendos") },
+      { emoji: "₿", nome: "Hodler Consciente", desc: "Trilha Cripto", ok: completedTrails.has("cripto") && allOf("cripto") },
+      { emoji: "📜", nome: "Patrimônio Blindado", desc: "Blindagem Sucessória", ok: completedTrails.has("sucessao") && allOf("sucessao") },
+      { emoji: "🚀", nome: "Renda Ativa", desc: "Milhas e Renda Ativa", ok: completedTrails.has("renda_ativa") && allOf("renda_ativa") },
+      { emoji: "🧠", nome: "Mente Blindada", desc: "Psicologia Financeira", ok: completedTrails.has("mental") && allOf("mental") },
+      { emoji: "🎓", nome: "Mestre do Aprender", desc: `${doneCount}/${totalCount} aulas`, ok: doneCount === totalCount },
+      { emoji: "⚡", nome: "XP Grandmaster", desc: "1000+ XP acumulados", ok: xp >= 1000 },
+      { emoji: "🔥", nome: "Streak de Ouro", desc: "30+ dias consecutivos", ok: streak >= 30 },
     ];
-  }, [doneCount, state.completedModules, state.streak, state.xp, totalCount]);
-
-  const streak = state.streak || 7;
-  const xp = state.xp || 350;
+  }, [doneCount, state.completedModules, state.streak, state.xp, totalCount, streak, xp]);
 
   const weeklyMission = useMemo(() => {
-    if (user?.hasDebts) {
-      return {
-        title: 'Missão da semana: estancar juros destrutivos',
-        desc: 'Revise dívidas caras, registre parcelas e priorize a aula que reduz dano imediato no caixa.',
-        cta: 'Abrir aula crítica',
-        lessonId: contextualRecommendation.lesson?.id || nextLesson?.id,
+    // ── Nível 1: CRISE (Saldo ou Fluxo Negativo) ──
+    if (educationProfile.overdueInvoicesCount > 0 || (user?.monthlyIncome && educationProfile.pendingInvoicesAmount > user.monthlyIncome)) {
+      return { 
+        title: "Operação Resgate: Fluxo de Caixa", 
+        desc: "Você tem contas atrasadas ou um peso de boleto maior que sua renda média. Priorize a aula de 'Estancando o Sangramento'.", 
+        cta: "Ir para Emergência", 
+        lessonId: "br_crise", // Assuming this ID or fallback to contextual
+        type: "crisis",
+        icon: <Flame size={20} />
       };
     }
 
-    if (!user?.hasEmergencyFund) {
-      return {
-        title: 'Missão da semana: construir proteção mínima',
-        desc: 'Aprenda liquidez certa, abra a meta da reserva e defina o primeiro aporte automático.',
-        cta: 'Começar proteção',
-        lessonId: contextualRecommendation.lesson?.id || nextLesson?.id,
+    // ── Nível 2: DÍVIDA (Juros Compostos contra você) ──
+    if (educationProfile.debtBalance > 0) {
+      return { 
+        title: "Derrubar o Monstro dos Juros", 
+        desc: "Dívidas identificadas. O objetivo desta semana é entender qual contrato quitar primeiro para economizar no longo prazo.", 
+        cta: "Matar Dívidas", 
+        lessonId: "br_dividas_prioridade",
+        type: "debt",
+        icon: <Zap size={20} />
       };
     }
 
-    return {
-      title: 'Missão da semana: conectar teoria e execução',
-      desc: 'Conclua uma aula, aplique uma ação no app e transforme conhecimento em resultado real.',
-      cta: 'Seguir missão',
-      lessonId: contextualRecommendation.lesson?.id || nextLesson?.id,
+    // ── Nível 3: BUDGET (Desorganização de Gastos) ──
+    if (educationProfile.pendingInvoicesAmount > 0 && !user?.hasEmergencyFund) {
+      return { 
+        title: "Blindagem de Reserva", 
+        desc: "Você está gastando mas ainda não tem seu 'Seguro de Vida Financeiro'. Vamos focar em criar sua Reserva de Emergência.", 
+        cta: "Criar Reserva", 
+        lessonId: "br_reserva",
+        type: "budget",
+        icon: <Target size={20} />
+      };
+    }
+
+    // ── Nível 4: EXPANSÃO (Patrimônio e Multiplicação) ──
+    return { 
+      title: "Expansão de Patrimônio", 
+      desc: "Base sólida detectada! Agora o foco é otimizar sua Renda Variável e entender como o mercado paga dividendos.", 
+      cta: "Aprender a Investir", 
+      lessonId: "invest_intro",
+      type: "expansion",
+      icon: <Sparkles size={20} />
     };
-  }, [contextualRecommendation.lesson?.id, nextLesson?.id, user?.hasDebts, user?.hasEmergencyFund]);
-
-
+  }, [educationProfile, user, contextualRecommendation.lesson?.id, nextLesson?.id]);
 
   const handleComplete = (lessonId: string, xpEarned: number) => {
     completeModule(lessonId);
@@ -154,369 +189,566 @@ export const EducationSection = ({ onBack: _onBack, onNavigate }: { onBack?: () 
     setActiveLessonId(null);
   };
 
-  const activeLesson = EDUCATION_MODULES.find(m => m.id === activeLessonId);
+  useEffect(() => {
+    trackEvent(analyticsEvents.EDUCATION_OPEN, { trail_focus: primaryTrailId, progress_pct: progressPct, completed_lessons: doneCount });
+  }, [doneCount, primaryTrailId, progressPct]);
 
-  // ✅ APÓS TODOS OS HOOKS, PODE TER RETURN CONDICIONAL
+  const safeNavigate = (tab?: string) => {
+    if (!tab || !Object.prototype.hasOwnProperty.call(TAB_TO_PILLAR, tab)) {
+      showError("Destino ainda não disponível.");
+      return;
+    }
+    onNavigate?.(tab as TabType);
+  };
+
+  const activeLesson = EDUCATION_MODULES.find((m) => m.id === activeLessonId);
+
+  const updateLessonViewSettings = (partial: Partial<LessonViewSettings>) => {
+    setLessonViewSettings((prev) => {
+      const next = { ...prev, ...partial };
+      localStorage.setItem(LESSON_VIEW_SETTINGS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // ── LESSON VIEW ────────────────────────────────────────────────────────
   if (activeLesson) {
     return (
       <LessonDetailView
         lesson={activeLesson}
         initialCompletedSteps={getModuleProgress(activeLesson.id).completedSteps}
         checkpointLabel={getModuleProgress(activeLesson.id).checkpointLabel}
+        focusMode={lessonViewSettings.focusMode}
+        expandGuideByDefault={lessonViewSettings.expandGuideByDefault}
+        onSettingsChange={updateLessonViewSettings}
         onBack={() => setActiveLessonId(null)}
-        onNavigate={(tab) => onNavigate?.(tab as TabType)}
+        onNavigate={(tab) => safeNavigate(tab)}
         onProgress={(completedSteps) => saveLessonProgress(activeLesson.id, completedSteps)}
         onComplete={(xp) => handleComplete(activeLesson.id, xp)}
       />
     );
   }
 
-  const topRecommendation = contextualRecommendation.lesson || nextLesson || null;
+  // ── LOADING / ERROR ────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="space-y-4 p-4 animate-pulse">
+        <div className="h-40 rounded-3xl bg-white/5" />
+        <div className="h-28 rounded-3xl bg-white/5" />
+        <div className="grid grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => <div key={i} className="h-20 rounded-2xl bg-white/5" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm">
+        <div className="font-bold mb-1">Não foi possível carregar sua jornada.</div>
+        <div className="text-xs opacity-70">{error}</div>
+      </div>
+    );
+  }
+
+  // ── MAIN RENDER ────────────────────────────────────────────────────────
+  const navItems = [
+    { id: "home", label: "Início", icon: <Sparkles size={14} /> },
+    { id: "library", label: "Biblioteca", icon: <BookOpen size={14} /> },
+    { id: "achievements", label: "Conquistas", icon: <Trophy size={14} /> },
+    { id: "rituals", label: "Rituais", icon: <Target size={14} /> },
+  ];
 
   return (
-    <div style={{ paddingTop: "10px", animation: "fsu 0.25s ease" }}>
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 pb-12">
 
-      {/* ── Header ─────────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-        <div>
-          <div className="eyebrow">Aprendizado</div>
-          <div className="page-title" style={{ fontSize: "22px", margin: 0 }}>Academia 🎓</div>
-        </div>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <div style={{ background: "var(--amber-d)", border: "1px solid rgba(255,173,59,0.25)", borderRadius: "12px", padding: "6px 10px", display: "flex", alignItems: "center", gap: "5px" }}>
-            <span style={{ fontSize: "16px", animation: "stk 1.5s ease infinite" }}>🔥</span>
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--amber)", fontFamily: "var(--mono)" }}>{streak}</span>
+      {/* ── HEADER ──────────────────────────────────────────────────────── */}
+      <motion.div variants={item}>
+        <div className="card-obsidian relative overflow-hidden p-8">
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-600/10 blur-[80px] rounded-full pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-3">
+                <BookOpen size={12} className="text-indigo-400" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Academia Financeira</span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                Central de <span className="text-indigo-400">Aprendizado</span>
+              </h1>
+              <p className="text-sm text-[var(--t2)] mt-2 max-w-md leading-relaxed">
+                Conteúdo guiado pelo seu momento financeiro real — com teoria, exemplo brasileiro e ação dentro do app.
+              </p>
+            </div>
+            {/* XP + Streak badges */}
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="flex flex-col items-center p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 min-w-[64px]">
+                <Flame size={18} className="text-amber-400 mb-1" />
+                <span className="text-xl font-black text-amber-300 font-mono leading-none">{streak}</span>
+                <span className="text-[9px] text-amber-400/70 uppercase tracking-widest mt-0.5">dias</span>
+              </div>
+              <div className="flex flex-col items-center p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 min-w-[64px]">
+                <Zap size={18} className="text-blue-400 mb-1" />
+                <span className="text-xl font-black text-blue-300 font-mono leading-none">{xp}</span>
+                <span className="text-[9px] text-blue-400/70 uppercase tracking-widest mt-0.5">XP</span>
+              </div>
+              <div className="flex flex-col items-center p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 min-w-[64px]">
+                <Star size={18} className="text-emerald-400 mb-1" />
+                <span className="text-xl font-black text-emerald-300 font-mono leading-none">{progressPct}%</span>
+                <span className="text-[9px] text-emerald-400/70 uppercase tracking-widest mt-0.5">progresso</span>
+              </div>
+            </div>
           </div>
-          <div style={{ background: "var(--blue3)", border: "1px solid rgba(74,139,255,0.25)", borderRadius: "12px", padding: "6px 10px", display: "flex", alignItems: "center", gap: "5px" }}>
-            <span style={{ fontSize: "12px" }}>⚡</span>
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--blue)", fontFamily: "var(--mono)" }}>{xp} XP</span>
-          </div>
-        </div>
-      </div>
 
-      {/* ── PRIORIDADE ÚNICA: O QUE FAZER AGORA ─────────────────────────────── */}
-      {topRecommendation && (
-        <div className="card" style={{ padding: "20px", marginBottom: "14px", border: "1px solid rgba(255,173,59,0.22)", background: "linear-gradient(135deg, rgba(255,173,59,0.10), rgba(74,139,255,0.08))" }}>
-          <div style={{ fontSize: "10px", color: "var(--amber)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 800, marginBottom: "6px" }}>
-            Seu próximo melhor passo
+          {/* Progress bar */}
+          <div className="relative z-10 mt-6 bg-white/5 rounded-full h-2 overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+              className="h-full bg-gradient-to-r from-indigo-500 to-blue-400 rounded-full"
+            />
           </div>
-          <div style={{ fontSize: "18px", fontWeight: 800, color: "var(--t1)", marginBottom: "6px" }}>
-            {topRecommendation.title}
+          <div className="relative z-10 flex justify-between mt-1.5 text-[10px] text-white/30 font-mono">
+            <span>{doneCount}/{totalCount} aulas concluídas</span>
+            <span>{journeyStage.title}</span>
           </div>
-          <div style={{ fontSize: "13px", color: "var(--t2)", lineHeight: 1.5, marginBottom: "14px" }}>
-            {contextualRecommendation.reason || getLessonObjective(topRecommendation)}
-          </div>
-          <button className="btn-p" style={{ marginTop: 0 }} onClick={() => setActiveLessonId(topRecommendation.id || null)}>
-            Abrir aula
+        </div>
+      </motion.div>
+
+      {/* ── NAVIGATION DOCK ─────────────────────────────────────────────── */}
+      <motion.div variants={item}>
+        <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/10 overflow-x-auto gap-2">
+          {navItems.map((n) => (
+            <button
+              key={n.id}
+              onClick={() => setActiveSection(n.id as typeof activeSection)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                activeSection === n.id
+                  ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                  : "text-[var(--t3)] hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {n.icon}
+              {n.label}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div variants={item}>
+        <div className="flex flex-wrap gap-2 items-center rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Configurações da aula</span>
+          <button
+            onClick={() => updateLessonViewSettings({ focusMode: !lessonViewSettings.focusMode })}
+            className={`px-3 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${lessonViewSettings.focusMode ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" : "bg-white/[0.03] text-white/55 border-white/10"}`}
+          >
+            {lessonViewSettings.focusMode ? "Modo foco ligado" : "Modo foco desligado"}
+          </button>
+          <button
+            onClick={() => updateLessonViewSettings({ expandGuideByDefault: !lessonViewSettings.expandGuideByDefault })}
+            className={`px-3 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${lessonViewSettings.expandGuideByDefault ? "bg-blue-500/15 text-blue-300 border-blue-500/30" : "bg-white/[0.03] text-white/55 border-white/10"}`}
+          >
+            {lessonViewSettings.expandGuideByDefault ? "Guia aberto por padrão" : "Guia fechado por padrão"}
           </button>
         </div>
-      )}
+      </motion.div>
 
-      {/* ── BARRA DE JORNADA ─────────────────────────────── */}
-      <div className="card" style={{ padding: "16px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-          <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
-            Sua jornada
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--blue)" }} onClick={() => setShowJourney(!showJourney)}>
-            {showJourney ? "fechar" : "ver tudo ▼"}
-          </div>
-        </div>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--t1)", marginBottom: "6px" }}>
-          {journeyStage.title}
-        </div>
-        <div style={{ background: "var(--glass2)", borderRadius: "999px", height: "8px", overflow: "hidden", marginBottom: "6px" }}>
-          <div style={{ width: `${progressPct}%`, height: "100%", background: "linear-gradient(90deg,#2F62D9,#5048E8)" }} />
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
 
-      {/* ── MISSÃO DA SEMANA ─────────────────────────────── */}
-      <div className="card" style={{ padding: "16px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-          <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
-            Missão e ritual
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--purple)" }} onClick={() => setShowMissions(!showMissions)}>
-            {showMissions ? "fechar" : "ver tudo ▼"}
-          </div>
-        </div>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--t1)", marginBottom: "6px" }}>
-          {weeklyMission.title}
-        </div>
-        <div style={{ fontSize: "12px", color: "var(--t2)", lineHeight: 1.5, marginBottom: "12px" }}>
-          {weeklyMission.desc}
-        </div>
-        <button className="btn-p" style={{ marginTop: 0 }} onClick={() => weeklyMission.lessonId && setActiveLessonId(weeklyMission.lessonId)}>
-          {weeklyMission.cta}
-        </button>
+        {/* ══ HOME (Bento Grid) ═══════════════════════════════════════════ */}
+        {activeSection === "home" && (
+          <motion.div key="home" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
+            className="grid grid-cols-6 gap-4">
 
-        {/* Rituais interativos */}
-        {showMissions && (
-          <div style={{ marginTop: "16px", borderTop: "1px solid var(--border)", paddingTop: "12px" }}>
-            {ACADEMY_RITUALS.map((ritual) => {
-              const ritualKey = ritual.id;
-              const checkedItems = ritualChecked[ritualKey] || {};
-              const allChecked = ritual.checklist.every((_, idx) => checkedItems[idx]);
-              return (
-                <div key={ritual.id} style={{ marginBottom: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
-                    <span style={{ fontSize: "12px" }}>{ritual.period === 'semana' ? '📅' : '📆'}</span>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--t1)" }}>{ritual.title}</div>
+            {/* MAIN RECOMMENDATION (Primary Bento) */}
+            {topRecommendation && (
+              <div className="col-span-6 md:col-span-4 relative overflow-hidden rounded-[2.5rem] p-8 border border-indigo-500/20 group bg-card-obsidian shadow-2xl">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 blur-[90px] rounded-full pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-1000" />
+                <div className="absolute bottom-[-100px] left-[-100px] w-60 h-60 bg-blue-600/5 blur-[80px] rounded-full pointer-events-none" />
+                
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-6">
+                    <Zap size={10} className="text-indigo-400" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Próximo Grande Passo</span>
                   </div>
-                  <div style={{ fontSize: "11px", color: "var(--t2)", marginBottom: "8px" }}>{ritual.description}</div>
-                  {ritual.checklist.map((item, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => {
-                        setRitualChecked(prev => ({
-                          ...prev,
-                          [ritualKey]: { ...prev[ritualKey], [idx]: !prev[ritualKey]?.[idx] }
-                        }));
-                      }}
-                      style={{
-                        display: "flex", alignItems: "flex-start", gap: "8px", padding: "6px 0",
-                        cursor: "pointer", opacity: checkedItems[idx] ? 0.5 : 1,
-                      }}
-                    >
-                      <div style={{
-                        width: "16px", height: "16px", borderRadius: "4px", flexShrink: 0, marginTop: "1px",
-                        border: checkedItems[idx] ? "none" : "1.5px solid var(--t3)",
-                        background: checkedItems[idx] ? "var(--green)" : "transparent",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: "#fff", fontSize: "10px", fontWeight: 900,
-                      }}>
-                        {checkedItems[idx] && "✓"}
+                  <div className="text-3xl font-black text-white mb-4 tracking-tight leading-tight max-w-xl">{topRecommendation.title}</div>
+                  <p className="text-sm text-[var(--t2)] leading-relaxed max-w-sm mb-8 opacity-90">
+                    {contextualRecommendation.reason || getLessonObjective(topRecommendation)}
+                  </p>
+                  <button
+                    onClick={() => setActiveLessonId(topRecommendation.id ?? null)}
+                    className="flex items-center gap-3 bg-white text-black text-[11px] font-black uppercase tracking-widest px-10 py-4.5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl"
+                  >
+                    {contextualRecommendation.actionLabel || "Iniciar Jornada"}
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* WEEKLY MISSION (Contextual Bento) */}
+            <div className={`col-span-6 md:col-span-2 relative overflow-hidden rounded-[2.5rem] p-8 border group transition-all duration-500 flex flex-col justify-center ${
+              weeklyMission.type === "crisis" ? "border-red-500/40 bg-red-500/[0.04] shadow-[0_0_40px_rgba(239,68,68,0.05)]" :
+              weeklyMission.type === "debt" ? "border-amber-500/40 bg-amber-500/[0.04] shadow-[0_0_40px_rgba(245,158,11,0.05)]" :
+              "border-indigo-500/40 bg-indigo-500/[0.04] shadow-[0_0_40px_rgba(99,102,241,0.05)]"
+            }`}>
+              <div className="relative z-10 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                  <div className={`p-4 rounded-2xl ${
+                    weeklyMission.type === "crisis" ? "bg-red-500/20 text-red-400" :
+                    weeklyMission.type === "debt" ? "bg-amber-500/20 text-amber-400" :
+                    "bg-indigo-500/20 text-indigo-400"
+                  }`}>
+                    {weeklyMission.icon}
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Missão</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/60">07 Dias</span>
+                  </div>
+                </div>
+                <div className="text-xl font-black text-white mb-3 leading-tight">{weeklyMission.title}</div>
+                <p className="text-xs text-[var(--t3)] leading-relaxed mb-8 flex-1 opacity-80">
+                  {weeklyMission.desc}
+                </p>
+                <button
+                  onClick={() => weeklyMission.lessonId && setActiveLessonId(weeklyMission.lessonId)}
+                  className="w-full py-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest text-white transition-all backdrop-blur-sm"
+                >
+                  {weeklyMission.cta}
+                </button>
+              </div>
+            </div>
+
+            {/* STATS TILES (Refined for density) */}
+            <div className="col-span-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Trilha Foco", value: primaryTrail?.label || "Geral", icon: primaryTrail?.emoji || "🧭", color: "indigo" },
+                { label: "Energia XP", value: xp, icon: "⚡", color: "blue" },
+                { label: "Concluídas", value: `${doneCount}/${totalCount}`, icon: "🎓", color: "emerald" },
+                { label: "Fogo Ativo", value: `${streak} Dias`, icon: "🔥", color: "amber" },
+              ].map((s, idx) => (
+                <div key={idx} className="p-5 rounded-[1.8rem] border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all hover:border-white/10 group">
+                  <div className="text-[22px] mb-3 group-hover:scale-110 transition-transform">{s.icon}</div>
+                  <div className="text-[9px] uppercase text-white/30 tracking-widest font-black mb-1.5">{s.label}</div>
+                  <div className="text-xl font-black text-white leading-tight font-mono">{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* REVIEW CARD & ROADMAP (Combined row) */}
+            {reviewRecommendation.lesson ? (
+              <>
+                <div className="col-span-6 md:col-span-3 rounded-[2.2rem] p-7 border border-purple-500/20 bg-purple-500/[0.04] flex flex-col justify-between group relative overflow-hidden">
+                  <div className="absolute top-[-20px] right-[-20px] w-24 h-24 bg-purple-500/10 blur-[40px] rounded-full" />
+                  <div>
+                    <div className="inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-purple-400 mb-4 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20">
+                      <span className="animate-spin-slow">🔁</span> Revisão Necessária
+                    </div>
+                    <div className="text-xl font-black text-white mb-2 leading-tight">{reviewRecommendation.lesson.title}</div>
+                    <p className="text-[11px] text-[var(--t3)] leading-relaxed max-w-xs">{reviewRecommendation.reason}</p>
+                  </div>
+                  <button
+                    onClick={() => setActiveLessonId(reviewRecommendation.lesson!.id)}
+                    className="mt-6 w-full py-4 rounded-xl bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-purple-500 transition-all shadow-lg"
+                  >
+                    Atendimento de Dúvidas
+                  </button>
+                </div>
+
+                <div className="col-span-6 md:col-span-3 rounded-[2.2rem] p-7 border border-white/8 bg-white/[0.02] flex flex-col group">
+                   <div className="flex items-center gap-2 mb-6">
+                    <Map size={16} className="text-blue-400" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Roadmap de Maturidade</span>
+                  </div>
+                  <div className="space-y-4 flex-1">
+                    {maturityRoadmap.slice(0, 4).map((stage) => (
+                      <div key={stage.id} className="relative">
+                        <div className="flex justify-between items-end mb-1.5 px-1">
+                          <div className="text-[10px] font-black text-white/70 uppercase tracking-tight">{stage.title}</div>
+                          <div className="text-[9px] font-mono text-white/30">{stage.progressPct}%</div>
+                        </div>
+                        <div className="h-2 rounded-full bg-white/[0.04] p-[1px]">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${stage.progressPct}%` }}
+                            transition={{ duration: 1.5, ease: "circOut" }}
+                            className={`h-full rounded-full ${stage.progressPct === 100 ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]" : "bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.3)]"}`}
+                          />
+                        </div>
                       </div>
-                      <div style={{ fontSize: "11px", color: "var(--t2)", textDecoration: checkedItems[idx] ? "line-through" : "none" }}>
-                        {item}
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+                <div className="col-span-6 rounded-[2.2rem] p-8 border border-white/8 bg-white/[0.02] relative overflow-hidden">
+                  <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full" />
+                   <div className="flex items-center gap-3 mb-8">
+                    <Map size={18} className="text-emerald-400" />
+                    <div>
+                      <span className="block text-[10px] font-black uppercase tracking-widest text-emerald-400">Radar de Conhecimento</span>
+                      <span className="block text-2xl font-black text-white">Roadmap de Maturidade</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                    {maturityRoadmap.map((stage) => (
+                      <div key={stage.id} className="relative">
+                        <div className="flex justify-between items-end mb-2 px-1">
+                          <div className="text-[11px] font-black text-white/50 uppercase tracking-tight">{stage.title}</div>
+                          <div className="text-[10px] font-mono text-white/40">{stage.progressPct}%</div>
+                        </div>
+                        <div className="h-3 rounded-full bg-white/[0.05] p-[1.5px] border border-white/5">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${stage.progressPct}%` }}
+                            transition={{ duration: 1.8, ease: "circOut" }}
+                            className={`h-full rounded-full ${stage.progressPct === 100 ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]" : "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]"}`}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+            )}
+
+          </motion.div>
+        )}
+
+
+        {/* ══ LIBRARY ═══════════════════════════════════════════════════ */}
+        {activeSection === "library" && (
+          <motion.div key="library" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
+            {/* Search + Filter */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 focus-within:border-indigo-500/50 transition-all">
+                <Search size={14} className="text-white/30" />
+                <input
+                  className="flex-1 bg-transparent text-[var(--t1)] text-sm outline-none placeholder:text-[var(--t4)]"
+                  placeholder="Buscar aula..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                <button
+                  onClick={() => setActiveTrilha("todas")}
+                  className={`shrink-0 px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${
+                    activeTrilha === "todas" ? "bg-white text-black" : "bg-white/5 text-white/50 hover:text-white border border-white/10"
+                  }`}
+                >
+                  🗂️ Todas
+                </button>
+                {(AULAS_TRILHAS as { id: string; label: string; emoji: string; color: string }[]).map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTrilha(t.id)}
+                    className={`shrink-0 px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all border ${
+                      activeTrilha === t.id ? "text-white" : "bg-white/[0.03] text-white/50 hover:text-white"
+                    }`}
+                    style={
+                      activeTrilha === t.id
+                        ? { background: t.color, borderColor: "transparent" }
+                        : { borderColor: `${t.color}30`, color: t.color }
+                    }
+                  >
+                    {t.emoji} {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lesson cards */}
+            <div className="space-y-3">
+              {filteredLessons.map((l) => {
+                const mp = getModuleProgress(l.id);
+                const isCompleted = isModuleCompleted(l.id);
+                const depInfo = getLessonDependencyInfo(l.id);
+                const hardDepIds = depInfo.hardPrerequisites.filter((x: string) => x.startsWith("lesson:")).map((x: string) => x.replace("lesson:", ""));
+                const missingDeps = hardDepIds.filter((id: string) => !isModuleCompleted(id));
+                const isLocked = !isCompleted && missingDeps.length > 0;
+                const tr = AULAS_TRILHAS.find((t) => t.id === l.trilha);
+                const isPrimary = l.trilha === primaryTrailId;
+
+                return (
+                  <motion.div
+                    key={l.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => {
+                      if (isLocked) { showError("🔒 Complete as lições anteriores primeiro"); return; }
+                      setActiveLessonId(l.id);
+                    }}
+                    className={`rounded-2xl border overflow-hidden cursor-pointer transition-all group ${
+                      isCompleted ? "border-emerald-500/20 bg-emerald-500/[0.03]" : isLocked ? "border-white/5 bg-white/[0.02] opacity-60" : "border-white/8 bg-white/[0.02] hover:border-indigo-500/30 hover:bg-indigo-500/[0.03]"
+                    }`}
+                  >
+                    {/* Banner */}
+                    <div className="relative h-14 overflow-hidden flex items-center px-4" style={{ background: l.grad }}>
+                      <span className="text-3xl">{l.emoji}</span>
+                      <div className="ml-auto flex gap-2">
+                        {isCompleted && (
+                          <span className="text-[9px] font-black uppercase px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            ✓ Concluída
+                          </span>
+                        )}
+                        {isLocked && (
+                          <span className="text-[9px] font-black uppercase px-2 py-1 rounded-full bg-black/40 text-white/40 border border-white/10">
+                            🔒 Bloqueada
+                          </span>
+                        )}
+                        {!isCompleted && !isLocked && isPrimary && (
+                          <span className="text-[9px] font-black uppercase px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            Trilha Principal
+                          </span>
+                        )}
                       </div>
                     </div>
-                  ))}
+
+                    {/* Body */}
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <div className="text-sm font-bold text-white">{l.title}</div>
+                          <div className="text-[11px] text-[var(--t3)]">{l.sub}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-xs font-bold text-blue-400 font-mono">+{l.xp} XP</div>
+                          <div className="text-[10px] text-white/30 mt-0.5">⏱ {l.dur}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        {tr && (
+                          <span className="text-[9px] font-bold px-2 py-1 rounded-full" style={{ background: `${tr.color}18`, color: tr.color }}>
+                            {tr.emoji} {tr.label}
+                          </span>
+                        )}
+                        <span className="text-[9px] font-bold px-2 py-1 rounded-full bg-amber-500/10 text-amber-400">
+                          {getLessonOutcomeType(l)}
+                        </span>
+                      </div>
+
+                      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${isCompleted ? "bg-emerald-500" : "bg-indigo-500"}`}
+                          style={{ width: `${mp.progressPct}%` }}
+                        />
+                      </div>
+                      <div className="mt-1 text-[9px] text-white/30 font-mono">
+                        {isCompleted ? `${mp.totalSteps}/${mp.totalSteps} passos` : mp.hasStarted ? mp.checkpointLabel : `0/${mp.totalSteps} passos`}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+              {filteredLessons.length === 0 && (
+                <div className="p-12 text-center text-white/30">
+                  <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
+                  <div className="text-sm">Nenhuma aula encontrada</div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ══ ACHIEVEMENTS ══════════════════════════════════════════════ */}
+        {activeSection === "achievements" && (
+          <motion.div key="achievements" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {dynamicAchievements.map((a, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+                    a.ok ? "border-amber-500/25 bg-amber-500/[0.06]" : "border-white/5 bg-white/[0.02] opacity-50"
+                  }`}
+                >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${a.ok ? "bg-amber-500/20" : "bg-white/5"}`}>
+                    {a.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-white">{a.nome}</div>
+                    <div className="text-[11px] text-white/40">{a.desc}</div>
+                  </div>
+                  {a.ok ? (
+                    <CheckCircle2 size={18} className="text-amber-400 shrink-0" />
+                  ) : (
+                    <Lock size={14} className="text-white/20 shrink-0" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ══ RITUALS ═══════════════════════════════════════════════════ */}
+        {activeSection === "rituals" && (
+          <motion.div key="rituals" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+            {ACADEMY_RITUALS.map((ritual) => {
+              const checkedItems = ritualChecked[ritual.id] || {};
+              const allChecked = ritual.checklist.every((_, idx) => checkedItems[idx]);
+              const checkedCount = ritual.checklist.filter((_, idx) => checkedItems[idx]).length;
+              return (
+                <div key={ritual.id} className={`rounded-3xl p-5 border ${allChecked ? "border-emerald-500/25 bg-emerald-500/[0.04]" : "border-white/5 bg-white/[0.02]"}`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl">
+                      {ritual.period === "semana" ? "📅" : "📆"}
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-white">{ritual.title}</div>
+                      <div className="text-[11px] text-white/40">{ritual.description}</div>
+                    </div>
+                    <div className="ml-auto text-[10px] font-mono text-white/30">{checkedCount}/{ritual.checklist.length}</div>
+                  </div>
+
+                  <div className="h-1 rounded-full bg-white/5 mb-3">
+                    <div
+                      className={`h-full rounded-full transition-all ${allChecked ? "bg-emerald-500" : "bg-indigo-500"}`}
+                      style={{ width: `${(checkedCount / ritual.checklist.length) * 100}%` }}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    {ritual.checklist.map((item2, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          const next = !checkedItems[idx];
+                          trackEvent(analyticsEvents.EDUCATION_RITUAL_CHECK, { ritual_id: ritual.id, checklist_index: idx, checked: next });
+                          setRitualChecked((prev) => ({ ...prev, [ritual.id]: { ...prev[ritual.id], [idx]: next } }));
+                        }}
+                        className="flex items-start gap-3 cursor-pointer group"
+                      >
+                        <div className={`w-5 h-5 rounded-md shrink-0 mt-0.5 flex items-center justify-center border transition-all ${
+                          checkedItems[idx] ? "bg-emerald-500 border-emerald-500" : "border-white/20 group-hover:border-indigo-400"
+                        }`}>
+                          {checkedItems[idx] && <span className="text-white text-[10px] font-black">✓</span>}
+                        </div>
+                        <span className={`text-xs transition-all ${checkedItems[idx] ? "text-white/30 line-through" : "text-white/70 group-hover:text-white"}`}>
+                          {item2}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
                   {allChecked && (
-                    <div style={{ fontSize: "10px", color: "var(--green)", fontWeight: 600, marginTop: "4px" }}>
-                      ✅ Ritual completo — boa disciplina!
+                    <div className="mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold text-center">
+                      ✅ Ritual completo — Boa disciplina!
                     </div>
                   )}
+
                   <button
-                    className="btn-p"
-                    style={{ marginTop: "8px", fontSize: "11px", padding: "6px 12px" }}
-                    onClick={() => {
-                      if (onNavigate) onNavigate(ritual.targetTab as TabType);
-                    }}
+                    onClick={() => safeNavigate(ritual.targetTab)}
+                    className="mt-4 w-full py-2.5 rounded-xl bg-white/5 hover:bg-indigo-500/10 border border-white/10 hover:border-indigo-500/30 text-xs font-bold text-white/60 hover:text-indigo-300 transition-all"
                   >
                     {ritual.actionLabel}
                   </button>
                 </div>
               );
             })}
-          </div>
+          </motion.div>
         )}
-      </div>
 
-      {/* ── Panorama de Maturidade ─────────────────────────── */}
-      <div className="card" style={{ padding: "16px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-          <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
-            Panorama de maturidade
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--blue)" }} onClick={() => setShowPanorama(!showPanorama)}>
-            {showPanorama ? "fechar" : "ver mapa ▼"}
-          </div>
-        </div>
-        {showPanorama && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {maturityRoadmap.map((stage) => (
-              <div key={stage.id} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{
-                  width: "28px", height: "28px", borderRadius: "50%", flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "11px", fontWeight: 800,
-                  background: stage.progressPct === 100 ? "linear-gradient(135deg, #00D991, #00B87A)" : stage.progressPct > 0 ? "linear-gradient(135deg, #2F62D9, #5048E8)" : "var(--glass2)",
-                  color: stage.progressPct > 0 ? "#fff" : "var(--t3)",
-                }}>
-                  {stage.progressPct === 100 ? "✓" : `${stage.progressPct}%`}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t1)" }}>{stage.title}</div>
-                  <div style={{ fontSize: "10px", color: "var(--t3)" }}>{stage.description}</div>
-                  <div style={{ background: "var(--glass2)", borderRadius: "999px", height: "4px", overflow: "hidden", marginTop: "4px" }}>
-                    <div style={{
-                      width: `${stage.progressPct}%`, height: "100%",
-                      background: stage.progressPct === 100 ? "linear-gradient(90deg,#00D991,#00B87A)" : "linear-gradient(90deg,#2F62D9,#5048E8)",
-                    }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── BIBLIOTECA ─────────────────────────────── */}
-      <div className="card" style={{ padding: "16px", marginBottom: "14px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-          <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
-            Biblioteca completa
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--green)" }} onClick={() => setShowLibrary(!showLibrary)}>
-            {showLibrary ? "fechar" : "abrir ▼"}
-          </div>
-        </div>
-
-        {showLibrary && (
-          <div style={{ marginTop: "8px" }}>
-            <div style={{ display: "flex", gap: "8px", overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 12px" }}>
-              <div
-                className={`tpill ${activeTrilha === 'todas' ? 'active' : ''}`}
-                style={activeTrilha === 'todas' ? { background: "linear-gradient(135deg, #2F62D9, #5048E8)", borderColor: "transparent" } : {}}
-                onClick={() => setActiveTrilha('todas')}
-              >
-                🗂️ Todas
-              </div>
-              {(AULAS_TRILHAS as { id: string; label: string; emoji: string; color: string }[]).map(t => (
-                <div
-                  key={t.id}
-                  className={`tpill ${activeTrilha === t.id ? 'active' : ''}`}
-                  style={activeTrilha === t.id ? { background: t.color, borderColor: "transparent" } : { color: t.color, borderColor: `${t.color}44` }}
-                  onClick={() => setActiveTrilha(t.id)}
-                >
-                  {t.emoji} {t.label}
-                </div>
-              ))}
-            </div>
-
-            {/* ── Lições ─────────────────────────────── */}
-            {filteredLessons.map((l) => {
-              const moduleProgress = getModuleProgress(l.id);
-              const isCompleted = isModuleCompleted(l.id);
-              const globalIdx: number = EDUCATION_MODULES.findIndex(m => m.id === l.id);
-              const dependencyInfo = getLessonDependencyInfo(l.id);
-              const hardDependencyIds: string[] = dependencyInfo.hardPrerequisites
-                .filter((item: string) => item.startsWith('lesson:'))
-                .map((item: string) => item.replace('lesson:', ''));
-              const missingHardDependencies: string[] = hardDependencyIds.filter((id: string) => !isModuleCompleted(id));
-              const isLocked = !isCompleted && missingHardDependencies.length > 0;
-              const previousLesson = globalIdx > 0 ? EDUCATION_MODULES[globalIdx - 1] : null;
-              const isPrimaryTrail = l.trilha === primaryTrailId;
-
-              const tr = AULAS_TRILHAS.find(t => t.id === l.trilha);
-              const conceptsCount = l.passos.filter(p => p.tipo !== 'quiz').length;
-
-              return (
-                <div
-                  key={l.id}
-                  className="lcard"
-                  onClick={() => {
-                    if (isLocked) {
-                      showSuccess('🔒 Complete as lições anteriores primeiro');
-                    } else {
-                      setActiveLessonId(l.id);
-                    }
-                  }}
-                  style={{ opacity: isLocked ? 0.5 : 1 }}
-                >
-                  <div className="lbanner" style={{ background: l.grad }}>
-                    <span style={{ fontSize: "36px", filter: isLocked ? "grayscale(1)" : "none" }}>{l.emoji}</span>
-                    {isCompleted ? (
-                      <span className="lbadge" style={{ background: "var(--green-d)", color: "var(--green)", border: "1px solid rgba(0,217,145,0.3)" }}>✓ Concluída</span>
-                    ) : isLocked ? (
-                      <span className="lbadge" style={{ background: "rgba(0,0,0,0.4)", color: "var(--t3)", border: "1px solid var(--border)" }}>🔒 Bloqueada</span>
-                    ) : isPrimaryTrail ? (
-                      <span className="lbadge" style={{ background: "rgba(0,217,145,0.16)", color: "var(--green)", border: "1px solid rgba(0,217,145,0.3)" }}>Trilha principal</span>
-                    ) : (
-                      <span className="lbadge" style={{ background: "rgba(74,139,255,0.2)", color: "var(--blue)", border: "1px solid rgba(74,139,255,0.3)" }}>Nova</span>
-                    )}
-                    {isCompleted && (
-                      <div style={{ position: "absolute", bottom: "8px", left: "14px", display: "flex", gap: "3px" }}>⭐⭐⭐</div>
-                    )}
-                  </div>
-                  <div className="lbody">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--t1)", marginBottom: "2px" }}>{l.title}</div>
-                        <div style={{ fontSize: "11.5px", color: "var(--t2)" }}>{l.sub}</div>
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontSize: "11px", color: "var(--blue)", fontWeight: 700, fontFamily: "var(--mono)" }}>+{l.xp} XP</div>
-                        <div style={{ fontSize: "10px", color: "var(--t3)", marginTop: "1px" }}>⏱ {l.dur}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "6px", marginTop: "8px", alignItems: "center" }}>
-                      <span style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", background: tr?.bg || 'var(--glass2)', color: tr?.color || 'var(--t2)' }}>
-                        {tr?.emoji} {tr?.label}
-                      </span>
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "3px 8px", borderRadius: "20px", background: "rgba(255,255,255,0.05)", color: "var(--amber)" }}>
-                        foco: {getLessonOutcomeType(l)}
-                      </span>
-                      <span style={{ fontSize: "10px", color: "var(--t3)" }}>
-                        {conceptsCount} conceitos · {moduleProgress.totalSteps} passos
-                      </span>
-                    </div>
-                    <div style={{ marginTop: "8px" }}>
-                      <div style={{ background: "var(--glass2)", borderRadius: "999px", height: "6px", overflow: "hidden" }}>
-                        <div style={{ width: `${moduleProgress.progressPct}%`, height: "100%", background: isCompleted ? "linear-gradient(90deg,#00D991,#00B87A)" : "linear-gradient(90deg,#2F62D9,#5048E8)" }} />
-                      </div>
-                      <div style={{ marginTop: "6px", fontSize: "10px", color: moduleProgress.hasStarted ? "var(--blue)" : "var(--t3)", fontWeight: moduleProgress.hasStarted ? 600 : 400 }}>
-                        {isCompleted
-                          ? `Checkpoint finalizado · ${moduleProgress.totalSteps}/${moduleProgress.totalSteps} passos`
-                          : moduleProgress.hasStarted
-                            ? `${moduleProgress.checkpointLabel}`
-                            : `Progresso do módulo · 0/${moduleProgress.totalSteps} passos`}
-                      </div>
-                    </div>
-                    <div style={{ marginTop: "8px", fontSize: "10px", color: isLocked ? "var(--amber)" : "var(--t3)" }}>
-                      {globalIdx === 0
-                        ? "Ponto de partida recomendado da jornada"
-                        : isLocked && missingHardDependencies.length > 0
-                          ? `Pré-requisito por competência: conclua "${EDUCATION_MODULES.find((lesson) => lesson.id === missingHardDependencies[0])?.title || previousLesson?.title}"`
-                          : previousLesson
-                            ? `Continuação de: ${previousLesson.title}`
-                            : ""}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Revisão Pendente ─────────────────────────── */}
-      {reviewRecommendation.lesson && (
-        <div className="card" style={{ padding: "16px", marginBottom: "14px", border: "1px solid rgba(155,127,255,0.22)", background: "linear-gradient(135deg, rgba(155,127,255,0.08), rgba(74,139,255,0.06))" }}>
-          <div style={{ fontSize: "10px", color: "var(--purple)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 800, marginBottom: "6px" }}>
-            Revisão espaçada pendente
-          </div>
-          <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--t1)", marginBottom: "4px" }}>
-            {reviewRecommendation.lesson.emoji} {reviewRecommendation.lesson.title}
-          </div>
-          <div style={{ fontSize: "12px", color: "var(--t2)", lineHeight: 1.5, marginBottom: "10px" }}>
-            {reviewRecommendation.reason}
-          </div>
-          <button className="btn-p" style={{ marginTop: 0, background: "linear-gradient(135deg, #9B7FFF, #5048E8)" }} onClick={() => setActiveLessonId(reviewRecommendation.lesson!.id)}>
-            Revisar agora
-          </button>
-        </div>
-      )}
-
-      {/* ── Conquistas ─────────────────────────── */}
-      <div className="sec-hd"><span className="sec-title">Conquistas</span></div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px", marginBottom: "16px" }}>
-        {dynamicAchievements.map((c, idx) => (
-          <div key={idx} className="card" style={{ opacity: c.ok ? 1 : 0.45, display: "flex", alignItems: "center", gap: "10px", padding: "12px" }}>
-            <div className="ach" style={{ background: c.ok ? "rgba(255,173,59,0.12)" : "var(--glass2)" }}>{c.emoji}</div>
-            <div>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t1)" }}>{c.nome}</div>
-              <div style={{ fontSize: "10.5px", color: "var(--t3)", marginTop: "1px" }}>{c.desc}</div>
-              {c.ok ? (
-                <div style={{ fontSize: "10px", color: "var(--amber)", fontWeight: 600, marginTop: "2px" }}>✓ Desbloqueada</div>
-              ) : (
-                <div style={{ fontSize: "10px", color: "var(--t3)", marginTop: "2px" }}>🔒 Bloqueada</div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+      </AnimatePresence>
+    </motion.div>
   );
 };

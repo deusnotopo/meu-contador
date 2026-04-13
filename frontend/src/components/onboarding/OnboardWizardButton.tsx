@@ -70,8 +70,8 @@ interface OnboardWizardButtonProps {
  * <OnboardWizardButton
  *   label="Precisa de ajuda?"
  *   tooltipText="Clique aqui para uma orientação passo a passo"
- *   onWizardClose={() => console.log('Wizard fechado')}
- *   onStepComplete={(step) => console.log(`Etapa ${step} concluída`)}
+ *   onWizardClose={() => logger.info('Wizard fechado')}
+ *   onStepComplete={(step) => logger.info(`Etapa ${step} concluída`)}
  *   position="top-right"
  * />
  */

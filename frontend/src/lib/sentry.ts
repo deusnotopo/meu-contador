@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react";
 
+import { logger } from '@/lib/logger';
 /**
  * Initialize Sentry error tracking
  * 
@@ -9,7 +10,7 @@ import * as Sentry from "@sentry/react";
 export function initSentry(dsn?: string, environment = import.meta.env.MODE) {
   // Only initialize in production or if DSN is explicitly provided
   if (!dsn && environment === 'development') {
-    console.log('Sentry: Skipping initialization in development mode');
+    logger.info('Sentry: Skipping initialization in development mode');
     return;
   }
 
@@ -17,7 +18,7 @@ export function initSentry(dsn?: string, environment = import.meta.env.MODE) {
   const sentryDsn = dsn || import.meta.env.VITE_SENTRY_DSN;
 
   if (!sentryDsn) {
-    console.warn('Sentry: No DSN provided, error tracking disabled');
+    logger.warn('Sentry: No DSN provided, error tracking disabled');
     return;
   }
 
@@ -86,7 +87,7 @@ export function initSentry(dsn?: string, environment = import.meta.env.MODE) {
     ],
   });
 
-  console.log(`Sentry initialized for ${environment} environment`);
+  logger.info(`Sentry initialized for ${environment} environment`);
 }
 
 /**

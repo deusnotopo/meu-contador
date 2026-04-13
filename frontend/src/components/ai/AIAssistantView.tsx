@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useEducation } from '@/hooks/useEducation';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useReminders } from '@/hooks/useReminders';
 import { Bot, Sparkles, ArrowLeft, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { AIFinancialChat } from './AIFinancialChat';
 import { SmartInsights } from '../personal/SmartInsights';
@@ -24,10 +25,9 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
   const { getTutorContext } = useEducation(user || undefined);
   const { startTour } = useTour();
   const [expanded, setExpanded] = useState(false);
+  const remindersCtx = useReminders();
 
-  React.useEffect(() => {
-    startTour('ai');
-  }, [startTour]);
+  React.useEffect(() => { startTour('ai'); }, [startTour]);
 
   const isBusiness = user?.currentWorkspaceId && user.currentWorkspaceId !== 'personal';
   const scope = isBusiness ? 'business' : 'personal';
@@ -35,24 +35,25 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
   const tutorContext = getTutorContext();
 
   return (
-    <div style={{ padding: "10px 0", height: "100%", display: "flex", flexDirection: "column", animation: "fsu 0.26s ease" }}>
+    <div className="py-2.5 h-full flex flex-col animate-[fsu_0.26s_ease]">
+
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+      <div className="flex items-center gap-3 mb-3">
         {onBack && (
           <button className="back-btn" onClick={() => onBack()}>
             <ArrowLeft size={16} />
           </button>
         )}
-        <div style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(155,127,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--purple)", flexShrink: 0 }}>
+        <div className="w-[38px] h-[38px] rounded-xl bg-[rgba(155,127,255,0.15)] flex items-center justify-center text-[var(--purple)] shrink-0">
           <Bot size={20} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="eyebrow" style={{ color: "var(--purple)" }}>Consultor Neural</div>
-          <div className="page-title" style={{ margin: 0, fontSize: 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Inteligência Artificial</div>
+        <div className="flex-1 min-w-0">
+          <div className="eyebrow text-[var(--purple)]">Consultor Neural</div>
+          <div className="page-title m-0 text-[20px] whitespace-nowrap overflow-hidden text-ellipsis">Inteligência Artificial</div>
         </div>
         <button
           onClick={() => setExpanded(v => !v)}
-          style={{ flexShrink: 0, padding: "6px 10px", borderRadius: 10, background: "rgba(155,127,255,0.1)", border: "1px solid rgba(155,127,255,0.2)", color: "var(--purple)", display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+          className="shrink-0 px-2.5 py-1.5 rounded-[10px] bg-[rgba(155,127,255,0.1)] border border-[rgba(155,127,255,0.2)] text-[var(--purple)] flex items-center gap-1 text-[11px] font-bold cursor-pointer hover:bg-[rgba(155,127,255,0.18)] transition-colors"
         >
           <Zap size={12} />
           Tutor
@@ -60,20 +61,20 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
         </button>
       </div>
 
-      {/* Collapsible info panel */}
+      {/* Collapsible panel */}
       {expanded && (
-        <div style={{ marginBottom: 12, borderRadius: 14, border: "1px solid rgba(155,127,255,0.15)", background: "rgba(155,127,255,0.05)", padding: "12px 14px" }}>
-          <div style={{ display: "grid", gap: 6, marginBottom: 8 }}>
-            <div style={{ fontSize: 11, color: "var(--green)", background: "rgba(0,217,145,0.08)", borderRadius: 10, padding: "6px 10px", border: "1px solid rgba(0,217,145,0.15)" }}>
+        <div className="mb-3 rounded-[14px] border border-[rgba(155,127,255,0.15)] bg-[rgba(155,127,255,0.05)] px-3.5 py-3">
+          <div className="grid gap-1.5 mb-2">
+            <div className="text-[11px] text-[var(--green)] bg-[rgba(0,217,145,0.08)] rounded-[10px] px-2.5 py-1.5 border border-[rgba(0,217,145,0.15)]">
               {tutorContext.currentMoment?.title || 'Analisando sua situação'}
             </div>
-            <div style={{ fontSize: 11, color: "var(--t2)", background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "6px 10px", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="text-[11px] text-[var(--t2)] bg-black/20 rounded-[10px] px-2.5 py-1.5 border border-white/5">
               Fase: {tutorContext.journeyStage?.title || 'Fundação'}
             </div>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div className="flex flex-wrap gap-1.5">
             {STARTERS.map(s => (
-              <div key={s} style={{ fontSize: 10, padding: "5px 10px", borderRadius: 20, border: "1px solid rgba(155,127,255,0.2)", background: "rgba(155,127,255,0.08)", color: "var(--purple)", fontWeight: 700 }}>
+              <div key={s} className="text-[10px] px-2.5 py-[5px] rounded-[20px] border border-[rgba(155,127,255,0.2)] bg-[rgba(155,127,255,0.08)] text-[var(--purple)] font-bold">
                 {s}
               </div>
             ))}
@@ -81,7 +82,7 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
         </div>
       )}
 
-      {/* Chat tabs */}
+      {/* Tabs */}
       <Tabs defaultValue="chat" className="flex flex-col flex-1 min-h-0">
         <TabsList className="tnav mb-3">
           <TabsTrigger value="chat" className="tnav-i flex-1 flex gap-2 items-center justify-center">
@@ -95,14 +96,14 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
         </TabsList>
 
         <TabsContent value="chat" className="flex-1 relative m-0 data-[state=inactive]:hidden" style={{ minHeight: 0 }}>
-          <div className="card" style={{ position: "absolute", inset: 0, padding: "8px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="card absolute inset-0 p-2 flex flex-col overflow-hidden">
             <AIFinancialChat />
           </div>
         </TabsContent>
 
         {!isBusiness && (
           <TabsContent value="insights" className="flex-1 overflow-y-auto m-0 pb-5 data-[state=inactive]:hidden">
-            <SmartInsights transactions={transactions} goals={[]} />
+            <SmartInsights transactions={transactions} goals={[]} remindersCtx={remindersCtx} />
           </TabsContent>
         )}
       </Tabs>

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import { exportDRE } from "@/lib/pdf-export";
 import type { Transaction, Currency } from "@/types";
@@ -116,7 +116,7 @@ export const DRESection = ({ transactions, convert }: Props) => {
               DRE <span className="text-amber-400">Master</span>
             </h3>
           </div>
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-neutral-500 font-medium">
             Demonstrativo de Resultado do Exercício
           </p>
         </div>
@@ -221,7 +221,7 @@ export const DRESection = ({ transactions, convert }: Props) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
                 Impostos & Taxas
               </span>
               <span className="font-black text-rose-400">
@@ -229,7 +229,7 @@ export const DRESection = ({ transactions, convert }: Props) => {
               </span>
             </div>
             <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
                 Custos Operacionais
               </span>
               <span className="font-black text-rose-400">
@@ -237,7 +237,7 @@ export const DRESection = ({ transactions, convert }: Props) => {
               </span>
             </div>
             <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
                 Folha & Encargos
               </span>
               <span className="font-black text-rose-400">
@@ -245,7 +245,7 @@ export const DRESection = ({ transactions, convert }: Props) => {
               </span>
             </div>
             <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
                 Outras Despesas
               </span>
               <span className="font-black text-rose-400">
@@ -273,7 +273,7 @@ export const DRESection = ({ transactions, convert }: Props) => {
                 netResult >= 0 ? "bg-emerald-500" : "bg-rose-500"
               }`}
             />
-            <p className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-500 mb-4 relative z-10">
+            <p className="text-[10px] uppercase font-black tracking-[0.2em] text-neutral-500 mb-4 relative z-10">
               Lucro Líquido
             </p>
             <div className="flex items-end justify-between relative z-10">
@@ -302,7 +302,7 @@ export const DRESection = ({ transactions, convert }: Props) => {
 
           <div className="p-6 rounded-3xl relative overflow-hidden bg-white/5 border border-white/10">
             <div className="absolute right-0 top-0 w-32 h-32 blur-[60px] rounded-full opacity-20 bg-indigo-500" />
-            <p className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-500 mb-4 relative z-10">
+            <p className="text-[10px] uppercase font-black tracking-[0.2em] text-neutral-500 mb-4 relative z-10">
               Margem OP
             </p>
             <div className="flex items-end justify-between relative z-10">
@@ -319,3 +319,4 @@ export const DRESection = ({ transactions, convert }: Props) => {
     </div>
   );
 };
+

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { useAuth } from '@/context/AuthContext';
 import { showSuccess } from '@/lib/toast';
 import { api } from '@/lib/api';
@@ -58,7 +59,13 @@ const fetchGamificationData = async (): Promise<GamificationState | null> => {
     const data = await api.get<{ gamificationData: GamificationState | null }>('/users/gamification');
     return data.gamificationData || null;
   } catch (error) {
-    console.error('Error fetching gamification data:', error);
+    const isNetworkIssue =
+      error instanceof Error &&
+      (error.name === 'TimeoutError' || error.name === 'AbortError' ||
+       error.message.includes('timeout') || error.message.includes('fetch'));
+    if (!isNetworkIssue) {
+      logger.warn('Gamification: falha ao carregar dados:', (error as Error).message);
+    }
     return null;
   }
 };
@@ -68,7 +75,13 @@ const saveGamificationData = async (state: GamificationState): Promise<boolean> 
     await api.put('/users/gamification', { gamificationData: state });
     return true;
   } catch (error) {
-    console.error('Error saving gamification data:', error);
+    const isNetworkIssue =
+      error instanceof Error &&
+      (error.name === 'TimeoutError' || error.name === 'AbortError' ||
+       error.message.includes('timeout') || error.message.includes('fetch'));
+    if (!isNetworkIssue) {
+      logger.warn('Gamification: falha ao salvar dados:', (error as Error).message);
+    }
     return false;
   }
 };

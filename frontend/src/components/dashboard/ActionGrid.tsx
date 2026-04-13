@@ -1,102 +1,54 @@
-import React from "react";
+import { motion } from "framer-motion";
 import type { TabType } from "@/types/navigation";
 
 interface ActionGridProps {
   onNavigate?: (tab: TabType) => void;
 }
 
-const ACTIONS: { icon: string; label: string; route: TabType; color: string; bg: string }[] = [
-  {
-    icon: "⬆️",
-    label: "Lançar",
-    route: "launch",
-    color: "var(--blue)",
-    bg: "var(--blue3)",
-  },
-  {
-    icon: "📊",
-    label: "Extrato",
-    route: "caixa",
-    color: "var(--green)",
-    bg: "var(--green-d)",
-  },
-  {
-    icon: "📈",
-    label: "Investir",
-    route: "investir",
-    color: "var(--purple)",
-    bg: "var(--purple-d)",
-  },
-  {
-    icon: "🗓️",
-    label: "Calendário",
-    route: "cash_flow",
-    color: "var(--amber)",
-    bg: "var(--amber-d)",
-  },
+const ACTIONS: {
+  emoji: string;
+  label: string;
+  route: TabType;
+  color: string;
+  glow: string;
+}[] = [
+  { emoji: "➕", label: "Lançar",     route: "launch",     color: "#4A8BFF", glow: "rgba(74,139,255,0.25)"  },
+  { emoji: "📊", label: "Extrato",    route: "personal",   color: "#10b981", glow: "rgba(16,185,129,0.25)" },
+  { emoji: "📈", label: "Investir",   route: "investir",   color: "#9B7FFF", glow: "rgba(155,127,255,0.25)" },
+  { emoji: "💰", label: "Budget",     route: "budget",     color: "#f59e0b", glow: "rgba(245,158,11,0.25)"  },
+  { emoji: "🎓", label: "Aprender",   route: "academia",   color: "#6366f1", glow: "rgba(99,102,241,0.25)"  },
+  { emoji: "📅", label: "Calendário", route: "cash_flow",  color: "#f43f5e", glow: "rgba(244,63,94,0.25)"   },
 ];
 
-export const ActionGrid: React.FC<ActionGridProps> = ({ onNavigate }) => {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 10,
-        marginBottom: 18,
-      }}
-    >
-      {ACTIONS.map((action) => (
-        <button
-          key={action.route}
-          onClick={() => onNavigate?.(action.route)}
-          data-action-card="true"
+export const ActionGrid = ({ onNavigate }: ActionGridProps) => (
+  <div className="grid grid-cols-6 gap-2">
+    {ACTIONS.map((a, i) => (
+      <motion.button
+        key={a.route}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: i * 0.06, type: "spring", stiffness: 300, damping: 20 }}
+        whileTap={{ scale: 0.88 }}
+        whileHover={{ scale: 1.06 }}
+        onClick={() => onNavigate?.(a.route)}
+        className="flex flex-col items-center gap-2 p-2 group"
+      >
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-[20px] transition-all duration-200 group-hover:shadow-lg"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 8,
-            cursor: "pointer",
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontFamily: "var(--font)",
-            transition: "transform 0.2s cubic-bezier(0.34,1.5,0.64,1)",
+            background: `${a.color}18`,
+            border: `1px solid ${a.color}30`,
+            boxShadow: `0 0 0 0 ${a.glow}`,
           }}
-          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
-          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseEnter={(e) => (e.currentTarget.style.boxShadow = `0 0 16px ${a.glow}`)}
+          onMouseLeave={(e) => (e.currentTarget.style.boxShadow = `0 0 0 0 ${a.glow}`)}
         >
-          <div
-            style={{
-              width: 54,
-              height: 54,
-              borderRadius: 18,
-              background: action.bg,
-              border: `1px solid ${action.color}33`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 22,
-              transition: "all 0.2s cubic-bezier(0.34,1.4,0.64,1)",
-            }}
-          >
-            {action.icon}
-          </div>
-          <div
-            style={{
-              fontSize: 10,
-              color: "var(--t2)",
-              fontWeight: 600,
-              textAlign: "center",
-              lineHeight: 1.2,
-              letterSpacing: "0.02em",
-            }}
-          >
-            {action.label}
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-};
+          {a.emoji}
+        </div>
+        <span className="text-[9px] font-bold uppercase tracking-wider text-white/40 group-hover:text-white/80 transition-colors text-center leading-tight">
+          {a.label}
+        </span>
+      </motion.button>
+    ))}
+  </div>
+);

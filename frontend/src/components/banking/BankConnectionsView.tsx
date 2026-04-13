@@ -5,9 +5,7 @@ import { Landmark, AlertCircle, RefreshCw, Plus, CheckCircle2 } from 'lucide-rea
 import { showSuccess, showError } from '@/lib/toast';
 
 interface PluggyWidgetSuccess {
-  item: {
-    id: string;
-  };
+  item: { id: string };
 }
 
 interface PluggyWidgetError {
@@ -24,18 +22,14 @@ export const BankConnectionsView = () => {
   const [connectToken, setConnectToken] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchConnections();
-  }, [fetchConnections]);
+  useEffect(() => { fetchConnections(); }, [fetchConnections]);
 
   const handleConnectNew = async () => {
     try {
       showSuccess('Gerando token seguro de conexão...');
-      const token = await getConnectToken();
-      setConnectToken(token);
+      setConnectToken(await getConnectToken());
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao conectar Open Finance';
-      showError(message);
+      showError(err instanceof Error ? err.message : 'Erro ao conectar Open Finance');
     }
   };
 
@@ -45,122 +39,135 @@ export const BankConnectionsView = () => {
       await forceSync(itemId);
       showSuccess('Sincronização concluída com sucesso!');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Falha ao sincronizar';
-      showError(message);
+      showError(err instanceof Error ? err.message : 'Falha ao sincronizar');
     } finally {
       setIsSyncing(null);
     }
   };
 
   const handleOnSuccess = (itemData: PluggyWidgetSuccess) => {
-    console.log("Item conectado com sucesso:", itemData);
     setConnectToken(null);
     showSuccess('Conexão estabelecida! Importando dados em plano de fundo...');
-    // Pode forçar sync manual aqui ou deixar que o webhook cuide do `item/updated`
     handleSync(itemData.item.id);
   };
 
   const handleOnError = (error: PluggyWidgetError) => {
-    console.error("Erro no Widget do Pluggy (Detalhes):", JSON.stringify(error, null, 2));
     setConnectToken(null);
-    if (error?.message?.includes('closed') || error?.type === 'USER_ACTION_CANCELED') {
-       // Apenas fechou
-       return;
-    }
+    if (error?.message?.includes('closed') || error?.type === 'USER_ACTION_CANCELED') return;
     showError(`Erro Oculto do Widget: ${error?.message || 'Cancelado'}`);
   };
 
   return (
-    <div style={{ animation: "fsu 0.25s ease" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+    <div className="animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
         <div>
           <div className="eyebrow">Open Finance</div>
-          <div className="page-title" style={{ margin: 0, fontSize: "20px" }}>Bancos Conectados</div>
+          <div className="page-title text-[20px] m-0">Bancos Conectados</div>
         </div>
-        <button 
+        <button
           onClick={handleConnectNew}
-          className="btn-p" 
-          style={{ padding: "8px 14px", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}
+          className="btn-p flex items-center gap-1.5 px-3.5 py-2 text-[13px]"
         >
           <Plus size={16} /> Nova Conexão
         </button>
       </div>
 
-      <div className="istrip" style={{ background: "rgba(74,139,255,0.08)", border: "1px solid rgba(74,139,255,0.2)", marginBottom: "20px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
-        <Landmark size={20} color="var(--blue)" style={{ flexShrink: 0, marginTop: "2px" }} />
-        <div style={{ fontSize: "13px", color: "var(--t2)", lineHeight: 1.5 }}>
+      {/* Info strip */}
+      <div className="istrip mb-5 bg-blue-500/[0.08] border border-blue-500/20 flex gap-3 items-start">
+        <Landmark size={20} color="var(--blue)" className="shrink-0 mt-0.5" />
+        <div className="text-[13px] text-[var(--t2)] leading-relaxed">
           Conecte suas contas bancárias de forma segura para importar transações e consolidar seu patrimônio automaticamente.
         </div>
       </div>
 
+      {/* Content */}
       {isLoading ? (
-        <div style={{ textAlign: "center", padding: "40px 0", color: "var(--t3)", fontSize: "14px", fontFamily: "var(--mono)" }}>Carregando integrações...</div>
+        <div className="text-center py-10 text-[var(--t3)] text-[14px] font-mono">Carregando integrações...</div>
       ) : connections.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 20px", background: "var(--glass2)", borderRadius: "16px", border: "1px dashed var(--border)" }}>
-          <div style={{ fontSize: "40px", marginBottom: "16px" }}>🔗</div>
-          <div style={{ fontSize: "15px", fontWeight: 600, color: "var(--t1)", marginBottom: "6px" }}>Nenhuma conta conectada</div>
-          <div style={{ fontSize: "13px", color: "var(--t3)", marginBottom: "20px", maxWidth: "260px", margin: "0 auto 20px" }}>Inicie a jornada Open Finance para automatizar seu fluxo de caixa.</div>
-          <button onClick={handleConnectNew} className="btn-p" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+        <div className="text-center py-16 px-5 bg-[var(--glass2)] rounded-2xl border border-dashed border-[var(--border)]">
+          <div className="text-[40px] mb-4">🔗</div>
+          <div className="text-[15px] font-semibold text-[var(--t1)] mb-1.5">Nenhuma conta conectada</div>
+          <div className="text-[13px] text-[var(--t3)] mb-5 max-w-[260px] mx-auto">
+            Inicie a jornada Open Finance para automatizar seu fluxo de caixa.
+          </div>
+          <button onClick={handleConnectNew} className="btn-p inline-flex items-center gap-2">
             <Landmark size={18} /> Conectar Conta Bancária
           </button>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {connections.map((conn) => {
-            
-            
-            return (
-              <div key={conn.id} className="card" style={{ padding: "16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                    {conn.accounts[0]?.bankImageUrl ? (
-                      <img src={conn.accounts[0].bankImageUrl} alt="Bank Logo" style={{ width: "36px", height: "36px", borderRadius: "10px", border: "1px solid var(--border)" }} />
-                    ) : (
-                      <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "var(--glass2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t3)" }}>🏦</div>
-                    )}
-                    <div>
-                      <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--t1)" }}>{conn.accounts[0]?.bankName || 'Instituição'}</div>
-                      <div style={{ fontSize: "11px", color: "var(--t3)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
-                        {conn.status === 'UPDATED' ? <CheckCircle2 size={12} color="var(--green)" /> : <AlertCircle size={12} color="var(--amber)" />}
-                        {conn.status}
-                      </div>
+        <div className="flex flex-col gap-3">
+          {connections.map(conn => (
+            <div key={conn.id} className="card p-4">
+              {/* Connection header */}
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex gap-2.5 items-center">
+                  {conn.accounts[0]?.bankImageUrl ? (
+                    <img
+                      src={conn.accounts[0].bankImageUrl}
+                      alt="Bank Logo"
+                      className="w-9 h-9 rounded-[10px] border border-[var(--border)] object-cover"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-[10px] bg-[var(--glass2)] border border-[var(--border)] flex items-center justify-center text-[var(--t3)]">
+                      🏦
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-[15px] font-bold text-[var(--t1)]">
+                      {conn.accounts[0]?.bankName || 'Instituição'}
+                    </div>
+                    <div className="text-[11px] text-[var(--t3)] flex items-center gap-1 mt-0.5">
+                      {conn.status === 'UPDATED'
+                        ? <CheckCircle2 size={12} color="var(--green)" />
+                        : <AlertCircle size={12} color="var(--amber)" />}
+                      {conn.status}
                     </div>
                   </div>
-                  <button 
-                    onClick={() => handleSync(conn.pluggyItemId)}
-                    disabled={isSyncing === conn.pluggyItemId}
-                    style={{ background: "none", border: "none", color: "var(--blue)", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", opacity: isSyncing === conn.pluggyItemId ? 0.5 : 1 }}
-                  >
-                    <RefreshCw size={14} className={isSyncing === conn.pluggyItemId ? "spin" : ""} /> Sync
-                  </button>
                 </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  {conn.accounts.map(acc => (
-                    <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "var(--bg)", borderRadius: "8px", border: "1px solid var(--border)" }}>
-                      <div>
-                        <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--t1)" }}>{acc.name}</div>
-                        <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "1px" }}>{acc.type} • {acc.subtype}</div>
-                      </div>
-                      <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: (acc as AccountWithCurrencyCode).currencyCode || 'BRL' }).format(acc.balance)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {conn.lastSyncAt && (
-                  <div style={{ fontSize: "10.5px", color: "var(--t3)", marginTop: "12px", textAlign: "right" }}>
-                    Última sincronização: {new Date(conn.lastSyncAt).toLocaleString('pt-BR')}
-                  </div>
-                )}
+                <button
+                  onClick={() => handleSync(conn.pluggyItemId)}
+                  disabled={isSyncing === conn.pluggyItemId}
+                  className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--blue)] bg-transparent border-none cursor-pointer font-[var(--font)] disabled:opacity-50 hover:text-blue-300 transition-colors"
+                >
+                  <RefreshCw size={14} className={isSyncing === conn.pluggyItemId ? "animate-spin" : ""} /> Sync
+                </button>
               </div>
-            );
-          })}
+
+              {/* Accounts */}
+              <div className="flex flex-col gap-0.5">
+                {conn.accounts.map(acc => (
+                  <div
+                    key={acc.id}
+                    className="flex justify-between items-center px-2.5 py-2 bg-[var(--bg)] rounded-lg border border-[var(--border)]"
+                  >
+                    <div>
+                      <div className="text-[13px] font-semibold text-[var(--t1)]">{acc.name}</div>
+                      <div className="text-[10px] text-[var(--t3)] uppercase tracking-[0.05em] mt-px">
+                        {acc.type} • {acc.subtype}
+                      </div>
+                    </div>
+                    <div className="text-[14px] font-bold text-[var(--t1)] font-mono">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: (acc as AccountWithCurrencyCode).currencyCode || 'BRL',
+                      }).format(acc.balance)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {conn.lastSyncAt && (
+                <div className="text-[10.5px] text-[var(--t3)] mt-3 text-right">
+                  Última sincronização: {new Date(conn.lastSyncAt).toLocaleString('pt-BR')}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Renderiza o Widget do Pluggy se tiver hook aprovado */}
+      {/* Pluggy Widget */}
       {connectToken && (
         <PluggyConnect
           connectToken={connectToken}

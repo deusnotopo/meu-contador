@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { resetOnboarding } from "@/lib/onboarding";
 import { exportFullBackup, importFullBackup } from "@/lib/storage";
 import { showError, showSuccess } from "@/lib/toast";
@@ -69,7 +69,7 @@ export const DataSettings = () => {
             <h4 className="text-sm font-black text-rose-400 uppercase tracking-widest mb-1">
               Limpeza Completa
             </h4>
-            <p className="text-[10px] text-slate-500 font-medium">
+            <p className="text-[10px] text-neutral-500 font-medium">
               Apaga permanentemente todos os registros locais.
             </p>
           </div>
@@ -85,3 +85,4 @@ export const DataSettings = () => {
     </div>
   );
 };
+

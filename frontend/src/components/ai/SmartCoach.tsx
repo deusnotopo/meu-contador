@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+﻿import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import {
@@ -142,7 +142,7 @@ export const SmartCoach = ({
               <Brain className="text-white" size={20} />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-1">
+              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest leading-none mb-1">
                 Smart Coach
               </span>
               <span className="text-xs font-medium text-white group-hover:text-indigo-300 transition-colors">
@@ -172,7 +172,7 @@ export const SmartCoach = ({
                   <h3 className="text-sm font-black text-white uppercase tracking-widest">
                     Smart Coach
                   </h3>
-                  <p className="text-[10px] text-slate-500 font-bold">
+                  <p className="text-[10px] text-neutral-500 font-bold">
                     IA Preditiva & Análise
                   </p>
                 </div>
@@ -189,7 +189,7 @@ export const SmartCoach = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-slate-400 hover:text-white"
+                  className="h-8 w-8 text-neutral-500 hover:text-white"
                   onClick={() => setMinimized(true)}
                 >
                   <TrendingDown size={16} />
@@ -202,7 +202,7 @@ export const SmartCoach = ({
               {/* Main Prediction */}
               <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">
+                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">
                     Projeção Final do Mês
                   </p>
                   <div className="text-2xl font-black text-white tracking-tight">
@@ -231,7 +231,7 @@ export const SmartCoach = ({
                       %
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-500 font-medium">
+                  <p className="text-[10px] text-neutral-500 font-medium">
                     vs Atual
                   </p>
                 </div>
@@ -259,7 +259,7 @@ export const SmartCoach = ({
                         >
                           {activeInsight.title}
                         </h4>
-                        <p className="text-sm font-medium text-slate-300 leading-relaxed">
+                        <p className="text-sm font-medium text-neutral-400 leading-relaxed">
                           {activeInsight.message}
                         </p>
                       </div>
@@ -290,7 +290,7 @@ export const SmartCoach = ({
             <div className="p-2 border-t border-white/5 bg-white/[0.02]">
               <Button
                 variant="ghost"
-                className="w-full text-xs font-bold text-slate-400 hover:text-white h-10 gap-2"
+                className="w-full text-xs font-bold text-neutral-500 hover:text-white h-10 gap-2"
               >
                 <Sparkles size={14} className="text-indigo-400" />
                 Ver Análise Completa
@@ -303,3 +303,4 @@ export const SmartCoach = ({
     </div>
   );
 };
+

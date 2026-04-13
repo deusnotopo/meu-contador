@@ -10,7 +10,7 @@ interface BottomNavProps {
   onOpenFunctions?: () => void;
 }
 
-// SVG icons – crisp, 1.6px stroke, style top-tier
+// SVG icons — crisp, 1.6px stroke
 const HomeIcon = ({ active }: { active: boolean }) => (
   <svg viewBox="0 0 24 24" width={20} height={20} fill="none"
     stroke={active ? "#fff" : "rgba(148,163,184,0.7)"} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
@@ -54,11 +54,11 @@ const PlusIcon = () => (
 );
 
 const NAV_ITEMS = [
-  { id: "inicio" as PrimaryTab,  tab: "inicio" as TabType,   label: "Início",   Icon: HomeIcon },
-  { id: "budget" as PrimaryTab,  tab: "budget" as TabType,   label: "Budget",   Icon: BudgetIcon },
-  { id: "launch" as PrimaryTab,  tab: "launch" as TabType,   label: null,       Icon: null }, // FAB
-  { id: "futuro" as PrimaryTab,  tab: "investir" as TabType, label: "Investir", Icon: FuturoIcon },
-  { id: "academia" as PrimaryTab,tab: "academia" as TabType, label: "Academia", Icon: AcademiaIcon },
+  { id: "inicio"   as PrimaryTab, tab: "inicio"   as TabType,   label: "Início",   Icon: HomeIcon },
+  { id: "budget"   as PrimaryTab, tab: "budget"   as TabType,   label: "Budget",   Icon: BudgetIcon },
+  { id: "launch"   as PrimaryTab, tab: "launch"   as TabType,   label: null,       Icon: null }, // FAB
+  { id: "futuro"   as PrimaryTab, tab: "investir" as TabType,   label: "Investir", Icon: FuturoIcon },
+  { id: "academia" as PrimaryTab, tab: "academia" as TabType,   label: "Aprender", Icon: AcademiaIcon },
 ];
 
 export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
@@ -70,24 +70,14 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
       id="main-navigation"
       role="navigation"
       aria-label="Navegação principal"
+      className="relative flex items-center justify-around w-full shrink-0 z-50 pt-1.5 px-2"
       style={{
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-around",
-        width: "100%",
         minHeight: 68,
-        paddingTop: 6,
         paddingBottom: "max(env(safe-area-inset-bottom, 12px), 12px)",
-        paddingLeft: 8,
-        paddingRight: 8,
         background: "rgba(5,8,18,0.96)",
         borderTop: "1px solid rgba(255,255,255,0.07)",
         backdropFilter: "blur(28px)",
         WebkitBackdropFilter: "blur(28px)",
-        flexShrink: 0,
-        zIndex: 50,
-        // subtle top highlight to emulate glass edge
         boxShadow: "0 -1px 0 rgba(255,255,255,0.04)",
       }}
     >
@@ -102,39 +92,19 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
               onClick={() => setIsMenuOpen(true)}
               aria-label="Menu Rápido"
               id="quick-actions-fab"
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                padding: "0 0 2px",
-                WebkitTapHighlightColor: "transparent",
-                position: "relative",
-                zIndex: 10,
-              }}
+              className="flex-1 flex flex-col items-center justify-start border-none bg-transparent cursor-pointer pb-0.5 [-webkit-tap-highlight-color:transparent] relative z-10"
             >
               <motion.div
                 whileTap={{ scale: 0.85 }}
                 whileHover={{ scale: 1.08 }}
+                className="w-[52px] h-[52px] rounded-full flex items-center justify-center -translate-y-2.5 transition-[box-shadow,background] duration-250"
                 style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: "50%",
                   background: currentTab === "launch"
                     ? "linear-gradient(145deg, #6366f1, #4f46e5)"
                     : "linear-gradient(145deg, #4f46e5, #4338ca)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transform: "translateY(-10px)",
                   boxShadow: currentTab === "launch"
                     ? "0 0 0 4px rgba(99,102,241,0.25), 0 12px 28px rgba(79,70,229,0.55)"
                     : "0 8px 24px rgba(79,70,229,0.45), 0 0 0 1px rgba(99,102,241,0.3)",
-                  transition: "box-shadow 0.25s ease, background 0.25s ease",
                 }}
               >
                 <PlusIcon />
@@ -151,24 +121,10 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
             onClick={() => onTabChange(tab)}
             aria-label={label ?? ""}
             aria-current={isActive ? "page" : undefined}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "flex-start",
-              gap: 3,
-              padding: "4px 0 2px",
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              WebkitTapHighlightColor: "transparent",
-              position: "relative",
-            }}
+            className="flex-1 min-w-0 flex flex-col items-center justify-start gap-[3px] pt-1 pb-0.5 border-none bg-transparent cursor-pointer [-webkit-tap-highlight-color:transparent] relative"
           >
-            {/* Pill background */}
-            <div style={{ position: "relative", width: 48, height: 30, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {/* Pill bg */}
+            <div className="relative w-12 h-[30px] flex items-center justify-center">
               <AnimatePresence>
                 {isActive && (
                   <motion.div
@@ -177,10 +133,8 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.7 }}
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    className="absolute inset-0 rounded-[14px]"
                     style={{
-                      position: "absolute",
-                      inset: 0,
-                      borderRadius: 14,
                       background: "linear-gradient(135deg, rgba(99,102,241,0.28), rgba(79,70,229,0.18))",
                       border: "1px solid rgba(99,102,241,0.25)",
                     }}
@@ -202,13 +156,7 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
                 fontWeight: isActive ? 700 : 500,
               }}
               transition={{ duration: 0.15 }}
-              style={{
-                fontSize: 9,
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                lineHeight: 1,
-                fontFamily: "var(--font)",
-              }}
+              className="text-[9px] tracking-[0.05em] uppercase leading-none font-[var(--font)]"
             >
               {label}
             </motion.span>
@@ -216,57 +164,35 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
         );
       })}
 
-      {/* Speed Dial Menu Overlay */}
+      {/* Speed Dial Overlay */}
       <AnimatePresence>
         {isMenuOpen && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
-              pointerEvents: "none",
-            }}
-          >
+          <div className="fixed inset-0 z-[9999] flex flex-col justify-end pointer-events-none">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMenuOpen(false)}
+              className="absolute inset-0 pointer-events-auto"
               style={{
-                position: "absolute",
-                inset: 0,
                 background: "rgba(3, 7, 18, 0.75)",
                 backdropFilter: "blur(12px)",
                 WebkitBackdropFilter: "blur(12px)",
-                pointerEvents: "auto",
               }}
             />
 
-            {/* Menu Items Container */}
+            {/* Menu items */}
             <div
-              style={{
-                position: "absolute",
-                bottom: "calc(max(env(safe-area-inset-bottom, 12px), 12px) + 80px)",
-                left: 0,
-                right: 0,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 16,
-                pointerEvents: "none",
-                paddingBottom: 16,
-              }}
+              className="absolute left-0 right-0 flex flex-col items-center gap-4 pointer-events-none pb-4"
+              style={{ bottom: "calc(max(env(safe-area-inset-bottom, 12px), 12px) + 80px)" }}
             >
               {[
-                { id: "ai", label: "Consultar Advisor IA", icon: Sparkles, color: "text-purple-400", bg: "bg-purple-500/20" },
-                { id: "provisoes", label: "Novo Cofrinho", icon: PiggyBank, color: "text-blue-400", bg: "bg-blue-500/20" },
-                { id: "debt_payoff", label: "Projeto Quitação", icon: Flame, color: "text-rose-400", bg: "bg-rose-500/20" },
-                { id: "planos", label: "Nova Meta", icon: Target, color: "text-amber-400", bg: "bg-amber-500/20" },
-                { id: "launch", label: "Nova Transação", icon: ArrowRightLeft, color: "text-emerald-400", bg: "bg-emerald-500/20" },
+                { id: "ai",          label: "Consultar Advisor IA", icon: Sparkles,       color: "text-purple-400", bg: "bg-purple-500/20" },
+                { id: "provisoes",   label: "Novo Cofrinho",        icon: PiggyBank,      color: "text-blue-400",   bg: "bg-blue-500/20"   },
+                { id: "debt_payoff", label: "Projeto Quitação",     icon: Flame,          color: "text-rose-400",   bg: "bg-rose-500/20"   },
+                { id: "planos",      label: "Nova Meta",            icon: Target,         color: "text-amber-400",  bg: "bg-amber-500/20"  },
+                { id: "launch",      label: "Nova Transação",       icon: ArrowRightLeft, color: "text-emerald-400",bg: "bg-emerald-500/20"},
               ].map((action, i) => (
                 <motion.button
                   key={action.id}
@@ -274,35 +200,24 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 30, scale: 0.8 }}
                   transition={{ delay: 0.05 * (4 - i), type: "spring", stiffness: 350, damping: 25 }}
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    onTabChange(action.id as TabType);
-                  }}
+                  onClick={() => { setIsMenuOpen(false); onTabChange(action.id as TabType); }}
+                  className="flex items-center gap-3 pointer-events-auto rounded-[32px] px-6 py-2.5 pl-3 min-w-[220px]"
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    pointerEvents: "auto",
                     background: "rgba(30, 32, 45, 0.9)",
                     border: "1px solid rgba(255, 255, 255, 0.1)",
-                    borderRadius: 32,
-                    padding: "10px 24px 10px 12px",
                     boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                     transformOrigin: "bottom center",
-                    minWidth: 220,
                   }}
                 >
                   <div className={`w-10 h-10 ${action.bg} rounded-full flex items-center justify-center shrink-0`}>
                     <action.icon size={20} className={action.color} />
                   </div>
-                  <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>
-                    {action.label}
-                  </span>
+                  <span className="text-white font-bold text-[14px]">{action.label}</span>
                 </motion.button>
               ))}
             </div>
 
-            {/* Closing FAB over the original position */}
+            {/* Close FAB */}
             <motion.button
               initial={{ scale: 0.8, opacity: 0, rotate: -90 }}
               animate={{ scale: 1, opacity: 1, rotate: 0 }}
@@ -310,23 +225,11 @@ export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
               whileTap={{ scale: 0.85 }}
               onClick={() => setIsMenuOpen(false)}
+              className="absolute left-1/2 -translate-x-1/2 w-[52px] h-[52px] rounded-full flex items-center justify-center border-none text-white pointer-events-auto z-10"
               style={{
-                position: "absolute",
-                left: "50%",
                 bottom: "calc(max(env(safe-area-inset-bottom, 12px), 12px) + 22px)",
-                transform: "translateX(-50%)",
-                width: 52,
-                height: 52,
-                borderRadius: "50%",
                 background: "linear-gradient(145deg, #ef4444, #dc2626)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "none",
-                color: "white",
                 boxShadow: "0 8px 24px rgba(220, 38, 38, 0.5), 0 0 0 1px rgba(239, 68, 68, 0.3)",
-                pointerEvents: "auto",
-                zIndex: 10,
               }}
             >
               <X size={26} strokeWidth={2.5} />

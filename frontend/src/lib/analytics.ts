@@ -11,7 +11,7 @@ export const trackEvent = (eventName: string, params?: Record<string, string | n
       logEvent(analytics, eventName, params);
       logger.info(`[Analytics] ${eventName}`, params);
     } catch (error) {
-      console.warn("Analytics error", error);
+      logger.warn("Analytics error", error);
     }
   }
 };
@@ -43,4 +43,12 @@ export const analyticsEvents = {
   
   // Onboarding
   WIZARD_COMPLETE: "wizard_complete",
+
+  // Education
+  EDUCATION_OPEN: "education_open",
+  EDUCATION_LESSON_START: "education_lesson_start",
+  EDUCATION_LESSON_COMPLETE: "education_lesson_complete",
+  EDUCATION_RITUAL_CHECK: "education_ritual_check",
+  EDUCATION_REVIEW_OPEN: "education_review_open",
+  EDUCATION_SYNC: "education_sync",
 };

@@ -1,4 +1,4 @@
-import type { Investment, UserProfile } from "@/types";
+﻿import type { Currency, Investment, UserProfile } from "@/types";
 import { AlertTriangle, CheckCircle2, Shield, Target } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -14,12 +14,13 @@ import {
 interface Props {
   assets: Investment[];
   profile?: UserProfile;
+  convert: (amount: number, from: Currency, to: Currency) => number;
 }
 
-export const PortfolioAnalysis = ({ assets, profile }: Props) => {
+export const PortfolioAnalysis = ({ assets, profile, convert }: Props) => {
   const analysis = useMemo(() => {
     const totalValue = assets.reduce(
-      (acc, a) => acc + a.amount * a.currentPrice,
+      (acc, a) => acc + convert(a.amount * a.currentPrice, (a.currency || "BRL") as Currency, "BRL"),
       0
     );
     if (totalValue === 0) return null;
@@ -37,7 +38,7 @@ export const PortfolioAnalysis = ({ assets, profile }: Props) => {
     const sectorMap: Record<string, number> = {};
 
     assets.forEach((asset) => {
-      const value = asset.amount * asset.currentPrice;
+      const value = convert(asset.amount * asset.currentPrice, (asset.currency || "BRL") as Currency, "BRL");
       const weight = value / totalValue;
       const risk = riskMap[asset.type] || 3;
       weightedRisk += risk * weight;
@@ -49,7 +50,7 @@ export const PortfolioAnalysis = ({ assets, profile }: Props) => {
     // Herfindahl-Hirschman Index for Diversification (0 to 1)
     // HHI = sum(weight^2). Diversification = 1 - HHI
     const hhi = assets.reduce((acc, a) => {
-      const weight = (a.amount * a.currentPrice) / totalValue;
+      const weight = convert(a.amount * a.currentPrice, (a.currency || "BRL") as Currency, "BRL") / totalValue;
       return acc + weight * weight;
     }, 0);
     const diversificationScore = 1 - hhi;
@@ -68,7 +69,7 @@ export const PortfolioAnalysis = ({ assets, profile }: Props) => {
       diversificationScore,
       sectorData,
     };
-  }, [assets]);
+  }, [assets, convert]);
 
   if (!analysis) return null;
 
@@ -114,7 +115,7 @@ export const PortfolioAnalysis = ({ assets, profile }: Props) => {
               <h2 className={`text-3xl font-black ${riskInfo.color}`}>
                 {riskInfo.label}
               </h2>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+              <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">
                 Seu Perfil: {userRiskProfile.toUpperCase()}
               </p>
             </div>
@@ -136,7 +137,7 @@ export const PortfolioAnalysis = ({ assets, profile }: Props) => {
             </div>
 
             {/* Insight */}
-            <div className="p-3 bg-white/5 rounded-xl text-xs font-medium text-slate-400 leading-relaxed border border-white/5">
+            <div className="p-3 bg-white/5 rounded-xl text-xs font-medium text-neutral-500 leading-relaxed border border-white/5">
               {analysis.weightedRisk > 4 &&
               userRiskProfile === "conservative" ? (
                 <span className="flex items-center gap-2 text-rose-400">
@@ -216,7 +217,7 @@ export const PortfolioAnalysis = ({ assets, profile }: Props) => {
                   {(analysis.diversificationScore * 100).toFixed(0)}%
                 </div>
               </div>
-              <p className="text-sm text-slate-400 leading-relaxed max-w-[200px]">
+              <p className="text-sm text-neutral-500 leading-relaxed max-w-[200px]">
                 {analysis.diversificationScore > 0.7
                   ? "Excelente! Sua carteira está bem distribuída entre diferentes ativos."
                   : "Atenção: Concentração alta em poucos ativos aumenta o risco específico."}
@@ -277,3 +278,4 @@ export const PortfolioAnalysis = ({ assets, profile }: Props) => {
     </div>
   );
 };
+

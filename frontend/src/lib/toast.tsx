@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext, useCallback } from 'react';
 
+import { logger } from '@/lib/logger';
 interface Toast {
   id: string;
   message: string;
@@ -117,7 +118,7 @@ const ToastContainer: React.FC<{ toasts: Toast[]; onRemove: (id: string) => void
 // Helper function to get the callback
 const getToastCallback = () => {
   if (!toastCallback) {
-    console.warn('ToastProvider not mounted, falling back to console');
+    logger.warn('ToastProvider not mounted, falling back to console');
     return null;
   }
   return toastCallback;
@@ -128,7 +129,7 @@ export const showSuccess = (message: unknown) => {
   if (callback) {
     callback({ message: String(message), type: 'success' });
   } else {
-    console.log("✅ [Toast Success]:", message);
+    logger.info("✅ [Toast Success]:", message);
   }
 };
 
@@ -146,14 +147,14 @@ export const showLoading = (message: unknown) => {
   if (callback) {
     return callback({ message: String(message), type: 'loading', duration: 0 });
   } else {
-    console.log("⏳ [Toast Loading]:", message);
+    logger.info("⏳ [Toast Loading]:", message);
     return crypto.randomUUID();
   }
 };
 
 export const dismissToast = (toastId: string) => {
   // The auto-removal handles this, but we can trigger immediate removal if needed
-  console.log(" dismissToast called for:", toastId);
+  logger.info(" dismissToast called for:", toastId);
 };
 
 export const showPromise = async <T,>(promise: Promise<T>, messages: { loading: string; success: string; error: string }) => {

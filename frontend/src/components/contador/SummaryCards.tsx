@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+﻿import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -85,7 +85,7 @@ export const SummaryCards = ({
           value={currency}
           onValueChange={(v: CurrencyCode) => setCurrency(v)}
         >
-          <SelectTrigger className="w-[140px] h-8 bg-white/5 border-white/10 text-xs font-bold uppercase tracking-widest text-slate-400">
+          <SelectTrigger className="w-[140px] h-8 bg-white/5 border-white/10 text-xs font-bold uppercase tracking-widest text-neutral-500">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -139,7 +139,7 @@ export const SummaryCards = ({
                   className={`text-[8px] md:text-xs font-black uppercase tracking-[0.15em] ${
                     card.gradient.includes("gradient")
                       ? "text-indigo-200"
-                      : "text-slate-500"
+                      : "text-neutral-500"
                   }`}
                 >
                   {card.title}
@@ -164,7 +164,7 @@ export const SummaryCards = ({
                   className={`text-[8px] md:text-xs font-bold ${
                     card.gradient.includes("gradient")
                       ? "text-indigo-200/60"
-                      : "text-slate-500/70"
+                      : "text-neutral-500/70"
                   }`}
                 >
                   {card.subtitle}
@@ -177,3 +177,4 @@ export const SummaryCards = ({
     </div>
   );
 };
+

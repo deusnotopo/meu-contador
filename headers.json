@@ -1,0 +1,39 @@
+{
+  "statusCode": 200,
+  "headers": {
+    "date": "Tue, 07 Apr 2026 20:26:21 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "transfer-encoding": "chunked",
+    "connection": "keep-alive",
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "https://meucontador-367cf.web.app",
+    "access-control-expose-headers": "set-cookie",
+    "content-security-policy": "default-src 'self';script-src 'self' https://www.gstatic.com https://firebase.googleapis.com;style-src 'self' 'unsafe-inline';img-src 'self' data: https:;connect-src 'self' https://*.supabase.co https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com;font-src 'self';object-src 'none';media-src 'self';frame-src 'self' https://*.firebaseapp.com;base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+    "cross-origin-opener-policy": "same-origin",
+    "cross-origin-resource-policy": "same-origin",
+    "origin-agent-cluster": "?1",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "rndr-id": "4b626798-47dc-4615",
+    "set-cookie": [
+      "mc_access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIxMjYxYzkwLWFlNzctNDgzNC1hM2E0LTc4ODIwZGM1MmIxYSIsImVtYWlsIjoidGVzdC1jb3JzLWhlYWRlcnMzQHRlc3QuY29tIiwibmFtZSI6InRlc3QtY29ycy1oZWFkZXJzMyIsImlzUHJvIjpmYWxzZSwiaWF0IjoxNzc1NTkzNTgxLCJleHAiOjE3NzU1OTQ0ODF9.GTNAdHLHNUuuCfTxmE6xnTwY3v-y4qrXLKr9LsAKf_g; Path=/; SameSite=None; X-Deploy-Test=V2; Max-Age=900; Secure; HttpOnly",
+      "mc_refresh_token=288bfd6fbd4a376f7cd395cc2b42f6fe4731eaed6d335d5b61d75e604d8312f89e2cf0fdaa6f828c37de981607f0d2e6; Path=/; SameSite=None; X-Deploy-Test=V2; Max-Age=604800; Secure; HttpOnly",
+      "mc_csrf_token=99c62f8d73c17494b36f732815d4d38624a52f8c3aac2cd4fb15639d45e2eb81e7c082ebd2f6ee3761eb64f83da2510b; Path=/; SameSite=None; X-Deploy-Test=V2; Max-Age=604800; Secure"
+    ],
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "vary": "Origin, Accept-Encoding",
+    "x-content-type-options": "nosniff",
+    "x-dns-prefetch-control": "off",
+    "x-download-options": "noopen",
+    "x-frame-options": "DENY",
+    "x-permitted-cross-domain-policies": "none",
+    "x-ratelimit-limit": "5",
+    "x-ratelimit-remaining": "4",
+    "x-ratelimit-reset": "60",
+    "x-render-origin-server": "Render",
+    "x-xss-protection": "0",
+    "cf-cache-status": "DYNAMIC",
+    "server": "cloudflare",
+    "cf-ray": "9e8bc432be72b92f-GRU",
+    "alt-svc": "h3=\":443\"; ma=86400"
+  }
+}

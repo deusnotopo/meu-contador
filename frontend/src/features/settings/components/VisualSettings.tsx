@@ -1,4 +1,4 @@
-import { Moon, Palette, Sun } from "lucide-react";
+﻿import { Moon, Palette, Sun } from "lucide-react";
 
 interface Props {
   theme: "light" | "dark" | "system";
@@ -39,7 +39,7 @@ export const VisualSettings = ({
               </div>
               <div>
                 <h4 className="font-black text-white text-lg">Sky Dark</h4>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
                   Padrão Ultra-Premium
                 </p>
               </div>
@@ -53,14 +53,14 @@ export const VisualSettings = ({
                   : "bg-white/5 border-white/5 hover:border-white/20"
               }`}
             >
-              <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-900 shadow-xl">
+              <div className="w-12 h-12 rounded-2xl bg-white border border-neutral-300 flex items-center justify-center text-neutral-950 shadow-xl">
                 <Sun size={24} />
               </div>
               <div>
-                <h4 className="font-black text-slate-900 text-lg">
+                <h4 className="font-black text-neutral-950 text-lg">
                   Crystal Light
                 </h4>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
                   Puro & Minimalista
                 </p>
               </div>
@@ -72,14 +72,14 @@ export const VisualSettings = ({
               <h4 className="text-sm font-black text-white uppercase tracking-widest">
                 Modo Privacidade
               </h4>
-              <p className="text-[10px] text-slate-500 font-medium">
+              <p className="text-[10px] text-neutral-500 font-medium">
                 Oculta valores financeiros sensíveis automaticamente
               </p>
             </div>
             <div
               onClick={() => togglePrivacy()}
               className={`h-6 w-12 rounded-full flex items-center px-1 cursor-pointer transition-colors ${
-                privacyMode ? "bg-emerald-500" : "bg-slate-800"
+                privacyMode ? "bg-emerald-500" : "bg-neutral-900"
               }`}
             >
               <div
@@ -94,3 +94,4 @@ export const VisualSettings = ({
     </div>
   );
 };
+

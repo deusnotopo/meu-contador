@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTransactions } from './useTransactions';
 import { useBudgets } from './useBudgets';
 import { useGoals } from './useGoals';
-import { loadReminders } from '@/lib/storage';
+import { useProvisions } from './useProvisions';
+import { useReminders } from './useReminders';
+import { api } from '@/lib/api';
 
 interface ProvisaoItem {
   id?: string;
@@ -62,18 +64,65 @@ export function useCashFlow() {
   const personal = useTransactions('personal');
   const { budgets } = useBudgets();
   const { goals } = useGoals();
+  const { reminders } = useReminders();
+  const { provisions } = useProvisions();
 
-  const reminders = useMemo(() => loadReminders(), []);
+  // ── Server-side projection (overrides local when available) ──────────────
+  const [serverProjection, setServerProjection] = useState<{
+    projection: CashFlowDay[];
+    summary: CashFlowSummary;
+    recurring: RecurringItem[];
+  } | null>(null);
+  const [isServerLoading, setIsServerLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsServerLoading(true);
+
+    type ServerSummary = {
+      currentBalance: number; projectedBalanceEnd: number;
+      totalInflows: number; totalOutflows: number;
+      criticalDays: number; averageDailyFlow: number;
+      safeToSpend: number; committedNext7Days: number;
+      burnRate: number | null;
+    };
+
+    api.get<{ projection: CashFlowDay[]; summary: ServerSummary; recurring: RecurringItem[] }>(
+      '/cashflow/projection?days=30&scope=personal'
+    )
+      .then(data => {
+        if (cancelled) return;
+        const mapped: CashFlowSummary = {
+          currentBalance:         data.summary.currentBalance,
+          projectedBalance30Days: data.summary.projectedBalanceEnd,
+          totalInflows30Days:     data.summary.totalInflows,
+          totalOutflows30Days:    data.summary.totalOutflows,
+          criticalDays:           data.summary.criticalDays,
+          averageDailyFlow:       data.summary.averageDailyFlow,
+          safeToSpend:            data.summary.safeToSpend,
+          committedNext7Days:     data.summary.committedNext7Days,
+          burnRate:               data.summary.burnRate ?? Infinity,
+          positiveDays:           data.projection.filter(d => d.netFlow > 0).length,
+          negativeDays:           data.projection.filter(d => d.netFlow < 0).length,
+          nextIncomeDate:         data.projection.find(d => d.inflows.length > 0)?.date ?? null,
+        };
+        setServerProjection({ projection: data.projection, summary: mapped, recurring: data.recurring });
+      })
+      .catch(() => { /* fallback to client-side */ })
+      .finally(() => { if (!cancelled) setIsServerLoading(false); });
+    return () => { cancelled = true; };
+  }, [personal.allTransactions.length]); // refetch when transaction count changes
 
   const provisoes = useMemo((): ProvisaoItem[] => {
-    try {
-      const raw = localStorage.getItem('meu_contador_provisoes');
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? (parsed as ProvisaoItem[]) : [];
-    } catch {
-      return [];
-    }
-  }, []);
+    if (!provisions) return [];
+    return provisions.map(p => ({
+      id: p.id,
+      nome: p.name,
+      mes: p.month,
+      valorAnual: p.yearlyAmount,
+      acumulado: p.accumulated
+    }));
+  }, [provisions]);
 
   // Detect recurring transactions
   const recurringItems = useMemo((): RecurringItem[] => {
@@ -383,11 +432,13 @@ export function useCashFlow() {
   }, [recurringItems, summary]);
 
   return {
-    cashFlowDays,
-    summary,
-    recurringItems,
+    // Prefer server data; fall back to client-side computation
+    cashFlowDays:       serverProjection?.projection  ?? cashFlowDays,
+    summary:            serverProjection?.summary     ?? summary,
+    recurringItems:     serverProjection?.recurring   ?? recurringItems,
     upcomingBills,
     upcomingCommitments,
     insights,
+    isServerLoading,
   };
 }

@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import type { Investment } from "@/types";
+﻿import { Button } from "@/components/ui/button";
+import type { Currency, Investment } from "@/types";
 import { ArrowUpRight, Edit2, MoreHorizontal, Trash2 } from "lucide-react";
 import { PrivacyValue } from "../ui/PrivacyValue";
 import {
@@ -11,15 +11,16 @@ import {
 
 interface Props {
   assets: Investment[];
+  convert: (amount: number, from: Currency, to: Currency) => number;
   onDelete: (id: string) => void;
   onEdit: (asset: Investment) => void;
   onSell: (asset: Investment) => void;
   isViewer?: boolean;
 }
 
-export const PortfolioTable = ({ assets, onDelete, onEdit, onSell, isViewer }: Props) => {
+export const PortfolioTable = ({ assets, convert, onDelete, onEdit, onSell, isViewer }: Props) => {
   const totalPortfolioValue = assets.reduce(
-    (acc, asset) => acc + asset.amount * asset.currentPrice,
+    (acc, asset) => acc + convert(asset.amount * asset.currentPrice, (asset.currency || "BRL") as Currency, "BRL"),
     0
   );
 
@@ -28,7 +29,7 @@ export const PortfolioTable = ({ assets, onDelete, onEdit, onSell, isViewer }: P
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-white/5 bg-white/5 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+            <tr className="border-b border-white/5 bg-white/5 text-[10px] uppercase tracking-widest text-neutral-500 font-bold">
               <th className="p-4 whitespace-nowrap">Instrumento</th>
               <th className="p-4 text-right whitespace-nowrap">Qtd.</th>
               <th className="p-4 text-right whitespace-nowrap">Preço Médio</th>
@@ -42,6 +43,7 @@ export const PortfolioTable = ({ assets, onDelete, onEdit, onSell, isViewer }: P
           <tbody className="divide-y divide-white/5">
             {assets.map((asset) => {
               const totalValue = asset.amount * asset.currentPrice;
+              const totalValueInBRL = convert(totalValue, (asset.currency || "BRL") as Currency, "BRL");
               const profit =
                 asset.averagePrice > 0
                   ? ((asset.currentPrice - asset.averagePrice) /
@@ -50,7 +52,7 @@ export const PortfolioTable = ({ assets, onDelete, onEdit, onSell, isViewer }: P
                   : 0;
               const share =
                 totalPortfolioValue > 0
-                  ? (totalValue / totalPortfolioValue) * 100
+                  ? (totalValueInBRL / totalPortfolioValue) * 100
                   : 0;
 
               return (
@@ -67,16 +69,16 @@ export const PortfolioTable = ({ assets, onDelete, onEdit, onSell, isViewer }: P
                         <div className="font-bold text-white text-sm">
                           {asset.name}
                         </div>
-                        <div className="text-[10px] text-slate-500 uppercase">
+                        <div className="text-[10px] text-neutral-500 uppercase">
                           {asset.type}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-right font-medium text-slate-300">
+                  <td className="p-4 text-right font-medium text-neutral-400">
                     {asset.amount}
                   </td>
-                  <td className="p-4 text-right font-medium text-slate-300">
+                  <td className="p-4 text-right font-medium text-neutral-400">
                     <PrivacyValue
                       value={asset.averagePrice}
                       currency={asset.currency}
@@ -108,7 +110,7 @@ export const PortfolioTable = ({ assets, onDelete, onEdit, onSell, isViewer }: P
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                       <span className="text-xs font-bold text-slate-400">{share.toFixed(1)}%</span>
+                       <span className="text-xs font-bold text-neutral-500">{share.toFixed(1)}%</span>
                        <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
                            <div className="h-full bg-indigo-500" style={{ width: `${share}%` }} />
                        </div>
@@ -118,7 +120,7 @@ export const PortfolioTable = ({ assets, onDelete, onEdit, onSell, isViewer }: P
                     <td className="p-4 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-8 h-8 text-slate-400 hover:text-white">
+                          <Button variant="ghost" size="icon" className="w-8 h-8 text-neutral-500 hover:text-white">
                               <MoreHorizontal size={16} />
                           </Button>
                         </DropdownMenuTrigger>
@@ -145,3 +147,4 @@ export const PortfolioTable = ({ assets, onDelete, onEdit, onSell, isViewer }: P
     </div>
   );
 };
+

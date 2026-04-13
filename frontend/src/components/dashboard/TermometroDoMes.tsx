@@ -1,10 +1,12 @@
 /**
- * TermometroDomes.tsx — "Termômetro do Mês"
- * Widget proativo que mostra o status financeiro atual do mês em tempo real.
+ * TermometroDoMes.tsx — "Termômetro do Mês" (Premium Rewrite)
+ * Widget proativo com animações framer-motion, pulse semântico e Tailwind.
  * Verde = no controle | Amarelo = atenção | Vermelho = ação necessária
  */
 
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronRight } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 
 interface TermometroProps {
@@ -14,184 +16,192 @@ interface TermometroProps {
   onNavigate?: (tab: TabType) => void;
 }
 
+const fmt = (n: number) =>
+  "R$\u00a0" + Math.abs(n).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+type Status = "verde" | "amarelo" | "vermelho";
+
+const STATUS_CONFIG = {
+  verde: {
+    emoji: "✅",
+    label: "No controle",
+    color: "var(--green)",
+    // Tailwind color tokens
+    tw: {
+      text: "text-emerald-400",
+      bg: "bg-emerald-500/[0.06]",
+      border: "border-emerald-500/20",
+      badge: "bg-emerald-500/10 text-emerald-400 border-emerald-400/20",
+      iconBg: "bg-emerald-500/10 border-emerald-500/20",
+      bar: "bg-emerald-400",
+      pill: "bg-emerald-500/10",
+      glow: "shadow-[0_0_24px_rgba(0,217,145,0.15)]",
+      pulse: "",
+    },
+    tab: "budget" as TabType,
+  },
+  amarelo: {
+    emoji: "⚠️",
+    label: "Atenção",
+    color: "var(--amber)",
+    tw: {
+      text: "text-amber-400",
+      bg: "bg-amber-500/[0.06]",
+      border: "border-amber-500/20",
+      badge: "bg-amber-500/10 text-amber-400 border-amber-400/20",
+      iconBg: "bg-amber-500/10 border-amber-500/20",
+      bar: "bg-amber-400",
+      pill: "bg-amber-500/10",
+      glow: "shadow-[0_0_24px_rgba(255,173,59,0.12)]",
+      pulse: "animate-pulse",
+    },
+    tab: "envelopes" as TabType,
+  },
+  vermelho: {
+    emoji: "🔥",
+    label: "Acima do limite",
+    color: "var(--red)",
+    tw: {
+      text: "text-rose-400",
+      bg: "bg-rose-500/[0.06]",
+      border: "border-rose-500/20",
+      badge: "bg-rose-500/10 text-rose-400 border-rose-400/20",
+      iconBg: "bg-rose-500/10 border-rose-500/20",
+      bar: "bg-rose-400",
+      pill: "bg-rose-500/10",
+      glow: "shadow-[0_0_32px_rgba(255,79,110,0.18)]",
+      pulse: "animate-pulse",
+    },
+    tab: "envelopes" as TabType,
+  },
+} satisfies Record<Status, object>;
+
 export const TermometroDoMes: React.FC<TermometroProps> = ({
   income,
   expense,
   balance,
   onNavigate,
 }) => {
-  const fmt = (n: number) =>
-    "R$\u00a0" + Math.abs(n).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
-  // Calcular status
-  // spendRatio unused here — logic uses adjustedRatio for day-adjusted calculation
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
   const dayOfMonth = new Date().getDate();
   const monthProgress = dayOfMonth / daysInMonth;
-  const budgetProgress = income > 0 ? expense / income : 0;
-
-  // Se estamos no dia 15 (50% do mês) e já gastamos 70%, estamos no vermelho
+  const budgetProgress = income > 0 ? expense / income : expense > 0 ? 999 : 0;
   const adjustedRatio = budgetProgress / (monthProgress || 0.01);
 
-  type Status = "verde" | "amarelo" | "vermelho";
   const status: Status =
-    adjustedRatio <= 1.05
-      ? "verde"
-      : adjustedRatio <= 1.3
-      ? "amarelo"
-      : "vermelho";
+    adjustedRatio <= 1.05 ? "verde" : adjustedRatio <= 1.3 ? "amarelo" : "vermelho";
 
-  const statusConfig: Record<
-    Status,
-    { emoji: string; label: string; message: string; color: string; bg: string; border: string; action: string }
-  > = {
-    verde: {
-      emoji: "✅",
-      label: "No controle",
-      message: `Você gastou ${Math.round(budgetProgress * 100)}% da sua renda em ${Math.round(monthProgress * 100)}% do mês. Ótimo ritmo!`,
-      color: "var(--green)",
-      bg: "rgba(0,217,145,0.06)",
-      border: "rgba(0,217,145,0.2)",
-      action: "Ver fluxo",
-    },
-    amarelo: {
-      emoji: "⚠️",
-      label: "Atenção",
-      message: `Ritmo de gasto ${Math.round(adjustedRatio * 100 - 100)}% acima do esperado. Ainda dá para ajustar.`,
-      color: "var(--amber)",
-      bg: "rgba(255,173,59,0.06)",
-      border: "rgba(255,173,59,0.2)",
-      action: "Ver envelopes",
-    },
-    vermelho: {
-      emoji: "🔥",
-      label: "Acima do limite",
-      message:
-        balance < 0
-          ? `Saldo negativo de ${fmt(balance)}. Hora de cortar alguns gastos.`
-          : `Gastando mais rápido que o esperado. Revise seus envelopes.`,
-      color: "var(--red)",
-      bg: "rgba(255,79,110,0.06)",
-      border: "rgba(255,79,110,0.2)",
-      action: "Reorganizar",
-    },
-  };
-
-  const cfg = statusConfig[status];
+  const cfg = STATUS_CONFIG[status];
   const daysLeft = daysInMonth - dayOfMonth;
+  const barPct = Math.min(100, budgetProgress * 100);
+
+  const message =
+    status === "verde"
+      ? `Você gastou ${Math.round(budgetProgress * 100)}% da renda em ${Math.round(monthProgress * 100)}% do mês. Ótimo ritmo!`
+      : status === "amarelo"
+      ? `Ritmo de gasto ${Math.round(adjustedRatio * 100 - 100)}% acima do esperado. Ainda dá para ajustar.`
+      : balance < 0
+      ? `Saldo negativo de ${fmt(balance)}. Hora de cortar alguns gastos.`
+      : "Gastando mais rápido que o esperado. Revise seus envelopes.";
+
+  const stats = [
+    { label: "Receita", value: fmt(income), colorClass: "text-emerald-400" },
+    { label: "Gasto", value: fmt(expense), colorClass: status === "verde" ? "text-neutral-400" : cfg.tw.text },
+    { label: "Saldo", value: fmt(balance), colorClass: balance >= 0 ? "text-emerald-400" : "text-rose-400" },
+  ];
 
   return (
-    <div
-      onClick={() => onNavigate?.(status === "verde" ? "budget" : "envelopes")}
-      style={{
-        background: cfg.bg,
-        border: `1px solid ${cfg.border}`,
-        borderRadius: "16px",
-        padding: "14px 16px",
-        marginBottom: "14px",
-        cursor: "pointer",
-        transition: "all 0.2s",
-        position: "relative",
-        overflow: "hidden",
-      }}
+    <motion.button
+      type="button"
+      onClick={() => onNavigate?.(cfg.tab)}
+      aria-label={`Termômetro do mês: ${cfg.label}. ${message}. Abrir ${cfg.label === "No controle" ? "fluxo" : "envelopes"}.`}
+      className={`
+        group relative w-full text-left rounded-[18px] border p-4
+        cursor-pointer overflow-hidden
+        transition-all duration-300
+        hover:translate-y-[-1px] active:scale-[0.99]
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20
+        ${cfg.tw.bg} ${cfg.tw.border} ${cfg.tw.glow}
+      `}
+      whileHover={{ scale: 1.005 }}
+      whileTap={{ scale: 0.98 }}
     >
-      {/* Progress bar de fundo */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          height: "3px",
-          width: `${Math.min(100, budgetProgress * 100)}%`,
-          background: cfg.color,
-          borderRadius: "0 0 0 16px",
-          transition: "width 0.8s ease",
-        }}
-      />
+      {/* ── Animated bottom progress bar ─── */}
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/[0.04] rounded-b-[18px] overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full ${cfg.tw.bar}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${barPct}%` }}
+          transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+          style={{ filter: `drop-shadow(0 0 4px ${cfg.color})` }}
+        />
+      </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        {/* Indicator dot */}
+      {/* ── Pulse glow for danger states ─── */}
+      {status !== "verde" && (
         <div
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "10px",
-            background: `color-mix(in srgb, ${cfg.color} 15%, transparent)`,
-            border: `1px solid ${cfg.border}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "18px",
-            flexShrink: 0,
-          }}
+          className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[18px] ${cfg.tw.pulse}`}
+          style={{ background: `radial-gradient(ellipse at 50% 0%, ${cfg.color}18 0%, transparent 70%)` }}
+          aria-hidden
+        />
+      )}
+
+      {/* ── Main row ─── */}
+      <div className="flex items-center gap-3 mb-3">
+        {/* Status icon */}
+        <div
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xl shrink-0 ${cfg.tw.iconBg} ${status !== "verde" ? cfg.tw.pulse : ""
+          }`}
+          aria-hidden
         >
           {cfg.emoji}
         </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                color: cfg.color,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
+        {/* Label + message */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <span className={`text-[11px] font-black uppercase tracking-widest ${cfg.tw.text}`}>
               Termômetro · {cfg.label}
-            </div>
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--t3)",
-                fontFamily: "var(--mono)",
-              }}
+            </span>
+            <span className={`text-[10px] font-mono shrink-0 text-neutral-500`}>
+              {daysLeft}d restam
+            </span>
+          </div>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={status}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="text-[12px] text-neutral-400 leading-snug"
             >
-              {daysLeft}d restantes
-            </div>
-          </div>
-          <div style={{ fontSize: "12px", color: "var(--t2)", marginTop: "3px", lineHeight: 1.4 }}>
-            {cfg.message}
-          </div>
+              {message}
+            </motion.p>
+          </AnimatePresence>
         </div>
 
-        <div style={{ color: "var(--t3)", flexShrink: 0 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </div>
+        {/* Arrow */}
+        <ChevronRight
+          size={15}
+          className="shrink-0 text-neutral-700 group-hover:text-neutral-500 group-hover:translate-x-0.5 transition-all duration-200"
+          aria-hidden
+        />
       </div>
 
-      {/* Mini stats row */}
-      <div
-        style={{
-          display: "flex",
-          gap: "1px",
-          marginTop: "10px",
-          borderRadius: "8px",
-          overflow: "hidden",
-          background: "rgba(255,255,255,0.04)",
-        }}
-      >
-        {[
-          { label: "Receita", value: fmt(income), color: "var(--green)" },
-          { label: "Gasto", value: fmt(expense), color: status === "verde" ? "var(--t2)" : cfg.color },
-          { label: "Saldo", value: fmt(balance), color: balance >= 0 ? "var(--green)" : "var(--red)" },
-        ].map((item) => (
-          <div
-            key={item.label}
-            style={{ flex: 1, padding: "6px 8px", textAlign: "center" }}
-          >
-            <div style={{ fontSize: "9px", color: "var(--t3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "2px", fontWeight: 600 }}>
+      {/* ── Mini stats pill row ─── */}
+      <div className="grid grid-cols-3 gap-1 mt-1 rounded-xl overflow-hidden bg-white/[0.03]">
+        {stats.map((item) => (
+          <div key={item.label} className="py-2 px-2 text-center">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 mb-0.5">
               {item.label}
             </div>
-            <div style={{ fontSize: "12px", fontWeight: 700, color: item.color, fontFamily: "var(--mono)" }}>
+            <div className={`text-[12px] font-black tabular-nums font-mono ${item.colorClass}`}>
               {item.value}
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </motion.button>
   );
 };

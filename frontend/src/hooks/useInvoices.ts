@@ -15,13 +15,25 @@ export const useInvoices = () => {
       const response = await api.get<Invoice[] | { items?: Invoice[] }>("/invoices");
       const items = Array.isArray(response) ? response : (response?.items || []);
       setInvoices(items);
-    } catch (_err) {
-      setError("Falha ao carregar as notas fiscais.");
-      showError("Falha ao carregar as notas fiscais.");
+    } catch (err: unknown) {
+      // 403 = usuário free (proGuard). Não é um erro de UI — apenas não tem acesso.
+      const is403 =
+        (err instanceof Error && err.message.toLowerCase().includes("forbidden")) ||
+        (err as { status?: number })?.status === 403 ||
+        (err as { statusCode?: number })?.statusCode === 403;
+
+      if (is403) {
+        // Silent: plan gate, not a runtime error
+        setInvoices([]);
+      } else {
+        setError("Falha ao carregar as notas fiscais.");
+        showError("Falha ao carregar as notas fiscais.");
+      }
     } finally {
       setIsLoading(false);
     }
   }, []);
+
 
   useEffect(() => {
     fetchInvoices();

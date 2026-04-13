@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -133,14 +133,14 @@ export const OFXImportModal = ({
               exit={{ opacity: 0, y: -10 }}
               className="space-y-5"
             >
-              <p className="text-sm text-slate-400 leading-relaxed">
+              <p className="text-sm text-neutral-500 leading-relaxed">
                 Exporte o extrato do seu banco no formato{" "}
                 <span className="text-indigo-300 font-bold">.ofx</span> e faça
                 o upload aqui. As transações serão importadas automaticamente,
                 sem duplicatas.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-center text-slate-500">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-center text-neutral-500">
                 {["Itaú", "Bradesco", "Nubank", "BB", "Santander", "Inter"].map(
                   (b) => (
                     <div
@@ -159,12 +159,12 @@ export const OFXImportModal = ({
               >
                 <FileText
                   size={40}
-                  className="text-slate-600 group-hover:text-indigo-400 transition-colors"
+                  className="text-neutral-700 group-hover:text-indigo-400 transition-colors"
                 />
-                <span className="text-sm font-bold text-slate-400 group-hover:text-white transition-colors">
+                <span className="text-sm font-bold text-neutral-500 group-hover:text-white transition-colors">
                   Clique para selecionar o arquivo OFX
                 </span>
-                <span className="text-xs text-slate-600">
+                <span className="text-xs text-neutral-700">
                   .ofx · .qfx · máx. 10MB
                 </span>
               </button>
@@ -192,11 +192,11 @@ export const OFXImportModal = ({
                 size={40}
                 className="text-indigo-400 animate-spin"
               />
-              <p className="text-sm font-bold text-slate-400">
+              <p className="text-sm font-bold text-neutral-500">
                 Lendo{" "}
                 <span className="text-white">{fileName}</span>…
               </p>
-              <p className="text-xs text-slate-600">Categorizando transações</p>
+              <p className="text-xs text-neutral-700">Categorizando transações</p>
             </motion.div>
           )}
 
@@ -221,25 +221,25 @@ export const OFXImportModal = ({
                   <p className="text-3xl font-black text-emerald-400">
                     {result.imported}
                   </p>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider mt-1">
                     Importadas
                   </p>
                 </div>
                 <div className="bg-white/5 border border-white/5 rounded-2xl p-4 text-center">
-                  <p className="text-3xl font-black text-slate-400 flex items-center justify-center gap-1">
+                  <p className="text-3xl font-black text-neutral-500 flex items-center justify-center gap-1">
                     <SkipForward size={20} />
                     {result.skipped}
                   </p>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider mt-1">
                     Duplicatas
                   </p>
                 </div>
               </div>
 
               {result.period?.from && (
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-xs text-neutral-500 text-center">
                   Período:{" "}
-                  <span className="text-slate-300 font-bold">
+                  <span className="text-neutral-400 font-bold">
                     {fmt(result.period.from)} → {fmt(result.period.to)}
                   </span>
                 </p>
@@ -283,7 +283,7 @@ export const OFXImportModal = ({
                 <h3 className="text-lg font-black text-white">
                   Falha na importação
                 </h3>
-                <p className="text-sm text-slate-400 text-center max-w-xs">
+                <p className="text-sm text-neutral-500 text-center max-w-xs">
                   {errorMsg}
                 </p>
               </div>
@@ -310,3 +310,4 @@ export const OFXImportModal = ({
     </Dialog>
   );
 };
+

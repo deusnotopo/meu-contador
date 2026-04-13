@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { showSuccess } from "@/lib/toast";
 import { Bell, Smartphone } from "lucide-react";
 
@@ -15,7 +15,7 @@ export const MobileSettings = () => {
               App Mobile
             </h4>
           </div>
-          <p className="text-xs text-slate-500 font-medium leading-relaxed">
+          <p className="text-xs text-neutral-500 font-medium leading-relaxed">
             Instale o Meu Contador na tela de início para acesso instantâneo e
             offline.
           </p>
@@ -38,7 +38,7 @@ export const MobileSettings = () => {
               Alertas PRO
             </h4>
           </div>
-          <p className="text-xs text-slate-500 font-medium leading-relaxed">
+          <p className="text-xs text-neutral-500 font-medium leading-relaxed">
             Receba avisos de vencimentos e insights de IA direto no seu
             navegador.
           </p>
@@ -58,3 +58,4 @@ export const MobileSettings = () => {
     </div>
   );
 };
+

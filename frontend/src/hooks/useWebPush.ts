@@ -42,7 +42,10 @@ export function useWebPush() {
         throw new Error('Permissão negada ou não respondida pelo usuário');
       }
 
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('Service Worker timeout')), 4000))
+      ]);
       const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
       if (!vapidPublicKey) {
          throw new Error('Chave VAPID_PÚBLICA do Firebase/WebPush inexistente no .env');
@@ -81,7 +84,10 @@ export function useWebPush() {
   const unsubscribe = async () => {
     try {
       setLoading(true);
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('Service Worker timeout')), 4000))
+      ]);
       const subscription = await registration.pushManager.getSubscription();
       if (subscription) {
         await subscription.unsubscribe();

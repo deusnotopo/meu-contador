@@ -12,14 +12,6 @@ const API_URL =
     ? "http://localhost:3000"
     : "https://meu-contador-iyut.onrender.com");
 
-const T = {
-  bg: "#04070F",
-  bg2: "#070C18",
-  amber: "#FFAD3B",
-  amberD: "rgba(255,173,59,0.1)",
-  blue: "#4A8BFF",
-};
-
 export const LoginForm = () => {
   const { login, register, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
@@ -112,9 +104,9 @@ export const LoginForm = () => {
     }
   };
 
-  const inputBase = "w-full h-12 bg-white/[0.055] border-white/11 rounded-2xl text-sm transition-all duration-200 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50";
+  const inputBase = "w-full h-12 bg-white/[0.055] border-white/[0.11] rounded-2xl text-sm transition-all duration-200 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50";
   const inputFocus = (f: string) => focused === f ? "bg-indigo-500/[0.06] shadow-[0_0_0_3px_rgba(74,139,255,0.08)]" : "";
-  const labelCls = "block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2";
+  const labelCls = "block text-[10px] font-bold text-[var(--t4)] uppercase tracking-wider mb-2";
 
   return (
     <>
@@ -125,55 +117,89 @@ export const LoginForm = () => {
           0%, 100% { opacity: 0.4; transform: scale(1); }
           50% { opacity: 0.7; transform: scale(1.05); }
         }
-        @keyframes loginFadeUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        .login-orb { animation: loginPulse 6s ease-in-out infinite; }
+        .login-orb-2 { animation: loginPulse 8s ease-in-out infinite 1s; }
+        .login-orb-3 { animation: loginPulse 7s ease-in-out infinite 2s; }
         .login-toggle:hover { color: #F0F4FF !important; }
       `}</style>
 
-      <div style={{ minHeight: "100vh", width: "100%", background: T.bg, backgroundImage: `radial-gradient(ellipse 80% 60% at 10% 10%, rgba(74,139,255,0.04) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 90% 90%, rgba(155,127,255,0.03) 0%, transparent 60%), radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,217,145,0.015) 0%, transparent 70%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 16px", fontFamily: "'DM Sans', sans-serif", position: "relative", overflow: "hidden" }}>
-        {/* Floating orbs */}
-        <div style={{ position: "absolute", top: "10%", left: "5%", width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle, rgba(74,139,255,0.07) 0%, transparent 70%)", animation: "loginPulse 6s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
-        <div style={{ position: "absolute", bottom: "8%", right: "3%", width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(155,127,255,0.05) 0%, transparent 70%)", animation: "loginPulse 8s ease-in-out infinite 1s", pointerEvents: "none", zIndex: 0 }} />
-        <div style={{ position: "absolute", top: "45%", right: "12%", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,217,145,0.04) 0%, transparent 70%)", animation: "loginPulse 7s ease-in-out infinite 2s", pointerEvents: "none", zIndex: 0 }} />
+      <div className="min-h-screen w-full bg-[#04070F] flex items-center justify-center px-4 py-8 relative overflow-hidden font-[DM_Sans,sans-serif]"
+        style={{ backgroundImage: `radial-gradient(ellipse 80% 60% at 10% 10%, rgba(74,139,255,0.04) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 90% 90%, rgba(155,127,255,0.03) 0%, transparent 60%)` }}>
 
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }} style={{ width: "100%", maxWidth: 420, position: "relative", zIndex: 10 }}>
-          {/* Logo & heading */}
-          <div style={{ textAlign: "center", marginBottom: 36 }}>
-            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1, y: [0, -4, 0] }} transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 20, y: { duration: 4, repeat: Infinity, ease: "easeInOut" } }} style={{ width: 80, height: 80, borderRadius: 22, background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", overflow: "hidden", position: "relative" }}>
-              <img src="/logo-new.png" alt="Meu Contador" style={{ width: "100%", height: "100%", objectFit: "contain", padding: "8px", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.5))" }} />
+        {/* Ambient orbs */}
+        <div className="login-orb pointer-events-none absolute top-[10%] left-[5%] w-80 h-80 rounded-full bg-[radial-gradient(circle,rgba(74,139,255,0.07)_0%,transparent_70%)]" />
+        <div className="login-orb-2 pointer-events-none absolute bottom-[8%] right-[3%] w-64 h-64 rounded-full bg-[radial-gradient(circle,rgba(155,127,255,0.05)_0%,transparent_70%)]" />
+        <div className="login-orb-3 pointer-events-none absolute top-[45%] right-[12%] w-44 h-44 rounded-full bg-[radial-gradient(circle,rgba(0,217,145,0.04)_0%,transparent_70%)]" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full max-w-[420px] relative z-10"
+        >
+          {/* Logo & Heading */}
+          <div className="text-center mb-9">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1, y: [0, -4, 0] }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 20, y: { duration: 4, repeat: Infinity, ease: "easeInOut" } }}
+              className="w-20 h-20 rounded-[22px] bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_0_0_1px_rgba(255,255,255,0.05)] flex items-center justify-center mx-auto mb-6 overflow-hidden"
+            >
+              <img src="/logo-new.png" alt="Meu Contador" className="w-full h-full object-contain p-2 drop-shadow-lg" />
             </motion.div>
 
-            <motion.h1 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} style={{ fontSize: 30, fontWeight: 700, color: "#F0F4FF", letterSpacing: "-0.8px", lineHeight: 1, marginBottom: 6 }}>Meu Contador</motion.h1>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <div style={{ height: 1, width: 28, background: "rgba(74,139,255,0.3)" }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#3D4F72", textTransform: "uppercase", letterSpacing: "0.18em" }}>Inteligência Financeira</span>
-              <div style={{ height: 1, width: 28, background: "rgba(74,139,255,0.3)" }} />
+            <motion.h1
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-[30px] font-bold text-[#F0F4FF] tracking-[-0.8px] leading-none mb-1.5"
+            >
+              Meu Contador
+            </motion.h1>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center justify-center gap-2"
+            >
+              <div className="h-px w-7 bg-blue-500/30" />
+              <span className="text-[10px] font-bold text-[#3D4F72] uppercase tracking-[0.18em]">Inteligência Financeira</span>
+              <div className="h-px w-7 bg-blue-500/30" />
             </motion.div>
           </div>
 
           {/* Server waking banner */}
           <AnimatePresence>
             {serverWaking && (
-              <motion.div initial={{ opacity: 0, height: 0, marginBottom: 0 }} animate={{ opacity: 1, height: "auto", marginBottom: 12 }} exit={{ opacity: 0, height: 0, marginBottom: 0 }} style={{ background: T.amberD, border: "1px solid rgba(255,173,59,0.25)", borderRadius: 14, padding: "12px 14px", fontSize: 12, color: T.amber, display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>⚡</span>
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: "auto", marginBottom: 12 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                className="bg-amber-500/10 border border-amber-500/25 rounded-[14px] px-3.5 py-3 text-xs text-amber-400 flex items-start gap-2.5"
+              >
+                <span className="text-lg flex-shrink-0 mt-0.5">⚡</span>
                 <div>
-                  <div style={{ fontWeight: 700, marginBottom: 3 }}>Servidor iniciando…</div>
-                  <div style={{ color: "rgba(255,173,59,0.7)", fontSize: 11, lineHeight: 1.4 }}>O servidor estava em repouso. Aguarde 10–30s e tente novamente.</div>
+                  <div className="font-bold mb-0.5">Servidor iniciando…</div>
+                  <div className="text-amber-400/70 text-[11px] leading-snug">O servidor estava em repouso. Aguarde 10–30s e tente novamente.</div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Main glass card */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.45 }} style={{ background: "linear-gradient(155deg, #0A1830 0%, #060E1D 50%, #0A1428 100%)", border: "1px solid rgba(74,139,255,0.15)", borderRadius: 28, padding: 28, position: "relative", overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)" }}>
+          {/* Glass card */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.45 }}
+            className="relative overflow-hidden rounded-[28px] p-7 border border-blue-500/[0.15] shadow-[0_40px_80px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)]"
+            style={{ background: "linear-gradient(155deg, #0A1830 0%, #060E1D 50%, #0A1428 100%)" }}
+          >
             {/* Decorative glows */}
-            <div style={{ position: "absolute", top: -80, right: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(74,139,255,0.09) 0%, transparent 70%)", pointerEvents: "none" }} />
-            <div style={{ position: "absolute", bottom: -50, left: -50, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(155,127,255,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+            <div className="pointer-events-none absolute -top-20 -right-14 w-56 h-56 rounded-full bg-[radial-gradient(circle,rgba(74,139,255,0.09)_0%,transparent_70%)]" />
+            <div className="pointer-events-none absolute -bottom-12 -left-12 w-44 h-44 rounded-full bg-[radial-gradient(circle,rgba(155,127,255,0.06)_0%,transparent_70%)]" />
 
             {/* Tab: Login / Cadastro */}
-            <div style={{ display: "flex", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.065)", borderRadius: 12, padding: 4, marginBottom: 24, position: "relative", zIndex: 1 }}>
+            <div className="flex bg-white/[0.03] border border-white/[0.065] rounded-xl p-1 mb-6 relative z-[1]">
               {["Entrar", "Cadastrar"].map((label, i) => {
                 const active = isRegistering ? i === 1 : i === 0;
                 return (
@@ -184,14 +210,14 @@ export const LoginForm = () => {
               })}
             </div>
 
-            <form onSubmit={handleSubmit} style={{ position: "relative", zIndex: 1 }}>
-              {/* Name field (register only) */}
+            <form onSubmit={handleSubmit} className="relative z-[1]">
+              {/* Name (register only) */}
               <AnimatePresence>
                 {isRegistering && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-4 overflow-hidden">
                     <label className={labelCls}>Nome completo</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 z-10" size={16} />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--t4)] z-10" size={16} />
                       <Input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" className={`${inputBase} pl-10 ${inputFocus("name")}`} onFocus={() => setFocused("name")} onBlur={() => setFocused(null)} autoComplete="name" />
                     </div>
                   </motion.div>
@@ -202,7 +228,7 @@ export const LoginForm = () => {
               <div className="mb-4">
                 <label className={labelCls}>E-mail</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 z-10" size={16} />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--t4)] z-10" size={16} />
                   <Input ref={emailRef} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className={`${inputBase} pl-10 ${inputFocus("email")}`} onFocus={() => setFocused("email")} onBlur={() => setFocused(null)} autoComplete="email" required />
                 </div>
               </div>
@@ -211,12 +237,12 @@ export const LoginForm = () => {
               <div className="mb-6">
                 <label className={labelCls}>Senha</label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 z-10" size={16} />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--t4)] z-10" size={16} />
                   <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={`${inputBase} pl-10 ${inputFocus("password")}`} onFocus={() => setFocused("password")} onBlur={() => setFocused(null)} autoComplete={isRegistering ? "new-password" : "current-password"} required />
                 </div>
               </div>
 
-              {/* Primary CTA */}
+              {/* CTA */}
               <Button type="submit" disabled={loading} variant="premium" className="w-full h-12 rounded-xl font-bold text-sm tracking-wide mb-4">
                 {loading ? (
                   <><Loader2 className="animate-spin" size={16} /> Aguarde...</>
@@ -228,20 +254,25 @@ export const LoginForm = () => {
               {/* Divider */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ou</span>
+                <span className="text-[10px] font-bold text-[var(--t4)] uppercase tracking-wider">ou</span>
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
               {/* Google OAuth */}
               <Button type="button" onClick={handleGoogleLogin} disabled={loading} variant="outline" className="w-full h-11 rounded-xl font-semibold text-sm">
-                <img src="https://www.google.com/favicon.ico" style={{ width: 18, height: 18 }} alt="Google" />
+                <img src="https://www.google.com/favicon.ico" className="w-[18px] h-[18px]" alt="Google" />
                 Continuar com Google
               </Button>
 
               {/* Domain error */}
               <AnimatePresence>
                 {domainError && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ marginTop: 12, padding: "10px 14px", background: T.amberD, border: "1px solid rgba(255,173,59,0.25)", borderRadius: 12, fontSize: 11, color: T.amber, lineHeight: 1.5 }}>
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 px-3.5 py-2.5 bg-amber-500/10 border border-amber-500/25 rounded-xl text-[11px] text-amber-400 leading-snug"
+                  >
                     Domínio <strong>meu-contador-one.vercel.app</strong> precisa ser autorizado no Console Firebase para o login Google funcionar.
                   </motion.div>
                 )}
@@ -251,16 +282,21 @@ export const LoginForm = () => {
 
           {/* Footer toggle */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-center mt-5">
-            <button type="button" onClick={() => { setIsRegistering(!isRegistering); setServerWaking(false); }} className="login-toggle bg-none border-none cursor-pointer font-sans text-sm text-slate-500 transition-colors">
+            <button type="button" onClick={() => { setIsRegistering(!isRegistering); setServerWaking(false); }} className="login-toggle bg-transparent border-none cursor-pointer font-[DM_Sans] text-sm text-[var(--t4)] transition-colors">
               {isRegistering ? "Já tem conta? " : "Novo por aqui? "}
               <span className="text-blue-400 font-bold">{isRegistering ? "Fazer login" : "Criar conta grátis"}</span>
             </button>
           </motion.div>
 
           {/* Trust badges */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 28, opacity: 0.4 }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="flex items-center justify-center gap-5 mt-7 opacity-40"
+          >
             {[{ icon: "🤖", label: "IA Financeira" }, { icon: "🔒", label: "Segurança Bancária" }, { icon: "🇧🇷", label: "Feito para o Brasil" }].map(({ icon, label }) => (
-              <div key={label} className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase tracking-wide">
+              <div key={label} className="flex items-center gap-1 text-[10px] text-[var(--t3)] font-bold uppercase tracking-wide">
                 <span className="text-sm">{icon}</span>{label}
               </div>
             ))}

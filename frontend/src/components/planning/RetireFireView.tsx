@@ -12,6 +12,10 @@ import { HelpButton } from "@/components/ui/HelpButton";
 import { AreaTutorialButton } from "@/components/ui/AreaTutorialButton";
 import { useFireCalculation } from "@/hooks/useFireCalculation";
 
+const sliderClass = "w-full cursor-pointer accent-[#7B6FFF]";
+const labelClass = "text-[13px] text-[var(--t1)] font-medium";
+const valueClass = "text-[15px] font-bold text-[var(--t1)] font-mono";
+const subClass = "flex justify-between text-[9px] text-[var(--t3)] mt-0.5";
 
 interface RetireFireViewProps {
   onBack?: (tab?: TabType) => void;
@@ -26,10 +30,8 @@ export const RetireFireView = ({ onBack, onNavigate, isTab }: RetireFireViewProp
   const business = useTransactions("business");
   const { totals: debtTotals, isLoading: debtLoading } = useDebts();
 
-  // ── Loading state ──
   const isLoading = invLoading || personal.isLoading || business.isLoading || debtLoading;
 
-  // ── Real data ──
   const patrimonioAtual = Math.max(0,
     (personal.totals.balance + business.totals.balance + invTotals.currentValue) - debtTotals.totalBalance
   );
@@ -37,122 +39,92 @@ export const RetireFireView = ({ onBack, onNavigate, isTab }: RetireFireViewProp
 
   const { fireConfig, updateFireConfig } = usePreferences();
 
-  // ── Controlled state — initializes from saved prefs, falls back to calculated defaults ──
-  const [despesa, setDespesa] = useState(() =>
-    fireConfig.expense ?? Math.round((personal.totals.expense || 8000))
-  );
-  const [aporte, setAporte] = useState(() =>
-    fireConfig.contribution ?? Math.round((rendaAtual * 0.2) || 2000)
-  );
-  const [taxaAnual, setTaxaAnual] = useState(() => fireConfig.rate ?? 10); // % ao ano
+  const [despesa, setDespesa] = useState(() => fireConfig.expense ?? Math.round(personal.totals.expense || 8000));
+  const [aporte, setAporte] = useState(() => fireConfig.contribution ?? Math.round(rendaAtual * 0.2 || 2000));
+  const [taxaAnual, setTaxaAnual] = useState(() => fireConfig.rate ?? 10);
 
-  // Sync from prefs once they load (async)
   useEffect(() => {
     if (fireConfig.expense !== undefined) setDespesa(fireConfig.expense);
     if (fireConfig.contribution !== undefined) setAporte(fireConfig.contribution);
     if (fireConfig.rate !== undefined) setTaxaAnual(fireConfig.rate);
   }, [fireConfig.expense, fireConfig.contribution, fireConfig.rate]);
 
-  // ── FIRE calculation (fully reactive) ──
-  const WITHDRAWAL_RATE = 0.032; // 3.2% — conservative for Brazil
-
+  const WITHDRAWAL_RATE = 0.032;
   const { months, targets } = useFireCalculation({
     currentNetWorth: patrimonioAtual,
     monthlyExpenses: despesa,
     monthlyDeposit: aporte,
     yearlyReturn: taxaAnual,
-    withdrawalRate: WITHDRAWAL_RATE
+    withdrawalRate: WITHDRAWAL_RATE,
   });
 
   const meta = targets.base;
   const meses = months.base;
-
   const anos = (meses / 12).toFixed(1);
   const atingivel = meses < 600;
   const progresoFire = Math.min(100, (patrimonioAtual / meta) * 100);
-
-  // Year of FIRE
   const anoFire = new Date().getFullYear() + Math.round(meses / 12);
   const idadeAtual = user?.age || 30;
   const idadeFire = idadeAtual + Math.round(meses / 12);
-
-  // Lean FIRE and Fat FIRE — use months from hook (fix: was using undeclared taxaMes)
   const leanMeta = targets.lean;
   const fatMeta = targets.fat;
   const leanMeses = months.lean;
   const fatMeses = months.fat;
 
+  const Header = () => (
+    <div className="flex items-center gap-2.5 mb-5">
+      <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
+        <ArrowLeft size={16} />
+      </Button>
+      <div className="flex-1">
+        <div className="eyebrow">Independência financeira</div>
+        <div className="page-title text-[22px] m-0 flex items-center gap-2">
+          Calculadora FIRE
+          <HelpButton tooltipText="Projete sua independência financeira com patrimônio atual, aporte mensal, despesas desejadas e taxa de retorno." />
+        </div>
+      </div>
+      <AreaTutorialButton area="futuro" onNavigate={onNavigate} />
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div style={{ paddingTop: isTab ? "0px" : "10px", display: "flex", flexDirection: "column", gap: 16 }}>
-        {!isTab && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-            <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
-              <ArrowLeft size={16} />
-            </Button>
-            <div style={{ flex: 1 }}>
-              <div className="eyebrow">Independência financeira</div>
-              <div className="page-title" style={{ margin: 0, fontSize: 22 }}>Calculadora FIRE</div>
-            </div>
-          </div>
-        )}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12, color: "var(--t3)" }}>
-          <Loader2 size={20} style={{ animation: "spin 1s linear infinite" }} />
-          <span style={{ fontSize: 14 }}>Carregando dados financeiros...</span>
+      <div className={`${isTab ? "pt-0" : "pt-2.5"} flex flex-col gap-4`}>
+        {!isTab && <Header />}
+        <div className="flex items-center justify-center py-16 gap-3 text-[var(--t3)]">
+          <Loader2 size={20} className="animate-spin" />
+          <span className="text-[14px]">Carregando dados financeiros...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ paddingTop: isTab ? "0px" : "10px", animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
-      {/* Header */}
-      {!isTab && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <Button variant="ghost" size="icon" onClick={() => onBack?.()} className="rounded-xl">
-            <ArrowLeft size={16} />
-          </Button>
-          <div style={{ flex: 1 }}>
-            <div className="eyebrow">Independência financeira</div>
-            <div className="page-title" style={{ margin: 0, fontSize: 22, display: "flex", alignItems: "center", gap: 8 }}>
-              Calculadora FIRE
-              <HelpButton tooltipText="Projete sua independência financeira com patrimônio atual, aporte mensal, despesas desejadas e taxa de retorno." />
-            </div>
-          </div>
-          <AreaTutorialButton area="futuro" onNavigate={onNavigate} />
-        </div>
-      )}
+    <div className={`${isTab ? "pt-0" : "pt-2.5"} pb-24 animate-in fade-in duration-300`}>
+      {!isTab && <Header />}
 
-      {/* Hero — FIRE result */}
-      <div className="hero" style={{ textAlign: "center", padding: "24px 20px" }}>
-        <div style={{ fontSize: "10px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 8 }}>
+      {/* Hero */}
+      <div className="hero text-center px-5 py-6">
+        <div className="text-[10px] text-[var(--t3)] uppercase tracking-[0.12em] font-semibold mb-2">
           {atingivel ? "Data estimada FIRE" : "Meta inalcançável no prazo"}
         </div>
         {atingivel ? (
           <>
-            <div style={{ fontSize: 38, fontWeight: 700, color: "var(--t1)", letterSpacing: "-1.5px", fontFamily: "var(--mono)" }}>
-              {anoFire}
-            </div>
-            <div style={{ fontSize: 13, color: "var(--t2)", marginTop: 4 }}>
-              {anos} anos · aos {idadeFire} anos de idade
-            </div>
+            <div className="text-[38px] font-bold text-[var(--t1)] tracking-[-1.5px] font-mono">{anoFire}</div>
+            <div className="text-[13px] text-[var(--t2)] mt-1">{anos} anos · aos {idadeFire} anos de idade</div>
           </>
         ) : (
-          <div style={{ fontSize: 15, color: "var(--amber)", fontWeight: 600, marginTop: 4 }}>
+          <div className="text-[15px] text-[var(--amber)] font-semibold mt-1">
             Aumente o aporte ou reduza a despesa desejada.
           </div>
         )}
 
-        {/* Progress bar — current vs meta */}
-        <div style={{ margin: "16px 0 6px" }}>
-          <div className="prog" style={{ height: 10 }}>
-            <div className="prog-fill" style={{
-              width: `${progresoFire}%`,
-              background: "linear-gradient(90deg, var(--blue), var(--purple))",
-            }} />
+        <div className="my-4">
+          <div className="prog h-2.5">
+            <div className="prog-fill" style={{ width: `${progresoFire}%`, background: "linear-gradient(90deg,var(--blue),var(--purple))" }} />
           </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--t3)", fontFamily: "var(--mono)" }}>
+        <div className="flex justify-between text-[10px] text-[var(--t3)] font-mono">
           <span>Atual: {formatCurrency(patrimonioAtual)}</span>
           <span>{Math.round(progresoFire)}%</span>
           <span>Meta: {meta >= 1e6 ? `R$ ${(meta / 1e6).toFixed(1)}M` : formatCurrency(meta)}</span>
@@ -160,7 +132,7 @@ export const RetireFireView = ({ onBack, onNavigate, isTab }: RetireFireViewProp
       </div>
 
       {/* Metrics */}
-      <div className="metric-grid" style={{ marginTop: 12 }}>
+      <div className="metric-grid mt-3">
         <div className="metric">
           <div className="m-label">Taxa de retirada</div>
           <div className="m-val blue mono">{(WITHDRAWAL_RATE * 100).toFixed(1)}%</div>
@@ -183,68 +155,67 @@ export const RetireFireView = ({ onBack, onNavigate, isTab }: RetireFireViewProp
         </div>
       </div>
 
-      {/* Interactive simulator */}
+      {/* Simulator */}
       <div className="sec-hd"><span className="sec-title">Simulador — ajuste sua meta</span></div>
       <div className="card">
-        {/* Despesa desejada */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>Despesa mensal desejada na IF</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{formatCurrency(despesa)}</div>
+        {/* Despesa */}
+        <div className="mb-5">
+          <div className="flex justify-between items-center mb-2">
+            <div className={labelClass}>Despesa mensal desejada na IF</div>
+            <div className={valueClass}>{formatCurrency(despesa)}</div>
           </div>
           <input type="range" min="2000" max="30000" step="500" value={despesa}
             onChange={e => { const v = +e.target.value; setDespesa(v); updateFireConfig({ expense: v }); }}
-            style={{ width: "100%", accentColor: "#7B6FFF", cursor: "pointer" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--t3)", marginTop: 2 }}>
-            <span>R$ 2.000 (Lean)</span><span>R$ 30.000 (Fat)</span>
-          </div>
+            className={sliderClass}
+          />
+          <div className={subClass}><span>R$ 2.000 (Lean)</span><span>R$ 30.000 (Fat)</span></div>
         </div>
 
-        {/* Aporte mensal */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>Aporte mensal</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{formatCurrency(aporte)}</div>
+        {/* Aporte */}
+        <div className="mb-5">
+          <div className="flex justify-between items-center mb-2">
+            <div className={labelClass}>Aporte mensal</div>
+            <div className={valueClass}>{formatCurrency(aporte)}</div>
           </div>
           <input type="range" min="100" max="15000" step="100" value={aporte}
             onChange={e => { const v = +e.target.value; setAporte(v); updateFireConfig({ contribution: v }); }}
-            style={{ width: "100%", accentColor: "#7B6FFF", cursor: "pointer" }} />
+            className={sliderClass}
+          />
           {rendaAtual > 0 && (
-            <div style={{ fontSize: 9, color: "var(--t3)", marginTop: 2 }}>
+            <div className="text-[9px] text-[var(--t3)] mt-0.5">
               {Math.round((aporte / rendaAtual) * 100)}% da sua renda atual
             </div>
           )}
         </div>
 
-        {/* Taxa de rendimento */}
-        <div style={{ marginBottom: 4 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>Rentabilidade (a.a.)</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>{taxaAnual}%</div>
+        {/* Taxa */}
+        <div className="mb-1">
+          <div className="flex justify-between items-center mb-2">
+            <div className={labelClass}>Rentabilidade (a.a.)</div>
+            <div className={valueClass}>{taxaAnual}%</div>
           </div>
           <input type="range" min="1" max="20" step="0.5" value={taxaAnual}
             onChange={e => { const v = +e.target.value; setTaxaAnual(v); updateFireConfig({ rate: v }); }}
-            style={{ width: "100%", accentColor: "#7B6FFF", cursor: "pointer" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--t3)", marginTop: 2 }}>
-            <span>Poupança</span><span>CDI</span><span>Ações BR</span><span>Ações EUA</span>
-          </div>
+            className={sliderClass}
+          />
+          <div className={subClass}><span>Poupança</span><span>CDI</span><span>Ações BR</span><span>Ações EUA</span></div>
         </div>
 
-        {/* Dynamic result */}
-        <div style={{ marginTop: 16, padding: 14, background: "var(--blue3)", borderRadius: 12, border: "1px solid rgba(74,139,255,0.15)" }}>
-          <div style={{ fontSize: 10, color: "var(--blue)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700, marginBottom: 8 }}>
+        {/* Result box */}
+        <div className="mt-4 p-3.5 bg-[var(--blue3)] rounded-xl border border-blue-500/15">
+          <div className="text-[10px] text-[var(--blue)] uppercase tracking-[0.06em] font-bold mb-2">
             Resultado com esses parâmetros
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <div style={{ fontSize: 9, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Patrimônio alvo</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)", fontFamily: "var(--mono)" }}>
+              <div className="text-[9px] text-[var(--t3)] uppercase tracking-[0.05em] mb-0.5">Patrimônio alvo</div>
+              <div className="text-[16px] font-bold text-[var(--t1)] font-mono">
                 {meta >= 1e6 ? `R$ ${(meta / 1e6).toFixed(1)}M` : formatCurrency(meta)}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 9, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Anos para FIRE</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: atingivel ? "var(--blue)" : "var(--amber)", fontFamily: "var(--mono)" }}>
+              <div className="text-[9px] text-[var(--t3)] uppercase tracking-[0.05em] mb-0.5">Anos para FIRE</div>
+              <div className="text-[16px] font-bold font-mono" style={{ color: atingivel ? "var(--blue)" : "var(--amber)" }}>
                 {meses >= 600 ? "> 50 anos" : `${anos} anos`}
               </div>
             </div>
@@ -252,54 +223,34 @@ export const RetireFireView = ({ onBack, onNavigate, isTab }: RetireFireViewProp
         </div>
       </div>
 
-      {/* FIRE modalities — using hook values (fix: was using undeclared taxaMes) */}
+      {/* FIRE types */}
       <div className="sec-hd"><span className="sec-title">Tipos de FIRE</span></div>
       {[
-        {
-          em: "🌱", nm: "Lean FIRE",
-          desc: `${formatCurrency(Math.round(despesa * 0.6))}/mês`,
-          target: leanMeta,
-          months: leanMeses,
-          color: "var(--green)",
-        },
-        {
-          em: "🔥", nm: "Regular FIRE",
-          desc: `${formatCurrency(despesa)}/mês`,
-          target: meta,
-          months: meses,
-          color: "var(--blue)",
-          isActive: true,
-        },
-        {
-          em: "💎", nm: "Fat FIRE",
-          desc: `${formatCurrency(Math.round(despesa * 1.8))}/mês`,
-          target: fatMeta,
-          months: fatMeses,
-          color: "var(--amber)",
-        },
+        { em: "🌱", nm: "Lean FIRE", desc: `${formatCurrency(Math.round(despesa * 0.6))}/mês`, target: leanMeta, months: leanMeses, color: "var(--green)" },
+        { em: "🔥", nm: "Regular FIRE", desc: `${formatCurrency(despesa)}/mês`, target: meta, months: meses, color: "var(--blue)", isActive: true },
+        { em: "💎", nm: "Fat FIRE", desc: `${formatCurrency(Math.round(despesa * 1.8))}/mês`, target: fatMeta, months: fatMeses, color: "var(--amber)" },
       ].map(({ em, nm, desc, target, months: m, color, isActive }) => {
         const y = (m / 12).toFixed(1);
         return (
-          <div key={nm} className="card" style={{
-            marginBottom: 10,
-            borderColor: isActive ? color : "transparent",
-            borderWidth: isActive ? 1.5 : 1,
-            borderStyle: "solid",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 24 }}>{em}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>{nm} {isActive && "← você"}</div>
-                <div style={{ fontSize: 12, color: "var(--t2)" }}>{desc}</div>
-                <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>
+          <div
+            key={nm}
+            className="card mb-2.5"
+            style={{ borderColor: isActive ? color : "transparent", borderWidth: isActive ? 1.5 : 1, borderStyle: "solid" }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="text-[24px]">{em}</div>
+              <div className="flex-1">
+                <div className="text-[14px] font-bold text-[var(--t1)]">{nm} {isActive && "← você"}</div>
+                <div className="text-[12px] text-[var(--t2)]">{desc}</div>
+                <div className="text-[10px] text-[var(--t3)] mt-0.5">
                   Alvo: {target >= 1e6 ? `R$ ${(target / 1e6).toFixed(1)}M` : formatCurrency(target)}
                 </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color, fontFamily: "var(--mono)" }}>
+              <div className="text-right">
+                <div className="text-[13px] font-bold font-mono" style={{ color }}>
                   {m >= 600 ? ">50 a." : `${y} a.`}
                 </div>
-                <div style={{ fontSize: 9, color: "var(--t3)" }}>{m < 600 ? `${new Date().getFullYear() + Math.round(m / 12)}` : "—"}</div>
+                <div className="text-[9px] text-[var(--t3)]">{m < 600 ? `${new Date().getFullYear() + Math.round(m / 12)}` : "—"}</div>
               </div>
             </div>
           </div>

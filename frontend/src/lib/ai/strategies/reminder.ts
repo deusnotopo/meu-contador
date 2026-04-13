@@ -1,4 +1,4 @@
-import { loadReminders, saveReminders } from "@/lib/storage";
+import { api } from "@/lib/api";
 import type { BillReminder } from "@/types";
 import type { ParsedIntent } from "../intent-parser";
 import type { ActionResult } from "../types";
@@ -22,24 +22,26 @@ export const executeReminderAction = async (
     };
   }
 
-  const reminders = loadReminders();
-  const newReminder: BillReminder = {
-    id: Date.now().toString(),
-    name,
-    amount: amount || 0,
-    dueDate,
-    isPaid: false,
-    category: "Contas",
-    recurring: "monthly",
-  };
+  try {
+    const response = await api.post<BillReminder>('/reminders', {
+      name,
+      amount: amount || 0,
+      dueDate,
+      category: "Contas",
+      recurring: "monthly",
+    });
 
-  saveReminders([...reminders, newReminder]);
-
-  return {
-    success: true,
-    message: `🔔 Lembrete criado!\n📌 ${name}\n📅 Vencimento: ${new Date(
-      dueDate
-    ).toLocaleDateString("pt-BR")}`,
-    data: newReminder,
-  };
+    return {
+      success: true,
+      message: `🔔 Lembrete criado!\n📌 ${name}\n📅 Vencimento: ${new Date(
+        dueDate
+      ).toLocaleDateString("pt-BR")}`,
+      data: response,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: "Ocorreu um erro ao tentar salvar o lembrete via API.",
+    };
+  }
 };

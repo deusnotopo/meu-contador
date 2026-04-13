@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import type { Investment } from "@/types";
 import { ArrowRight, Calculator, TrendingDown, TrendingUp } from "lucide-react";
@@ -63,7 +63,7 @@ export const RebalancingPanel = ({ assets }: Props) => {
                 <span className="text-indigo-400">Inteligente</span>
               </h3>
             </div>
-            <p className="text-sm text-slate-400 font-medium max-w-lg">
+            <p className="text-sm text-neutral-500 font-medium max-w-lg">
               Análise automática baseada nas suas metas de alocação.
               Recomendamos ações para equilibrar sua carteira.
             </p>
@@ -95,7 +95,7 @@ export const RebalancingPanel = ({ assets }: Props) => {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h4 className="font-black text-white text-lg">{item.ticker}</h4>
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
                   {item.type}
                 </p>
               </div>
@@ -105,7 +105,7 @@ export const RebalancingPanel = ({ assets }: Props) => {
                     ? "bg-emerald-500/10 text-emerald-400"
                     : item.differenceValue < 0
                     ? "bg-rose-500/10 text-rose-400"
-                    : "bg-slate-500/10 text-slate-400"
+                    : "bg-neutral-500/10 text-neutral-500"
                 }`}
               >
                 {Math.abs(item.differenceValue) < 1
@@ -119,13 +119,13 @@ export const RebalancingPanel = ({ assets }: Props) => {
             <div className="space-y-4 mb-6">
               {/* Progress Bars */}
               <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <div className="flex justify-between text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
                   <span>Alocação Atual</span>
                   <span>{item.currentPercentage.toFixed(1)}%</span>
                 </div>
                 <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-slate-500"
+                    className="h-full bg-neutral-500"
                     style={{
                       width: `${Math.min(item.currentPercentage, 100)}%`,
                     }}
@@ -185,11 +185,11 @@ export const RebalancingPanel = ({ assets }: Props) => {
                     {item.action === "BUY" ? "+" : "-"}
                     {Math.abs(Math.round(item.differenceAmount))}
                   </span>
-                  <span className="text-xs font-bold text-slate-500">
+                  <span className="text-xs font-bold text-neutral-500">
                     cotas
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500 font-medium mt-1">
+                <p className="text-[10px] text-neutral-500 font-medium mt-1">
                   aprox.{" "}
                   <PrivacyValue
                     value={Math.abs(item.differenceValue)}
@@ -204,7 +204,7 @@ export const RebalancingPanel = ({ assets }: Props) => {
 
             {Math.abs(item.differenceValue) <= 1 && (
               <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center">
-                <span className="text-xs font-bold text-slate-400">
+                <span className="text-xs font-bold text-neutral-500">
                   ✅ Balanceado
                 </span>
               </div>
@@ -216,7 +216,7 @@ export const RebalancingPanel = ({ assets }: Props) => {
       <div className="flex justify-end pt-4">
         <Button
           variant="outline"
-          className="border-white/10 text-slate-400 hover:text-white hover:bg-white/5 text-xs font-black uppercase tracking-widest h-12 px-8 rounded-xl gap-2"
+          className="border-white/10 text-neutral-500 hover:text-white hover:bg-white/5 text-xs font-black uppercase tracking-widest h-12 px-8 rounded-xl gap-2"
         >
           Gerar Relatório PDF <ArrowRight size={14} />
         </Button>
@@ -224,3 +224,4 @@ export const RebalancingPanel = ({ assets }: Props) => {
     </div>
   );
 };
+

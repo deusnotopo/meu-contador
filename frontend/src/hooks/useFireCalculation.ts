@@ -26,6 +26,7 @@ export const useFireCalculation = (config: FireConfig) => {
     const fatTarget = fatFireMonthly * 12 * withdrawalMultiplier;
   
     const calculateMonths = (target: number) => {
+      if (target === 0) return Infinity;
       if (currentNetWorth >= target) return 0;
       if (monthlyRate === 0) {
         return monthlyDeposit > 0 ? (target - currentNetWorth) / monthlyDeposit : Infinity;

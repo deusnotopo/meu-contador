@@ -66,7 +66,15 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
     return Math.max(0, Math.min(100, score));
   };
 
-  const handleSubmit = () => {
+  const MOOD_TO_EMOTION: Record<MoodOption, string> = {
+    optimista: "excited",
+    confiante: "proud",
+    neutro: "neutral",
+    preocupado: "anxious",
+    ansioso: "stressed",
+  };
+
+  const handleSubmit = async () => {
     if (!checkinData.stressLevel || !checkinData.mood) return;
 
     const newCheckin: CheckinData = {
@@ -75,13 +83,36 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
       mood: checkinData.mood,
       notes: checkinData.notes || "",
       sleepQuality: checkinData.sleepQuality || 3,
-      financialConfidence: checkinData.financialConfidence || 3
+      financialConfidence: checkinData.financialConfidence || 3,
     };
 
+    // Optimistic update
     setHistory(prev => [newCheckin, ...prev]);
     setCheckinData({});
     setCurrentStep(0);
+
+    // Persist to backend
+    try {
+      const token = localStorage.getItem("auth_token");
+      await fetch("/api/emotional", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          emotion: MOOD_TO_EMOTION[newCheckin.mood],
+          regretLevel: newCheckin.stressLevel,
+          satisfactionLevel: newCheckin.financialConfidence,
+          notes: newCheckin.notes || undefined,
+          triggers: newCheckin.stressLevel >= 4 ? ["financial_stress"] : undefined,
+        }),
+      });
+    } catch {
+      // Silently fail — checkin already saved to local state
+    }
   };
+
 
   const healthScore = calculateFinancialHealth();
 
@@ -100,7 +131,7 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
           )}
           <div>
             <h1 className="text-xl font-black text-white">Check-in Financeiro</h1>
-            <p className="text-xs text-slate-400">Como você está se sentindo hoje?</p>
+            <p className="text-xs text-neutral-500">Como você está se sentindo hoje?</p>
           </div>
         </div>
 
@@ -111,7 +142,7 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
               {healthScore >= 80 ? "🌟" : healthScore >= 60 ? "😊" : healthScore >= 40 ? "😐" : "😟"}
             </div>
             <div className="text-2xl font-black text-white mb-2">{healthScore}/100</div>
-            <div className="text-sm text-slate-400">Score de Saúde Financeira</div>
+            <div className="text-sm text-neutral-500">Score de Saúde Financeira</div>
           </div>
         </div>
 
@@ -121,19 +152,19 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
             <div className="text-lg font-bold text-green-400">
               {totals.income > 0 ? `${((totals.balance / totals.income) * 100).toFixed(0)}%` : "0%"}
             </div>
-            <div className="text-[10px] text-slate-400 uppercase">Poupança</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Poupança</div>
           </div>
           <div className="premium-card p-3 text-center">
             <div className="text-lg font-bold text-blue-400">
               {debtTotals.totalBalance > 0 ? `R$ ${(debtTotals.totalBalance / 1000).toFixed(1)}k` : "R$ 0"}
             </div>
-            <div className="text-[10px] text-slate-400 uppercase">Dívidas</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Dívidas</div>
           </div>
           <div className="premium-card p-3 text-center">
             <div className="text-lg font-bold text-purple-400">
               {investTotals.currentValue > 0 ? `R$ ${(investTotals.currentValue / 1000).toFixed(1)}k` : "R$ 0"}
             </div>
-            <div className="text-[10px] text-slate-400 uppercase">Investido</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Investido</div>
           </div>
         </div>
 
@@ -164,7 +195,7 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
                         <div className="text-sm font-bold text-white capitalize">
                           {moodOptions.find(m => m.value === item.mood)?.label}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-neutral-500">
                           {new Date(item.date).toLocaleDateString('pt-BR')}
                         </div>
                       </div>
@@ -196,7 +227,7 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
         </button>
         <div>
           <h1 className="text-xl font-black text-white">Check-in Financeiro</h1>
-          <p className="text-xs text-slate-400">Etapa {currentStep} de 3</p>
+          <p className="text-xs text-neutral-500">Etapa {currentStep} de 3</p>
         </div>
       </div>
 
@@ -214,7 +245,7 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
           <div className="text-center mb-8">
             <div className="text-4xl mb-4">😰</div>
             <h2 className="text-lg font-bold text-white">Nível de Estresse Financeiro</h2>
-            <p className="text-sm text-slate-400">Como você avalia seu estresse com dinheiro hoje?</p>
+            <p className="text-sm text-neutral-500">Como você avalia seu estresse com dinheiro hoje?</p>
           </div>
 
           <div className="space-y-3">
@@ -254,7 +285,7 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
           <div className="text-center mb-8">
             <div className="text-4xl mb-4">💭</div>
             <h2 className="text-lg font-bold text-white">Como você está se sentindo?</h2>
-            <p className="text-sm text-slate-400">Escolha a opção que melhor descreve seu humor</p>
+            <p className="text-sm text-neutral-500">Escolha a opção que melhor descreve seu humor</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -298,7 +329,7 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
           <div className="text-center mb-8">
             <div className="text-4xl mb-4">📝</div>
             <h2 className="text-lg font-bold text-white">Alguma observação?</h2>
-            <p className="text-sm text-slate-400">Opcional: anote como se sente sobre suas finanças</p>
+            <p className="text-sm text-neutral-500">Opcional: anote como se sente sobre suas finanças</p>
           </div>
 
           <textarea
@@ -312,17 +343,17 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
             <h3 className="text-sm font-bold text-white mb-3">Resumo do Check-in</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm text-slate-400">Nível de Estresse:</span>
+                <span className="text-sm text-neutral-500">Nível de Estresse:</span>
                 <span className="text-sm font-bold text-amber-400">{checkinData.stressLevel}/5</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-slate-400">Humor:</span>
+                <span className="text-sm text-neutral-500">Humor:</span>
                 <span className="text-sm font-bold text-white">
                   {moodOptions.find(m => m.value === checkinData.mood)?.emoji} {moodOptions.find(m => m.value === checkinData.mood)?.label}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-slate-400">Score de Saúde:</span>
+                <span className="text-sm text-neutral-500">Score de Saúde:</span>
                 <span className="text-sm font-bold text-green-400">{healthScore}/100</span>
               </div>
             </div>

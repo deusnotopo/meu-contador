@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Flame, Lock, ChevronRight } from 'lucide-react';
 import { useGamification } from '@/hooks/useGamification';
 import type { Achievement } from '@/types/gamification';
@@ -47,7 +47,7 @@ export function AchievementsSection() {
             </div>
             <div>
               <h3 className="text-xl font-bold text-white">{level.title}</h3>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-neutral-500">
                 {level.totalXp.toLocaleString()} XP total
               </p>
             </div>
@@ -55,7 +55,7 @@ export function AchievementsSection() {
 
           {/* XP Progress */}
           <div className="space-y-2">
-            <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className="flex justify-between text-xs font-bold text-neutral-500 uppercase tracking-wider">
               <span>Progresso</span>
               <span>
                 {level.currentXp} / {level.xpToNextLevel} XP
@@ -77,10 +77,10 @@ export function AchievementsSection() {
           {loginStreak && loginStreak.current > 0 && (
             <div className="mt-4 flex items-center gap-2 text-sm">
               <Flame size={16} className="text-orange-400" />
-              <span className="text-slate-300">
+              <span className="text-neutral-400">
                 <span className="font-bold text-orange-400">{loginStreak.current}</span> dias de streak!
               </span>
-              <span className="text-slate-500">
+              <span className="text-neutral-500">
                 (Melhor: {loginStreak.best})
               </span>
             </div>
@@ -95,7 +95,7 @@ export function AchievementsSection() {
             <Trophy size={20} className="text-amber-400" />
             Conquistas
           </h3>
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-neutral-500">
             {unlockedAchievements.length}/{achievements.length}
           </span>
         </div>
@@ -164,7 +164,7 @@ function AchievementCard({
             }
           `}
         >
-          {achievement.isUnlocked ? achievement.emoji : <Lock size={20} className="text-slate-500" />}
+          {achievement.isUnlocked ? achievement.emoji : <Lock size={20} className="text-neutral-500" />}
         </div>
 
         {/* Content */}
@@ -172,7 +172,7 @@ function AchievementCard({
           <div className="flex items-center gap-2">
             <h4
               className={`font-bold text-sm ${
-                achievement.isUnlocked ? 'text-white' : 'text-slate-400'
+                achievement.isUnlocked ? 'text-white' : 'text-neutral-500'
               }`}
             >
               {achievement.name}
@@ -194,12 +194,12 @@ function AchievementCard({
               {achievement.rarity}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">{achievement.description}</p>
+          <p className="text-xs text-neutral-500 mt-1">{achievement.description}</p>
 
           {/* Progress */}
           {!achievement.isUnlocked && achievement.maxProgress > 1 && (
             <div className="mt-2">
-              <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+              <div className="flex justify-between text-[10px] text-neutral-500 mb-1">
                 <span>Progresso</span>
                 <span>
                   {achievement.progress}/{achievement.maxProgress}
@@ -221,20 +221,20 @@ function AchievementCard({
         <div className="text-right">
           <span
             className={`text-sm font-bold ${
-              achievement.isUnlocked ? 'text-amber-400' : 'text-slate-600'
+              achievement.isUnlocked ? 'text-amber-400' : 'text-neutral-700'
             }`}
           >
             +{achievement.xpReward} XP
           </span>
           {achievement.isUnlocked && achievement.unlockedAt && (
-            <p className="text-[10px] text-slate-500 mt-1">
+            <p className="text-[10px] text-neutral-500 mt-1">
               {new Date(achievement.unlockedAt).toLocaleDateString('pt-BR')}
             </p>
           )}
         </div>
 
         {achievement.isUnlocked && (
-          <ChevronRight size={16} className="text-slate-500" />
+          <ChevronRight size={16} className="text-neutral-500" />
         )}
       </div>
     </motion.div>

@@ -1,6 +1,7 @@
 import { FinancialHealthCard } from "@/components/personal/FinancialHealthCard";
 import { PredictionsCard } from "@/components/personal/PredictionsCard";
 import { SmartInsights } from "@/components/personal/SmartInsights";
+import { useReminders } from "@/hooks/useReminders";
 import type { SavingsGoal, Transaction } from "@/types";
 
 interface InsightsTabProps {
@@ -15,6 +16,7 @@ interface InsightsTabProps {
 }
 
 export const InsightsTab = ({ transactions, goals, totals, onNavigate }: InsightsTabProps) => {
+  const remindersCtx = useReminders();
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -25,7 +27,7 @@ export const InsightsTab = ({ transactions, goals, totals, onNavigate }: Insight
         />
         <PredictionsCard transactions={transactions} showDetails />
       </div>
-      <SmartInsights transactions={transactions} goals={goals} onNavigate={onNavigate} />
+      <SmartInsights transactions={transactions} goals={goals} onNavigate={onNavigate} remindersCtx={remindersCtx} />
     </div>
   );
 };

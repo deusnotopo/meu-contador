@@ -217,7 +217,7 @@ export const TransactionList = ({
                   <Button
                     variant="ghost"
                     onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                    className="gap-2 text-slate-400 hover:text-white font-bold"
+                    className="gap-2 text-neutral-500 hover:text-white font-bold"
                   >
                     <ChevronDown size={16} />
                     Carregar mais transações
@@ -238,7 +238,7 @@ export const TransactionList = ({
             <DialogTitle className="text-xl font-black">
               Confirmar Exclusão
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-neutral-500">
               Esta ação não pode ser desfeita. A transação será removida
               permanentemente.
             </DialogDescription>
@@ -247,7 +247,7 @@ export const TransactionList = ({
             <Button
               variant="ghost"
               onClick={() => setDeleteConfirmId(null)}
-              className="text-slate-400 hover:text-white"
+              className="text-neutral-500 hover:text-white"
             >
               Cancelar
             </Button>

@@ -1,11 +1,13 @@
 import { lazy } from 'react';
-export { HealthSection } from '@/components/health/HealthSection';
-export { PersonalInflation } from '@/components/health/PersonalInflation';
-export { FinancialCheckin } from '@/components/health/FinancialCheckin';
-export { InsurancePlanner } from '@/components/planning/InsurancePlanner';
-export { NotificationsView } from '@/components/notifications/NotificationsView';
-export { TransactionsView } from '@/components/transactions/TransactionsView';
-export { LaunchScreen } from '@/components/transactions/LaunchScreen';
+
+// ── All views are lazy-loaded — zero heavy components in initial bundle ───────
+export const HealthSection       = lazy(() => import('@/components/health/HealthSection').then(m => ({ default: m.HealthSection })));
+export const PersonalInflation   = lazy(() => import('@/components/health/PersonalInflation').then(m => ({ default: m.PersonalInflation })));
+export const FinancialCheckin    = lazy(() => import('@/components/health/FinancialCheckin').then(m => ({ default: m.FinancialCheckin })));
+export const InsurancePlanner    = lazy(() => import('@/components/planning/InsurancePlanner').then(m => ({ default: m.InsurancePlanner })));
+export const NotificationsView   = lazy(() => import('@/components/notifications/NotificationsView').then(m => ({ default: m.NotificationsView })));
+export const TransactionsView    = lazy(() => import('@/components/transactions/TransactionsView').then(m => ({ default: m.TransactionsView })));
+export const LaunchScreen        = lazy(() => import('@/components/transactions/LaunchScreen').then(m => ({ default: m.LaunchScreen })));
 import type { TabType } from '@/types/navigation';
 
 export const MasterySection = lazy(() => import('@/components/mastery/MasterySection').then((m) => ({ default: m.MasterySection })));
@@ -16,12 +18,13 @@ export const InvestCompostosView = lazy(() => import('@/components/investments/I
 export const InvestDividasView = lazy(() => import('@/components/investments/InvestDividasView').then((m) => ({ default: m.InvestDividasView })));
 export const RetireFireView = lazy(() => import('@/components/planning/RetireFireView').then((m) => ({ default: m.RetireFireView })));
 export const RetireProjView = lazy(() => import('@/components/planning/RetireProjView').then((m) => ({ default: m.RetireProjView })));
-export const InvestmentsSection = lazy(() => import('@/components/investments/InvestmentsSection').then((m) => ({ default: m.InvestmentsSection })));
+export const InvestmentsSection = lazy(() => import('@/components/investments/InvestmentsDashboard').then((m) => ({ default: m.InvestmentsDashboard })));
 export const EducationSection = lazy(() => import('@/components/education/EducationSection').then((m) => ({ default: m.EducationSection })));
 export const AIAssistantView = lazy(() => import('@/components/ai/AIAssistantView').then((m) => ({ default: m.AIAssistantView })));
 export const SettingsSection = lazy(() => import('@/components/settings/SettingsSection').then((m) => ({ default: m.SettingsSection })));
 export const RetirementView = lazy(() => import('@/components/planning/RetirementView').then((m) => ({ default: m.RetirementView })));
 export const AnalyticsDashboard = lazy(() => import('@/components/analytics/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })));
+export const BudgetDashboard = lazy(() => import('@/components/financial/BudgetDashboard').then((m) => ({ default: m.BudgetDashboard })));
 export const FunctionsHub = lazy(() => import('@/components/FunctionsHub').then((m) => ({ default: m.FunctionsHub })));
 export const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard').then((m) => ({ default: m.OnboardingWizard })));
 export const ProvisaoView = lazy(() => import('@/components/financial/ProvisaoView').then((m) => ({ default: m.ProvisaoView })));

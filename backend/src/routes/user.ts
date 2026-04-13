@@ -13,6 +13,28 @@ const preferencesSchema = z.object({
 
 const patchPreferencesSchema = preferencesSchema.partial();
 
+const educationStateSchema = z.object({
+  completedModules: z.array(z.string()),
+  lessonStepProgress: z.record(z.string(), z.number()),
+  lessonLastSeenAt: z.record(z.string(), z.string()),
+  lessonReviewDueAt: z.record(z.string(), z.string()),
+  contextualReinforcements: z.record(z.string(), z.number()),
+  xp: z.number(),
+  streak: z.number(),
+  lastActiveDate: z.string().nullable(),
+});
+
+const defaultUserPreferences: UserPreferencesDto = {
+  theme: 'dark',
+  language: 'pt',
+  privacyMode: false,
+  completedTours: [],
+  showScore: true,
+  showPredictions: true,
+  weeklyReport: true,
+  alerts: true,
+};
+
 const updateUserProfileSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   monthlyIncome: z.number().nonnegative().max(1_000_000_000).optional(),
@@ -74,6 +96,8 @@ const onboardingGoalSchema = z.object({
   id: z.string().trim().max(80).optional(),
   name: z.string().trim().min(1).max(120).optional(),
   targetAmount: z.number().nonnegative().max(1_000_000_000).optional(),
+  deadline: z.string().optional(),
+  priority: z.number().int().min(1).max(99).optional(),
   icon: z.string().trim().max(40).optional(),
   color: z.string().trim().max(20).optional(),
 });
@@ -92,6 +116,14 @@ const onboardingInvestmentSchema = z.object({
   quantity: z.number().positive().max(1_000_000_000).optional(),
   price: z.number().nonnegative().max(1_000_000_000).optional(),
 });
+const onboardingDebtSchema = z.object({
+  id: z.string().trim().max(80).optional(),
+  name: z.string().trim().min(1).max(120),
+  balance: z.number().positive().max(1_000_000_000),
+  interestRate: z.number().min(0).max(10_000),
+  minPayment: z.number().positive().max(1_000_000_000),
+  category: z.string().trim().min(1).max(40),
+});
 const onboardingHistoricalExpenseSchema = z.object({
   description: z.string().trim().max(200).optional(),
   amount: z.number().nonnegative().max(1_000_000_000).optional(),
@@ -105,6 +137,7 @@ const onboardingBodySchema = z.object({
   goals: z.array(onboardingGoalSchema).max(50).optional(),
   reminders: z.array(onboardingReminderSchema).max(50).optional(),
   investments: z.array(onboardingInvestmentSchema).max(50).optional(),
+  debts: z.array(onboardingDebtSchema).max(50).optional(),
   historicalExpenses: z.array(onboardingHistoricalExpenseSchema).max(200).optional(),
   preferences: z.record(z.unknown()).optional(),
   completed: z.boolean().optional(),
@@ -135,10 +168,10 @@ export async function userRoutes(app: FastifyInstance) {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      return defaultUserPreferences;
     }
 
-    let prefs = { theme: 'dark', language: 'pt', privacyMode: false, completedTours: [] } as UserPreferencesDto;
+    let prefs: UserPreferencesDto = { ...defaultUserPreferences };
     
     if (user.preferences) {
       if (typeof user.preferences === 'object') {
@@ -170,6 +203,7 @@ export async function userRoutes(app: FastifyInstance) {
           success: z.boolean(),
           preferences: preferencesSchema,
         }),
+        404: userErrorSchema,
       },
     },
     preHandler: [app.authenticate],
@@ -182,11 +216,11 @@ export async function userRoutes(app: FastifyInstance) {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      return reply.status(404).send({ message: 'User not found', error: 'User not found' });
     }
 
     // preferences is now Json — merge objects directly, no parse/stringify
-    let current = { theme: 'dark', language: 'pt', privacyMode: false, completedTours: [] } as UserPreferencesDto;
+    let current: UserPreferencesDto = { ...defaultUserPreferences };
     if (user.preferences) {
       if (typeof user.preferences === 'object') {
         current = { ...current, ...(user.preferences as any) };
@@ -210,6 +244,58 @@ export async function userRoutes(app: FastifyInstance) {
       success: true,
       preferences: validatedPreferences,
     };
+  });
+
+  app.get('/users/education', {
+    schema: {
+      description: 'Obtém o progresso educacional do usuário logado',
+      tags: ['User'],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: z.object({ education: educationStateSchema.nullable() }),
+      },
+    },
+    preHandler: [app.authenticate],
+  }, async (request) => {
+    const user = await db.user.findUnique({
+      where: { id: request.user.id },
+      select: { educationData: true },
+    });
+
+    if (!user) throw new Error('User not found');
+
+    let educationState = null;
+    if (user.educationData) {
+      if (typeof user.educationData === 'string') {
+        try { educationState = JSON.parse(user.educationData); } catch {}
+      } else {
+        educationState = user.educationData;
+      }
+    }
+
+    return { education: educationState };
+  });
+
+  app.put('/users/education', {
+    schema: {
+      description: 'Atualiza o progresso educacional do usuário logado',
+      tags: ['User'],
+      security: [{ bearerAuth: [] }],
+      body: z.object({ education: educationStateSchema }),
+      response: {
+        200: z.object({ success: z.boolean(), education: educationStateSchema }),
+      },
+    },
+    preHandler: [app.authenticate],
+  }, async (request) => {
+    const { education } = request.body as { education: z.infer<typeof educationStateSchema> };
+
+    await db.user.update({
+      where: { id: request.user.id },
+      data: { educationData: JSON.stringify(education) },
+    });
+
+    return { success: true, education };
   });
 
   // PUT /users/me - Update Profile
@@ -278,11 +364,10 @@ export async function userRoutes(app: FastifyInstance) {
       const nextYear = new Date(now);
       nextYear.setFullYear(nextYear.getFullYear() + 1);
 
-      // All bulk operations run in parallel — from up to ~350 sequential queries
-      // down to at most 8 queries total.
-      await Promise.all([
+      await db.$transaction(async (tx) => {
+        await Promise.all([
         // 1. Update Profile
-        data.profile ? db.user.update({
+        data.profile ? tx.user.update({
           where: { id: userId },
           data: {
             name: data.profile.name || undefined,
@@ -313,7 +398,7 @@ export async function userRoutes(app: FastifyInstance) {
 
         // 2. Initial Balance Transaction (single record — stays as create)
         data.profile?.initialBalance && data.profile.initialBalance !== 0
-          ? db.transaction.create({
+          ? tx.transaction.create({
               data: {
                 userId,
                 type: data.profile.initialBalance > 0 ? 'income' : 'expense',
@@ -328,7 +413,8 @@ export async function userRoutes(app: FastifyInstance) {
 
         // 3. Budgets — createMany replaces N sequential creates
         data.budgets?.length
-          ? db.budget.createMany({
+          ? tx.budget.createMany({
+              skipDuplicates: true,
               data: (data.budgets as any[])
                 .filter((b) => b.enabled)
                 .map((b) => ({
@@ -342,15 +428,16 @@ export async function userRoutes(app: FastifyInstance) {
 
         // 4. Goals — createMany
         data.goals?.length
-          ? db.savingsGoal.createMany({
+          ? tx.savingsGoal.createMany({
+              skipDuplicates: true,
               data: (data.goals as any[])
                 .filter((g) => g.enabled)
                 .map((g) => ({
                   userId,
                   name: g.name || g.id || 'Meta',
                   targetAmount: g.targetAmount || 0,
-                  deadline: nextYear,
-                  icon: g.icon,
+                  deadline: g.deadline ? new Date(g.deadline) : nextYear,
+                  icon: g.icon || '🎯',
                   color: g.color || '#6366f1',
                 })),
             })
@@ -358,15 +445,16 @@ export async function userRoutes(app: FastifyInstance) {
 
         // 5. Investments — createMany
         data.investments?.length
-          ? db.investment.createMany({
+          ? tx.investment.createMany({
+              skipDuplicates: true,
               data: (data.investments as any[]).map((inv) => ({
                 userId,
-                name: inv.name || inv.ticker,
+                name: inv.name || inv.ticker || 'Investimento',
                 ticker: inv.ticker || 'INV',
                 type: inv.type,
-                amount: inv.quantity || 1,
-                averagePrice: inv.price || 0,
-                currentPrice: inv.price || 0,
+                amount: inv.quantity || inv.amount || 1,
+                averagePrice: inv.price || inv.averagePrice || 0,
+                currentPrice: inv.price || inv.currentPrice || 0,
                 currency: 'BRL',
               })),
             })
@@ -374,7 +462,7 @@ export async function userRoutes(app: FastifyInstance) {
 
         // 6. Historical Expenses — createMany (up to 200 records)
         data.historicalExpenses?.length
-          ? db.transaction.createMany({
+          ? tx.transaction.createMany({
               data: (data.historicalExpenses as any[]).map((exp) => ({
                 userId,
                 type: 'expense' as const,
@@ -392,7 +480,7 @@ export async function userRoutes(app: FastifyInstance) {
         (() => {
           if (!data.reminders?.length) return Promise.resolve();
           const enabledReminders = (data.reminders as any[])
-            .filter((rem) => rem.enabled)
+            .filter((rem) => rem.enabled && rem.name)
             .map((rem) => {
               const targetDay = Number(rem.dueDay) || 10;
               const nextDate = new Date(now);
@@ -409,14 +497,29 @@ export async function userRoutes(app: FastifyInstance) {
               };
             });
           return enabledReminders.length
-            ? db.billReminder.createMany({ data: enabledReminders })
+            ? tx.billReminder.createMany({ skipDuplicates: true, data: enabledReminders })
             : Promise.resolve();
         })(),
 
-        // 8. Preferences — preferences is now Json, merge directly
+        // 8. Debts
+        data.debts?.length
+          ? tx.debt.createMany({
+              skipDuplicates: true,
+              data: (data.debts as any[]).map((debt) => ({
+                userId,
+                name: debt.name,
+                balance: debt.balance,
+                interestRate: debt.interestRate,
+                minPayment: debt.minPayment,
+                category: debt.category,
+              })),
+            })
+          : Promise.resolve(),
+
+        // 9. Preferences — preferences is now Json, merge directly
         data.preferences
           ? (async () => {
-              const user = await db.user.findUnique({ where: { id: userId }, select: { preferences: true } });
+              const user = await tx.user.findUnique({ where: { id: userId }, select: { preferences: true } });
               if (!user) return;
               let currentPrefs = {} as Record<string, unknown>;
               if (user.preferences) {
@@ -425,24 +528,29 @@ export async function userRoutes(app: FastifyInstance) {
                 } else if (typeof user.preferences === 'string') {
                   try { currentPrefs = JSON.parse(user.preferences); } catch(e) {}
                 }
-              }              await db.user.update({
+              }
+              await tx.user.update({
                 where: { id: userId },
                 data: { preferences: JSON.stringify({ ...currentPrefs, ...data.preferences }) },
               });
             })()
           : Promise.resolve(),
-      ]);
+        ]);
 
-      // 9. Mark onboarding as completed
-      await db.user.update({
+        // 10. Mark onboarding as completed
+        await tx.user.update({
         where: { id: userId },
-        data: { onboardingCompleted: true } as any,
+        data: { onboardingCompleted: data.completed === true } as any,
+      });
       });
 
       return { success: true };
-    } catch (err) {
-      console.error('Onboarding error:', err);
-      return reply.status(500).send({ success: false, message: 'Falha ao concluir onboarding' });
+    } catch (err: any) {
+      const detail = err?.message || err?.code || String(err);
+      const meta = err?.meta ? JSON.stringify(err.meta) : '';
+      console.error(`[Onboarding] Error for user ${userId}: ${detail}${meta ? ' | meta: ' + meta : ''}`);
+      console.error(err);
+      return reply.status(500).send({ success: false, message: `Falha ao concluir onboarding: ${detail}` });
     }
   });
 

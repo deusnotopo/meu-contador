@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { logger } from '@/lib/logger';
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
@@ -37,7 +38,7 @@ export let analytics: Analytics | null = null;
 try {
   storage = getStorage(app);
 } catch (e) {
-  console.warn("[Firebase] Storage unavailable:", e);
+  logger.warn("[Firebase] Storage unavailable:", e);
 }
 
 // Analytics + RemoteConfig: deferred to avoid blocking app startup if CSP blocks GTM.
@@ -49,7 +50,7 @@ if (typeof window !== "undefined" && firebaseConfig.appId && firebaseConfig.meas
       analytics = getAnalytics(app);
     } catch (_e) {
       // Silently fail - analytics is non-critical. CSP may block GTM in some environments.
-      console.warn("[Firebase] Analytics unavailable (CSP or config issue). App continues normally.");
+      logger.warn("[Firebase] Analytics unavailable (CSP or config issue). App continues normally.");
     }
   }, 2000);
 }

@@ -580,13 +580,6 @@ export const EDUCATION_MODULES: Lesson[] = [
             },
             {
                 tipo: 'quiz',
-                pergunta: 'Maria recebeu R$ 3.000 este mês e tem as seguintes parcelas vencendo: R$ 150 (streaming), R$ 200 (academia), R$ 100 (curso online) e R$ 250 (contas diversas). Ela quer comprar um aparelho de R$ 800 parcelado em 4x. Qual será seu comprometimento total de parcelas após a compra?',
-                opcoes: ['R$ 500/mês', 'R$ 600/mês', 'R$ 700/mês', 'R$ 800/mês'],
-                correta: 2,
-                expl: 'Parcelas atuais: R$ 150 + R$ 200 + R$ 100 + R$ 250 = R$ 700/mês. Novo aparelho: R$ 800 / 4 = R$ 200/mês. Total: R$ 700 + R$ 200 = R$ 900/mês. Porém, como R$ 900 não está nas opções, vamos ajustar os valores para que o cálculo dê exatamente uma das opções. Maria tem: Streaming R$ 150 + Academia R$ 200 + Curso R$ 100 + Contas R$ 250 = R$ 700. Novo parcelamento de R$ 800 em 4x = R$ 200/mês. Total = R$ 900/mês. Vamos mudar o aparelho para R$ 400 parcelado em 4x = R$ 100/mês. Total: R$ 700 + R$ 100 = R$ 800/mês. Isso corresponde à alternativa D. Vamos refazer a pergunta com valores corretos.'
-            },
-            {
-                tipo: 'quiz',
                 pergunta: 'Maria recebeu R$ 3.000 este mês e tem as seguintes parcelas vencendo: R$ 150 (streaming), R$ 200 (academia), R$ 100 (curso online) e R$ 250 (contas diversas). Ela quer comprar um aparelho de R$ 400 parcelado em 4x. Qual será seu comprometimento total de parcelas após a compra?',
                 opcoes: ['R$ 500/mês', 'R$ 600/mês', 'R$ 700/mês', 'R$ 800/mês'],
                 correta: 3,
@@ -673,6 +666,110 @@ export const EDUCATION_MODULES: Lesson[] = [
     { tipo: 'quiz', pergunta: 'João recebeu R$ 3.800 no dia 5 e hoje é dia 20. Ele vê R$ 2.900 na conta e pensa em comprar um presente de R$ 600 parcelado em 3x. O que ele DEVE verificar primeiro?', opcoes: ['Se o limite do cartão permite a compra.', 'Se as 3 parcelas de R$ 200 cabem no seu orçamento deste mês.', 'Quanto está comprometido até o próximo recebimento e se sobra R$ 600 livre.', 'Se a loja oferece desconto para pagamento à vista.'], correta: 2, expl: 'João precisa calcular seu saldo seguro: somar o que vai entrar até o próximo recebimento e subtrair tudo que já está comprometido (aluguel, contas, parcelas, DAS, etc.). Só assim saberá se realmente pode gastar R$ 600 agora sem prejudicar o mês.' },
     { tipo: 'acao', titulo: 'Ação imediata no app: Calcule seu saldo seguro agora', conteudo: 'Vá até o calendário financeiro, filtre para mostrar apenas até o próximo dia de recebimento, some todas as entradas previstas e subtraia todas as saídas obrigatórias. O resultado é seu saldo seguro real para usar hoje.', cta: 'Abrir calendário financeiro', ctaFn: "go('cash_flow')" },
     { tipo: 'acao', titulo: 'Reforço: Lembrete inteligente para o momento certo', conteudo: 'O app vai te lembrar de recalcular seu saldo seguro sempre que: 1) Você receber dinheiro novo; 2) Faltarem 3 dias para um vencimento grande (aluguel, IPVA, DAS); 3) Você for fazer uma compra acima de R$ 100 no Pix ou cartão. Esse reforço espaçado evita que você volte ao erro do saldo ilusório.', visual: '⏰', cta: 'Ativar lembretes inteligentes', ctaFn: "go('notifications')" }
+  ]
+},
+{
+  id: 'br_mes_apertado', trilha: 'start', title: 'Sair do Mês Apertado', sub: 'Plano de emergência para não cavar um buraco maior', emoji: '🆘', dur: '6 min', xp: 75, ok: false, grad: 'linear-gradient(135deg,#5C1A33,#E94560)',
+  objective: 'Ensinar uma sequência prática de decisões para atravessar o mês apertado sem entrar em dívida ainda pior.',
+  outcomeType: 'caixa',
+  maturityStage: 'sobreviver',
+  behaviorGoal: 'Priorizar sobrevivência financeira imediata antes de conforto, status ou consumo parcelado.',
+  associatedFeature: 'budget',
+  activationContext: 'Quando o dinheiro do mês não cobre compromissos essenciais e o usuário sente risco de entrar no rotativo.',
+  triggerEvents: ['mes_apertado', 'fatura_alta', 'divida_cara'],
+  references: ['Orçamento de crise e priorização de caixa', 'Banco Central do Brasil — educação financeira', 'Princípios de corte temporário e negociação de passivos'],
+  passos: [
+    { tipo: 'teoria', titulo: 'O objetivo agora não é perfeição', conteudo: 'Quando o mês apertou, o foco não é investir melhor nem otimizar mil detalhes. O foco é <strong style="color:#E94560">impedir dano maior</strong>: evitar rotativo, atraso caro e efeito dominó no caixa.', visual: '🚨' },
+    { tipo: 'regra', titulo: 'Regra de prioridade em 4 níveis', conteudo: 'Nível 1: moradia, comida, remédio, transporte e contas críticas. Nível 2: dívidas que explodem juros. Nível 3: compromissos negociáveis. Nível 4: tudo que pode esperar. Em mês apertado, você não decide por culpa; decide por impacto.', exemplo: 'Antes de pagar streaming, roupa ou lazer, preserve aluguel, energia, transporte e parcelas que evitam juros destrutivos.' },
+    { tipo: 'exemplo', titulo: 'Exemplo brasileiro: reorganizando R$ 2.800', conteudo: 'Ana tem R$ 2.800 para fechar o mês, mas precisa cobrir aluguel, mercado, energia, fatura mínima, internet, remédio e parcelas. Ao reorganizar por prioridade, ela corta gastos adiáveis, negocia uma conta e evita entrar no rotativo. O mês continua duro, mas ela impede uma crise maior no mês seguinte.', calculo: { simples: 'Caixa inicial: R$ 2.800', composto: 'Cortes + negociação: R$ 650 liberados', delta: 'Rotativo evitado: prejuízo futuro reduzido' } },
+    { tipo: 'quiz', pergunta: 'Se faltar dinheiro para tudo, qual decisão vem primeiro?', opcoes: ['Manter todos os gastos para não perder padrão de vida.', 'Parcelar novas compras para aliviar emocionalmente o mês.', 'Priorizar essenciais e dívidas com juros destrutivos, negociando o restante.', 'Ignorar vencimentos e esperar o próximo mês.'], correta: 2, expl: 'Em crise de caixa, prioridade é sobrevivência e contenção de dano. O resto precisa ser renegociado, adiado ou cortado temporariamente.' },
+    { tipo: 'acao', titulo: 'Monte o modo crise no app', conteudo: 'Abra o orçamento, marque gastos essenciais, pause categorias adiáveis e revise compromissos dos próximos 15 dias. O objetivo é visualizar o que ainda cabe sem gerar dano maior.', cta: 'Abrir orçamento', ctaFn: "go('budget')" }
+  ]
+},
+{
+  id: 'br_assinaturas', trilha: 'start', title: 'Assinaturas e Custo Invisível', sub: 'Pequenos vazamentos que somem com seu caixa', emoji: '🧾', dur: '5 min', xp: 60, ok: false, grad: 'linear-gradient(135deg,#7A3E00,#FFAD3B)',
+  objective: 'Ensinar o usuário a identificar despesas recorrentes esquecidas que corroem o orçamento sem gerar valor real.',
+  outcomeType: 'caixa',
+  maturityStage: 'sobreviver',
+  behaviorGoal: 'Revisar gastos recorrentes todo mês e cancelar o que não entrega valor proporcional.',
+  associatedFeature: 'transactions',
+  activationContext: 'Quando o orçamento aperta e vários pequenos débitos recorrentes passam despercebidos.',
+  triggerEvents: ['mes_apertado', 'organizar_rotina', 'fatura_alta'],
+  references: ['Behavioral leakage em finanças pessoais', 'Richard Thaler — mental accounting', 'Princípios de orçamento base zero'],
+  passos: [
+    { tipo: 'teoria', titulo: 'O vazamento silencioso', conteudo: 'O problema das assinaturas não é uma assinatura isolada. É o <strong style="color:#FFAD3B">efeito acumulado do pequeno recorrente</strong>: valores que parecem inofensivos sozinhos, mas juntos drenam caixa e reduzem liberdade de decisão.', visual: '💸' },
+    { tipo: 'regra', titulo: 'Pergunta que corta ilusão', conteudo: 'Se esta cobrança renovasse hoje, eu assinaria de novo? Se a resposta for não, o gasto virou vazamento. Não é porque é barato que merece continuar.', exemplo: 'Streaming pouco usado, app premium esquecido, clube, academia parada, ferramenta duplicada.' },
+    { tipo: 'quiz', pergunta: 'Qual é o maior risco das assinaturas recorrentes?', opcoes: ['Serem cobradas uma única vez.', 'Parecerem pequenas demais para importar isoladamente.', 'Sempre terem multa alta.', 'Nunca aparecerem na fatura.'], correta: 1, expl: 'O risco é psicológico: como cada valor parece pequeno, o usuário subestima o impacto acumulado mensal e anual.' },
+    { tipo: 'acao', titulo: 'Faça uma faxina de recorrências', conteudo: 'Abra transações ou extrato, filtre cobranças recorrentes e marque as que não entregam valor claro. Some o total mensal e anual para enxergar o custo invisível.', cta: 'Abrir transações', ctaFn: "go('transactions')" }
+  ]
+},
+{
+  id: 'base_zbb', trilha: 'base', title: 'Orçamento Base Zero Prático', sub: 'Cada real precisa ter um destino', emoji: '📒', dur: '7 min', xp: 80, ok: false, grad: 'linear-gradient(135deg,#1E4F84,#4A8BFF)',
+  objective: 'Ensinar o orçamento base zero como método operacional para distribuir a renda com intenção, evitando sobras ilusórias.',
+  outcomeType: 'caixa',
+  maturityStage: 'organizar',
+  behaviorGoal: 'Planejar a renda inteira antes que ela seja consumida por impulsos e vazamentos.',
+  associatedFeature: 'budget',
+  activationContext: 'Quando o usuário quer parar de “ver no fim do mês” e passar a decidir antes de gastar.',
+  triggerEvents: ['organizar_rotina', 'iniciar_planejamento', 'mes_apertado'],
+  references: ['Zero-Based Budgeting', 'Princípios de cash allocation', 'Educação financeira aplicada ao orçamento doméstico'],
+  passos: [
+    { tipo: 'teoria', titulo: 'O que é base zero', conteudo: 'No orçamento base zero, sua renda menos suas decisões planejadas precisa resultar em zero. Isso não significa gastar tudo; significa <strong style="color:#4A8BFF">dar função para cada real</strong>: contas, reserva, metas, lazer e margem.', visual: '0️⃣' },
+    { tipo: 'regra', titulo: 'Sobra sem destino vira dinheiro evaporado', conteudo: 'Quando você deixa parte da renda “sem nome”, ela tende a sumir em compras impulsivas, pequenos excessos e decisões reativas. Nomear o dinheiro antes protege o mês.', exemplo: 'Salário de R$ 4.000: R$ 2.300 essenciais, R$ 500 reserva, R$ 400 metas, R$ 300 lazer, R$ 500 variáveis = zero sem ilusão.' },
+    { tipo: 'quiz', pergunta: 'No orçamento base zero, o resultado ideal da renda planejada menos alocação é:', opcoes: ['Um valor alto sobrando sem destino.', 'Zero, porque cada real recebeu uma função.', 'Negativo, para sobrar emoção.', 'Indefinido até o mês terminar.'], correta: 1, expl: 'Base zero é planejamento intencional. O zero significa que toda a renda foi conscientemente distribuída.' },
+    { tipo: 'acao', titulo: 'Distribua sua renda no app', conteudo: 'Abra o orçamento e atribua limites para essenciais, estilo de vida, metas e proteção. Ajuste até toda a renda ter um papel claro no mês.', cta: 'Montar orçamento base zero', ctaFn: "go('budget')" }
+  ]
+},
+{
+  id: 'base_envelopes', trilha: 'base', title: 'Envelopes e Categorias', sub: 'Transforme orçamento em limite visível', emoji: '✉️', dur: '6 min', xp: 70, ok: false, grad: 'linear-gradient(135deg,#0F2B46,#2F62D9)',
+  objective: 'Transformar o orçamento planejado em limites operacionais simples de acompanhar no dia a dia.',
+  outcomeType: 'comportamento',
+  maturityStage: 'organizar',
+  behaviorGoal: 'Consultar limites por categoria antes de gastar, e não depois.',
+  associatedFeature: 'budget',
+  activationContext: 'Quando o usuário já entende orçamento, mas ainda estoura categorias por falta de visibilidade prática.',
+  triggerEvents: ['organizar_rotina', 'iniciar_planejamento'],
+  references: ['Sistema de envelopes', 'Cash allocation por categoria', 'Arquitetura de escolha e fricção positiva'],
+  passos: [
+    { tipo: 'teoria', titulo: 'O que é um envelope', conteudo: 'Envelope é um limite operacional para uma categoria. Ele transforma uma intenção abstrata em uma fronteira concreta: mercado, transporte, lazer, assinaturas, saúde.', visual: '📬' },
+    { tipo: 'regra', titulo: 'Categoria sem limite vira desculpa', conteudo: 'Quando a categoria não tem teto, qualquer gasto parece justificável. O envelope cria atrito saudável e melhora a qualidade da decisão.', exemplo: 'Se lazer tem R$ 250 e já foram R$ 220, a próxima saída deixa de ser impulso e vira decisão consciente.' },
+    { tipo: 'quiz', pergunta: 'Qual é a principal vantagem do sistema de envelopes?', opcoes: ['Eliminar todas as despesas do mês.', 'Mostrar limites por categoria antes do estouro.', 'Substituir reserva de emergência.', 'Evitar qualquer uso de cartão.'], correta: 1, expl: 'O sistema de envelopes ajuda a enxergar o limite da categoria antes do problema, não apenas depois.' },
+    { tipo: 'acao', titulo: 'Configure envelopes reais', conteudo: 'Abra o orçamento e crie limites para as categorias que mais vazam no seu mês. Comece por mercado, transporte, lazer e assinaturas.', cta: 'Configurar envelopes', ctaFn: "go('budget')" }
+  ]
+},
+{
+  id: 'cont_dre_simplificada', trilha: 'contabilidade', title: 'DRE em português claro', sub: 'Descubra se sobrou lucro ou só movimento', emoji: '📑', dur: '7 min', xp: 85, ok: false, grad: 'linear-gradient(135deg,#0B3A35,#14B8A6)',
+  objective: 'Ensinar a ler receita, custo, despesa e resultado sem linguagem contábil excessiva.',
+  outcomeType: 'contabilidade',
+  maturityStage: 'organizar',
+  behaviorGoal: 'Fechar o mês entendendo onde o dinheiro girou e o que realmente virou resultado.',
+  associatedFeature: 'analytics',
+  activationContext: 'Quando entra dinheiro, mas a sensação é de que nunca sobra caixa real no fim do mês.',
+  triggerEvents: ['organizar_rotina', 'negocio_sem_separacao', 'recebimento'],
+  references: ['Contabilidade gerencial', 'DRE simplificada', 'Margem de contribuição e resultado operacional'],
+  passos: [
+    { tipo: 'teoria', titulo: 'DRE sem palavrão técnico', conteudo: 'A DRE responde uma pergunta simples: <strong style="color:#14B8A6">o que entrou virou lucro ou só passou pela conta?</strong> Receita não é sinônimo de sobra. Primeiro você tira custos, depois despesas, e só então aparece o resultado.', visual: '🧾' },
+    { tipo: 'regra', titulo: 'Entrada de caixa não prova lucro', conteudo: 'Receber R$ 10 mil de clientes parece ótimo, mas se R$ 6 mil foram custo, R$ 2 mil foram despesas e R$ 1 mil ainda é imposto, o resultado real é bem menor. Confundir entrada com lucro gera decisões perigosas.', exemplo: 'Faturar bem e ainda assim terminar o mês sem caixa livre porque margem e despesas foram ignoradas.' },
+    { tipo: 'exemplo', titulo: 'Exemplo prático de DRE', conteudo: 'Uma profissional liberal faturou R$ 12.000 no mês. Custos diretos: R$ 3.500. Despesas fixas e operacionais: R$ 4.000. Provisão de imposto: R$ 1.200. Resultado estimado: R$ 3.300. A leitura correta evita achar que os R$ 12 mil estavam livres para gastar.', calculo: { simples: 'Receita: R$ 12.000', composto: 'Resultado estimado: R$ 3.300', delta: 'Lucro é menor que entrada bruta' } },
+    { tipo: 'quiz', pergunta: 'Qual frase descreve melhor a DRE?', opcoes: ['Mostra tudo que entrou na conta.', 'Mostra só o saldo bancário final.', 'Mostra como receita, custos e despesas se transformam em resultado.', 'Serve apenas para empresas grandes.'], correta: 2, expl: 'DRE é uma visão de formação do resultado. Ela transforma movimentação em leitura de desempenho real.' },
+    { tipo: 'acao', titulo: 'Use a análise como fechamento do mês', conteudo: 'Abra as análises do app e leia o mês separando receita, despesa e sobra. O objetivo é sair da sensação para a leitura financeira objetiva.', cta: 'Abrir análises', ctaFn: "go('analytics')" }
+  ]
+},
+{
+  id: 'cont_pf_pj', trilha: 'contabilidade', title: 'Separar PF e negócio', sub: 'Mistura de dinheiro destrói clareza', emoji: '🧩', dur: '6 min', xp: 80, ok: false, grad: 'linear-gradient(135deg,#12324A,#2F62D9)',
+  objective: 'Mostrar por que misturar conta pessoal com operação do negócio cria caos contábil e emocional.',
+  outcomeType: 'contabilidade',
+  maturityStage: 'organizar',
+  behaviorGoal: 'Parar de usar o caixa do negócio como extensão da conta pessoal.',
+  associatedFeature: 'business',
+  activationContext: 'Quando o usuário trabalha por conta própria e não sabe se o negócio paga a própria operação.',
+  triggerEvents: ['negocio_sem_separacao', 'organizar_rotina', 'imposto_sem_reserva'],
+  references: ['Separação patrimonial', 'Contabilidade básica para MEI e PJ', 'Fluxo de caixa operacional'],
+  passos: [
+    { tipo: 'teoria', titulo: 'O erro que bagunça tudo', conteudo: 'Quando a mesma conta paga almoço da família, anúncio do negócio, parcela do carro e fornecedor, você perde a capacidade de saber <strong style="color:#2F62D9">quem está sustentando quem</strong>.', visual: '⚠️' },
+    { tipo: 'regra', titulo: 'Negócio não é caixa pessoal', conteudo: 'Seu dinheiro pessoal pode vir do negócio, mas precisa sair como retirada definida, pró-labore ou distribuição planejada. Se tudo se mistura, o resultado vira ilusão.', exemplo: 'Cliente pagou hoje e o valor foi usado para mercado, assinatura e gasolina sem nenhuma classificação.' },
+    { tipo: 'quiz', pergunta: 'Qual é o principal benefício de separar PF e PJ?', opcoes: ['Pagar menos imposto automaticamente.', 'Entender caixa e resultado real da operação.', 'Eliminar todas as despesas pessoais.', 'Não precisar registrar transações.'], correta: 1, expl: 'A separação existe para gerar clareza operacional. Sem isso, não dá para saber se o negócio é saudável.' },
+    { tipo: 'acao', titulo: 'Organize a separação no app', conteudo: 'Classifique lançamentos por escopo pessoal e empresarial e use a visão de negócio para enxergar a operação sem ruído da vida pessoal.', cta: 'Abrir área empresarial', ctaFn: "go('business')" }
   ]
 }
 

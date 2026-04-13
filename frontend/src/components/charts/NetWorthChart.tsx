@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   Area,
   AreaChart,
@@ -30,7 +30,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 
     return (
       <div className="bg-[#020617] border border-white/10 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
-        <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">
+        <p className="text-xs font-black text-neutral-500 uppercase tracking-widest mb-1">
           {label}
         </p>
         <p className="text-sm font-black text-white">
@@ -80,3 +80,4 @@ export const NetWorthChart: React.FC<Props> = ({ data }) => {
     </div>
   );
 };
+

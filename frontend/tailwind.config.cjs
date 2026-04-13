@@ -62,6 +62,7 @@ module.exports = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+          obsidian: "rgba(255, 255, 255, 0.03)", // Premium Obsidian Card
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

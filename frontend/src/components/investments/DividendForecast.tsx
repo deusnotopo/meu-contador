@@ -1,4 +1,4 @@
-import { formatCurrency } from "@/lib/formatters";
+﻿import { formatCurrency } from "@/lib/formatters";
 import type { Dividend, Investment } from "@/types";
 import { TrendingUp } from "lucide-react";
 import React, { useMemo } from "react";
@@ -87,7 +87,7 @@ export const DividendForecast: React.FC<Props> = ({ assets, dividends }) => {
       <div className="premium-card p-8">
         <h4 className="text-lg font-black text-white mb-8 uppercase tracking-tight">
           Distribuição de Renda{" "}
-          <span className="text-slate-500">por Ativo</span>
+          <span className="text-neutral-500">por Ativo</span>
         </h4>
 
         <div className="h-[300px] w-full">
@@ -118,7 +118,7 @@ export const DividendForecast: React.FC<Props> = ({ assets, dividends }) => {
                         <p className="text-lg font-black text-white">
                           {formatCurrency(data.annual)}/ano
                         </p>
-                        <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">
+                        <p className="text-[9px] text-neutral-500 uppercase font-bold tracking-widest">
                           {formatCurrency(data.monthly)} mensais
                         </p>
                         {data.isEstimate && (
@@ -161,7 +161,7 @@ export const DividendForecast: React.FC<Props> = ({ assets, dividends }) => {
                 </div>
                 <div>
                   <p className="text-sm font-black text-white">{item.ticker}</p>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                  <p className="text-[10px] text-neutral-500 font-bold uppercase">
                     Projeção Mensal
                   </p>
                 </div>
@@ -181,3 +181,4 @@ export const DividendForecast: React.FC<Props> = ({ assets, dividends }) => {
     </div>
   );
 };
+

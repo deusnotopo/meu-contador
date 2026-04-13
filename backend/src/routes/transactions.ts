@@ -1,8 +1,14 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../lib/db';
-import { PredictiveEngine } from '../services/ai';
-import { getCacheValue, setCacheValue, deleteCacheValue } from '../lib/cache';
+import { db } from '../lib/db.js';
+import { PredictiveEngine } from '../services/ai.js';
+import { getCacheValue, setCacheValue, deleteCacheByPrefix } from '../lib/cache.js';
+import { createAndEmitNotification } from './notifications.js';
+import { checkBudgetAlerts } from './websocket.js';
+
+async function invalidateBudgetCache(userId: string) {
+  await deleteCacheByPrefix(`budgets:list:${userId}:`);
+}
 
 const transactionScopeSchema = z.enum(['personal', 'business']);
 const paginationQuerySchema = z.object({
@@ -29,6 +35,19 @@ const transactionBodySchema = z.object({
   category: z.string().trim().min(1).max(80),
   date: z.string().min(10), // Aceita tanto ISO '2026-04-04T00:00:00Z' quanto apenas '2026-04-04' do frontend
   scope: transactionScopeSchema,
+  paymentMethod: z.string().trim().min(1).max(80).optional(),
+  notes: z.string().max(2000).optional(),
+  recurring: z.boolean().optional(),
+  recurrenceInterval: z.enum(['monthly', 'weekly', 'bi-weekly', 'yearly']).optional(),
+  classification: z.enum(['necessity', 'want', 'investment', 'debt']).optional(),
+  currency: z.enum(['BRL', 'USD', 'EUR', 'GBP']).optional(),
+  originalAmount: z.number().finite().positive().optional(),
+  exchangeRate: z.union([
+    z.number().finite().positive(),
+    z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+      message: 'Exchange rate must be a positive number'
+    })
+  ]).optional(),
   receiptUrl: z.string().trim().url().max(2048).optional(),
   mood: z.string().optional(),
   motivation: z.string().optional(),
@@ -46,7 +65,17 @@ const transactionResponseSchema = z.object({
   category: z.string(),
   date: z.union([z.date(), z.string()]),
   scope: z.string(),
+  paymentMethod: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  recurring: z.boolean().optional(),
+  recurrenceInterval: z.string().nullable().optional(),
+  classification: z.string().nullable().optional(),
+  currency: z.string().optional(),
+  originalAmount: z.number().nullable().optional(),
+  exchangeRate: z.number().nullable().optional(),
   receiptUrl: z.string().nullable().optional(),
+  mood: z.string().nullable().optional(),
+  motivation: z.string().nullable().optional(),
 });
 const paginatedTransactionsResponseSchema = z.object({
   items: z.array(transactionResponseSchema),
@@ -59,10 +88,9 @@ const errorResponseSchema = z.object({ message: z.string() });
 
 // Helper to invalidate transaction cache for a user
 async function invalidateTransactionCache(userId: string) {
-  // Since we can't easily delete by pattern with the current cache implementation,
-  // we'll just let the cache expire naturally. In production with Redis, we could use KEYS/DEL pattern.
-  // For now, this is acceptable as cache will expire in 5 minutes anyway.
+  await deleteCacheByPrefix(`transactions:list:${userId}:`);
 }
+
 
 export async function transactionRoutes(app: FastifyInstance) {
   app.get('/transactions', {
@@ -90,6 +118,7 @@ export async function transactionRoutes(app: FastifyInstance) {
 
     const where = {
       userId: user.id,
+      deletedAt: null,
       ...(scope ? { scope } : {}),
     };
 
@@ -130,8 +159,13 @@ export async function transactionRoutes(app: FastifyInstance) {
     const body = request.body as z.infer<typeof transactionBodySchema>;
     const user = request.user as { id: string; isPro: boolean };
 
-    const { date, amount, description, category, ...restBody } = body;
+    const { date, amount, description, category, exchangeRate, ...restBody } = body;
     const numericAmount: number = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const numericExchangeRate = exchangeRate === undefined
+      ? undefined
+      : typeof exchangeRate === 'string'
+        ? parseFloat(exchangeRate)
+        : exchangeRate;
     
     let finalCategory = category;
     let finalDesc = description;
@@ -151,10 +185,29 @@ export async function transactionRoutes(app: FastifyInstance) {
         description: finalDesc,
         category: finalCategory,
         amount: numericAmount,
+        ...(numericExchangeRate !== undefined ? { exchangeRate: numericExchangeRate } : {}),
         date: new Date(date),
         userId: user.id,
       },
     });
+
+    await Promise.all([
+      invalidateTransactionCache(user.id),
+      invalidateBudgetCache(user.id),
+      // Persist notification + emit via WebSocket
+      createAndEmitNotification(
+        user.id,
+        body.type === 'income' ? 'transaction_income' : 'transaction_expense',
+        body.type === 'income' ? '💰 Receita registrada' : '💸 Despesa registrada',
+        `${finalDesc}: R$ ${numericAmount.toFixed(2)}`,
+        { transactionId: transaction.id, category: finalCategory },
+        app
+      ),
+      // Check budget alerts (WS only — already existing)
+      body.type === 'expense'
+        ? checkBudgetAlerts(user.id, numericAmount, finalCategory)
+        : Promise.resolve(),
+    ]);
 
     return transaction;
   });
@@ -173,10 +226,17 @@ export async function transactionRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as z.infer<typeof transactionParamsSchema>;
     const user = request.user as { id: string };
-    const deleted = await db.transaction.deleteMany({ where: { id, userId: user.id } });
+    const deleted = await db.transaction.updateMany({
+      where: { id, userId: user.id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
     if (deleted.count === 0) {
       return reply.status(404).send({ message: 'Transaction not found' });
     }
+    await Promise.all([
+      invalidateTransactionCache(user.id),
+      invalidateBudgetCache(user.id),
+    ]);
     return reply.status(204).send();
   });
 
@@ -197,23 +257,30 @@ export async function transactionRoutes(app: FastifyInstance) {
     const body = request.body as z.infer<typeof transactionPatchBodySchema>;
     const user = request.user as { id: string };
 
-    const existing = await db.transaction.findFirst({ where: { id, userId: user.id } });
+    const existing = await db.transaction.findFirst({ where: { id, userId: user.id, deletedAt: null } });
     if (!existing) {
       return reply.status(404).send({ message: 'Transaction not found' });
     }
 
-    const { date, amount, ...restBody } = body;
+    const { date, amount, exchangeRate, ...restBody } = body;
     const transaction = await db.transaction.update({
       where: { id },
       data: {
         ...restBody,
         ...(amount !== undefined ? { amount: typeof amount === 'string' ? parseFloat(amount) : amount } : {}),
+        ...(exchangeRate !== undefined ? { exchangeRate: typeof exchangeRate === 'string' ? parseFloat(exchangeRate) : exchangeRate } : {}),
         ...(date ? { date: new Date(date) } : {}),
       },
     });
 
+    await Promise.all([
+      invalidateTransactionCache(user.id),
+      invalidateBudgetCache(user.id),
+    ]);
+
     return transaction;
   });
+
 
   // Cursor-based pagination endpoint
   app.get('/transactions/cursor', {

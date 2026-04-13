@@ -42,7 +42,7 @@ export function parseOFX(ofxString: string): OFXTransaction[] {
       // Simple heuristic clean
       description = description
         .replace(/(COMPRA CARTAO|PGTO PIX|TARIFA BANCARIA)/i, "")
-        .replace(/[\d-\/]+/g, "") // remove numbers and dates
+        .replace(new RegExp("[\\d/-]+", "g"), "") // remove numbers and dates
         .trim();
 
       if (!description) description = "Diversos";

@@ -1,10 +1,14 @@
 import { api, clearAuthSession, setCsrfToken, subscribeToAuthSession } from "@/lib/api";
+import { logger } from '@/lib/logger';
 import type { UserProfile, WorkspaceRole } from "@/types";
 import { auth, googleProvider } from "@/lib/firebase";
 import { trackEvent, analyticsEvents } from "@/lib/analytics";
 import { signInWithPopup } from "firebase/auth";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { syncAllData, clearAllStorage, hydrateCacheFromLocalStorage } from "@/lib/storage";
+
+const REQUEST_TIMEOUT_MS = 10000;
+const COLD_START_RETRY_DELAY_MS = 2000;
 
 interface BackendUser extends Partial<AuthUser> {
   id: string;
@@ -85,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Helper: promessa com timeout
   function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     const timeout = new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), ms)
+      setTimeout(() => reject(new Error('Tempo limite da requisição excedido.')), ms)
     );
     return Promise.race([promise, timeout]);
   }
@@ -100,9 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const errorName = error instanceof Error ? error.name : '';
         const isNetworkOrTimeout = errorName === 'TimeoutError' || message.includes('fetch') || message.includes('timeout');
         if (i === retries - 1 || !isNetworkOrTimeout) throw error;
-        console.warn(`Tentativa ${i + 1} falhou, aguardando backend acordar...`);
-        // Espera 3s antes de tentar de novo
-        await new Promise(r => setTimeout(r, 3000));
+        logger.warn(`Tentativa ${i + 1} falhou, aguardando backend acordar...`);
+        await new Promise(r => setTimeout(r, COLD_START_RETRY_DELAY_MS));
       }
     }
     throw new Error('Unreachable');
@@ -119,12 +122,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Privacy Fortress: Hydrate local cache from encrypted storage immediately
         await hydrateCacheFromLocalStorage();
 
-        const userData = await fetchWithRetry(() => withTimeout(api.get<BackendUser>("/auth/me"), 5000), 2);
+        const userData = await fetchWithRetry(() => withTimeout(api.get<BackendUser>("/auth/me"), REQUEST_TIMEOUT_MS), 2);
         if (cancelled) return;
 
         const authUser = mapBackendUserToAuthUser(userData);
         setUser(authUser);
         setIsPro(!!userData.isPro);
+
+        // Signal to other contexts that auth is ready (e.g. PreferencesContext)
+        window.dispatchEvent(new CustomEvent('auth:session-ready'));
+
 
         // Restaurar o CSRF token na memória após reload de página.
         // O /auth/me confirma que o cookie JWT é válido, mas o csrfToken
@@ -191,6 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setUser(authUser);
       setIsPro(authUser.isPro || false);
+      window.dispatchEvent(new CustomEvent('auth:session-ready'));
       
       // Sync em background — não bloquear a UI no login
       syncAllData(authUser.id).catch(err => console.error("Background sync failed:", err));
@@ -254,8 +262,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       setUser(authUser);
       setIsPro(authUser.isPro || false);
+      window.dispatchEvent(new CustomEvent('auth:session-ready'));
       
-      // Sync em background — não bloquear a UI no login Google
       syncAllData(authUser.id).catch(err => console.error("Google sync failed:", err));
 
       // Track Google Login Event

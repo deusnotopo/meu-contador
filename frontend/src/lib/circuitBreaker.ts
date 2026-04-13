@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 interface CircuitBreakerOptions {
   maxRetries?: number;
   initialDelay?: number;
@@ -50,7 +52,7 @@ export async function fetchWithCircuitBreaker(
       }
       
       // Exponential backoff
-      console.warn(`[CircuitBreaker] Retrying API call, attempt ${attempt + 1}/${maxRetries} in ${delay}ms...`);
+      logger.warn(`[CircuitBreaker] Retrying API call, attempt ${attempt + 1}/${maxRetries} in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
       delay = Math.min(delay * 2, maxDelay);
     }

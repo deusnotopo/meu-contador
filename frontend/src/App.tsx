@@ -20,7 +20,6 @@ function useIsDesktop(): boolean {
   return isDesktop;
 }
 import { LoginForm } from "./components/auth/LoginForm";
-import { ToastProvider } from "./lib/toast";
 import { GlobalLoadingProgress } from "./components/ui/GlobalLoadingProgress";
 import { SkipToContent, ScreenReaderAnnouncer } from "./lib/accessibility";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -62,6 +61,7 @@ import {
   TransactionsView,
   FinancialCheckin,
   MasterySection,
+  BudgetDashboard,
   TAB_PATHS,
   PATH_TO_TAB,
 } from "./app/routes";
@@ -148,7 +148,7 @@ export default function App() {
       case "financial_checkin": return <FinancialCheckin onBack={() => goBack("health")} />;
       case "insurance_planner": return <InsurancePlanner onBack={() => goBack("health")} />;
       case "notifications": return <NotificationsView onBack={goHome} />;
-      case "budget": return <EnvelopesView onBack={goHome} onNavigate={navTo} />;
+      case "budget": return <BudgetDashboard onNavigate={navTo} />;
       case "caixa":
       case "personal": return <TransactionsView onBack={() => goBack(activeTab === "personal" ? "budget" : "inicio")} />;
       case "analytics": return (
@@ -168,7 +168,7 @@ export default function App() {
       case "investir":
       case "investments": return (
         <PremiumGate feature="investments">
-          <InvestmentsSection onBack={() => goBack(activeTab === "investir" ? "inicio" : "investir")} />
+          <InvestmentsSection onNavigate={navTo} />
         </PremiumGate>
       );
       case "invest_compostos": return (
@@ -181,8 +181,9 @@ export default function App() {
           <InvestDividasView onBack={() => goBack("investir")} />
         </PremiumGate>
       );
-      case "academia":
-      case "education": return <EducationSection onBack={() => goBack(activeTab === "academia" ? "inicio" : "academia")} onNavigate={navTo} />;
+      // Academia: raiz volta para início; sub-rotas de conteúdo voltam para academia
+      case "academia": return <EducationSection onBack={() => goBack("inicio")} onNavigate={navTo} />;
+      case "education": return <EducationSection onBack={() => goBack("academia")} onNavigate={navTo} />;
       case "ai": return (
         <PremiumGate feature="ai_advisor">
           <AIAssistantView onBack={() => goBack("academia")} />
@@ -203,8 +204,17 @@ export default function App() {
     }
   })();
 
-  if (loading) return <LoadingFallback />;
-  if (!user) return <LoginForm />;
+  // Show login immediately — no blocking while session check runs in background.
+  // A thin progress bar signals the auth check is in progress.
+  if (!user) return <>
+    {loading && (
+      <div className="fixed top-0 left-0 right-0 z-[9999]">
+        <div className="h-[3px] bg-gradient-to-r from-[var(--purple)] via-blue-400 to-[var(--purple)] animate-pulse w-full" />
+      </div>
+    )}
+    <LoginForm />
+  </>;
+
 
   const handleWizardComplete = () => {
     localStorage.setItem(`onboarding_done_${user.id}`, 'true');
@@ -246,7 +256,6 @@ export default function App() {
     <TourProvider>
       <SkipToContent />
       <ScreenReaderAnnouncer />
-      <ToastProvider />
       <GlobalLoadingProgress />
       <LevelUpOverlay />
       <Celebration isVisible={showCelebration} onComplete={() => setShowCelebration(false)} />

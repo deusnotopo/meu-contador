@@ -1,5 +1,5 @@
 import { useTransactions } from "@/hooks/useTransactions";
-import { loadBudgets } from "@/lib/storage";
+import { useBudgets } from "@/hooks/useBudgets";
 import { useMemo } from "react";
 
 export interface FinancialAlert {
@@ -12,7 +12,7 @@ export interface FinancialAlert {
 
 export const useFinancialAlerts = () => {
   const { totals, categoryData } = useTransactions("personal");
-  const budgets = useMemo(() => loadBudgets(), []);
+  const { budgets } = useBudgets();
 
   const alerts = useMemo(() => {
     const list: FinancialAlert[] = [];

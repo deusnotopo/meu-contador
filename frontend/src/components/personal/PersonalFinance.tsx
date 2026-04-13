@@ -1,28 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTransactions } from "@/hooks/useTransactions";
-import { STORAGE_EVENT, STORAGE_KEYS, loadGoals, saveBudgets, saveGoals } from "@/lib/storage";
+import { STORAGE_KEYS, STORAGE_EVENT, loadGoals, saveBudgets, saveGoals } from "@/lib/storage";
 import { QuickSetupWizard } from "@/components/ui/QuickSetupWizard";
 import type { SavingsGoal, Transaction, TransactionFormData } from "@/types";
 import {
-  AlertCircle,
-  BarChart3,
-  Bell,
-  Brain,
-  Camera,
-  Download,
-  FileSpreadsheet,
-  LayoutDashboard,
-  PlusCircle,
-  Sparkles,
-  Target,
-  TrendingUp,
-  Upload,
-  Link2,
+  Camera, Download, FileSpreadsheet, PlusCircle, Upload, Link2,
+  Wallet, ArrowUpRight, ArrowDownRight, Activity,
 } from "lucide-react";
-import { HelpButton } from "@/components/ui/HelpButton";
 import { BankConnectionModal } from "@/components/banking/BankConnectionModal";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { DashboardTab } from "@/features/personal/components/DashboardTab";
 import { BudgetsTab } from "@/features/personal/components/BudgetsTab";
@@ -31,41 +16,49 @@ import { RemindersTab } from "@/features/personal/components/RemindersTab";
 import { AnalyticsTab as AnalyticsTabComponent } from "@/features/personal/components/AnalyticsTab";
 import { InsightsTab } from "@/features/personal/components/InsightsTab";
 import { DebtsTab } from "@/features/personal/components/DebtsTab";
-
 import { TransactionForm } from "@/components/contador/TransactionForm";
 import { ReceiptScanner } from "@/components/receipts/ReceiptScanner";
 import { exportFullMonthlyReport } from "@/lib/pdf-export";
 import { exportTransactionsToCSV, importTransactions } from "@/lib/storage";
 import { showError, showSuccess } from "@/lib/toast";
 import { useRole } from "@/context/AuthContext";
+import { normalizeBudgetCategory } from "@/features/budgets/budget-utils";
+import { formatCurrency } from "@/lib/formatters";
+
+type PersonalTab =
+  | "dashboard" | "budgets" | "goals" | "reminders"
+  | "analytics" | "insights" | "debts";
+
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+const cardVariant = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
+
+const NAV: { id: PersonalTab; label: string; icon: string; danger?: boolean }[] = [
+  { id: "dashboard", label: "Início", icon: "🏠" },
+  { id: "budgets", label: "Orçamentos", icon: "🎯" },
+  { id: "goals", label: "Metas", icon: "📈" },
+  { id: "reminders", label: "Lembretes", icon: "🔔" },
+  { id: "analytics", label: "Análises", icon: "📊" },
+  { id: "insights", label: "IA Insights", icon: "🧠" },
+  { id: "debts", label: "Dívidas", icon: "⚠️", danger: true },
+];
 
 export const PersonalFinance = () => {
-
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState<PersonalTab>("dashboard");
   const [showForm, setShowForm] = useState(false);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [showBankModal, setShowBankModal] = useState(false);
   const { isViewer } = useRole();
 
   const {
-    transactions,
-    filteredTransactions,
-    filter,
-    setFilter,
-    dateFilter,
-    setDateFilter,
-    searchTerm,
-    setSearchTerm,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-    totals,
-    categoryData,
-    getPieChartData,
-    monthlyTrend,
+    transactions, filteredTransactions, filter, setFilter,
+    dateFilter, setDateFilter, searchTerm, setSearchTerm,
+    addTransaction, updateTransaction, deleteTransaction,
+    totals, categoryData, getPieChartData, monthlyTrend,
   } = useTransactions("personal");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,17 +67,13 @@ export const PersonalFinance = () => {
   useEffect(() => {
     const handleStorageChange = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.key === STORAGE_KEYS.GOALS) {
-        setGoals(detail.data);
-      }
+      if (detail?.key === STORAGE_KEYS.GOALS) setGoals(detail.data);
     };
     window.addEventListener(STORAGE_EVENT, handleStorageChange);
-    return () =>
-      window.removeEventListener(STORAGE_EVENT, handleStorageChange);
+    return () => window.removeEventListener(STORAGE_EVENT, handleStorageChange);
   }, []);
 
   const handleExport = () => {
-    // exportTransactions(transactions); // CSV
     exportFullMonthlyReport("Relatório Mensal", transactions, totals);
     showSuccess("Relatório PDF gerado!");
   };
@@ -92,15 +81,10 @@ export const PersonalFinance = () => {
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       const imported = await importTransactions(file);
-      if (
-        window.confirm(
-          `Deseja importar ${imported.length} transações? Isso substituirá seus dados atuais.`
-        )
-      ) {
-        window.location.reload(); // Reload to refresh transactions
+      if (window.confirm(`Importar ${imported.length} transações? Isso substituirá seus dados atuais.`)) {
+        window.location.reload();
       }
     } catch (error) {
       showError(error instanceof Error ? error.message : "Erro ao importar");
@@ -108,7 +92,7 @@ export const PersonalFinance = () => {
   };
 
   const handleBankSyncSuccess = (newTransactions: Partial<Transaction>[]) => {
-    newTransactions.forEach(t => {
+    newTransactions.forEach((t) => {
       addTransaction({
         type: t.type || "expense",
         description: t.description || "Transação importada",
@@ -128,329 +112,218 @@ export const PersonalFinance = () => {
     });
   };
 
-  const handleNewTransaction = () => {
-    setEditingTransaction(null);
-    setShowForm(true);
-  };
-
-  const handleEdit = (transaction: Transaction) => {
-    setEditingTransaction(transaction);
-    setShowForm(true);
-  };
-
+  const handleNewTransaction = () => { setEditingTransaction(null); setShowForm(true); };
+  const handleEdit = (t: Transaction) => { setEditingTransaction(t); setShowForm(true); };
   const handleSubmit = (formData: TransactionFormData, isEditing: boolean) => {
-    if (isEditing && editingTransaction) {
-      updateTransaction(editingTransaction.id, formData);
-    } else {
-      addTransaction(formData);
-    }
+    if (isEditing && editingTransaction) updateTransaction(editingTransaction.id, formData);
+    else addTransaction(formData);
     setShowForm(false);
     setEditingTransaction(null);
   };
+  const handleCancel = () => { setShowForm(false); setEditingTransaction(null); };
 
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingTransaction(null);
-  };
-
-  const handleApplyPreset = (data: { 
-    budgets?: { category: string; amount: number }[]; 
-    goals?: { name: string; targetAmount: number; icon: string }[] 
-  }) => {
+  const handleApplyPreset = (data: { budgets?: { category: string; amount: number }[]; goals?: { name: string; targetAmount: number; icon: string }[] }) => {
     if (data.budgets) {
       saveBudgets(data.budgets.map((b, i) => ({
         id: (Date.now() + i).toString(),
-        category: b.category,
-        limit: b.amount,
-        spent: 0,
-        month: new Date().toISOString().slice(0, 7)
+        category: normalizeBudgetCategory(b.category),
+        limit: b.amount, spent: 0,
+        month: new Date().toISOString().slice(0, 7),
       })));
     }
     if (data.goals) {
       saveGoals(data.goals.map((g, i) => ({
         id: (Date.now() + i + 100).toString(),
-        name: g.name,
-        targetAmount: g.targetAmount,
-        currentAmount: 0,
-        deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        icon: g.icon,
-        color: "from-indigo-500 to-purple-600"
+        name: g.name, targetAmount: g.targetAmount, currentAmount: 0,
+        deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        icon: g.icon, color: "from-indigo-500 to-purple-600",
       })));
     }
     setShowWizard(false);
   };
 
-  const incomeCount = filteredTransactions.filter(
-    (t) => t.type === "income"
-  ).length;
-  const expenseCount = filteredTransactions.filter(
-    (t) => t.type === "expense"
-  ).length;
+  const incomeCount = filteredTransactions.filter((t) => t.type === "income").length;
+  const expenseCount = filteredTransactions.filter((t) => t.type === "expense").length;
+  const balance = totals.income - totals.expense;
 
   return (
-    <div className="space-y-10 animate-fade-in pb-12">
-      <AnimatePresence>
-        {transactions.length === 0 && !showWizard && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="premium-card p-6 bg-indigo-500/10 border-indigo-500/20 flex flex-col md:flex-row items-center justify-between gap-6"
-          >
-            <div className="flex items-center gap-4 text-center md:text-left">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center text-white shadow-lg">
-                <Sparkles size={24} />
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 pb-12">
+
+      {/* ── HERO HEADER ──────────────────────────────────────────────────────── */}
+      <motion.div variants={cardVariant}>
+        <div className="card-obsidian relative overflow-hidden p-8">
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-600/10 blur-[80px] rounded-full pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-3">
+                <Wallet size={12} className="text-indigo-400" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Gestão Pessoal</span>
               </div>
-              <div>
-                <h4 className="font-black text-white uppercase tracking-tight">Configure com um clique</h4>
-                <p className="text-xs text-slate-400 font-medium">Use presets inteligentes para não precisar configurar tudo manualmente.</p>
+              <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                Finanças <span className="text-indigo-400">Pessoais</span>
+              </h1>
+              <p className="text-sm text-neutral-500 mt-2 leading-relaxed">
+                Lançamentos, orçamentos, metas e análises do seu fluxo de caixa pessoal.
+              </p>
+            </div>
+
+            {/* KPI badges */}
+            <div className="flex gap-3 shrink-0 flex-wrap">
+              <div className="flex flex-col items-center p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 min-w-[80px]">
+                <ArrowUpRight size={16} className="text-emerald-400 mb-1" />
+                <span className="text-sm font-black text-emerald-300 font-mono leading-none">{formatCurrency(totals.income)}</span>
+                <span className="text-[9px] text-emerald-400/60 uppercase tracking-widest mt-1">Receitas</span>
+              </div>
+              <div className="flex flex-col items-center p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 min-w-[80px]">
+                <ArrowDownRight size={16} className="text-rose-400 mb-1" />
+                <span className="text-sm font-black text-rose-300 font-mono leading-none">{formatCurrency(totals.expense)}</span>
+                <span className="text-[9px] text-rose-400/60 uppercase tracking-widest mt-1">Despesas</span>
+              </div>
+              <div className={`flex flex-col items-center p-4 rounded-2xl min-w-[80px] ${balance >= 0 ? "bg-blue-500/10 border border-blue-500/20" : "bg-amber-500/10 border border-amber-500/20"}`}>
+                <Activity size={16} className={`mb-1 ${balance >= 0 ? "text-blue-400" : "text-amber-400"}`} />
+                <span className={`text-sm font-black font-mono leading-none ${balance >= 0 ? "text-blue-300" : "text-amber-300"}`}>{formatCurrency(Math.abs(balance))}</span>
+                <span className={`text-[9px] uppercase tracking-widest mt-1 ${balance >= 0 ? "text-blue-400/60" : "text-amber-400/60"}`}>{balance >= 0 ? "Saldo" : "Déficit"}</span>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <Button
-                onClick={() => setShowBankModal(true)}
-                className="w-full sm:w-auto h-12 px-6 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-black uppercase tracking-widest rounded-xl hover:bg-indigo-500/20 transition-all"
-              >
-                <Link2 size={18} className="mr-2" />
-                Conectar Banco
-              </Button>
+          </div>
 
-              <Button
+          {/* Action bar */}
+          <div className="relative z-10 flex flex-wrap items-center gap-2 mt-6 pt-5 border-t border-white/5">
+            {/* Primary actions */}
+            <button
+              onClick={() => isViewer ? showError("Somente leitura") : handleNewTransaction()}
+              disabled={isViewer}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-full transition-all"
+            >
+              <PlusCircle size={14} /> Novo Lançamento
+            </button>
+            <button
+              onClick={() => isViewer ? showError("Somente leitura") : setShowReceiptScanner(true)}
+              disabled={isViewer}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 text-white text-xs font-black uppercase tracking-widest px-4 py-2.5 rounded-full transition-all"
+            >
+              <Camera size={14} /> Escanear
+            </button>
+            <button
+              onClick={() => setShowBankModal(true)}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-black uppercase tracking-widest px-4 py-2.5 rounded-full transition-all"
+            >
+              <Link2 size={14} /> Conectar Banco
+            </button>
+
+            {/* Separator */}
+            <div className="h-6 w-px bg-white/10 mx-1 hidden sm:block" />
+
+            {/* Secondary actions */}
+            <button onClick={() => exportTransactionsToCSV(transactions)} title="Exportar CSV"
+              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all">
+              <FileSpreadsheet size={14} />
+            </button>
+            <button onClick={handleExport} title="Exportar PDF"
+              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all">
+              <Download size={14} />
+            </button>
+            <button
+              onClick={() => isViewer ? showError("Somente leitura") : fileInputRef.current?.click()}
+              disabled={isViewer} title="Importar JSON"
+              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all disabled:opacity-50">
+              <Upload size={14} />
+            </button>
+            <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
+
+            {/* Wizard CTA — only when zero transactions */}
+            {transactions.length === 0 && (
+              <button
                 onClick={() => setShowWizard(true)}
                 disabled={isViewer}
-                className="bg-white text-black font-black uppercase tracking-widest text-[10px] h-12 px-8 rounded-xl disabled:opacity-50"
+                className="ml-auto flex items-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-full transition-all"
               >
-                Abrir Wizard
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <BankConnectionModal 
-        isOpen={showBankModal}
-        onClose={() => setShowBankModal(false)}
-        onSuccess={handleBankSyncSuccess}
-      />
-
-      <AnimatePresence>
-        {showWizard && (
-          <QuickSetupWizard 
-            type="personal" 
-            onComplete={handleApplyPreset} 
-            onClose={() => setShowWizard(false)} 
-          />
-        )}
-      </AnimatePresence>
-      {/* Premium Header */}
-      <div className="premium-card p-6 md:p-10">
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/10 blur-[120px] rounded-full" />
-        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-blue-500/5 blur-[120px] rounded-full" />
-
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
-          <div className="space-y-4 flex flex-col items-center md:items-start">
-            <HelpButton tooltipText="Gerencie suas finanças pessoais: lançamentos, orçamentos, metas e lembretes" />
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-white/5 text-[10px] font-black uppercase tracking-widest text-indigo-400">
-              <Sparkles size={12} />
-              Gestão Financeira
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black leading-tight tracking-tighter">
-              Fluxo <br className="hidden md:block" />
-              <span className="premium-gradient-text">Pessoal Master</span>
-            </h2>
-            <p className="text-slate-400 font-medium max-w-md hidden md:block">
-              Acompanhe seu fluxo de caixa pessoal com precisão matemática em
-              tempo real.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImport}
-              accept=".json"
-              className="hidden"
-            />
-
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
-              <Button
-                variant="glossy"
-                size="icon"
-                onClick={() => exportTransactionsToCSV(transactions)}
-                title="Exportar para Excel"
-              >
-                <FileSpreadsheet size={18} />
-              </Button>
-              <Button
-                variant="glossy"
-                size="icon"
-                onClick={handleExport}
-                title="Exportar para JSON"
-              >
-                <Download size={18} />
-              </Button>
-              <Button
-                variant="glossy"
-                size="icon"
-                onClick={() => isViewer ? showError("Somente leitura") : fileInputRef.current?.click()}
-                disabled={isViewer}
-                title="Importar transações"
-              >
-                <Upload size={18} />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
-               <Button
-                variant="glossy"
-                size="lg"
-                onClick={() => isViewer ? showError("Somente leitura") : setShowReceiptScanner(true)}
-                disabled={isViewer}
-                className="font-black text-[10px] md:text-xs uppercase tracking-widest"
-              >
-                <Camera size={18} className="mr-2 hidden sm:block" />
-                Escanear
-              </Button>
-              <Button
-                variant="default"
-                size="lg"
-                onClick={() => isViewer ? showError("Somente leitura") : handleNewTransaction()}
-                disabled={isViewer}
-                className="font-black text-[10px] md:text-xs uppercase tracking-widest"
-              >
-                <PlusCircle size={18} className="mr-2 hidden sm:block" />
-                Novo Lançamento
-              </Button>
-            </div>
+                ✨ Configurar com Wizard
+              </button>
+            )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Navigation Tabs */}
-      <div className="relative group">
-        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black/20 to-transparent pointer-events-none z-10 md:hidden" />
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-full md:w-fit mb-10 overflow-x-auto no-scrollbar scroll-smooth">
-            <TabsTrigger
-              value="dashboard"
-              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
+      {/* ── NAV DOCK ─────────────────────────────────────────────────────────── */}
+      <motion.div variants={cardVariant}>
+        <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/10 overflow-x-auto gap-1.5">
+          {NAV.map((n) => (
+            <button
+              key={n.id}
+              onClick={() => setActiveTab(n.id)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                activeTab === n.id
+                  ? n.danger
+                    ? "bg-rose-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                    : "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                  : "text-neutral-500 hover:text-white hover:bg-white/5"
+              }`}
             >
-              <LayoutDashboard size={14} />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger
-              value="budgets"
-              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
-            >
-              <Target size={14} />
-              Orçamentos
-            </TabsTrigger>
-            <TabsTrigger
-              value="goals"
-              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
-            >
-              <TrendingUp size={14} />
-              Metas
-            </TabsTrigger>
-            <TabsTrigger
-              value="reminders"
-              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
-            >
-              <Bell size={14} />
-              Lembretes
-            </TabsTrigger>
-            <TabsTrigger
-              value="analytics"
-              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
-            >
-              <BarChart3 size={14} />
-              Análises
-            </TabsTrigger>
-            <TabsTrigger
-              value="insights"
-              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:text-black flex items-center gap-2 whitespace-nowrap"
-            >
-              <Brain size={14} />
-              IA Insights
-            </TabsTrigger>
-            <TabsTrigger
-              value="debts"
-              className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-rose-500 data-[state=active]:text-white flex items-center gap-2 whitespace-nowrap"
-            >
-              <AlertCircle size={14} />
-              Dívidas
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+              <span>{n.icon}</span>
+              <span className="hidden lg:inline">{n.label}</span>
+            </button>
+          ))}
+        </div>
+      </motion.div>
 
-      {/* Transaction Form */}
+      {/* ── MODALS ───────────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showWizard && (
+          <QuickSetupWizard type="personal" onComplete={handleApplyPreset} onClose={() => setShowWizard(false)} />
+        )}
+      </AnimatePresence>
+
+      <BankConnectionModal isOpen={showBankModal} onClose={() => setShowBankModal(false)} onSuccess={handleBankSyncSuccess} />
+
       {showForm && (
-        <TransactionForm
-          editingTransaction={editingTransaction}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          scope="personal"
-        />
+        <TransactionForm editingTransaction={editingTransaction} onSubmit={handleSubmit} onCancel={handleCancel} scope="personal" />
       )}
 
-      {/* Tab Content */}
-      {activeTab === "dashboard" && (
-        <DashboardTab
-            transactions={transactions}
-            filteredTransactions={filteredTransactions}
-            totals={totals}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            filter={filter}
-            setFilter={setFilter}
-            dateFilter={dateFilter}
-            setDateFilter={setDateFilter}
-            onEdit={handleEdit}
-            onDelete={deleteTransaction}
-            onExport={() => {
-                const month = new Date().toLocaleDateString("pt-BR", {
-                  month: "long",
-                  year: "numeric",
-                });
-                exportFullMonthlyReport(month, transactions, totals);
-            }}
-        />
-      )}
-
-      {activeTab === "budgets" && <BudgetsTab transactions={transactions} />}
-
-      {activeTab === "goals" && <GoalsTab />}
-
-      {activeTab === "reminders" && <RemindersTab />}
-
-      {activeTab === "analytics" && (
-        <AnalyticsTabComponent
-          monthlyTrend={monthlyTrend}
-          categoryData={categoryData}
-          incomeChartData={getPieChartData("income")}
-          expenseChartData={getPieChartData("expense")}
-          totals={totals}
-          incomeCount={incomeCount}
-          expenseCount={expenseCount}
-        />
-      )}
-
-      {activeTab === "insights" && (
-        <InsightsTab transactions={transactions} goals={goals} totals={totals} />
-      )}
-
-      {activeTab === "debts" && <DebtsTab />}
-
-      {/* Receipt Scanner Modal */}
       {showReceiptScanner && (
-        <ReceiptScanner
-          onClose={() => setShowReceiptScanner(false)}
-          onTransactionCreated={() => {
-            // Auto-refresh handled by storage events
-          }}
-        />
+        <ReceiptScanner onClose={() => setShowReceiptScanner(false)} onTransactionCreated={() => {}} />
       )}
-    </div>
+
+      {/* ── TAB CONTENT ──────────────────────────────────────────────────────── */}
+      <AnimatePresence mode="wait">
+        <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+          {activeTab === "dashboard" && (
+            <DashboardTab
+              transactions={transactions}
+              filteredTransactions={filteredTransactions}
+              totals={totals}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              filter={filter}
+              setFilter={setFilter}
+              dateFilter={dateFilter}
+              setDateFilter={setDateFilter}
+              onEdit={handleEdit}
+              onDelete={deleteTransaction}
+              onExport={() => {
+                const month = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+                exportFullMonthlyReport(month, transactions, totals);
+              }}
+            />
+          )}
+          {activeTab === "budgets" && <BudgetsTab transactions={transactions} />}
+          {activeTab === "goals" && <GoalsTab />}
+          {activeTab === "reminders" && <RemindersTab />}
+          {activeTab === "analytics" && (
+            <AnalyticsTabComponent
+              monthlyTrend={monthlyTrend}
+              categoryData={categoryData}
+              incomeChartData={getPieChartData("income")}
+              expenseChartData={getPieChartData("expense")}
+              totals={totals}
+              incomeCount={incomeCount}
+              expenseCount={expenseCount}
+            />
+          )}
+          {activeTab === "insights" && <InsightsTab transactions={transactions} goals={goals} totals={totals} />}
+          {activeTab === "debts" && <DebtsTab />}
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
   );
 };

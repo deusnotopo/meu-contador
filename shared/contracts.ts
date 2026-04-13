@@ -18,6 +18,20 @@ export interface UserPreferencesDto {
     contribution?: number;
     rate?: number;
   };
+  showScore: boolean;
+  showPredictions: boolean;
+  weeklyReport: boolean;
+  alerts: boolean;
+  education?: {
+    completedModules: string[];
+    lessonStepProgress: Record<string, number>;
+    lessonLastSeenAt: Record<string, string>;
+    lessonReviewDueAt: Record<string, string>;
+    contextualReinforcements: Record<string, number>;
+    xp: number;
+    streak: number;
+    lastActiveDate: string | null;
+  };
 }
 
 export interface UpdateUserProfileDto {

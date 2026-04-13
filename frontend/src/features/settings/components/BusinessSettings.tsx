@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui/input";
+﻿import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserProfile } from "@/types";
 import { Building2 } from "lucide-react";
@@ -21,7 +21,7 @@ export const BusinessSettings = ({ profile, onChange }: Props) => {
       </div>
       <div className="p-6 md:p-8 pt-0 space-y-8">
         <div className="space-y-3">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
             Razão Social / Nome Fantasia
           </Label>
           <Input
@@ -38,7 +38,7 @@ export const BusinessSettings = ({ profile, onChange }: Props) => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
               Setor de Atuação
             </Label>
             <Input
@@ -54,7 +54,7 @@ export const BusinessSettings = ({ profile, onChange }: Props) => {
             />
           </div>
           <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
               CNPJ
             </Label>
             <Input
@@ -74,3 +74,4 @@ export const BusinessSettings = ({ profile, onChange }: Props) => {
     </div>
   );
 };
+

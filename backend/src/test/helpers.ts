@@ -7,25 +7,27 @@ export async function createTestApp() {
 }
 
 export async function createTestUser() {
-  const user = await db.user.create({
-    data: {
-      email: `test-${Date.now()}@example.com`,
-      name: 'Test User',
-      passwordHash: 'hashed-password',
-    },
-  })
+  return db.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email: `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`,
+        name: 'Test User',
+        passwordHash: 'hashed-password',
+      },
+    })
 
-  const workspace = await db.workspace.create({
-    data: {
-      name: 'Workspace de Teste',
-      ownerId: user.id,
-      members: { connect: { id: user.id } },
-    },
-  })
+    const workspace = await tx.workspace.create({
+      data: {
+        name: 'Workspace de Teste',
+        ownerId: user.id,
+        members: { connect: { id: user.id } },
+      },
+    })
 
-  return db.user.update({
-    where: { id: user.id },
-    data: { currentWorkspaceId: workspace.id },
+    return tx.user.update({
+      where: { id: user.id },
+      data: { currentWorkspaceId: workspace.id },
+    })
   })
 }
 
@@ -52,13 +54,16 @@ export async function cleanupTestData() {
   await db.debt.deleteMany()
   await db.savingsGoal.deleteMany()
   await db.billReminder.deleteMany()
+  await db.provision.deleteMany()
 
   // 7. Invoice depende de Workspace (deve vir ANTES de Workspace)
   await db.invoice.deleteMany()
+  await db.workspaceInvite.deleteMany()
 
-  // 8. PushSubscription e Session dependem de User (onDelete Cascade)
+  // 8. PushSubscription, Session e Notification dependem de User (onDelete Cascade)
   await db.pushSubscription.deleteMany()
   await db.session.deleteMany()
+  await db.notification.deleteMany()
 
   // 9. AuditLog depende de User (onDelete SetNull)
   await db.auditLog.deleteMany()

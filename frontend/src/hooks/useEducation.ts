@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { logger } from '@/lib/logger';
 import { ACADEMY_CONTEXT_SIGNALS, ACADEMY_MATURITY_STAGES, ACADEMY_MOMENTS, ACADEMY_RITUALS, EDUCATION_MODULES, getLessonAssociatedFeature, getLessonBehaviorGoal, getLessonMaturityStage, getLessonOutcomeType, getLessonTriggerEvents, type Lesson } from "@/data/educationData";
 import { showError } from "@/lib/toast";
+import { api } from "@/lib/api";
+import { analyticsEvents, trackEvent } from "@/lib/analytics";
 
 export interface EducationState {
   completedModules: string[];
@@ -34,6 +37,7 @@ interface ModuleProgress {
 }
 
 interface EducationProfileInput {
+  userId?: string;
   hasDebts?: boolean;
   hasEmergencyFund?: boolean;
   financialGoal?: string;
@@ -43,6 +47,8 @@ interface EducationProfileInput {
   debtBalance?: number;
   goalsCount?: number;
   hasInvestments?: boolean;
+  pendingInvoicesAmount?: number;
+  overdueInvoicesCount?: number;
 }
 
 interface ContextualRecommendation {
@@ -65,6 +71,7 @@ interface ContextSignalRecommendation {
 }
 
 const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
+const EDUCATION_STORAGE_KEY = "mc_education";
 
 const normalizeDate = (date: Date) => {
   const normalized = new Date(date);
@@ -83,49 +90,81 @@ export const useEducation = (profile?: EducationProfileInput) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const saved = localStorage.getItem("mc_education");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Simple streak logic
-        const targetState = { ...DEFAULT_STATE, ...parsed };
-        
-        if (targetState.lastActiveDate) {
-          const last = new Date(targetState.lastActiveDate);
-          const today = new Date();
-          const diffDays = Math.floor((today.getTime() - last.getTime()) / (1000 * 3600 * 24));
-          
-          if (diffDays > 1) {
-            targetState.streak = 0; // lost streak
-          } else if (diffDays === 1) {
-            targetState.streak += 1;
-            targetState.lastActiveDate = today.toISOString();
-          }
-        } else {
-          targetState.streak = 1;
-          targetState.lastActiveDate = new Date().toISOString();
-        }
-        
-        setState(targetState);
-        localStorage.setItem("mc_education", JSON.stringify(targetState));
-      } else {
-        const init = { ...DEFAULT_STATE, lastActiveDate: new Date().toISOString(), streak: 1 };
-        setState(init);
-        localStorage.setItem("mc_education", JSON.stringify(init));
-      }
-    } catch (e) {
-      console.error(e);
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      setError("Erro interno ao carregar o seu avanço educacional: " + message);
-      showError("Não foi possível carregar as aulas.");
-      setState(DEFAULT_STATE);
-    } finally {
-      setIsLoading(false);
-    }
+  const persistLocalState = useCallback((targetState: EducationState) => {
+    localStorage.setItem(EDUCATION_STORAGE_KEY, JSON.stringify(targetState));
   }, []);
+
+  const persistRemoteState = useCallback(async (targetState: EducationState) => {
+    if (!profile?.userId) return;
+    await api.put('/users/education', { education: targetState });
+    trackEvent(analyticsEvents.EDUCATION_SYNC, {
+      completed_modules: targetState.completedModules.length,
+      xp: targetState.xp,
+    });
+  }, [profile?.userId]);
+
+  useEffect(() => {
+    const loadEducation = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        let parsed: Partial<EducationState> | null = null;
+
+        if (profile?.userId) {
+          try {
+            const remote = await api.get<{ education: EducationState | null }>('/users/education');
+            parsed = remote.education;
+          } catch (remoteError) {
+            logger.warn('Falha ao carregar progresso educacional remoto, usando cache local.', remoteError);
+          }
+        }
+
+        if (!parsed) {
+          const saved = localStorage.getItem(EDUCATION_STORAGE_KEY);
+          parsed = saved ? JSON.parse(saved) : null;
+        }
+
+        if (parsed) {
+          // Simple streak logic
+          const targetState = { ...DEFAULT_STATE, ...parsed };
+
+          if (targetState.lastActiveDate) {
+            const last = new Date(targetState.lastActiveDate);
+            const today = new Date();
+            const diffDays = Math.floor((today.getTime() - last.getTime()) / (1000 * 3600 * 24));
+
+            if (diffDays > 1) {
+              targetState.streak = 0;
+            } else if (diffDays === 1) {
+              targetState.streak += 1;
+              targetState.lastActiveDate = today.toISOString();
+            }
+          } else {
+            targetState.streak = 1;
+            targetState.lastActiveDate = new Date().toISOString();
+          }
+
+          setState(targetState);
+          persistLocalState(targetState);
+        } else {
+          const init = { ...DEFAULT_STATE, lastActiveDate: new Date().toISOString(), streak: 1 };
+          setState(init);
+          persistLocalState(init);
+          if (profile?.userId) await persistRemoteState(init);
+        }
+      } catch (e) {
+        console.error(e);
+        const message = e instanceof Error ? e.message : 'Erro desconhecido';
+        setError("Erro interno ao carregar o seu avanço educacional: " + message);
+        showError("Não foi possível carregar as aulas.");
+        setState(DEFAULT_STATE);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEducation();
+  }, [persistLocalState, persistRemoteState, profile?.userId]);
 
   const completeModule = useCallback((moduleId: string) => {
     try {
@@ -163,7 +202,8 @@ export const useEducation = (profile?: EducationProfileInput) => {
           lastActiveDate: nowIso,
         };
         
-        localStorage.setItem("mc_education", JSON.stringify(newState));
+        persistLocalState(newState);
+        void persistRemoteState(newState);
         return newState;
       });
     } catch (e) {
@@ -173,7 +213,7 @@ export const useEducation = (profile?: EducationProfileInput) => {
       setError(msg);
       showError("Falha ao salvar progresso educativo!");
     }
-  }, []);
+  }, [persistLocalState, persistRemoteState]);
 
   const saveLessonProgress = useCallback((moduleId: string, completedSteps: number) => {
     try {
@@ -208,7 +248,8 @@ export const useEducation = (profile?: EducationProfileInput) => {
           lastActiveDate: nowIso,
         };
 
-        localStorage.setItem("mc_education", JSON.stringify(newState));
+        persistLocalState(newState);
+        void persistRemoteState(newState);
         return newState;
       });
     } catch (e) {
@@ -217,7 +258,7 @@ export const useEducation = (profile?: EducationProfileInput) => {
       console.error(msg);
       setError(msg);
     }
-  }, []);
+  }, [persistLocalState, persistRemoteState]);
 
   const isModuleCompleted = useCallback((moduleId: string) => state.completedModules.includes(moduleId), [state.completedModules]);
 
@@ -295,6 +336,8 @@ export const useEducation = (profile?: EducationProfileInput) => {
 
     if (profile?.hasDebts) activeTriggers.push('fatura_alta', 'divida_cara');
     if ((profile?.debtBalance || 0) > 0) activeTriggers.push('divida_cara');
+    if ((profile?.pendingInvoicesAmount || 0) > 0) activeTriggers.push('recebimento');
+    if ((profile?.overdueInvoicesCount || 0) > 0) activeTriggers.push('mes_apertado', 'negocio_sem_separacao', 'imposto_sem_reserva');
     if (!profile?.hasEmergencyFund) activeTriggers.push('sem_reserva', 'mes_apertado');
     if (profile?.employmentType && ['autonomo', 'freelancer', 'pj', 'mei'].includes(profile.employmentType)) {
       activeTriggers.push('aumento_de_renda', 'organizar_rotina');
@@ -336,7 +379,7 @@ export const useEducation = (profile?: EducationProfileInput) => {
     if (!selected) {
       return {
         lesson: null,
-        reason: 'Você concluiu a jornada principal da Academia.',
+        reason: 'Você concluiu a jornada principal da área Aprender.',
         actionLabel: 'Revisar conteúdos avançados',
         outcome: 'maestria',
       };
@@ -362,7 +405,7 @@ export const useEducation = (profile?: EducationProfileInput) => {
       actionLabel,
       outcome,
     };
-  }, [profile?.currentWorkspaceId, profile?.debtBalance, profile?.employmentType, profile?.financialGoal, profile?.goalsCount, profile?.hasDebts, profile?.hasEmergencyFund, profile?.hasInvestments, state.completedModules]);
+  }, [profile?.currentWorkspaceId, profile?.debtBalance, profile?.employmentType, profile?.financialGoal, profile?.goalsCount, profile?.hasDebts, profile?.hasEmergencyFund, profile?.hasInvestments, profile?.overdueInvoicesCount, profile?.pendingInvoicesAmount, state.completedModules]);
 
   const getCurrentMoment = useCallback(() => {
     const contextual = getContextualRecommendation();
@@ -395,6 +438,8 @@ export const useEducation = (profile?: EducationProfileInput) => {
 
     if (profile?.hasDebts) activeTriggers.push('fatura_alta', 'divida_cara');
     if ((profile?.debtBalance || 0) > 0) activeTriggers.push('divida_cara');
+    if ((profile?.pendingInvoicesAmount || 0) > 0) activeTriggers.push('recebimento');
+    if ((profile?.overdueInvoicesCount || 0) > 0) activeTriggers.push('mes_apertado', 'negocio_sem_separacao', 'imposto_sem_reserva');
     if (!profile?.hasEmergencyFund) activeTriggers.push('sem_reserva', 'mes_apertado');
     if (profile?.employmentType && ['autonomo', 'freelancer', 'pj', 'mei'].includes(profile.employmentType)) {
       activeTriggers.push('negocio_sem_separacao', 'imposto_sem_reserva', 'organizar_rotina');
@@ -411,7 +456,7 @@ export const useEducation = (profile?: EducationProfileInput) => {
       lesson,
       actionLabel: lesson ? 'Abrir aula acionada' : 'Seguir jornada',
     };
-  }, [profile?.debtBalance, profile?.employmentType, profile?.financialGoal, profile?.hasDebts, profile?.hasEmergencyFund, profile?.hasInvestments]);
+  }, [profile?.debtBalance, profile?.employmentType, profile?.financialGoal, profile?.hasDebts, profile?.hasEmergencyFund, profile?.hasInvestments, profile?.overdueInvoicesCount, profile?.pendingInvoicesAmount]);
 
   const getJourneyStage = useCallback(() => {
     const completedStages = EDUCATION_MODULES

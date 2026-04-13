@@ -1,4 +1,4 @@
-import type { MonthlyData } from "@/types";
+﻿import type { MonthlyData } from "@/types";
 import React, { useMemo } from "react";
 import {
   Area,
@@ -35,7 +35,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 
     return (
       <div className="bg-[#020617] border border-white/10 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
-        <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+        <p className="text-xs font-black text-neutral-500 uppercase tracking-widest mb-2">
           {label}
         </p>
         {payload.map((entry, index: number) => (
@@ -61,7 +61,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         ))}
         {payload.length >= 2 && (
           <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between gap-4">
-            <span className="text-xs font-medium text-slate-400">Balanço:</span>
+            <span className="text-xs font-medium text-neutral-500">Balanço:</span>
             <span
               className={`text-sm font-black ${
                 (payload[0]?.value || 0) - (payload[1]?.value || 0) >= 0
@@ -146,7 +146,7 @@ export const AdvancedCombinedChart: React.FC<Props> = ({ data }) => {
             align="right"
             iconType="circle"
             formatter={(value) => (
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">
                 {value}
               </span>
             )}
@@ -182,3 +182,4 @@ export const AdvancedCombinedChart: React.FC<Props> = ({ data }) => {
     </div>
   );
 };
+

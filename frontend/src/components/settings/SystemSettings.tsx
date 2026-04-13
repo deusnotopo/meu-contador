@@ -3,13 +3,16 @@ import { Moon, Sun, Fingerprint, Globe, Download, HelpCircle } from "lucide-reac
 import { useLanguage } from "@/context/LanguageContext";
 import { HelpCenter } from "@/components/support/HelpCenter";
 
+const rowIco = "row-ico bg-[var(--glass2)] text-[var(--t2)]";
+const chevron = "text-[14px] text-[var(--t3)]";
+
 export const SystemSettings: React.FC = () => {
   const { language, setLanguage } = useLanguage();
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [bioActive, setBioActive] = useState(true);
   const [darkTheme, setDarkTheme] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true; // default dark
+    return saved ? saved === 'dark' : true;
   });
 
   useEffect(() => {
@@ -27,9 +30,11 @@ export const SystemSettings: React.FC = () => {
     <>
       <div className="sec-hd"><span className="sec-title">Configurações</span></div>
       <div className="card">
-        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setDarkTheme(!darkTheme)}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}>
+
+        {/* Tema */}
+        <div className="tog-row cursor-pointer" onClick={() => setDarkTheme(!darkTheme)}>
+          <div className="flex items-center gap-3">
+            <div className={rowIco}>
               {darkTheme ? <Moon size={18} /> : <Sun size={18} />}
             </div>
             <div className="row-main">
@@ -37,55 +42,58 @@ export const SystemSettings: React.FC = () => {
               <div className="row-sub">{darkTheme ? "Escuro" : "Claro"}</div>
             </div>
           </div>
-          <div className={`tog ${darkTheme ? "on" : ""}`}></div>
+          <div className={`tog ${darkTheme ? "on" : ""}`} />
         </div>
 
-        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setBioActive(!bioActive)}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Fingerprint size={18} /></div>
+        {/* Biometria */}
+        <div className="tog-row cursor-pointer" onClick={() => setBioActive(!bioActive)}>
+          <div className="flex items-center gap-3">
+            <div className={rowIco}><Fingerprint size={18} /></div>
             <div className="row-main">
               <div className="row-title">Acesso Biométrico</div>
               <div className="row-sub">Face ID / Touch ID</div>
             </div>
           </div>
-          <div className={`tog ${bioActive ? "on" : ""}`}></div>
+          <div className={`tog ${bioActive ? "on" : ""}`} />
         </div>
 
-        <div 
-          className="tog-row" 
-          style={{ cursor: "pointer" }} 
+        {/* Idioma */}
+        <div
+          className="tog-row cursor-pointer"
           onClick={() => setLanguage(language === "pt-BR" ? "en-US" : "pt-BR")}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Globe size={18} /></div>
+          <div className="flex items-center gap-3">
+            <div className={rowIco}><Globe size={18} /></div>
             <div className="row-main">
               <div className="row-title">Idioma</div>
               <div className="row-sub">{language === "pt-BR" ? "Português (BR)" : "English (US)"}</div>
             </div>
           </div>
-          <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
+          <div className={chevron}>›</div>
         </div>
 
-        <div className="tog-row" style={{ cursor: "pointer" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><Download size={18} /></div>
+        {/* Exportar */}
+        <div className="tog-row cursor-pointer">
+          <div className="flex items-center gap-3">
+            <div className={rowIco}><Download size={18} /></div>
             <div className="row-main">
               <div className="row-title">Exportar Dados</div>
               <div className="row-sub">PDF · CSV · OFX</div>
             </div>
           </div>
-          <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
+          <div className={chevron}>›</div>
         </div>
 
-        <div className="tog-row" style={{ cursor: "pointer" }} onClick={() => setShowHelpCenter(true)}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="row-ico" style={{ background: "var(--glass2)", color: "var(--t2)" }}><HelpCircle size={18} /></div>
+        {/* Ajuda */}
+        <div className="tog-row cursor-pointer" onClick={() => setShowHelpCenter(true)}>
+          <div className="flex items-center gap-3">
+            <div className={rowIco}><HelpCircle size={18} /></div>
             <div className="row-main">
               <div className="row-title">Central de Ajuda</div>
               <div className="row-sub">FAQ, tutoriais e suporte</div>
             </div>
           </div>
-          <div style={{ fontSize: 14, color: "var(--t3)" }}>›</div>
+          <div className={chevron}>›</div>
         </div>
       </div>
 

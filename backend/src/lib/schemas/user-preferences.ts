@@ -4,6 +4,10 @@ export const UserPreferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'auto']).default('dark'),
   language: z.enum(['pt', 'en', 'es']).default('pt'),
   privacyMode: z.boolean().default(false),
+  showScore: z.boolean().default(true),
+  showPredictions: z.boolean().default(true),
+  weeklyReport: z.boolean().default(true),
+  alerts: z.boolean().default(true),
   notifications: z.object({
     email: z.boolean().default(true),
     push: z.boolean().default(true),
@@ -16,6 +20,16 @@ export const UserPreferencesSchema = z.object({
     expense: z.number().nonnegative().optional(),
     contribution: z.number().nonnegative().optional(),
     rate: z.number().nonnegative().optional(),
+  }).optional(),
+  education: z.object({
+    completedModules: z.array(z.string()).default([]),
+    lessonStepProgress: z.record(z.string(), z.number()).default({}),
+    lessonLastSeenAt: z.record(z.string(), z.string()).default({}),
+    lessonReviewDueAt: z.record(z.string(), z.string()).default({}),
+    contextualReinforcements: z.record(z.string(), z.number()).default({}),
+    xp: z.number().default(0),
+    streak: z.number().default(0),
+    lastActiveDate: z.string().nullable().default(null),
   }).optional(),
 });
 

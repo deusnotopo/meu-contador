@@ -84,21 +84,44 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        // Simple object form = safe, no circular dep issues
         manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/analytics', 'firebase/messaging', 'firebase/functions'],
-          'charts': ['recharts'],
+          // Core React runtime — smallest possible initial load
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Animation lib — large, only needed after hydration
+          'vendor-motion': ['framer-motion'],
+          // Charts — loaded only in analytics/dashboard views
+          'vendor-charts': ['recharts'],
+          // PDF export — loaded only when user clicks export
+          'vendor-pdf': ['jspdf', 'jspdf-autotable'],
+          // Firebase — optional, loaded only for push/auth
+          'vendor-firebase': [
+            'firebase/app', 'firebase/auth', 'firebase/firestore',
+            'firebase/storage', 'firebase/analytics',
+            'firebase/messaging', 'firebase/functions',
+          ],
+          // Lucide icons — large icon set
+          'vendor-icons': ['lucide-react'],
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
   },
   server: {
     port: 5173,
     headers: {
       'Cross-Origin-Opener-Policy': 'unsafe-none',
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
+      // Dev-only CSP: allow eval para React Refresh (HMR) e inline styles do Vite
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' http://localhost:3000 ws://localhost:5173 https://firebase*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseapp.com",
+        "frame-src 'self' https://accounts.google.com",
+        "worker-src 'self' blob:",
+      ].join('; '),
     },
     proxy: {
       '/api': {

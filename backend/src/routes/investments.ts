@@ -7,6 +7,10 @@ const investmentsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
+const isoDateOrDateTimeSchema = z.string().refine((value) => {
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && value.trim().length >= 10;
+}, 'Data inválida');
 const investmentParamsSchema = z.object({ id: z.string().min(1).max(191) });
 const investmentBodySchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -23,13 +27,13 @@ const investmentUpdateBodySchema = investmentBodySchema.partial().refine((body) 
 });
 const dividendBodySchema = z.object({
   amount: z.number().nonnegative().max(1_000_000_000),
-  date: z.string().datetime(),
+  date: isoDateOrDateTimeSchema,
   type: z.enum(['dividend', 'jcp']),
 });
 const saleBodySchema = z.object({
   amount: z.number().positive().max(1_000_000_000),
   price: z.number().nonnegative().max(1_000_000_000),
-  date: z.string().datetime(),
+  date: isoDateOrDateTimeSchema,
 });
 const investmentResponseSchema = z.object({
   id: z.string(),

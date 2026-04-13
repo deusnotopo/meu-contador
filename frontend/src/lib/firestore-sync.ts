@@ -1,4 +1,5 @@
 import { doc, getDoc, onSnapshot, setDoc, DocumentSnapshot } from "firebase/firestore";
+import { logger } from '@/lib/logger';
 import { db, auth } from "./firebase";
 
 const FIRESTORE_SYNC_ENABLED =
@@ -109,6 +110,6 @@ export const subscribeToCloud = (
         onUpdate(snap.data().payload);
       }
     },
-    (err) => console.warn(`Firestore snapshot error for ${key}:`, err)
+    (err) => logger.warn(`Firestore snapshot error for ${key}:`, err)
   );
 };

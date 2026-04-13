@@ -1,11 +1,11 @@
 import { currencyService } from "@/lib/currency";
+import { logger } from '@/lib/logger';
+import { fetchMarketData } from "@/lib/market-data";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import type { Currency } from "@/types";
 
-interface FrankfurterResponse {
-  rates?: Partial<Record<Currency, number>>;
-}
+
 
 interface CurrencyContextType {
   baseCurrency: Currency;
@@ -33,18 +33,21 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({
     const fetchRates = async () => {
       try {
         setLoading(true);
-        // Using Frankfurter API (Free, no key)
-        const res = await fetch(
-          "https://api.frankfurter.app/latest?from=BRL&to=USD,EUR,GBP"
-        );
-        const data: FrankfurterResponse = await res.json();
-        if (data.rates) {
-          const newRates = { BRL: 1, ...data.rates };
-          setRates(newRates);
-          currencyService.updateRates(newRates);
-        }
+        // Use our consolidated backend market data instead of external APIs
+        const marketData = await fetchMarketData();
+        
+        const newRates = {
+          BRL: 1,
+          USD: 1 / marketData.usd,
+          EUR: 1 / marketData.eur,
+          GBP: 1 / marketData.gbp,
+        };
+        
+        setRates(newRates);
+        currencyService.updateRates(newRates);
       } catch (error) {
-        console.error("Failed to fetch rates, using defaults:", error);
+        // Fallback already handled within fetchMarketData
+        logger.warn("[Currency] Failed to sync with market backend, using existing defaults.");
       } finally {
         setLoading(false);
       }

@@ -10,20 +10,18 @@ export const InvestDividasView = ({ onBack }: InvestDividasViewProps) => {
   const fmt = (n: number) => 'R\u00a0' + Math.round(n).toLocaleString('pt-BR');
 
   return (
-    <div style={{ paddingTop: '10px' }}>
+    <div className="pt-2.5">
       <div className="page-eyebrow">Gestão de passivos</div>
       <div className="page-title">Dívidas</div>
-      <div className="page-sub" style={{ marginBottom: '14px' }}>
-        Estratégia de quitação otimizada
-      </div>
+      <div className="page-sub mb-3.5">Estratégia de quitação otimizada</div>
 
-      <div className="tab-nav" style={{ marginTop: '4px' }}>
+      <div className="tab-nav mt-1">
         <div className="tab-nav-item" onClick={() => onBack?.()}>Visão geral</div>
         <div className="tab-nav-item" onClick={() => onBack?.()}>Juros compostos</div>
         <div className="tab-nav-item active">Dívidas</div>
       </div>
 
-      <div className="metric-row" style={{ marginTop: '4px' }}>
+      <div className="metric-row mt-1">
         <div className="metric">
           <div className="metric-label">Total de dívidas</div>
           <div className="metric-val red mono">{fmt(totalDebt)}</div>
@@ -35,56 +33,61 @@ export const InvestDividasView = ({ onBack }: InvestDividasViewProps) => {
       </div>
 
       {debtsWithMetrics.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text3)" }}>
+        <div className="text-center py-10 px-5 text-[var(--text3)]">
           Nenhuma dívida registrada. Parabéns!
         </div>
       ) : (
         debtsWithMetrics.map((debt, index) => {
           const isPriority = index === 0 && bestStrategy.debts[0]?.id === debt.id;
           const cardBorder = isPriority ? 'rgba(255,107,116,0.3)' : 'rgba(255,255,255,0.05)';
-          const colorClass = isPriority ? 'var(--red)' : 'var(--amber)';
+          const colorVar = isPriority ? 'var(--red)' : 'var(--amber)';
           const badgeClass = isPriority ? 'badge-red' : 'badge-amber';
 
           return (
-            <div key={debt.id} style={{ marginBottom: '24px' }}>
+            <div key={debt.id} className="mb-6">
               <div className="section-header">
                 <span className="section-title">
                   {debt.name} {isPriority && "🔥"}
                 </span>
               </div>
-              <div className="hero-card" style={{ padding: '18px', borderColor: cardBorder }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+
+              <div className="hero-card p-[18px]" style={{ borderColor: cardBorder }}>
+                <div className="flex justify-between items-start">
                   <div>
-                    <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Saldo devedor</div>
-                    <div style={{ fontSize: '28px', fontWeight: 700, color: colorClass, fontFamily: 'var(--mono)' }}>{fmt(debt.balance)}</div>
+                    <div className="text-[11px] text-[var(--text3)] uppercase tracking-[0.08em] mb-1.5">
+                      Saldo devedor
+                    </div>
+                    <div className="text-[28px] font-bold font-mono" style={{ color: colorVar }}>
+                      {fmt(debt.balance)}
+                    </div>
                   </div>
                   <span className={`badge ${badgeClass}`}>{debt.interestRate}% a.a.</span>
                 </div>
-                <div className="progress-bar" style={{ height: '6px', marginTop: '14px' }}>
-                  <div className="progress-fill" style={{ width: '0%', background: colorClass }} />
+
+                <div className="progress-bar h-1.5 mt-3.5">
+                  <div className="progress-fill w-0" style={{ background: colorVar }} />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '14px' }}>
+
+                <div className="grid grid-cols-3 gap-2 mt-3.5">
                   {[
                     ['Parcela Min', fmt(debt.minPayment)],
                     ['Meses Rest.', `${debt.monthsToPayoff}`],
                     ['Juros Totais', fmt(debt.totalInterestPaid)],
                   ].map(([lb, vl]) => (
-                    <div key={lb} style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '9.5px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>{lb}</div>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text1)' }}>{vl}</div>
+                    <div key={lb} className="text-center py-2 px-2 bg-white/[0.04] rounded-lg">
+                      <div className="text-[9.5px] text-[var(--text3)] uppercase tracking-[0.06em] mb-0.5">{lb}</div>
+                      <div className="text-[12px] font-bold text-[var(--text1)]">{vl}</div>
                     </div>
                   ))}
                 </div>
 
                 {isPriority && (
-                  <>
-                    <div className="info-strip" style={{ background: 'var(--red-dim)', marginTop: '12px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--red)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                        🔥 Prioridade Máxima
-                      </div>
-                      Esta é a dívida mais cara. Quitar antecipadamente garantirá um enorme alívio financeiro.
+                  <div className="info-strip bg-[var(--red-dim)] mt-3">
+                    <div className="text-[11px] font-bold text-[var(--red)] mb-0.5 uppercase tracking-[0.06em]">
+                      🔥 Prioridade Máxima
                     </div>
-                  </>
+                    Esta é a dívida mais cara. Quitar antecipadamente garantirá um enorme alívio financeiro.
+                  </div>
                 )}
               </div>
             </div>
@@ -93,22 +96,24 @@ export const InvestDividasView = ({ onBack }: InvestDividasViewProps) => {
       )}
 
       {insights.map((insight, idx) => (
-        <div key={idx} style={{ marginBottom: '16px' }}>
+        <div key={idx} className="mb-4">
           <div className="section-header">
             <span className="section-title">{insight.title}</span>
           </div>
-          <div className="nudge-card" style={{ background: insight.type === 'warning' ? 'var(--red-dim)' : 'var(--blue-dim)' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div
+            className="nudge-card"
+            style={{ background: insight.type === 'warning' ? 'var(--red-dim)' : 'var(--blue-dim)' }}
+          >
+            <div className="text-[11px] font-bold text-[var(--accent)] mb-1.5 uppercase tracking-[0.05em]">
               {insight.type === 'warning' ? '⚠️ Atenção' : '📐 Método Recomendado'}
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text1)', lineHeight: 1.6 }}>
+            <div className="text-[13px] text-[var(--text1)] leading-relaxed">
               {insight.description}
               {insight.impact && <strong> {insight.impact}</strong>}
             </div>
           </div>
         </div>
       ))}
-
     </div>
   );
 };

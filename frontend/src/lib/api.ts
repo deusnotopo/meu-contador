@@ -8,7 +8,43 @@ type AuthSnapshot = {
 type ApiErrorPayload = {
   message?: string;
   code?: string;
+  details?: string;
 };
+
+export class ApiRequestError extends Error {
+  status: number;
+  code?: string;
+  details?: string;
+
+  constructor(message: string, status: number, code?: string, details?: string) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+function getDefaultErrorMessage(status: number) {
+  switch (status) {
+    case 400:
+      return 'Requisição inválida.';
+    case 401:
+      return 'Sua sessão expirou. Faça login novamente.';
+    case 403:
+      return 'Ação não permitida no momento.';
+    case 404:
+      return 'Recurso não encontrado.';
+    case 409:
+      return 'Conflito de dados detectado.';
+    case 422:
+      return 'Os dados enviados são inválidos.';
+    case 429:
+      return 'Muitas tentativas. Aguarde um instante.';
+    default:
+      return status >= 500 ? 'Erro interno do servidor.' : 'Falha na requisição.';
+  }
+}
 
 let authSnapshot: AuthSnapshot = {
   csrfToken: null,
@@ -91,12 +127,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       ...options,
       headers,
       credentials: 'include',
-      signal: options.signal || AbortSignal.timeout(15000),
+      signal: options.signal || AbortSignal.timeout(20000),
     });
   };
 
   let response = await doFetch();
 
+  // Retry ONLY for 401 (expired session). 403 is plan-gated — no point refreshing.
   if (response.status === 401) {
     const refreshed = await tryRefreshSession();
     if (refreshed) {
@@ -105,9 +142,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Unknown error' })) as ApiErrorPayload;
+    const error = await response.json().catch(() => ({ message: undefined })) as ApiErrorPayload;
     if (response.status === 401) clearAuthSession();
-    throw new Error(error.message || 'API Request failed');
+    throw new ApiRequestError(
+      error.message || getDefaultErrorMessage(response.status),
+      response.status,
+      error.code,
+      error.details,
+    );
   }
 
   if (response.status === 204) return {} as T;

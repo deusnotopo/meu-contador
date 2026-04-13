@@ -9,7 +9,7 @@ datasource db {
 }
 
 // =====================================================
-// PostgreSQL — supports enums natively.
+// PostgreSQL â€” supports enums natively.
 // String fields kept for backward compat; can be
 // migrated to @db.Enum in a future refactor.
 // =====================================================
@@ -45,7 +45,7 @@ model User {
   retirementAge    Int?
   fireTargetIncome Float?
 
-  // Proteção e Compliance
+  // ProteÃ§Ã£o e Compliance
   lgpdConsent      Boolean    @default(false)
   lgpdConsentAt    DateTime?
   insuranceTypes   String?    // JSON: ['life','health','auto'] 
@@ -67,10 +67,13 @@ model User {
   sessions        Session[]
   auditLogs       AuditLog[]
   preferences     String      @default("{\"theme\":\"dark\",\"language\":\"pt\",\"privacyMode\":false}")
+  provisions      Provision[]
+  notifications   Notification[]
 
   // Gamification and Emotional Data
   gamificationData String?    // JSON: { level, achievements, streaks, etc. }
   emotionalData    String?    // JSON: array of emotional entries
+  educationData    String?    // JSON: Education/Academy progress
 
   @@index([deletedAt])
 }
@@ -397,3 +400,35 @@ model AuditLog {
   @@index([resource, resourceId, createdAt])
   @@index([expiresAt])
 }
+
+model Provision {
+  id           String   @id @default(uuid())
+  name         String
+  month        Int
+  yearlyAmount Float
+  accumulated  Float    @default(0)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  @@index([userId, month])
+  @@index([deletedAt])
+}
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // budget_exceeded | goal_reached | transaction_created | reminder_due | system
+  title     String
+  body      String
+  data      String?  // JSON payload
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+

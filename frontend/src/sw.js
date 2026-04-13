@@ -5,16 +5,9 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { clientsClaim } from 'workbox-core';
 
-// Auto-update: activa o novo SW imediatamente quando o vite-plugin-pwa
-// enviar a mensagem SKIP_WAITING (disparada por registerType: 'autoUpdate').
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
 // Após ativar, assume controle de todas as abas abertas imediatamente.
 clientsClaim();
+
 
 const isDevHost = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 const API_CACHE_DENYLIST = ['/auth/', '/api/ai-proxy', '/open-finance/', '/api/push/'];
@@ -124,11 +117,93 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// 7. Background Sync (Previsão para Transações Offline)
+// 7. Background Sync — Transações Offline
+// Quando o SW recebe 'sync-transactions', processa a fila do IndexedDB
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-transactions') {
-    console.log('SW: Sincronizando transações pendentes...');
-    // A lógica real de sincronização deve ser implementada via IndexedDB no App
+    event.waitUntil(syncPendingTransactions());
   }
 });
+
+async function syncPendingTransactions() {
+  const DB_NAME = 'meu-contador-offline';
+  const STORE_NAME = 'pending-transactions';
+
+  let database;
+  try {
+    database = await new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return; // IndexedDB não disponível
+  }
+
+  const pending = await new Promise((resolve) => {
+    const tx = database.transaction([STORE_NAME], 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+
+  if (!pending.length) return;
+
+  let synced = 0;
+
+  for (const item of pending) {
+    try {
+      const method = item.type === 'create' ? 'POST' : item.type === 'update' ? 'PUT' : 'DELETE';
+      const token = item.payload?._token ?? '';
+      const body = { ...item.payload };
+      delete body._token;
+
+      const res = await fetch(item.endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: method !== 'DELETE' ? JSON.stringify(body) : undefined,
+      });
+
+      if (res.ok || res.status === 404) {
+        // Remove da fila
+        await new Promise((resolve) => {
+          const tx = database.transaction([STORE_NAME], 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.delete(item.id);
+          req.onsuccess = resolve;
+          req.onerror = resolve;
+        });
+        synced++;
+      }
+    } catch {
+      // Falha de rede — será reprocessado no próximo sync
+    }
+  }
+
+  if (synced > 0) {
+    // Notifica todas as abas abertas
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    clients.forEach(client => client.postMessage({ type: 'SYNC_COMPLETE', synced }));
+  }
 }
+
+// 8. Mensagem do App: invalida cache de leitura da API
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  if (event.data?.type === 'PURGE_API_CACHE') {
+    event.waitUntil(
+      caches.open('api-read-cache').then(cache => cache.keys().then(keys =>
+        Promise.all(keys.map(key => cache.delete(key)))
+      ))
+    );
+  }
+});
+
+}
+

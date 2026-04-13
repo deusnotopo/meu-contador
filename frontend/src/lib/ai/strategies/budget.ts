@@ -2,6 +2,7 @@ import { loadBudgets, saveBudgets } from "@/lib/storage";
 import type { Budget } from "@/types";
 import type { ParsedIntent } from "../intent-parser";
 import type { ActionResult } from "../types";
+import { normalizeBudgetCategory } from "@/features/budgets/budget-utils";
 
 export const executeBudgetAction = async (
   intent: ParsedIntent
@@ -22,12 +23,14 @@ export const executeBudgetAction = async (
     };
   }
 
+  const normalizedCategory = normalizeBudgetCategory(category);
+
   const budgets = loadBudgets();
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   // Check if budget already exists for this category
   const existingBudget = budgets.find(
-    (b) => b.category === category && b.month === currentMonth
+    (b) => normalizeBudgetCategory(b.category) === normalizedCategory && b.month === currentMonth
   );
 
   if (existingBudget) {
@@ -41,7 +44,7 @@ export const executeBudgetAction = async (
 
   const newBudget: Budget = {
     id: Date.now().toString(),
-    category,
+    category: normalizedCategory,
     limit,
     spent: 0,
     month: currentMonth,
@@ -51,7 +54,7 @@ export const executeBudgetAction = async (
 
   return {
     success: true,
-    message: `🎯 Orçamento criado!\n🏷️ Categoria: ${category}\n💵 Limite: R$ ${limit.toFixed(
+      message: `🎯 Orçamento criado!\n🏷️ Categoria: ${normalizedCategory}\n💵 Limite: R$ ${limit.toFixed(
       2
     )}`,
     data: newBudget,

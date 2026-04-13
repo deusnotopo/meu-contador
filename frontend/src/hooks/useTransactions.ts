@@ -79,10 +79,12 @@ export const useTransactions = (
 
   const addTransaction = async (formData: TransactionFormData) => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _token, ...safeForm } = formData as TransactionFormData & { _token?: string };
       const payload = {
-        ...formData,
-        amount: parseFloat(formData.amount),
-        scope: formData.scope || scope,
+        ...safeForm,
+        amount: parseFloat(safeForm.amount),
+        scope: safeForm.scope || scope,
       };
       const newTransaction = await api.post<Transaction>("/transactions", payload);
       setTransactions((prev) => [newTransaction, ...prev]);
@@ -97,12 +99,12 @@ export const useTransactions = (
       if (payload.type === 'expense') {
         try {
           // Buscamos os budgets diretamente para não engessar o fluxo com hooks externos
-          api.get<any[]>(`/budgets?scope=${scope}`).then(response => {
+          api.get<any[]>(`/budgets`).then(response => {
             const budgets = Array.isArray(response) ? response : (response as any).items || [];
             const catBudget = budgets.find((b: any) => b.category.toLowerCase() === payload.category.toLowerCase());
             
             if (catBudget) {
-              const newTotal = catBudget.spent + payload.amount;
+              const newTotal = Number(catBudget.spent || 0) + payload.amount;
               const pct = newTotal / catBudget.limit;
               
               if (pct >= 1) {

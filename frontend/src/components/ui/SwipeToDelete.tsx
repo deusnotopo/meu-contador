@@ -43,7 +43,7 @@ export function SwipeToDelete({ children, onDelete, className = '' }: SwipeToDel
       <motion.div
         {...bindProps}
         animate={controls}
-        className="relative z-10 bg-slate-900 touch-pan-y"
+        className="relative z-10 bg-neutral-950 touch-pan-y"
         style={{ touchAction: 'pan-y' }}
       >
         {children}

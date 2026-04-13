@@ -3,36 +3,37 @@
  *
  * O maior erro do investidor brasileiro: não saber se seu dinheiro está bem aplicado.
  * Este componente mostra um semáforo claro de rentabilidade vs benchmarks brasileiros.
- *
- * Taxas de referência locais com data visível.
- * Enquanto não houver integração automática com fonte oficial, estes valores devem ser tratados como comparativo educacional.
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { TrendingUp, Info } from "lucide-react";
 import { INDICADORES_BRASIL } from "@/lib/finance/brasil-indicadores";
+import { fetchMarketData, type MarketData } from "@/lib/market-data";
 
-const buildBenchmarks = () => {
-  const selic = INDICADORES_BRASIL.SELIC?.valor ?? 11.25;
-  const cdi = INDICADORES_BRASIL.CDI?.valor ?? 11.15;
-  const ipca = INDICADORES_BRASIL.IPCA?.valor ?? 4.5;
-  const poupanca = INDICADORES_BRASIL.POUPANCA?.valor ?? 6.17;
+const buildBenchmarks = (live?: MarketData) => {
+  const selic    = live?.selic    ?? INDICADORES_BRASIL.SELIC?.valor    ?? 13.75;
+  const cdi      = live?.cdi      ?? INDICADORES_BRASIL.CDI?.valor      ?? 13.65;
+  const ipca     = live?.ipca     ?? INDICADORES_BRASIL.IPCA?.valor     ?? 5.06;
+  const poupanca = live?.poupanca ?? INDICADORES_BRASIL.POUPANCA?.valor ?? 7.0;
+  const isLive   = live?.isLive === true;
 
   return {
     SELIC_ANUAL: selic,
     CDI_ANUAL: cdi,
     IPCA_ANUAL: ipca,
     POUPANCA_ANUAL: poupanca,
-    REF_DATA: INDICADORES_BRASIL.CDI?.dataAtualizacao ?? new Date().toISOString().slice(0, 10),
-    REF_FONTE: INDICADORES_BRASIL.CDI?.fonte ?? 'Referência interna do app',
-    IS_REFERENCE: Boolean(INDICADORES_BRASIL.CDI?.isSimulado),
+    REF_DATA: live?.updatedAt
+      ? new Date(live.updatedAt).toLocaleDateString("pt-BR")
+      : (INDICADORES_BRASIL.CDI?.dataAtualizacao ?? new Date().toISOString().slice(0, 10)),
+    REF_FONTE: isLive ? "BCB SGS · Ao vivo" : (INDICADORES_BRASIL.CDI?.fonte ?? "Referência interna"),
+    IS_REFERENCE: !isLive,
   };
 };
 
 interface BenchmarkCardProps {
-  rentabilidade: number;     // % ao ano da carteira
-  valorInvestido: number;    // total investido
-  valorAtual: number;        // valor atual da carteira
+  rentabilidade: number;
+  valorInvestido: number;
+  valorAtual: number;
 }
 
 const fmt = (n: number) =>
@@ -43,64 +44,36 @@ const fmtPct = (n: number) => (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
 type Semaforo = "vermelho" | "amarelo" | "verde" | "ouro";
 
 function getSemaforo(rentAnual: number): Semaforo {
-  const BENCHMARKS = buildBenchmarks();
-  if (rentAnual < BENCHMARKS.IPCA_ANUAL) return "vermelho";       // perdendo para inflação
-  if (rentAnual < BENCHMARKS.POUPANCA_ANUAL) return "amarelo";    // acima da inflação mas pior que poupança
-  if (rentAnual < BENCHMARKS.CDI_ANUAL * 0.9) return "amarelo";   // abaixo de 90% do CDI
-  if (rentAnual >= BENCHMARKS.CDI_ANUAL) return "ouro";           // acima do CDI — excelente
-  return "verde";                                                   // entre 90% e 100% do CDI
+  const B = buildBenchmarks();
+  if (rentAnual < B.IPCA_ANUAL) return "vermelho";
+  if (rentAnual < B.POUPANCA_ANUAL) return "amarelo";
+  if (rentAnual < B.CDI_ANUAL * 0.9) return "amarelo";
+  if (rentAnual >= B.CDI_ANUAL) return "ouro";
+  return "verde";
 }
 
 const SEMAFORO_CONFIG: Record<Semaforo, { emoji: string; label: string; color: string; bg: string; message: string }> = {
-  vermelho: {
-    emoji: "🔴",
-    label: "Abaixo da inflação",
-    color: "var(--red)",
-    bg: "rgba(255,79,110,0.08)",
-    message: "Atenção: seu dinheiro está perdendo poder de compra. O IPCA corrói mais do que você rende.",
-  },
-  amarelo: {
-    emoji: "🟡",
-    label: "Abaixo de 90% do CDI",
-    color: "var(--amber)",
-    bg: "rgba(255,173,59,0.08)",
-    message: "Rentabilidade razoável, mas o Tesouro Selic (seguro) rende mais. Vale revisar os ativos.",
-  },
-  verde: {
-    emoji: "🟢",
-    label: "Entre 90% e 100% do CDI",
-    color: "var(--green)",
-    bg: "rgba(0,217,145,0.06)",
-    message: "Boa rentabilidade! Você está próximo do CDI, que é o benchmark padrão de renda fixa.",
-  },
-  ouro: {
-    emoji: "🏆",
-    label: "Acima do CDI",
-    color: "#FFB84A",
-    bg: "rgba(255,184,74,0.08)",
-    message: "Excelente! Sua carteira supera o CDI — você está batendo o benchmark padrão do mercado.",
-  },
+  vermelho: { emoji: "🔴", label: "Abaixo da inflação", color: "var(--red)", bg: "rgba(255,79,110,0.08)", message: "Atenção: seu dinheiro está perdendo poder de compra. O IPCA corrói mais do que você rende." },
+  amarelo:  { emoji: "🟡", label: "Abaixo de 90% do CDI", color: "var(--amber)", bg: "rgba(255,173,59,0.08)", message: "Rentabilidade razoável, mas o Tesouro Selic (seguro) rende mais. Vale revisar os ativos." },
+  verde:    { emoji: "🟢", label: "Entre 90% e 100% do CDI", color: "var(--green)", bg: "rgba(0,217,145,0.06)", message: "Boa rentabilidade! Você está próximo do CDI, que é o benchmark padrão de renda fixa." },
+  ouro:     { emoji: "🏆", label: "Acima do CDI", color: "#FFB84A", bg: "rgba(255,184,74,0.08)", message: "Excelente! Sua carteira supera o CDI — você está batendo o benchmark padrão do mercado." },
 };
 
-export const CDIBenchmark: React.FC<BenchmarkCardProps> = ({
-  rentabilidade,
-  valorInvestido,
-  valorAtual,
-}) => {
+export const CDIBenchmark: React.FC<BenchmarkCardProps> = ({ rentabilidade, valorInvestido, valorAtual }) => {
   const [showInfo, setShowInfo] = useState(false);
-  const BENCHMARKS = useMemo(() => buildBenchmarks(), []);
+  const [liveData, setLiveData] = useState<MarketData | undefined>(undefined);
 
+  useEffect(() => { fetchMarketData().then(setLiveData).catch(() => {}); }, []);
+
+  const BENCHMARKS = useMemo(() => buildBenchmarks(liveData), [liveData]);
   const semaforo = getSemaforo(rentabilidade);
   const cfg = SEMAFORO_CONFIG[semaforo];
 
   const cdiBenchPct = BENCHMARKS.CDI_ANUAL > 0 ? (rentabilidade / BENCHMARKS.CDI_ANUAL) * 100 : 0;
-
-  // Quanto teria rendido em alternativas (base: valor investido × taxa anual equivalente)
   const ganhoCarteira = valorAtual - valorInvestido;
   const rendCDI = valorInvestido * (BENCHMARKS.CDI_ANUAL / 100);
   const rendIpca = valorInvestido * (BENCHMARKS.IPCA_ANUAL / 100);
   const rendPoupanca = valorInvestido * (BENCHMARKS.POUPANCA_ANUAL / 100);
-
   const diferencaCDI = ganhoCarteira - rendCDI;
 
   const rows = [
@@ -109,98 +82,95 @@ export const CDIBenchmark: React.FC<BenchmarkCardProps> = ({
     { label: `IPCA (${BENCHMARKS.IPCA_ANUAL}% a.a.)`, pct: BENCHMARKS.IPCA_ANUAL, valor: rendIpca, destaque: false },
     { label: `Poupança (${BENCHMARKS.POUPANCA_ANUAL.toFixed(2)}% a.a.)`, pct: BENCHMARKS.POUPANCA_ANUAL, valor: rendPoupanca, destaque: false },
   ];
-  const maxPct = Math.max(...rows.map((r) => Math.max(0, r.pct)));
+  const maxPct = Math.max(...rows.map(r => Math.max(0, r.pct)));
 
   return (
-    <div style={{ marginBottom: "16px" }}>
-      {/* Header card com semáforo */}
+    <div className="mb-4">
+      {/* Semáforo header */}
       <div
-        style={{
-          background: cfg.bg,
-          border: `1px solid ${cfg.color}30`,
-          borderRadius: "16px",
-          padding: "14px 16px",
-          marginBottom: "10px",
-        }}
+        className="rounded-2xl px-4 py-3.5 mb-2.5"
+        style={{ background: cfg.bg, border: `1px solid ${cfg.color}30` }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", gap: "10px", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "20px" }}>{cfg.emoji}</span>
+        {/* Top row */}
+        <div className="flex justify-between items-start mb-2.5 gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[20px]">{cfg.emoji}</span>
             <div>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: cfg.color, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <div
+                className="text-[11px] font-bold uppercase tracking-[0.06em]"
+                style={{ color: cfg.color }}
+              >
                 {cfg.label}
               </div>
-              <div style={{ fontSize: "10px", color: "var(--t3)" }}>
+              <div className="text-[10px] text-[var(--t3)]">
                 Ref.: {BENCHMARKS.REF_DATA} · {BENCHMARKS.REF_FONTE}
               </div>
             </div>
           </div>
           <button
             onClick={() => setShowInfo(!showInfo)}
-            style={{ background: "none", border: "none", color: "var(--t3)", cursor: "pointer", padding: "4px" }}
+            className="bg-transparent border-none text-[var(--t3)] cursor-pointer p-1 hover:text-white transition-colors"
           >
             <Info size={14} />
           </button>
         </div>
 
-        {/* Grande número: % do CDI */}
-        <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "6px" }}>
-          <span style={{ fontSize: "36px", fontWeight: 800, color: cfg.color, fontFamily: "var(--mono)", letterSpacing: "-1px" }}>
+        {/* Big CDI % */}
+        <div className="flex items-baseline gap-1.5 mb-1.5">
+          <span
+            className="text-[36px] font-extrabold font-mono tracking-[-1px]"
+            style={{ color: cfg.color }}
+          >
             {cdiBenchPct.toFixed(0)}%
           </span>
-          <span style={{ fontSize: "14px", color: "var(--t3)", fontWeight: 500 }}>do CDI</span>
+          <span className="text-[14px] text-[var(--t3)] font-medium">do CDI</span>
         </div>
 
-        <div style={{ fontSize: "13px", color: "var(--t2)", marginBottom: "10px" }}>
-          Sua carteira rendeu <strong style={{ color: cfg.color, fontFamily: "var(--mono)" }}>{fmtPct(rentabilidade)} a.a.</strong>{" "}
-          vs CDI de <strong style={{ fontFamily: "var(--mono)" }}>{BENCHMARKS.CDI_ANUAL}% a.a.</strong>
+        <div className="text-[13px] text-[var(--t2)] mb-2.5">
+          Sua carteira rendeu{" "}
+          <strong style={{ color: cfg.color }} className="font-mono">{fmtPct(rentabilidade)} a.a.</strong>
+          {" "}vs CDI de{" "}
+          <strong className="font-mono">{BENCHMARKS.CDI_ANUAL}% a.a.</strong>
         </div>
 
         {BENCHMARKS.IS_REFERENCE && (
-          <div style={{ fontSize: "10px", color: "var(--t3)", marginBottom: "10px", lineHeight: 1.5 }}>
+          <div className="text-[10px] text-[var(--t3)] mb-2.5 leading-relaxed">
             Estes benchmarks ainda são referências internas do app e servem para comparação educacional, não para decisão isolada de investimento.
           </div>
         )}
 
-        {/* Diferença em reais */}
+        {/* Diferença em R$ */}
         <div
+          className="px-3 py-2 rounded-[10px]"
           style={{
-            padding: "8px 12px",
-            borderRadius: "10px",
             background: diferencaCDI >= 0 ? "rgba(0,217,145,0.08)" : "rgba(255,79,110,0.08)",
             border: `1px solid ${diferencaCDI >= 0 ? "rgba(0,217,145,0.2)" : "rgba(255,79,110,0.2)"}`,
           }}
         >
-          <div style={{ fontSize: "11px", color: "var(--t3)", marginBottom: "2px" }}>
+          <div className="text-[11px] text-[var(--t3)] mb-0.5">
             {diferencaCDI >= 0 ? "Você ganhou a mais que o CDI:" : "Você ficou abaixo do CDI em:"}
           </div>
-          <div style={{ fontSize: "16px", fontWeight: 800, color: diferencaCDI >= 0 ? "var(--green)" : "var(--red)", fontFamily: "var(--mono)" }}>
+          <div
+            className="text-[16px] font-extrabold font-mono"
+            style={{ color: diferencaCDI >= 0 ? "var(--green)" : "var(--red)" }}
+          >
             {fmt(Math.abs(diferencaCDI))}
           </div>
         </div>
 
         {showInfo && (
-          <div style={{ marginTop: "10px", padding: "10px 12px", borderRadius: "10px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ fontSize: "11px", color: "var(--t3)", lineHeight: 1.6 }}>
-              {cfg.message}
-            </div>
+          <div className="mt-2.5 p-3 rounded-[10px] bg-white/[0.03] border border-white/[0.08]">
+            <div className="text-[11px] text-[var(--t3)] leading-relaxed">{cfg.message}</div>
           </div>
         )}
       </div>
 
-      {/* Tabela comparativa */}
-      <div
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: "14px",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      {/* Comparative table */}
+      <div className="bg-white/[0.02] border border-white/[0.07] rounded-[14px] overflow-hidden">
+        <div className="px-3.5 py-2.5 border-b border-white/5">
+          <div className="flex items-center gap-1.5">
             <TrendingUp size={12} color="var(--blue)" />
-            <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <span className="text-[11px] font-bold text-[var(--t2)] uppercase tracking-[0.06em]">
               Comparativo anual (base: {fmt(valorInvestido)})
             </span>
           </div>
@@ -211,38 +181,48 @@ export const CDIBenchmark: React.FC<BenchmarkCardProps> = ({
           return (
             <div
               key={row.label}
+              className="px-3.5 py-2.5"
               style={{
-                padding: "10px 14px",
                 borderBottom: i < rows.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
                 background: row.destaque ? "rgba(74,139,255,0.04)" : "transparent",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div className="flex justify-between items-center mb-1">
+                <div className="flex items-center gap-1.5">
                   {row.destaque && (
-                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: cfg.color, boxShadow: `0 0 4px ${cfg.color}` }} />
+                    <div
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ background: cfg.color, boxShadow: `0 0 4px ${cfg.color}` }}
+                    />
                   )}
-                  <span style={{ fontSize: "12px", fontWeight: row.destaque ? 700 : 500, color: row.destaque ? "var(--t1)" : "var(--t2)" }}>
+                  <span
+                    className="text-[12px]"
+                    style={{
+                      fontWeight: row.destaque ? 700 : 500,
+                      color: row.destaque ? "var(--t1)" : "var(--t2)",
+                    }}
+                  >
                     {row.label}
                   </span>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: "12px", fontWeight: 700, fontFamily: "var(--mono)", color: row.destaque ? cfg.color : row.pct < BENCHMARKS.IPCA_ANUAL ? "var(--red)" : "var(--t2)" }}>
+                <div className="text-right">
+                  <span
+                    className="text-[12px] font-bold font-mono"
+                    style={{
+                      color: row.destaque ? cfg.color : row.pct < BENCHMARKS.IPCA_ANUAL ? "var(--red)" : "var(--t2)",
+                    }}
+                  >
                     {fmtPct(row.pct)}
                   </span>
-                  <span style={{ fontSize: "10px", color: "var(--t3)", fontFamily: "var(--mono)", marginLeft: "6px" }}>
+                  <span className="text-[10px] text-[var(--t3)] font-mono ml-1.5">
                     ({fmt(row.valor)})
                   </span>
                 </div>
               </div>
               <div className="prog">
                 <div
-                  className="prog-fill"
-                  style={{
-                    width: `${barW}%`,
-                    background: row.destaque ? cfg.color : "rgba(255,255,255,0.15)",
-                    transition: "width 0.7s ease",
-                  }}
+                  className="prog-fill transition-[width] duration-700 ease-out"
+                  style={{ width: `${barW}%`, background: row.destaque ? cfg.color : "rgba(255,255,255,0.15)" }}
                 />
               </div>
             </div>
@@ -250,8 +230,8 @@ export const CDIBenchmark: React.FC<BenchmarkCardProps> = ({
         })}
       </div>
 
-      {/* Nota */}
-      <div style={{ textAlign: "center", fontSize: "10px", color: "var(--t4)", marginTop: "8px", lineHeight: 1.5 }}>
+      {/* Footer note */}
+      <div className="text-center text-[10px] text-[var(--t4)] mt-2 leading-relaxed">
         Rentabilidade calculada sobre patrimônio atual. CDI/IPCA/Poupança são simulados sobre o valor investido.
         Taxas de referência: Selic {BENCHMARKS.SELIC_ANUAL.toFixed(2)}% · {BENCHMARKS.REF_DATA}
       </div>

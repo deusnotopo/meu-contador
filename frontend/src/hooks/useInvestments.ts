@@ -12,6 +12,14 @@ import type {
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 
+type InvestmentsResponse = {
+  items?: InvestmentWithRelations[];
+  page?: number;
+  limit?: number;
+  total?: number;
+  totalPages?: number;
+};
+
 export const useInvestments = () => {
   const { setGlobalLoading, user } = useAuth();
   const currentWorkspaceId = user?.currentWorkspaceId || user?.uid || "";
@@ -25,8 +33,21 @@ export const useInvestments = () => {
     setError(null);
     
     try {
-      const response = await api.get<Investment[] | { items?: Investment[] }>("/investments");
-      const items = Array.isArray(response) ? response : (response?.items || []);
+      const firstPage = await api.get<InvestmentsResponse>("/investments?page=1&limit=100");
+      const totalPages = Math.max(1, firstPage?.totalPages || 1);
+      let items = firstPage?.items || [];
+
+      if (totalPages > 1) {
+        const remainingPages = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, index) =>
+            api.get<InvestmentsResponse>(`/investments?page=${index + 2}&limit=100`)
+          )
+        );
+
+        items = items.concat(remainingPages.flatMap((page) => page.items || []));
+      }
+
+      items = items.filter((item) => item.amount > 0);
       setAssets(items);
     } catch (err) {
       console.error("Investments API Error:", err);
@@ -63,7 +84,7 @@ export const useInvestments = () => {
       setAssets((prev) => prev.filter((a) => a.id !== id));
       
       if (currentWorkspaceId && asset) {
-        logAction(currentWorkspaceId, "DELETE_TRANSACTION", `Removido Ativo: ${asset.ticker}`);
+        logAction(currentWorkspaceId, "DELETE_INVESTMENT", `Removido Ativo: ${asset.ticker}`);
       }
       
       showSuccess("Ativo removido.");
@@ -111,23 +132,32 @@ export const useInvestments = () => {
   const getTaxIndicators = (
     convert: (amount: number, from: Currency, to: Currency) => number
   ): TaxIndicator[] => {
-    // Collect all sales from all assets
-    const allSales = (assets as InvestmentWithRelations[]).flatMap(
-      (a) => a.sales ?? []
-    );
-    
-    const monthlySales = allSales.reduce((acc, curr) => {
-      const valueInBRL = convert(curr.totalValue, curr.currency || "BRL", "BRL");
-      const month = new Date(curr.date).toISOString().substring(0, 7);
-      acc[month] = (acc[month] || 0) + valueInBRL;
-      return acc;
-    }, {} as Record<string, number>);
+    const monthlySales = (assets as InvestmentWithRelations[]).reduce((acc, asset) => {
+      const stockSales = (asset.sales ?? []).filter(() => asset.type === "stock");
 
-    return Object.entries(monthlySales).map(([month, total]) => ({
+      stockSales.forEach((sale) => {
+        const month = new Date(sale.date).toISOString().substring(0, 7);
+        const grossSale = convert(sale.totalValue, sale.currency || asset.currency || "BRL", "BRL");
+        const estimatedCostBasis = convert(
+          sale.amount * asset.averagePrice,
+          asset.currency || "BRL",
+          "BRL"
+        );
+        const estimatedProfit = Math.max(grossSale - estimatedCostBasis, 0);
+
+        acc[month] = acc[month] || { totalStockSales: 0, estimatedProfit: 0 };
+        acc[month].totalStockSales += grossSale;
+        acc[month].estimatedProfit += estimatedProfit;
+      });
+
+      return acc;
+    }, {} as Record<string, { totalStockSales: number; estimatedProfit: number }>);
+
+    return Object.entries(monthlySales).map(([month, totals]) => ({
       month,
-      totalStockSales: total as number,
-      isOverLimit: (total as number) > 20000,
-      estimatedTax: (total as number) > 20000 ? (total as number) * 0.15 : 0,
+      totalStockSales: totals.totalStockSales,
+      isOverLimit: totals.totalStockSales > 20000,
+      estimatedTax: totals.totalStockSales > 20000 ? totals.estimatedProfit * 0.15 : 0,
     }));
   };
 
@@ -156,19 +186,24 @@ export const useInvestments = () => {
           if (asset.type === "stock" || asset.type === "fii") {
             const quote = await getStockQuote(asset.ticker, token);
             if (quote) {
-              return {
+              const nextAsset = {
                 ...asset,
                 currentPrice: quote.regularMarketPrice,
                 name: quote.shortName || asset.name,
               };
+
+              await api.put<Investment>(`/investments/${asset.id}`, {
+                currentPrice: nextAsset.currentPrice,
+                name: nextAsset.name,
+              });
+
+              return nextAsset;
             }
           }
           return asset;
         })
       );
 
-      // In a real enterprise app, we'd send these updates to the backend
-      // For now, we update local state and notify success
       setAssets(updatedAssets);
       showSuccess("Cotações atualizadas!");
     } catch {

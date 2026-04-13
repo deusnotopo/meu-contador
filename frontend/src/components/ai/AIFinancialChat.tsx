@@ -104,7 +104,7 @@ Ao responder, você pode usar explicitamente os modos: explicar, exemplificar, c
 💰 **Saldo Atual:** R$ ${context.balance.toLocaleString('pt-BR')}
 📈 **Taxa de Poupança:** ${context.savingsRate.toFixed(1)}%
 
-🎯 **Seu momento na Academia:** ${tutorContext.currentMoment?.title || 'analisando'}
+🎯 **Seu momento em Aprender:** ${tutorContext.currentMoment?.title || 'analisando'}
 🧭 **Estágio atual:** ${tutorContext.journeyStage.title}
 
 ${insights.summary}
@@ -299,7 +299,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
     "Qual é meu próximo melhor passo financeiro?",
     "Explique como contador: meu dinheiro está saudável?",
     "Mostre em básico, prático e avançado",
-    "Me explique com base na minha fase da Academia",
+    "Me explique com base na minha fase em Aprender",
     "Onde posso economizar mais?",
     "Minha carteira está diversificada?",
     "Previsão do meu saldo no fim do mês",
@@ -319,18 +319,18 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
             </h3>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">
                 SISTEMA OPERACIONAL ATIVO
               </p>
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div className="flex gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleExportChat}
-            className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white"
+            className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white"
           >
             Exportar
           </Button>
@@ -338,7 +338,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
             variant="ghost"
             size="sm"
             onClick={handleClearChat}
-            className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white"
+            className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white"
           >
             Limpar
           </Button>
@@ -347,7 +347,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="rounded-xl hover:bg-white/5 text-slate-400"
+              className="rounded-xl hover:bg-white/5 text-neutral-500"
             >
               <X size={20} />
             </Button>
@@ -374,7 +374,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
                 className={`mt-1 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center border ${
                   message.role === "user"
                     ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400"
-                    : "bg-white/5 border-white/10 text-slate-400"
+                    : "bg-white/5 border-white/10 text-neutral-500"
                 }`}
               >
                 {message.role === "user" ? (
@@ -399,7 +399,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
                       ? "bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-amber-100"
                       : message.type === "alert"
                       ? "bg-gradient-to-br from-rose-500/10 to-red-500/10 border border-rose-500/20 text-rose-100"
-                      : "bg-white/5 border border-white/10 text-slate-300 font-sans"
+                      : "bg-white/5 border border-white/10 text-neutral-400 font-sans"
                   }`}
                 >
                   {message.type && message.type !== "text" && message.role === "assistant" && (
@@ -423,7 +423,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
                     )
                   }} />
                 </div>
-                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mt-2 px-1">
+                <p className="text-[10px] font-black text-neutral-700 uppercase tracking-widest mt-2 px-1">
                   {message.timestamp.toLocaleTimeString("pt-BR", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -446,7 +446,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
           <div className="flex flex-wrap gap-1.5 mb-2">
             {suggestedQuestions.slice(0, 3).map((q) => (
               <button key={q} onClick={() => setInput(q)}
-                className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all whitespace-nowrap">
+                className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-neutral-500 hover:text-white hover:bg-white/10 transition-all whitespace-nowrap">
                 {q}
               </button>
             ))}
@@ -461,11 +461,11 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Pergunte algo..."
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium text-sm"
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium text-sm"
               disabled={isLoading}
             />
             <button onClick={handleSend} disabled={!input.trim() || isLoading}
-              className="absolute right-2 top-1.5 bottom-1.5 px-4 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-800 transition-all">
+              className="absolute right-2 top-1.5 bottom-1.5 px-4 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-500 disabled:opacity-50 disabled:bg-neutral-900 transition-all">
               {isLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             </button>
           </div>
@@ -476,3 +476,4 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
 };
 
 export default AIFinancialChat;
+

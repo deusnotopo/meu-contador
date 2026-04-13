@@ -1,4 +1,4 @@
-import fastify from 'fastify';
+﻿import fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -33,6 +33,16 @@ import { websocketRoutes } from './routes/websocket';
 import { auditRoutes } from './routes/audit.js';
 import { gamificationRoutes } from './routes/gamification';
 import { emotionalRoutes } from './routes/emotional';
+import { workspaceRoutes } from './routes/workspace';
+import { marketRoutes } from './routes/market';
+import { bankRoutes } from './routes/banks';
+import { businessRoutes } from './routes/business';
+import { assetRoutes } from './routes/assets';
+import { interestRoutes } from './routes/interest';
+import { provisionRoutes } from './routes/provisions';
+import { analyticsRoutes } from './routes/analytics';
+import { notificationsRoutes } from './routes/notifications';
+import { cashflowRoutes } from './routes/cashflow';
 
 const ACCESS_COOKIE_NAME = 'mc_access_token';
 const CSRF_COOKIE_NAME = 'mc_csrf_token';
@@ -46,9 +56,9 @@ declare module 'fastify' {
 
 dotenv.config();
 
-// ✅ VALIDAÇÃO OBRIGATÓRIA DE AMBIENTE NO BOOT
-// Fail Fast: Se qualquer variável obrigatória faltar, o app NÃO INICIA
-// Isso evita deploy quebrado em produção com comportamento indefinido
+// âœ… VALIDAÃ‡ÃƒO OBRIGATÃ“RIA DE AMBIENTE NO BOOT
+// Fail Fast: Se qualquer variÃ¡vel obrigatÃ³ria faltar, o app NÃƒO INICIA
+// Isso evita deploy quebrado em produÃ§Ã£o com comportamento indefinido
 const requiredEnvVars = [
   'DATABASE_URL',
   'JWT_SECRET',
@@ -58,12 +68,12 @@ const requiredEnvVars = [
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  console.error(`❌ ERRO CRÍTICO: Variáveis de ambiente obrigatórias faltando: ${missingEnvVars.join(', ')}`);
-  console.error('✅ Regra do jogo: Falhar rápido, falhar cedo. Não execute código com configuração incompleta.');
+  console.error(`âŒ ERRO CRÃTICO: VariÃ¡veis de ambiente obrigatÃ³rias faltando: ${missingEnvVars.join(', ')}`);
+  console.error('âœ… Regra do jogo: Falhar rÃ¡pido, falhar cedo. NÃ£o execute cÃ³digo com configuraÃ§Ã£o incompleta.');
   process.exit(1);
 }
 
-console.log('✅ Validação de ambiente concluída');
+console.log('âœ… ValidaÃ§Ã£o de ambiente concluÃ­da');
 
 const PRODUCTION_FALLBACK_ORIGINS = [
   'https://meucontador-367cf.web.app',
@@ -84,6 +94,8 @@ const corsOrigin = allowedOrigins.length > 0
   : isProduction
     ? PRODUCTION_FALLBACK_ORIGINS
     : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:4173', 'http://localhost:3000'];
+
+const allowedOriginSet = new Set(corsOrigin);
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
@@ -129,10 +141,19 @@ app.register(helmet, {
   frameguard: { action: 'deny' },
 });
 app.register(cors, {
-  // origin: true allows the request's Origin header to be reflected back 
-  // as the Access-Control-Allow-Origin header, which handles multiple frontend 
-  // domains flawlessly when credentials=true is required.
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedOriginSet.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('Origin not allowed by CORS'), false);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   credentials: true,
   exposedHeaders: ['set-cookie'],
@@ -155,7 +176,7 @@ app.register(swagger, {
   openapi: {
     info: {
       title: 'Meu Contador API',
-      description: 'Documentação da API do Super App de Inteligência Financeira',
+      description: 'DocumentaÃ§Ã£o da API do Super App de InteligÃªncia Financeira',
       version: '1.0.0-enterprise',
     },
     components: {
@@ -184,7 +205,7 @@ app.addHook('onRequest', async (request, reply) => {
   const method = request.method.toUpperCase();
   if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return;
 
-  // Auth endpoints use their own token mechanisms — skip CSRF for them
+  // Auth endpoints use their own token mechanisms â€” skip CSRF for them
   const authOnlyPaths = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/logout', '/auth/upgrade'];
   if (authOnlyPaths.some(p => request.url === p || request.url.startsWith(p + '?'))) return;
 
@@ -226,24 +247,24 @@ app.decorate('authenticate', async (request, reply) => {
     }
 
     const userId = (request.user as any).id;
-    const user = await db.user.findUnique({ where: { id: String(userId) } });
-    app.log.info({ event: 'user check', found: !!user });
+    const user = await db.user.findFirst({ where: { id: String(userId), deletedAt: null } });
 
     if (!user) {
-      return reply.status(401).send({ message: 'Sessão expirada' });
+      return reply.status(401).send({ message: 'SessÃ£o expirada' });
     }
 
     (request as any).user = { ...request.user, isPro: !!user.isPro };
   } catch (err) {
     app.log.warn({ event: 'authenticate error', errorName: (err as Error | undefined)?.name });
-    return reply.status(401).send({ message: 'Sessão expirada' });
+    return reply.status(401).send({ message: 'SessÃ£o expirada' });
   }
 });
 
 app.decorate('proGuard', async (request: any, reply: any) => {
   if (!request.user || !(request.user as any).isPro) {
     return reply.status(403).send({ 
-      message: '👑 RECURSO PREMIUM: Esta funcionalidade exige o plano PRO. Faça o upgrade para continuar.' 
+      message: 'ðŸ‘‘ RECURSO PREMIUM: Esta funcionalidade exige o plano PRO. FaÃ§a o upgrade para continuar.',
+      error: 'PRO subscription required',
     });
   }
 });
@@ -285,6 +306,7 @@ app.setErrorHandler((error, request, reply) => {
   app.log.error(error);
   return reply.status(500).send({
     message: 'Internal server error',
+    error: 'Internal server error',
     code: 'INTERNAL_SERVER_ERROR',
   });
 });
@@ -383,3 +405,13 @@ app.register(websocketRoutes);
 app.register(auditRoutes);
 app.register(gamificationRoutes);
 app.register(emotionalRoutes);
+app.register(workspaceRoutes, { prefix: '/workspace' });
+app.register(marketRoutes);
+app.register(bankRoutes);
+app.register(businessRoutes);
+app.register(assetRoutes);
+app.register(interestRoutes);
+app.register(provisionRoutes);
+app.register(analyticsRoutes);
+  app.register(notificationsRoutes);
+  app.register(cashflowRoutes);

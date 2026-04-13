@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../lib/db';
+import { deleteCacheByPrefix } from '../lib/cache';
 
 // GraphQL Schema Definition
 const typeDefs = `
@@ -195,7 +196,6 @@ const typeDefs = `
 
   input BudgetUpdateInput {
     limit: Float
-    spent: Float
   }
 
   input GoalInput {
@@ -252,6 +252,10 @@ const typeDefs = `
 
 // GraphQL Resolvers
 function createResolvers(userId: string, isPro: boolean) {
+  const invalidateBudgetCache = async () => {
+    await deleteCacheByPrefix(`budgets:list:${userId}:`);
+  };
+
   const proGuard = () => {
     if (!isPro) {
       throw new Error('👑 RECURSO PREMIUM: Esta funcionalidade exige o plano PRO. Faça o upgrade para continuar.');
@@ -293,7 +297,38 @@ function createResolvers(userId: string, isPro: boolean) {
       budgets: async ({ month }: { month?: string }) => {
         const where: any = { userId };
         if (month) where.month = month;
-        return db.budget.findMany({ where, orderBy: { month: 'desc' } });
+        const budgets = await db.budget.findMany({ where, orderBy: { month: 'desc' } });
+
+        return Promise.all(
+          budgets.map(async (budget) => {
+            const start = new Date(`${budget.month}-01T00:00:00.000Z`);
+            const end = new Date(start);
+            end.setUTCMonth(end.getUTCMonth() + 1);
+
+            const aggregate = await db.transaction.aggregate({
+              where: {
+                userId,
+                type: 'expense',
+                category: {
+                  equals: budget.category,
+                  mode: 'insensitive',
+                },
+                date: {
+                  gte: start,
+                  lt: end,
+                },
+              },
+              _sum: {
+                amount: true,
+              },
+            });
+
+            return {
+              ...budget,
+              spent: Math.abs(aggregate._sum.amount ?? 0),
+            };
+          }),
+        );
       },
 
       goals: async () => {
@@ -367,9 +402,12 @@ function createResolvers(userId: string, isPro: boolean) {
 
     Mutation: {
       createTransaction: async ({ input }: { input: any }) => {
-        return db.transaction.create({
+        const created = await db.transaction.create({
           data: { ...input, userId },
         });
+
+        await invalidateBudgetCache();
+        return created;
       },
 
       updateTransaction: async ({ id, input }: { id: string; input: any }) => {
@@ -377,10 +415,13 @@ function createResolvers(userId: string, isPro: boolean) {
           where: { id, userId },
         });
         if (!existing) throw new Error('Transaction not found');
-        return db.transaction.update({
+        const updated = await db.transaction.update({
           where: { id },
           data: input,
         });
+
+        await invalidateBudgetCache();
+        return updated;
       },
 
       deleteTransaction: async ({ id }: { id: string }) => {
@@ -389,13 +430,21 @@ function createResolvers(userId: string, isPro: boolean) {
         });
         if (!existing) throw new Error('Transaction not found');
         await db.transaction.delete({ where: { id } });
+        await invalidateBudgetCache();
         return true;
       },
 
       createBudget: async ({ input }: { input: any }) => {
-        return db.budget.create({
+        const created = await db.budget.create({
           data: { ...input, userId },
         });
+
+        await invalidateBudgetCache();
+
+        return {
+          ...created,
+          spent: 0,
+        };
       },
 
       updateBudget: async ({ id, input }: { id: string; input: any }) => {
@@ -403,10 +452,40 @@ function createResolvers(userId: string, isPro: boolean) {
           where: { id, userId },
         });
         if (!existing) throw new Error('Budget not found');
-        return db.budget.update({
+
+        const updated = await db.budget.update({
           where: { id },
-          data: input,
+          data: {
+            ...(input.limit !== undefined ? { limit: input.limit } : {}),
+          },
         });
+
+        const start = new Date(`${updated.month}-01T00:00:00.000Z`);
+        const end = new Date(start);
+        end.setUTCMonth(end.getUTCMonth() + 1);
+
+        const aggregate = await db.transaction.aggregate({
+          where: {
+            userId,
+            type: 'expense',
+            category: {
+              equals: updated.category,
+              mode: 'insensitive',
+            },
+            date: {
+              gte: start,
+              lt: end,
+            },
+          },
+          _sum: {
+            amount: true,
+          },
+        });
+
+        return {
+          ...updated,
+          spent: Math.abs(aggregate._sum.amount ?? 0),
+        };
       },
 
       deleteBudget: async ({ id }: { id: string }) => {
@@ -415,6 +494,7 @@ function createResolvers(userId: string, isPro: boolean) {
         });
         if (!existing) throw new Error('Budget not found');
         await db.budget.delete({ where: { id } });
+        await invalidateBudgetCache();
         return true;
       },
 

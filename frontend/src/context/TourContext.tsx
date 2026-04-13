@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { api } from '@/lib/api';
 
 interface UserPreferencesResponse {
@@ -43,7 +44,14 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem('completed_tours', JSON.stringify(remote));
         }
       } catch (error) {
-        console.error('Erro ao carregar status dos tours:', error);
+        // TimeoutError/rede: backend no cold start. Não é erro de produto.
+        const isNetworkIssue =
+          error instanceof Error &&
+          (error.name === 'TimeoutError' || error.name === 'AbortError' ||
+           error.message.includes('timeout') || error.message.includes('fetch'));
+        if (!isNetworkIssue) {
+          logger.warn('Tours: falha ao sincronizar preferências:', (error as Error).message);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -63,7 +71,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Persiste no backend nas preferências do usuário usando PATCH
       await api.patch('/users/preferences', { completedTours: newTours });
     } catch (_error) {
-      console.warn('Falha ao sincronizar conclusão do tour com o servidor');
+      logger.warn('Falha ao sincronizar conclusão do tour com o servidor');
     }
   };
 

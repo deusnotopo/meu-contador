@@ -10,6 +10,12 @@ const CATEGORIES_EXPENSE = [
   "Lazer", "Roupas", "Educação", "Assinaturas", "Outros",
 ];
 
+const fieldClass =
+  "w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-[11px] text-sm text-[var(--t1)] outline-none focus:border-blue-500/50 focus:bg-white/[0.06] transition-colors appearance-none";
+
+const labelClass =
+  "block text-[10px] uppercase tracking-widest text-[var(--t3)] font-semibold mb-1.5";
+
 interface EditTransactionModalProps {
   transaction: Transaction;
   onSave: (id: string, updates: Partial<Transaction>) => Promise<void>;
@@ -34,13 +40,12 @@ export const EditTransactionModal = ({ transaction, onSave, onClose }: EditTrans
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
       const url = await uploadReceipt(transaction.id, file);
       setForm(prev => ({ ...prev, receiptUrl: url }));
       showSuccess("Comprovante anexado!");
-    } catch (_err) {
+    } catch {
       showError("Erro ao fazer upload do arquivo.");
     } finally {
       setUploading(false);
@@ -54,7 +59,7 @@ export const EditTransactionModal = ({ transaction, onSave, onClose }: EditTrans
         await deleteReceipt(form.receiptUrl);
         setForm(prev => ({ ...prev, receiptUrl: "" }));
         showSuccess("Comprovante removido.");
-      } catch (_err) {
+      } catch {
         showError("Erro ao remover arquivo.");
       }
     }
@@ -78,183 +83,141 @@ export const EditTransactionModal = ({ transaction, onSave, onClose }: EditTrans
     }
   };
 
-  const inp: React.CSSProperties = {
-    width: "100%",
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: "12px",
-    padding: "11px 14px",
-    fontSize: "14px",
-    color: "var(--t1)",
-    outline: "none",
-    boxSizing: "border-box",
-    transition: "border-color 0.18s",
-  };
-
-  const label: React.CSSProperties = {
-    display: "block",
-    fontSize: "10px",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "var(--t3)",
-    marginBottom: "6px",
-    fontWeight: 600,
-  };
-
   return (
+    /* Backdrop */
     <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 300,
-        background: "rgba(0,0,0,0.75)",
-        backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
-        padding: "0",
-      }}
+      className="fixed inset-0 z-[300] bg-black/75 backdrop-blur-md flex items-end justify-center"
       onClick={onClose}
     >
+      {/* Bottom Sheet */}
       <div
-        style={{
-          background: "linear-gradient(165deg, #141820 0%, #0e1117 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: "24px 24px 0 0",
-          padding: "28px 24px calc(env(safe-area-inset-bottom) + 28px)",
-          width: "100%",
-          maxWidth: "480px",
-          boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
-          animation: "slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-        }}
-        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[480px] rounded-t-[24px] border border-white/[0.08] bg-gradient-to-b from-[#141820] to-[#0e1117] shadow-[0_-20px_60px_rgba(0,0,0,0.5)] px-6 pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+28px)] animate-in slide-in-from-bottom-4 duration-300"
+        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <div style={{ fontSize: "11px", color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              Editar
-            </div>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--t1)", letterSpacing: "-0.5px" }}>
-              Transação
-            </div>
+            <div className="text-[11px] text-[var(--t3)] uppercase tracking-widest">Editar</div>
+            <div className="text-[20px] font-bold text-[var(--t1)] tracking-tight">Transação</div>
           </div>
           <button
             onClick={onClose}
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--t2)" }}
+            className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-[var(--t2)] hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+            aria-label="Fechar"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Type Toggle */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 4 }}>
-          {(["income", "expense"] as const).map((t) => (
+        <div className="flex gap-2 p-1 rounded-xl bg-white/[0.04] mb-5">
+          {(["income", "expense"] as const).map(t => (
             <button
               key={t}
               onClick={() => setForm({ ...form, type: t, category: t === "income" ? CATEGORIES_INCOME[0]! : CATEGORIES_EXPENSE[0]! })}
-              style={{
-                flex: 1, padding: "8px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                background: form.type === t ? (t === "income" ? "var(--green)" : "var(--red)") : "transparent",
-                color: form.type === t ? "#000" : "var(--t3)",
-                transition: "all 0.18s",
-              }}
+              className={`flex-1 py-2 rounded-[10px] text-[13px] font-semibold transition-all cursor-pointer border-none ${
+                form.type === t
+                  ? t === "income"
+                    ? "bg-[var(--green)] text-black"
+                    : "bg-[var(--red)] text-black"
+                  : "bg-transparent text-[var(--t3)]"
+              }`}
             >
               {t === "income" ? "Receita" : "Despesa"}
             </button>
           ))}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Fields */}
+        <div className="flex flex-col gap-4">
           {/* Description */}
           <div>
-            <label style={label}>Descrição</label>
+            <label className={labelClass}>Descrição</label>
             <input
-              style={inp}
+              className={fieldClass}
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={e => setForm({ ...form, description: e.target.value })}
               placeholder="Ex: Supermercado"
             />
           </div>
 
-          {/* Amount + Date row */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {/* Amount + Date */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label style={label}>Valor (R$)</label>
+              <label className={labelClass}>Valor (R$)</label>
               <input
-                style={inp}
+                className={fieldClass}
                 type="number"
                 step="0.01"
                 min="0"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                onChange={e => setForm({ ...form, amount: e.target.value })}
               />
             </div>
             <div>
-              <label style={label}>Data</label>
+              <label className={labelClass}>Data</label>
               <input
-                style={inp}
+                className={fieldClass}
                 type="date"
                 value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                onChange={e => setForm({ ...form, date: e.target.value })}
               />
             </div>
           </div>
 
           {/* Category */}
           <div>
-            <label style={label}>Categoria</label>
+            <label className={labelClass}>Categoria</label>
             <select
-              style={{ ...inp, appearance: "none" }}
+              className={fieldClass}
               value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              onChange={e => setForm({ ...form, category: e.target.value })}
             >
-              {categories.map((c) => (
-                <option key={c} value={c.toLowerCase()}>{c}</option>
-              ))}
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
-          {/* Receipt Upload Section */}
-          <div style={{ 
-            background: "rgba(255,255,255,0.02)", 
-            border: "1px dashed rgba(255,255,255,0.1)", 
-            borderRadius: 16, 
-            padding: 16,
-            marginTop: 4
-          }}>
-            <label style={label}>Comprovante (Opcional)</label>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              style={{ display: "none" }} 
-              onChange={handleFileUpload} 
+          {/* Receipt Upload */}
+          <div className="rounded-2xl bg-white/[0.02] border border-dashed border-white/10 p-4 mt-1">
+            <label className={labelClass}>Comprovante (Opcional)</label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileUpload}
               accept="image/*,application/pdf"
             />
-            
+
             {form.receiptUrl ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.04)", padding: 8, borderRadius: 12 }}>
-                <div style={{ background: "var(--blue-d)", color: "var(--blue)", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div className="flex items-center gap-3 bg-white/[0.04] p-2 rounded-xl">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
                   <Paperclip size={16} />
                 </div>
-                <span style={{ fontSize: 13, color: "var(--t2)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  Arquivo anexado
-                </span>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <a href={form.receiptUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--t2)", padding: 6 }}>
+                <span className="text-[13px] text-[var(--t2)] flex-1 truncate">Arquivo anexado</span>
+                <div className="flex gap-1 shrink-0">
+                  <a
+                    href={form.receiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 text-[var(--t2)] hover:text-white transition-colors"
+                    aria-label="Ver comprovante"
+                  >
                     <ExternalLink size={14} />
                   </a>
-                  <button onClick={handleRemoveReceipt} style={{ color: "var(--red)", background: "transparent", border: "none", padding: 6, cursor: "pointer" }}>
+                  <button
+                    onClick={handleRemoveReceipt}
+                    className="p-1.5 text-rose-400 hover:text-rose-300 bg-transparent border-none cursor-pointer transition-colors"
+                    aria-label="Remover comprovante"
+                  >
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                style={{ 
-                  width: "100%", padding: "10px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", 
-                  background: "transparent", color: "var(--t2)", fontSize: 13, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  transition: "all 0.2s"
-                }}
+                className="w-full py-2.5 rounded-xl border border-white/10 bg-transparent text-[var(--t2)] text-[13px] flex items-center justify-center gap-2 hover:bg-white/5 hover:text-white disabled:opacity-50 transition-all cursor-pointer"
               >
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
                 {uploading ? "Fazendo upload..." : "Anexar comprovante"}
@@ -267,28 +230,12 @@ export const EditTransactionModal = ({ transaction, onSave, onClose }: EditTrans
         <button
           onClick={handleSave}
           disabled={saving || uploading || !form.description.trim() || !form.amount}
-          style={{
-            marginTop: 24, width: "100%", padding: "14px", borderRadius: 14, border: "none",
-            background: "linear-gradient(135deg, #4A8BFF, #5032A8)",
-            color: "#fff", fontSize: 15, fontWeight: 700, cursor: (saving || uploading) ? "not-allowed" : "pointer",
-            opacity: (saving || uploading || !form.description.trim() || !form.amount) ? 0.6 : 1,
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            transition: "all 0.18s",
-          }}
+          className="mt-6 w-full py-3.5 rounded-[14px] border-none text-[15px] font-bold text-white flex items-center justify-center gap-2 bg-gradient-to-r from-[#4A8BFF] to-[#5032A8] hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed transition-all cursor-pointer"
         >
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
           {saving ? "Salvando..." : "Salvar alterações"}
         </button>
       </div>
-
-      <style>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 };

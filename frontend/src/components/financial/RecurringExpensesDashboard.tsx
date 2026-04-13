@@ -107,7 +107,7 @@ export function RecurringExpensesDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="p-4 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-white/10"
+          className="p-4 rounded-2xl bg-gradient-to-br from-[var(--bg)]/80 to-[var(--card)]/80 border border-white/10"
         >
           <h3 className="text-sm font-bold text-white mb-3">Filtrar por Categoria</h3>
           <div className="flex flex-wrap gap-2">
@@ -116,7 +116,7 @@ export function RecurringExpensesDashboard() {
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 selectedCategory === null
                   ? 'bg-indigo-500 text-white'
-                  : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                  : 'bg-white/5 text-[var(--t3)] hover:bg-white/10'
               }`}
             >
               Todas ({summary.itemCount})
@@ -128,7 +128,7 @@ export function RecurringExpensesDashboard() {
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   selectedCategory === cat.category
                     ? 'bg-indigo-500 text-white'
-                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                    : 'bg-white/5 text-[var(--t3)] hover:bg-white/10'
                 }`}
               >
                 {cat.category} ({formatCurrency(cat.amount)})
@@ -143,21 +143,21 @@ export function RecurringExpensesDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="p-6 rounded-3xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-white/10"
+        className="p-6 rounded-3xl bg-gradient-to-br from-[var(--bg)]/80 to-[var(--card)]/80 border border-white/10"
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white">
             Despesas Recorrentes {selectedCategory && `- ${selectedCategory}`}
           </h3>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-[var(--t4)]">
             {filteredExpenses.length} itens
           </span>
         </div>
 
         {filteredExpenses.length === 0 ? (
           <div className="text-center py-8">
-            <Repeat size={48} className="text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400">Nenhuma despesa recorrente detectada</p>
+            <Repeat size={48} className="text-[var(--t4)] mx-auto mb-3" />
+            <p className="text-[var(--t3)]">Nenhuma despesa recorrente detectada</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -184,7 +184,7 @@ export function RecurringExpensesDashboard() {
                       </div>
                       <div>
                         <p className="font-bold text-white">{expense.description}</p>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+                        <p className="text-[10px] text-[var(--t4)] uppercase tracking-widest">
                           {expense.category} • Dia {expense.paymentDay}
                         </p>
                       </div>
@@ -193,7 +193,7 @@ export function RecurringExpensesDashboard() {
                       <div className="text-lg font-black text-white">
                         {formatCurrency(expense.averageAmount)}
                       </div>
-                      <div className="text-[10px] text-slate-500">/mês</div>
+                      <div className="text-[10px] text-[var(--t4)]">/mês</div>
                     </div>
                   </div>
 
@@ -213,7 +213,7 @@ export function RecurringExpensesDashboard() {
                         </div>
                       )}
                       {expense.trend === 'stable' && (
-                        <div className="text-[10px] text-slate-500">Estável</div>
+                        <div className="text-[10px] text-[var(--t4)]">Estável</div>
                       )}
                     </div>
 
@@ -231,16 +231,16 @@ export function RecurringExpensesDashboard() {
                   {expense.marketComparison && (
                     <div className="mt-3 p-3 rounded-xl bg-white/5 border border-white/5">
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-slate-500">Faixa de referência</span>
+                        <span className="text-[var(--t4)]">Faixa de referência</span>
                         <span className="font-bold text-white">
                           {formatCurrency(expense.marketComparison.average)}
                         </span>
                       </div>
-                      <div className="text-[9px] text-slate-500 mt-1">
+                      <div className="text-[9px] text-[var(--t4)] mt-1">
                         Base usada: {expense.marketComparison.sourceLabel}
                       </div>
                       <div className="flex items-center justify-between text-[10px] mt-1">
-                        <span className="text-slate-500">Você paga</span>
+                        <span className="text-[var(--t4)]">Você paga</span>
                         <span className={`font-bold ${
                           expense.isOverpriced ? 'text-amber-400' : 'text-emerald-400'
                         }`}>
@@ -257,7 +257,7 @@ export function RecurringExpensesDashboard() {
 
                   {/* Next Payment */}
                   <div className="mt-3 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500">Próximo pagamento</span>
+                    <span className="text-[10px] text-[var(--t4)]">Próximo pagamento</span>
                     <span className="text-xs font-bold text-white">
                       {new Date(expense.nextPayment).toLocaleDateString('pt-BR', { 
                         day: '2-digit', 
@@ -268,7 +268,7 @@ export function RecurringExpensesDashboard() {
 
                   {/* Annual Total */}
                   <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500">Total últimos 12 meses</span>
+                    <span className="text-[10px] text-[var(--t4)]">Total últimos 12 meses</span>
                     <span className="text-sm font-bold text-white">
                       {formatCurrency(expense.totalPaidLast12Months)}
                     </span>
@@ -294,14 +294,14 @@ export function RecurringExpensesDashboard() {
           </div>
           <div className="space-y-2">
             {insights.map((insight, i) => (
-              <p key={i} className="text-xs text-slate-300 leading-relaxed">{insight}</p>
+              <p key={i} className="text-xs text-[var(--t2)] leading-relaxed">{insight}</p>
             ))}
           </div>
         </motion.div>
       )}
 
       <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10">
-        <p className="text-[11px] text-slate-400 leading-relaxed">
+        <p className="text-[11px] text-[var(--t3)] leading-relaxed">
           Benchmarks desta tela são apenas referências heurísticas para renegociação e revisão de contratos. Não representam média oficial nacional.
         </p>
       </div>
@@ -312,7 +312,7 @@ export function RecurringExpensesDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="p-6 rounded-3xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-white/10"
+          className="p-6 rounded-3xl bg-gradient-to-br from-[var(--bg)]/80 to-[var(--card)]/80 border border-white/10"
         >
           <h3 className="text-lg font-bold text-white mb-4">Top Categorias</h3>
           <div className="space-y-3">
@@ -335,7 +335,7 @@ export function RecurringExpensesDashboard() {
                     />
                   </div>
                 </div>
-                <span className="text-xs text-slate-500">{cat.percent.toFixed(0)}%</span>
+                <span className="text-xs text-[var(--t4)]">{cat.percent.toFixed(0)}%</span>
               </div>
             ))}
           </div>

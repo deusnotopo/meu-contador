@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, TrendingDown, TrendingUp, Plus, X, PieChart } from "lucide-react";
+import { Mic, TrendingDown, TrendingUp, Plus, X, PieChart, Sparkles } from "lucide-react";
 
 interface SmartLaunchMenuProps {
   isOpen: boolean;
@@ -23,17 +23,9 @@ export const SmartLaunchMenu: React.FC<SmartLaunchMenuProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.3 }}
             onClick={onClose}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 50,
-              background: "rgba(0,0,0,0.65)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              touchAction: "none",
-            }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md touch-none"
           />
 
           {/* Bottom Sheet */}
@@ -43,195 +35,107 @@ export const SmartLaunchMenu: React.FC<SmartLaunchMenuProps> = ({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 250 }}
-            style={{
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: 51,
-              borderRadius: "32px 32px 0 0",
-              background: "linear-gradient(180deg, #0f172a 0%, #0a0f1e 100%)",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
-              padding: "24px 20px calc(env(safe-area-inset-bottom, 24px) + 16px)",
-              boxShadow: "0 -24px 80px rgba(0,0,0,0.5)",
-            }}
+            className="fixed bottom-0 left-0 right-0 z-[51] rounded-t-[32px] border-t border-white/5 shadow-[0_-24px_80px_rgba(0,0,0,0.6)] bg-[var(--card-obsidian)] overflow-hidden px-5 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] overscroll-none"
           >
+            {/* Ambient Background Glow for Dark Obsidian effect */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-blue-500/10 blur-[60px] pointer-events-none rounded-full" />
+
             {/* Handle */}
-            <div style={{
-              width: 48, height: 4, borderRadius: 9999,
-              background: "rgba(255,255,255,0.12)",
-              margin: "0 auto 24px",
-            }} />
+            <div className="w-12 h-1.5 rounded-full bg-white/10 mx-auto mb-6" />
 
             {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+            <div className="flex items-center justify-between mb-6 relative z-10">
               <div>
-                <h2 style={{ color: "#fff", fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}>
-                  O que vamos lançar?
+                <h2 className="text-white text-[22px] font-bold tracking-tight m-0 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-blue-400" />
+                  Lançamento Rápido
                 </h2>
-                <p style={{ color: "rgba(148,163,184,0.8)", fontSize: 13, marginTop: 4 }}>
-                  Escolha uma ação rápida
+                <p className="text-[var(--t3)] text-sm mt-1 font-medium">
+                  Selecione a operação desejada
                 </p>
               </div>
               <button
                 onClick={onClose}
-                style={{
-                  width: 40, height: 40, borderRadius: "50%",
-                  background: "rgba(255,255,255,0.07)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  color: "rgba(148,163,184,0.9)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", flexShrink: 0,
-                  transition: "background 0.15s",
-                }}
+                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-[var(--t3)] flex items-center justify-center hover:bg-white/10 hover:text-white transition-colors flex-shrink-0"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Bento Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-
-              {/* Card grande — Voz (col 1-2) */}
+            <div className="grid grid-cols-2 gap-3 relative z-10">
+              {/* Voz (V2 - Mais IA) */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => onAction("voice")}
-                style={{
-                  gridColumn: "1 / -1",
-                  position: "relative",
-                  overflow: "hidden",
-                  borderRadius: 20,
-                  padding: "24px 24px 20px",
-                  background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)",
-                  border: "none",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  minHeight: 120,
-                }}
+                className="col-span-2 relative overflow-hidden rounded-[20px] p-5 text-left border-none cursor-pointer min-h-[120px] group bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 shadow-lg shadow-blue-900/30"
               >
-                {/* Glow decoration */}
-                <div style={{
-                  position: "absolute", top: -20, right: -20, width: 100, height: 100,
-                  borderRadius: "50%", background: "rgba(255,255,255,0.1)",
-                  filter: "blur(20px)",
-                }} />
-                <div style={{
-                  position: "absolute", top: 16, right: 16, opacity: 0.15,
-                }}>
-                  <Mic size={72} color="#fff" />
+                {/* Glow Decoration */}
+                <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                <div className="absolute top-4 right-4 opacity-10 transform group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
+                  <Mic size={80} color="#fff" />
                 </div>
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: "50%",
-                    background: "rgba(255,255,255,0.2)",
-                    backdropFilter: "blur(8px)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    marginBottom: 14,
-                  }}>
+                
+                <div className="relative z-10">
+                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-3">
                     <Mic size={20} color="#fff" />
                   </div>
-                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 4 }}>
+                  <div className="text-white font-bold text-[17px] tracking-tight mb-1">
                     Comando de Voz
                   </div>
-                  <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>
+                  <div className="text-blue-100/80 text-[13px] font-medium tracking-wide">
                     "Gastei 50 reais de padaria"
                   </div>
                 </div>
               </motion.button>
 
-              {/* Card — Despesa */}
+              {/* Red - Despesa */}
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onAction("expense")}
-                style={{
-                  borderRadius: 18,
-                  padding: "20px 18px",
-                  background: "rgba(239,68,68,0.08)",
-                  border: "1px solid rgba(239,68,68,0.2)",
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
+                className="rounded-[18px] p-5 text-left bg-red-500/10 hover:bg-red-500/15 border border-red-500/20 cursor-pointer transition-colors"
               >
-                <div style={{
-                  width: 36, height: 36, borderRadius: "50%",
-                  background: "rgba(239,68,68,0.15)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  marginBottom: 12,
-                }}>
-                  <TrendingDown size={18} color="#f87171" />
+                <div className="w-9 h-9 rounded-full bg-red-500/20 flex items-center justify-center mb-3">
+                  <TrendingDown size={18} className="text-red-400" />
                 </div>
-                <div style={{ color: "#f87171", fontWeight: 700, fontSize: 15 }}>Despesa</div>
-                <div style={{ color: "rgba(148,163,184,0.7)", fontSize: 12, marginTop: 2 }}>Registrar saída</div>
+                <div className="text-red-400 font-bold text-[15px] tracking-tight">Despesa</div>
+                <div className="text-[var(--t3)] text-[12px] font-medium mt-1 tracking-wide">Registrar saída</div>
               </motion.button>
 
-              {/* Card — Receita */}
+              {/* Green - Receita */}
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onAction("income")}
-                style={{
-                  borderRadius: 18,
-                  padding: "20px 18px",
-                  background: "rgba(34,197,94,0.08)",
-                  border: "1px solid rgba(34,197,94,0.2)",
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
+                className="rounded-[18px] p-5 text-left bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 cursor-pointer transition-colors"
               >
-                <div style={{
-                  width: 36, height: 36, borderRadius: "50%",
-                  background: "rgba(34,197,94,0.15)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  marginBottom: 12,
-                }}>
-                  <TrendingUp size={18} color="#4ade80" />
+                <div className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+                  <TrendingUp size={18} className="text-emerald-400" />
                 </div>
-                <div style={{ color: "#4ade80", fontWeight: 700, fontSize: 15 }}>Receita</div>
-                <div style={{ color: "rgba(148,163,184,0.7)", fontSize: 12, marginTop: 2 }}>Registrar entrada</div>
+                <div className="text-emerald-400 font-bold text-[15px] tracking-tight">Receita</div>
+                <div className="text-[var(--t3)] text-[12px] font-medium mt-1 tracking-wide">Registrar entrada</div>
               </motion.button>
 
-              {/* Card — Investimento (col 1-2) */}
+              {/* Asset - Investimento */}
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onAction("asset")}
-                style={{
-                  gridColumn: "1 / -1",
-                  borderRadius: 18,
-                  padding: "16px 18px",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
+                className="col-span-2 rounded-[18px] p-[18px] bg-white/[0.03] hover:bg-white/[0.05] border border-white/8 cursor-pointer flex items-center justify-between group transition-colors"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: "50%",
-                    background: "rgba(255,255,255,0.08)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <PieChart size={20} color="rgba(203,213,225,0.9)" />
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-full bg-white/5 border border-white/5 flex items-center justify-center shrink-0">
+                    <PieChart size={20} className="text-[var(--t2)]" />
                   </div>
-                  <div style={{ textAlign: "left" }}>
-                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>Novo Investimento</div>
-                    <div style={{ color: "rgba(148,163,184,0.7)", fontSize: 12, marginTop: 2 }}>
-                      Adicionar ativo à carteira
-                    </div>
+                  <div className="text-left">
+                    <div className="text-[var(--t1)] font-bold text-[15px] tracking-tight">Novo Investimento</div>
+                    <div className="text-[var(--t3)] text-[12px] font-medium mt-1 tracking-wide">Adicionar ativo à carteira</div>
                   </div>
                 </div>
-                <div style={{
-                  width: 32, height: 32, borderRadius: "50%",
-                  background: "rgba(255,255,255,0.08)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                }}>
-                  <Plus size={16} color="rgba(148,163,184,0.8)" />
+                <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-blue-500/20 flex items-center justify-center shrink-0 transition-colors">
+                  <Plus size={16} className="text-[var(--t3)] group-hover:text-blue-400 transition-colors" />
                 </div>
               </motion.button>
             </div>

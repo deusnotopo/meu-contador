@@ -79,7 +79,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
     }
 
     const invoices = await db.invoice.findMany({
-      where: { workspaceId },
+      where: { workspaceId, deletedAt: null },
       orderBy: { dueDate: 'desc' },
     });
 
@@ -133,7 +133,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
 
     // Verificar posse
     const existing = await db.invoice.findFirst({
-      where: { id, workspaceId },
+      where: { id, workspaceId, deletedAt: null },
     });
 
     if (!existing) {
@@ -165,15 +165,16 @@ export async function invoiceRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
 
     const existing = await db.invoice.findFirst({
-      where: { id, workspaceId },
+      where: { id, workspaceId, deletedAt: null },
     });
 
     if (!existing) {
       return reply.status(404).send({ message: 'Invoice not found' });
     }
 
-    await db.invoice.delete({
+    await db.invoice.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
 
     return reply.status(204).send();

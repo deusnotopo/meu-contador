@@ -17,6 +17,42 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
     await fastify.authenticate(request, reply);
   });
 
+  // GET / — lista workspaces do usuário (owner ou membro)
+  fastify.get('/', async (request) => {
+    const userId = request.user.id;
+    const workspaces = await db.workspace.findMany({
+      where: {
+        OR: [
+          { ownerId: userId },
+          { members: { some: { id: userId } } },
+        ],
+      },
+      include: {
+        members: { select: { id: true, name: true, email: true } },
+        _count: { select: { members: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return workspaces;
+  });
+
+  // POST / — cria novo workspace
+  fastify.post('/', async (request) => {
+    const userId = request.user.id;
+    const { name } = z.object({ name: z.string().trim().min(1).max(80) }).parse(request.body);
+    const workspace = await db.workspace.create({
+      data: {
+        name,
+        ownerId: userId,
+        members: { connect: { id: userId } },
+      },
+      include: {
+        members: { select: { id: true, name: true, email: true } },
+      },
+    });
+    return workspace;
+  });
+
   fastify.post<{ Params: { workspaceId: string } }>(
     '/:workspaceId/invite',
     async (request: FastifyRequest<{ Params: { workspaceId: string } }>, reply: FastifyReply) => {

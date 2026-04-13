@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+﻿import { ReactNode, useState } from "react";
 import { Lock, Sparkles, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFeatureFlags } from "../../context/FeatureFlagsContext";
@@ -63,7 +63,7 @@ export function PremiumGate({ children, feature }: PremiumGateProps) {
               {info.title}
               <span className="text-[10px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full font-black border border-amber-500/20">PRO</span>
             </h3>
-            <p className="text-slate-400 text-sm leading-relaxed font-medium">
+            <p className="text-neutral-500 text-sm leading-relaxed font-medium">
               {info.desc}
             </p>
           </div>
@@ -77,7 +77,7 @@ export function PremiumGate({ children, feature }: PremiumGateProps) {
               DESBLOQUEAR TUDO
             </Button>
             
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+            <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">
               Apenas R$ 14,99 • Vitalício
             </p>
           </div>
@@ -92,4 +92,5 @@ export function PremiumGate({ children, feature }: PremiumGateProps) {
     </>
   );
 }
+
 

@@ -80,7 +80,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Oops! Something went wrong
             </h2>
             
-            <p className="text-slate-400 mb-6 text-sm">
+            <p className="text-neutral-500 mb-6 text-sm">
               We encountered an error in {featureName}. Don't worry, your data is safe.
             </p>
 

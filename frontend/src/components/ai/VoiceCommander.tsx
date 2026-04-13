@@ -142,13 +142,13 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
                     return (
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Descrição:</span>
+                          <span className="text-neutral-500">Descrição:</span>
                           <span className="font-medium text-white">
                             {t.description}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Valor:</span>
+                          <span className="text-neutral-500">Valor:</span>
                           <span
                             className={`font-bold ${
                               t.type === "income"
@@ -160,7 +160,7 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Categoria:</span>
+                          <span className="text-neutral-500">Categoria:</span>
                           <span className="text-white">
                             {t.category}
                           </span>
@@ -174,20 +174,20 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
                     return (
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Ticker:</span>
+                          <span className="text-neutral-500">Ticker:</span>
                           <span className="font-bold text-indigo-400">
                             {inv.ticker}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Quantidade:</span>
+                          <span className="text-neutral-500">Quantidade:</span>
                           <span className="text-white">
                             {inv.amount}
                           </span>
                         </div>
                         {inv.price && (
                           <div className="flex justify-between">
-                            <span className="text-slate-400">Preço:</span>
+                            <span className="text-neutral-500">Preço:</span>
                             <span className="text-emerald-400 font-bold">
                               R$ {(typeof inv.price === 'number' ? inv.price : parseFloat(String(inv.price || 0))).toFixed(2) || '0.00'}
                             </span>
@@ -206,7 +206,7 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 text-slate-400"
+                    className="flex-1 text-neutral-500"
                     onClick={() => setParsedResult(null)}
                   >
                     Cancelar
@@ -231,7 +231,7 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
         {onClose && (
           <button 
             onClick={onClose}
-            className="absolute -top-10 right-0 w-8 h-8 rounded-full bg-slate-800/80 text-slate-300 flex items-center justify-center backdrop-blur shadow-lg border border-white/10 hover:bg-slate-700 transition-colors"
+            className="absolute -top-10 right-0 w-8 h-8 rounded-full bg-neutral-900/80 text-neutral-400 flex items-center justify-center backdrop-blur shadow-lg border border-white/10 hover:bg-neutral-800 transition-colors"
           >
             <X size={16} />
           </button>

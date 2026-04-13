@@ -14,7 +14,7 @@ export const SecuritySettings = () => {
         </h3>
       </div>
       <div className="p-6 md:p-8 pt-0 space-y-6 px-10">
-        <p className="text-sm text-slate-400 leading-relaxed font-medium">
+        <p className="text-sm text-neutral-500 leading-relaxed font-medium">
           Seus dados financeiros permanecem sob seu controle. A sincronização em
           nuvem é opcional e utiliza criptografia de ponta a ponta.
         </p>
@@ -23,7 +23,7 @@ export const SecuritySettings = () => {
             <span className="text-xs font-black uppercase tracking-widest text-white">
               Mascarar Valores Automático
             </span>
-            <div className="h-6 w-12 rounded-full bg-slate-800 flex items-center px-1 opacity-50 cursor-not-available">
+            <div className="h-6 w-12 rounded-full bg-neutral-900 flex items-center px-1 opacity-50 cursor-not-available">
               <div className="w-4 h-4 bg-white/20 rounded-full" />
             </div>
           </div>
@@ -33,7 +33,7 @@ export const SecuritySettings = () => {
 
         <Button
           variant="outline"
-          className="w-full h-12 rounded-xl border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/5 transition-all"
+          className="w-full h-12 rounded-xl border-white/10 text-neutral-500 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/5 transition-all"
         >
           Auditar Histórico de Acesso
         </Button>

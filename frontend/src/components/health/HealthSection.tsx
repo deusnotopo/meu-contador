@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { TabType } from "@/types/navigation";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDebts } from "@/hooks/useDebts";
 import { useInvestments } from "@/hooks/useInvestments";
+import { useHealthScore } from "@/hooks/useHealthScore";
 import { ArrowLeft, Droplet, TrendingUp, TrendingDown, Network, Target, Brain, ShieldCheck, ChevronDown, ChevronRight } from "lucide-react";
 
 import { AreaTutorialButton } from "@/components/ui/AreaTutorialButton";
@@ -38,6 +39,7 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
   const { transactions, totals: txTotals } = useTransactions("personal");
   const { debts, totals: debtTotals } = useDebts();
   const { assets, totals: investTotals } = useInvestments();
+  const { history: scoreHistory, persistScore } = useHealthScore();
 
   // --- Real financial metric calculations ---
   const monthlyExpenses = txTotals.expense || (transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)) || 1;
@@ -129,12 +131,20 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
   ];
 
   const score = Math.round(DIMS.reduce((s, d) => s + d.sc, 0) / DIMS.length);
-  const historyPoints = [
-    Math.max(0, Math.round(score - 9)),
-    Math.max(0, Math.round(score - 5)),
-    Math.max(0, Math.round(score - 2)),
-    score,
-  ];
+
+  // Persiste score real no backend (debounced por data via hook)
+  useEffect(() => { if (score > 0) persistScore(score); }, [score, persistScore]);
+
+  // historyPoints: usa dados reais do backend (last 4 entries) ou simula se ainda vazio
+  const historyPoints = scoreHistory.length >= 2
+    ? scoreHistory.slice(-4).map(h => h.score)
+    : [
+        Math.max(0, Math.round(score - 9)),
+        Math.max(0, Math.round(score - 5)),
+        Math.max(0, Math.round(score - 2)),
+        score,
+      ];
+
   const r = 56;
   const circumference = 2 * Math.PI * r;
   const offset = circumference * (1 - score / 100);
@@ -143,7 +153,7 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
   const scoreColor2 = score >= 80 ? "var(--green)" : score >= 65 ? "var(--blue)" : score >= 50 ? "var(--amber)" : "var(--red)";
 
   return (
-    <div style={{ animation: "fsu 0.26s ease", paddingBottom: "100px" }}>
+    <div className="animate-[fsu_0.26s_ease] pb-24">
       {/* ── Header Flutuante Zen ── */}
       <div className="flex items-center gap-3 mb-6 sticky top-2 z-[60] bg-[#0A1220]/80 backdrop-blur-2xl px-3 py-2.5 rounded-[22px] border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-1">
         {onBack && (
@@ -151,17 +161,17 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
             <ArrowLeft size={16} />
           </button>
         )}
-        <div style={{ flex: 1 }}>
+        <div className="flex-1">
           <div className="text-[10px] text-white/50 uppercase tracking-widest font-bold mb-0.5">Score 360°</div>
-          <div className="text-lg font-bold text-white tracking-tight" style={{ margin: 0 }}>Saúde Financeira</div>
+          <div className="text-lg font-bold text-white tracking-tight">Saúde Financeira</div>
         </div>
         <AreaTutorialButton area="futuro" onNavigate={onNavigate} />
       </div>
 
       <div className="px-2">
       {/* Score ring (Bento Full) */}
-      <div id="health-score" className="bento-card bento-full" style={{ textAlign: "center", padding: "28px 20px 22px", marginBottom: 16 }}>
-        <svg style={{ width: 140, height: 140, margin: "0 auto 16px" }} viewBox="0 0 140 140">
+      <div id="health-score" className="bento-card bento-full text-center p-[28px_20px_22px] mb-4">
+        <svg className="w-[140px] h-[140px] mx-auto mb-4" viewBox="0 0 140 140">
           <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="11" />
           <circle
             cx="70" cy="70" r={r}
@@ -187,9 +197,9 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
             de 100
           </text>
         </svg>
-        <div style={{ fontSize: 17, fontWeight: 700, color: "var(--t1)" }}>Saúde financeira {scoreLabel.toLowerCase()}</div>
-        <div style={{ fontSize: 12, color: scoreColor2, marginTop: 4 }}>Score calculado dinamicamente base nos seus dados</div>
-        <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 8, lineHeight: 1.5 }}>
+        <div className="text-[17px] font-bold text-[var(--t1)]">Saúde financeira {scoreLabel.toLowerCase()}</div>
+        <div className="text-[12px] mt-1 text-[var(--t2)]" style={{ color: scoreColor2 }}>Score calculado dinamicamente base nos seus dados</div>
+        <div className="text-[11px] text-[var(--t3)] mt-2 leading-relaxed">
           O score é heurístico e orientativo. Ele ajuda a priorizar ações, mas não substitui planejamento financeiro profissional.
         </div>
       </div>
@@ -210,8 +220,8 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
       )}
 
       {/* Credit Score Interno */}
-      <div className="bento-card bento-full" style={{ marginBottom: 16, padding: '20px' }}>
-         <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-4 flex justify-between">
+      <div className="bento-card bento-full mb-4 p-5">
+         <div className="text-[10px] uppercase tracking-widest font-bold text-[var(--t3)] mb-4 flex justify-between">
            <span>Score Interno de Crédito</span>
            <span className="text-white/30 truncate max-w-[100px]">Simulação</span>
          </div>
@@ -225,13 +235,13 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
             </span>
          </div>
          <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex mb-2">
-            <div className="h-full bg-rose-500" style={{ width: '30%' }} />
-            <div className="h-full bg-amber-500" style={{ width: '40%' }} />
-            <div className="h-full bg-emerald-500" style={{ width: '30%' }} />
+            <div className="h-full bg-rose-500 w-[30%]" />
+            <div className="h-full bg-amber-500 w-[40%]" />
+            <div className="h-full bg-emerald-500 w-[30%]" />
             {/* Indicator Dot */}
             <div 
-               className="absolute h-4 w-4 rounded-full bg-white shadow-lg border-2 border-slate-900 border-solid mt-[-4px]" 
-               style={{ marginLeft: `${score}%`, transition: 'all 1s ease' }} 
+               className="absolute h-4 w-4 rounded-full bg-white shadow-lg border-2 border-solid border-[var(--bg)] mt-[-4px] transition-all duration-1000" 
+               style={{ marginLeft: `${score}%` }} 
             />
          </div>
          <div className="flex justify-between text-[9px] text-white/40 uppercase font-bold tracking-widest mt-2">
@@ -245,29 +255,34 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
       </div>
 
       {/* Histórico orientativo */ }
-      <div className="bento-card bento-full" style={{ marginBottom: 16, padding: '18px' }}>
-        <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-4">Evolução da Saúde</div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+      <div className="bento-card bento-full mb-4 p-[18px]">
+        <div className="text-[10px] uppercase tracking-widest font-bold text-[var(--t3)] mb-4">Evolução da Saúde</div>
+        <div className="flex items-end gap-1.5">
         {historyPoints.map((v, i, arr) => (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ fontSize: 10, color: i === arr.length - 1 ? 'var(--blue)' : 'var(--t3)', fontWeight: i === arr.length - 1 ? 700 : 500 }}>{v}</div>
-            <div style={{ width: '100%', height: v * 0.8, background: i === arr.length - 1 ? 'var(--blue)' : 'var(--glass2)', borderRadius: '4px 4px 0 0', opacity: i === arr.length - 1 ? 1 : 0.6 }} />
+          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            <div className={`text-[10px] ${i === arr.length - 1 ? 'text-[var(--blue)] font-bold' : 'text-[var(--t3)] font-medium'}`}>{v}</div>
+            <div
+              className="w-full rounded-t-[4px]"
+              style={{ height: v * 0.8, background: i === arr.length - 1 ? 'var(--blue)' : 'var(--glass2)', opacity: i === arr.length - 1 ? 1 : 0.6 }}
+            />
           </div>
         ))}
         </div>
-        <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 10, lineHeight: 1.5 }}>
+        <div className="text-[10px] text-[var(--t3)] mt-2.5 leading-relaxed">
           Sequência estimada com base na fotografia atual dos seus dados. Quando houver histórico persistido, esta faixa passará a mostrar evolução real por período.
         </div>
       </div>
 
       <div id="health-dimensions" className="bento-card bento-full !p-0 overflow-hidden mb-4 border border-white/[0.08]">
-        <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 px-5 pt-5 pb-2">7 Dimensões Vitais</div>
+        <div className="text-[10px] uppercase tracking-widest font-bold text-[var(--t3)] px-5 pt-5 pb-2">7 Dimensões Vitais</div>
         {DIMS.map((d) => (
-          <div key={d.nm} style={{ borderBottom: "1px solid var(--border)", paddingBottom: expandedDim === d.nm ? 16 : 0, marginBottom: expandedDim === d.nm ? 16 : 0, transition: 'all 0.2s' }}>
+          <div
+            key={d.nm}
+            className={`border-b border-[var(--border)] transition-all duration-200 ${expandedDim === d.nm ? 'pb-4 mb-4' : 'pb-0 mb-0'}`}
+          >
             <button
               type="button"
-              className="row w-full text-left"
-              style={{ cursor: "pointer", borderBottom: "none", marginBottom: 0, paddingBottom: 12 }}
+              className="row w-full text-left cursor-pointer border-b-0 mb-0 pb-3"
               onClick={() => setExpandedDim(expandedDim === d.nm ? null : d.nm)}
               aria-expanded={expandedDim === d.nm}
               aria-label={`Alternar detalhes de ${d.nm}`}
@@ -277,25 +292,35 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
                 <div className="row-title">{d.nm}</div>
                 <div className="row-sub">{d.ds}</div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: COLOR_MAP[d.cl], width: 28, textAlign: "right", fontFamily: "var(--mono)" }}>
+              <div className="flex items-center gap-2.5 shrink-0">
+                <div className="text-[14px] font-bold w-7 text-right font-mono" style={{ color: COLOR_MAP[d.cl] }}>
                   {d.sc}
                 </div>
-                <ChevronDown size={14} color="var(--t3)" style={{ transform: expandedDim === d.nm ? "rotate(180deg)" : "rotate(0)", transition: "0.2s" }} />
+                <ChevronDown
+                  size={14}
+                  color="var(--t3)"
+                  className="transition-transform duration-200"
+                  style={{ transform: expandedDim === d.nm ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                />
               </div>
             </button>
 
-            {/* Accordion content with AI Recommendation */}
             {expandedDim === d.nm && (() => {
               const action = getAction(d.nm, d.sc);
               return (
-                <div style={{ marginTop: 8, padding: "12px", background: "var(--glass1)", borderRadius: "10px", borderLeft: `3px solid ${COLOR_MAP[d.cl]}` }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: COLOR_MAP[d.cl], marginBottom: 4 }}>Diagnóstico & Ação</div>
-                  <div style={{ fontSize: 13, color: "var(--t1)", lineHeight: 1.4 }}>
+                <div
+                  className="mt-2 p-3 bg-[var(--glass1)] rounded-[10px]"
+                  style={{ borderLeft: `3px solid ${COLOR_MAP[d.cl]}` }}
+                >
+                  <div className="text-[12px] font-bold mb-1" style={{ color: COLOR_MAP[d.cl] }}>Diagnóstico & Ação</div>
+                  <div className="text-[13px] text-[var(--t1)] leading-snug">
                     <strong>{action.title}:</strong> {action.text}
                   </div>
                   {action.act && d.sc < 80 && (
-                    <button className="btn-secondary" style={{ marginTop: 12, width: '100%', padding: '8px', fontSize: 12 }} onClick={() => onNavigate?.(action.act as TabType)}>
+                    <button
+                      className="btn-secondary mt-3 w-full py-2 text-[12px]"
+                      onClick={() => onNavigate?.(action.act as TabType)}
+                    >
                       {action.actText} <ChevronRight size={12} />
                     </button>
                   )}
@@ -304,17 +329,16 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
             })()}
           </div>
         ))}
-        {/* Fix empty border on last element */}
-        <div style={{ height: 16 }} />
+        <div className="h-4" />
       </div>
 
       {/* Stress check-in */}
-      <div className="bento-card bento-full" style={{ padding: '20px' }}>
-        <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-4">Check-in Biopsicossocial</div>
-        <div style={{ fontSize: 13, color: "var(--t1)", marginBottom: 16, lineHeight: 1.4 }}>
+      <div className="bento-card bento-full p-5">
+        <div className="text-[10px] uppercase tracking-widest font-bold text-[var(--t3)] mb-4">Check-in Biopsicossocial</div>
+        <div className="text-[13px] text-[var(--t1)] mb-4 leading-snug">
           A ansiedade financeira reduz a capacidade cognitiva. Como você está se sentindo ao olhar suas contas hoje?
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(62px, 1fr))", gap: 6 }}>
+        <div className="grid gap-1.5 grid-cols-[repeat(auto-fit,minmax(62px,1fr))]">
           {[1, 2, 3, 4, 5].map((val, i) => (
             <button
               type="button"
@@ -322,17 +346,25 @@ export const HealthSection = ({ onBack, onNavigate }: HealthSectionProps = {}) =
               onClick={() => handleSetStress(i)}
               aria-pressed={selectedStress === i}
               aria-label={`Registrar humor ${STRESS_LABELS[i]}`}
-              style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: "16px 4px 10px", borderRadius: 14, border: `1px solid ${selectedStress === i ? "var(--blue)" : "var(--border)"}`, background: selectedStress === i ? "var(--blue3)" : "var(--bg)", transition: "all 0.15s", boxShadow: selectedStress === i ? "0 4px 12px rgba(89,143,249,0.15)" : "none" }}
+              className="flex-1 text-center cursor-pointer pt-4 px-1 pb-2.5 rounded-[14px] transition-all duration-150"
+              style={{
+                border: `1px solid ${selectedStress === i ? 'var(--blue)' : 'var(--border)'}`,
+                background: selectedStress === i ? 'var(--blue3)' : 'var(--bg)',
+                boxShadow: selectedStress === i ? '0 4px 12px rgba(89,143,249,0.15)' : 'none',
+              }}
             >
-              <div style={{ fontSize: 18, color: selectedStress === i ? "var(--blue)" : "var(--t3)", fontWeight: 800 }}>M{val}</div>
-              <div style={{ fontSize: 9, color: selectedStress === i ? "var(--t1)" : "var(--t3)", marginTop: 6, lineHeight: 1.2, fontWeight: selectedStress === i ? 700 : 500 }}>
+              <div className="text-[18px] font-extrabold" style={{ color: selectedStress === i ? 'var(--blue)' : 'var(--t3)' }}>M{val}</div>
+              <div
+                className="text-[9px] mt-1.5 leading-tight"
+                style={{ color: selectedStress === i ? 'var(--t1)' : 'var(--t3)', fontWeight: selectedStress === i ? 700 : 500 }}
+              >
                 {STRESS_LABELS[i]}
               </div>
             </button>
           ))}
         </div>
         {selectedStress !== null && (
-          <div style={{ marginTop: 12, fontSize: 12, color: "var(--t2)", textAlign: "center" }}>
+          <div className="mt-3 text-[12px] text-[var(--t2)] text-center">
             ✓ Check-in registrado: <strong>{STRESS_LABELS[selectedStress!]}</strong>. Impacto visualizado no seu Score 360°.
           </div>
         )}

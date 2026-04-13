@@ -22,12 +22,12 @@ export const HelpButton = ({ tooltipText, onClick, size = "sm" }: HelpButtonProp
             variant="ghost"
             size={size === "sm" ? "icon" : size}
             onClick={onClick}
-            className="text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-all"
+            className="text-neutral-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-all"
           >
             <HelpCircle size={size === "sm" ? 16 : 18} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent className="bg-[#0b1220] border border-white/10 text-sm text-slate-300 p-3 max-w-xs">
+        <TooltipContent className="bg-[#0b1220] border border-white/10 text-sm text-neutral-400 p-3 max-w-xs">
           {tooltipText}
         </TooltipContent>
       </Tooltip>

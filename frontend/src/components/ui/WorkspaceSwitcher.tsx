@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,11 +83,11 @@ export const WorkspaceSwitcher = () => {
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">
             {isPersonal ? "Pessoal" : "Shared"}
           </span>
-          <ChevronDown size={14} className="text-slate-500" />
+          <ChevronDown size={14} className="text-neutral-500" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64 glass-premium border-white/10 text-white p-2 rounded-[1.5rem] shadow-2xl">
-        <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 px-4 py-3">
+        <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 px-4 py-3">
           Ambiente de Dados
         </DropdownMenuLabel>
 
@@ -103,7 +103,7 @@ export const WorkspaceSwitcher = () => {
             className={`p-2 rounded-lg ${
               isPersonal
                 ? "bg-indigo-500 text-white"
-                : "bg-white/5 text-slate-400"
+                : "bg-white/5 text-neutral-500"
             }`}
           >
             <Users size={16} />
@@ -112,7 +112,7 @@ export const WorkspaceSwitcher = () => {
             <span className="text-xs font-black uppercase tracking-tight">
               Privado
             </span>
-            <span className="text-[9px] font-medium text-slate-500">
+            <span className="text-[9px] font-medium text-neutral-500">
               Apenas você
             </span>
           </div>
@@ -132,7 +132,7 @@ export const WorkspaceSwitcher = () => {
               className={`p-2 rounded-lg ${
                 currentWorkspaceId === wsId
                   ? "bg-pink-500 text-white"
-                  : "bg-white/5 text-slate-400"
+                  : "bg-white/5 text-neutral-500"
               }`}
             >
               <Briefcase size={16} />
@@ -141,7 +141,7 @@ export const WorkspaceSwitcher = () => {
               <span className="text-xs font-black uppercase tracking-tight">
                 Shared
               </span>
-              <span className="text-[9px] font-medium text-slate-500">
+              <span className="text-[9px] font-medium text-neutral-500">
                 ID: {wsId.slice(0, 8)}
               </span>
             </div>
@@ -165,3 +165,4 @@ export const WorkspaceSwitcher = () => {
     </DropdownMenu>
   );
 };
+

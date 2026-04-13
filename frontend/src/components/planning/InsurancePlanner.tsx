@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useDebts } from "@/hooks/useDebts";
 import { loadProfile } from "@/lib/storage";
+import { api } from "@/lib/api";
+import { showSuccess, showError } from "@/lib/toast";
 import { 
   ArrowLeft, 
   Shield, 
@@ -39,6 +41,19 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
   const profile = loadProfile();
 
   const [selectedInsurances, setSelectedInsurances] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  // Carrega tipos de seguro salvos no perfil
+  useEffect(() => {
+    api.get<{ insuranceTypes?: string | string[] }>('/users/me')
+      .then(u => {
+        const raw = u.insuranceTypes;
+        if (!raw) return;
+        const types = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (Array.isArray(types)) setSelectedInsurances(types);
+      })
+      .catch(() => {});
+  }, []);
 
   // Calculate financial data
   const monthlyIncome = totals.income;
@@ -108,7 +123,7 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
       case "alta": return "text-red-400 bg-red-500/10";
       case "média": return "text-amber-400 bg-amber-500/10";
       case "baixa": return "text-green-400 bg-green-500/10";
-      default: return "text-slate-400 bg-slate-500/10";
+      default: return "text-neutral-500 bg-neutral-500/10";
     }
   };
 
@@ -120,11 +135,23 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
     }, 0);
 
   const handleToggleInsurance = (type: string) => {
-    setSelectedInsurances(prev => 
-      prev.includes(type) 
+    setSelectedInsurances(prev =>
+      prev.includes(type)
         ? prev.filter(t => t !== type)
         : [...prev, type]
     );
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.put('/users/me', { insuranceTypes: selectedInsurances });
+      showSuccess('Plano de seguros salvo com sucesso!');
+    } catch {
+      showError('Erro ao salvar. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -141,7 +168,7 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
         )}
         <div>
           <h1 className="text-xl font-black text-white">Planejar Seguros</h1>
-          <p className="text-xs text-slate-400">Proteja seu patrimônio e família</p>
+          <p className="text-xs text-neutral-500">Proteja seu patrimônio e família</p>
         </div>
       </div>
 
@@ -153,31 +180,31 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
           </div>
           <div>
             <div className="text-sm font-bold text-white">Resumo Financeiro</div>
-            <div className="text-[10px] text-slate-400">Base para cálculo dos seguros</div>
+            <div className="text-[10px] text-neutral-500">Base para cálculo dos seguros</div>
           </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-[10px] text-slate-400 uppercase">Renda Mensal</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Renda Mensal</div>
             <div className="text-lg font-bold text-green-400">
               R$ {monthlyIncome.toLocaleString('pt-BR')}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-slate-400 uppercase">Patrimônio Líquido</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Patrimônio Líquido</div>
             <div className="text-lg font-bold text-blue-400">
               R$ {netWorth.toLocaleString('pt-BR')}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-slate-400 uppercase">Dependentes</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Dependentes</div>
             <div className="text-lg font-bold text-amber-400">
               {profile?.dependents || 0}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-slate-400 uppercase">Custo Total Mensal</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Custo Total Mensal</div>
             <div className="text-lg font-bold text-purple-400">
               R$ {totalMonthlyCost.toLocaleString('pt-BR')}
             </div>
@@ -219,7 +246,7 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
                       ? 'bg-green-500/20 text-green-400'
                       : selectedInsurances.includes(insurance.type)
                       ? 'bg-blue-500/20 text-blue-400'
-                      : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                      : 'bg-white/5 text-neutral-500 hover:bg-white/10'
                   }`}
                 >
                   {insurance.implemented ? (
@@ -228,7 +255,7 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
                     <div className={`w-4 h-4 rounded border-2 ${
                       selectedInsurances.includes(insurance.type)
                         ? 'bg-blue-500 border-blue-500'
-                        : 'border-slate-400'
+                        : 'border-neutral-500'
                     }`} />
                   )}
                 </button>
@@ -236,11 +263,11 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
 
               <div className="grid grid-cols-2 gap-4 mb-3">
                 <div>
-                  <div className="text-[10px] text-slate-400 uppercase">Cobertura</div>
+                  <div className="text-[10px] text-neutral-500 uppercase">Cobertura</div>
                   <div className="text-sm font-bold text-white">{insurance.coverage}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 uppercase">Custo Estimado</div>
+                  <div className="text-[10px] text-neutral-500 uppercase">Custo Estimado</div>
                   <div className="text-sm font-bold text-amber-400">{insurance.estimatedCost}</div>
                 </div>
               </div>
@@ -248,7 +275,7 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
               <div className="p-3 rounded-lg bg-white/5">
                 <div className="flex items-start gap-2">
                   <Info size={14} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-slate-300">{insurance.reason}</p>
+                  <p className="text-xs text-neutral-400">{insurance.reason}</p>
                 </div>
               </div>
 
@@ -293,7 +320,7 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
                 R$ {totalMonthlyCost.toLocaleString('pt-BR')}
               </span>
             </div>
-            <div className="text-[10px] text-slate-400 mt-1">
+            <div className="text-[10px] text-neutral-500 mt-1">
               {(totalMonthlyCost / monthlyIncome * 100).toFixed(1)}% da sua renda mensal
             </div>
           </div>
@@ -322,7 +349,7 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
           ].map((tip, i) => (
             <div key={i} className="flex items-start gap-2">
               <span className="text-sm">{tip.split(' ')[0]}</span>
-              <p className="text-xs text-slate-300">{tip.substring(tip.indexOf(' ') + 1)}</p>
+              <p className="text-xs text-neutral-400">{tip.substring(tip.indexOf(' ') + 1)}</p>
             </div>
           ))}
         </div>
@@ -331,14 +358,19 @@ export const InsurancePlanner = ({ onBack }: InsurancePlannerProps) => {
       {/* Action Button */}
       {selectedInsurances.length > 0 && (
         <div className="fixed bottom-24 left-0 right-0 px-4 z-40">
-          <button className="w-full p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl text-white font-bold shadow-lg">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl text-white font-bold shadow-lg disabled:opacity-60"
+          >
             <div className="flex items-center justify-center gap-2">
               <Shield size={18} />
-              <span>Simular Contratação ({selectedInsurances.length})</span>
+              <span>{saving ? 'Salvando...' : `Salvar Plano (${selectedInsurances.length} seguros)`}</span>
             </div>
           </button>
         </div>
       )}
+
     </div>
   );
 };

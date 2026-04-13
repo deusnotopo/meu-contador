@@ -16,6 +16,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { QuickSetupWizard } from "@/components/ui/QuickSetupWizard";
 import { saveBudgets } from "@/lib/storage";
 import { showSuccess } from "@/lib/toast";
+import { normalizeBudgetCategory } from "@/features/budgets/budget-utils";
 
 import { CashFlowSection } from "@/components/business/CashFlowSection";
 import { DRESection } from "@/components/business/DRESection";
@@ -92,7 +93,7 @@ export const BusinessFinance = () => {
     if (data.budgets) {
       saveBudgets(data.budgets.map((b, i: number) => ({
         id: String(Date.now() + i),
-        category: b.category,
+        category: normalizeBudgetCategory(b.category),
         limit: b.amount,
         spent: 0,
         month: new Date().toISOString().slice(0, 7)
@@ -125,7 +126,7 @@ export const BusinessFinance = () => {
               </div>
               <div>
                 <h4 className="font-black text-white uppercase tracking-tight">Setup Empresarial Rápido</h4>
-                <p className="text-xs text-slate-400 font-medium">Configure categorias de MEI ou Autônomo instantaneamente.</p>
+                <p className="text-xs text-neutral-500 font-medium">Configure categorias de MEI ou Autônomo instantaneamente.</p>
               </div>
             </div>
             <Button 
@@ -164,7 +165,7 @@ export const BusinessFinance = () => {
                 PRO Business
               </span>
             </h2>
-            <p className="text-slate-400 font-medium max-w-md">
+            <p className="text-neutral-500 font-medium max-w-md">
               Gestão contábil e financeira avançada com inteligência de dados
               para o seu negócio.
             </p>
@@ -181,7 +182,7 @@ export const BusinessFinance = () => {
             <Button
               onClick={() => setShowWizard(true)}
               variant="outline"
-              className="h-14 px-6 rounded-2xl border-white/10 text-slate-400 hover:text-white hover:bg-white/5 uppercase tracking-widest text-[10px] font-bold"
+              className="h-14 px-6 rounded-2xl border-white/10 text-neutral-500 hover:text-white hover:bg-white/5 uppercase tracking-widest text-[10px] font-bold"
             >
               <Sparkles size={16} className="mr-2" />
               Configurar

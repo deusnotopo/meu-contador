@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
+  AlertCircle,
   Bitcoin,
   Building2,
   Check,
@@ -61,22 +62,33 @@ const ASSET_TYPES = [
     icon: Coins,
     color: "bg-blue-500",
   },
+  { id: "etf", label: "ETF", icon: TrendingUp, color: "bg-violet-500" },
 ];
 
 export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
   const [step, setStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AddAssetWizardData>({
     currency: "BRL",
     type: "stock",
   });
 
   const handleNext = () => {
+    setError(null);
     if (step < STEPS.length - 1) setStep(step + 1);
     else {
       // Finalize
       const allocationNum = Number(data.targetAllocation) || 0;
+      const amount = Number(data.amount);
+      const averagePrice = Number(data.averagePrice);
+
       if (allocationNum > 100) {
-        alert("A alocação não pode ser maior que 100%");
+        setError("A alocação não pode ser maior que 100%.");
+        return;
+      }
+
+      if (amount <= 0 || averagePrice < 0) {
+        setError("Informe quantidade válida e preço médio não negativo.");
         return;
       }
 
@@ -84,9 +96,9 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
         name: data.name!,
         ticker: data.ticker!.toUpperCase(),
         type: data.type!,
-        amount: Number(data.amount),
-        averagePrice: Number(data.averagePrice),
-        currentPrice: Number(data.averagePrice),
+        amount,
+        averagePrice,
+        currentPrice: Number(data.currentPrice) > 0 ? Number(data.currentPrice) : averagePrice,
         currency: data.currency!,
         sector: data.sector || "Geral",
         targetAllocation: allocationNum,
@@ -102,7 +114,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
       case 1:
         return !!data.ticker && !!data.name;
       case 2:
-        return !!data.amount && !!data.averagePrice;
+        return Number(data.amount) > 0 && Number(data.averagePrice) >= 0;
       case 3:
         return true; // Optional
       default:
@@ -122,7 +134,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
         <div className="p-6 border-b border-white/5 bg-white/[0.02]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-black text-white">Novo Investimento</h2>
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+            <div className="text-xs font-bold text-[var(--t4)] uppercase tracking-widest">
               Passo {step + 1} de {STEPS.length}
             </div>
           </div>
@@ -138,6 +150,12 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
 
         {/* Content */}
         <div className="p-6 h-[400px] overflow-y-auto custom-scrollbar">
+          {error && (
+            <div className="mb-4 flex items-start gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {step === 0 && (
               <motion.div
@@ -185,7 +203,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                 className="space-y-6"
               >
                 <div className="space-y-2">
-                  <Label className="uppercase text-[10px] font-black tracking-widest text-slate-400">
+                  <Label className="uppercase text-[10px] font-black tracking-widest text-[var(--t3)]">
                     Ticker / Código
                   </Label>
                   <Input
@@ -197,12 +215,12 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     placeholder="Ex: PETR4, BTC, CDB..."
                     className="h-14 bg-white/5 border-white/10 rounded-xl text-lg font-bold tracking-wider placeholder:font-normal"
                   />
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-[var(--t4)]">
                     O código usado na bolsa ou banco.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="uppercase text-[10px] font-black tracking-widest text-slate-400">
+                  <Label className="uppercase text-[10px] font-black tracking-widest text-[var(--t3)]">
                     Nome do Ativo
                   </Label>
                   <Input
@@ -225,7 +243,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
               >
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="uppercase text-[10px] font-black tracking-widest text-slate-400">
+                    <Label className="uppercase text-[10px] font-black tracking-widest text-[var(--t3)]">
                       Quantidade
                     </Label>
                     <Input
@@ -240,7 +258,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="uppercase text-[10px] font-black tracking-widest text-slate-400">
+                    <Label className="uppercase text-[10px] font-black tracking-widest text-[var(--t3)]">
                       Moeda
                     </Label>
                     <Select
@@ -252,7 +270,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                       <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-white/10 text-white">
+                      <SelectContent className="bg-[var(--bg)] border-white/10 text-white">
                         <SelectItem value="BRL">BRL (R$)</SelectItem>
                         <SelectItem value="USD">USD ($)</SelectItem>
                         <SelectItem value="EUR">EUR (€)</SelectItem>
@@ -261,11 +279,11 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="uppercase text-[10px] font-black tracking-widest text-slate-400">
+                  <Label className="uppercase text-[10px] font-black tracking-widest text-[var(--t3)]">
                     Preço Médio (Custo)
                   </Label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--t4)]">
                       <DollarSign size={16} />
                     </div>
                     <Input
@@ -275,6 +293,26 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                       onChange={(e) =>
                         setData({ ...data, averagePrice: e.target.value })
                       }
+                      className="h-14 bg-white/5 border-white/10 rounded-xl pl-10 text-lg font-bold"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="uppercase text-[10px] font-black tracking-widest text-[var(--t3)]">
+                    Preço Atual (opcional)
+                  </Label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--t4)]">
+                      <DollarSign size={16} />
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={data.currentPrice}
+                      onChange={(e) =>
+                        setData({ ...data, currentPrice: e.target.value })
+                      }
+                      placeholder="Se vazio, usa o preço médio"
                       className="h-14 bg-white/5 border-white/10 rounded-xl pl-10 text-lg font-bold"
                     />
                   </div>
@@ -294,12 +332,12 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                   <Check className="text-emerald-500" size={32} />
                 </div>
                 <h3 className="text-2xl font-black text-white">Quase lá!</h3>
-                <p className="text-slate-400">
+                <p className="text-[var(--t3)]">
                   Defina uma meta de alocação para este ativo (opcional).
                 </p>
 
                 <div className="max-w-[200px] mx-auto space-y-2">
-                  <Label className="uppercase text-[10px] font-black tracking-widest text-slate-400">
+                  <Label className="uppercase text-[10px] font-black tracking-widest text-[var(--t3)]">
                     Meta Ideal (%)
                   </Label>
                   <Input
@@ -322,7 +360,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
           <Button
             variant="ghost"
             onClick={step === 0 ? onClose : () => setStep(step - 1)}
-            className="text-slate-400 hover:text-white"
+            className="text-[var(--t3)] hover:text-white"
           >
             {step === 0 ? "Cancelar" : <ArrowLeft size={18} />}
           </Button>

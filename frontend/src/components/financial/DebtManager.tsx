@@ -100,7 +100,7 @@ export function DebtManager() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="p-6 rounded-3xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-white/10"
+        className="p-6 rounded-3xl bg-gradient-to-br from-[var(--bg)]/80 to-[var(--card)]/80 border border-white/10"
       >
         <h3 className="text-lg font-bold text-white mb-4">Método de Quitação</h3>
         
@@ -123,7 +123,7 @@ export function DebtManager() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--t3)]">
               Quite primeiro as dívidas com maiores juros. Economiza mais dinheiro.
             </p>
             <div className="mt-3 text-sm font-bold text-indigo-400">
@@ -149,7 +149,7 @@ export function DebtManager() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--t3)]">
               Quite primeiro as dívidas menores. Ganhe motivação rápida.
             </p>
             <div className="mt-3 text-sm font-bold text-blue-400">
@@ -164,19 +164,19 @@ export function DebtManager() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="p-6 rounded-3xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-white/10"
+        className="p-6 rounded-3xl bg-gradient-to-br from-[var(--bg)]/80 to-[var(--card)]/80 border border-white/10"
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white">
             Suas Dívidas ({selectedMethod === 'avalanche' ? 'Avalanche' : 'Bola de Neve'})
           </h3>
-          <span className="text-xs text-slate-500">Ordem de quitação</span>
+          <span className="text-xs text-[var(--t4)]">Ordem de quitação</span>
         </div>
 
         {currentStrategy.debts.length === 0 ? (
           <div className="text-center py-8">
             <CheckCircle size={48} className="text-emerald-400 mx-auto mb-3" />
-            <p className="text-slate-400">Nenhuma dívida registrada!</p>
+            <p className="text-[var(--t3)]">Nenhuma dívida registrada!</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -195,13 +195,13 @@ export function DebtManager() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black ${
-                      index === 0 ? 'bg-rose-500 text-white' : 'bg-white/10 text-slate-400'
+                      index === 0 ? 'bg-rose-500 text-white' : 'bg-white/10 text-[var(--t3)]'
                     }`}>
                       {index + 1}
                     </div>
                     <div>
                       <p className="font-bold text-white">{debt.name}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">{debt.category}</p>
+                      <p className="text-[10px] text-[var(--t4)] uppercase tracking-widest">{debt.category}</p>
                     </div>
                   </div>
                   {index === 0 && (
@@ -213,22 +213,22 @@ export function DebtManager() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">Saldo</p>
+                    <p className="text-[10px] text-[var(--t4)] uppercase tracking-widest">Saldo</p>
                     <p className="text-sm font-bold text-white">{formatCurrency(debt.balance)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">Juros/Mês</p>
+                    <p className="text-[10px] text-[var(--t4)] uppercase tracking-widest">Juros/Mês</p>
                     <p className="text-sm font-bold text-rose-400">{debt.interestRate.toFixed(1)}%</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">Pagamento</p>
+                    <p className="text-[10px] text-[var(--t4)] uppercase tracking-widest">Pagamento</p>
                     <p className="text-sm font-bold text-white">{formatCurrency(debt.minPayment)}</p>
                   </div>
                 </div>
 
                 {/* Progress bar */}
                 <div className="mt-3">
-                  <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                  <div className="flex justify-between text-[10px] text-[var(--t4)] mb-1">
                     <span>Juros totais se pagar mínimo</span>
                     <span>{formatCurrency(debt.totalInterestPaid)}</span>
                   </div>
@@ -251,7 +251,7 @@ export function DebtManager() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="p-6 rounded-3xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-white/10"
+          className="p-6 rounded-3xl bg-gradient-to-br from-[var(--bg)]/80 to-[var(--card)]/80 border border-white/10"
         >
           <h3 className="text-lg font-bold text-white mb-4">Linha do Tempo de Quitação</h3>
           
@@ -263,7 +263,7 @@ export function DebtManager() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-white">{event.debtName}</p>
-                  <p className="text-[10px] text-slate-500">Mês {event.month}</p>
+                  <p className="text-[10px] text-[var(--t4)]">Mês {event.month}</p>
                 </div>
                 <span className="text-sm font-bold text-emerald-400">
                   {formatCurrency(event.amount)}
@@ -272,14 +272,14 @@ export function DebtManager() {
             ))}
             
             {currentStrategy.payoffOrder.length > 5 && (
-              <p className="text-xs text-slate-500 text-center pt-2">
+              <p className="text-xs text-[var(--t4)] text-center pt-2">
                 +{currentStrategy.payoffOrder.length - 5} eventos de quitação
               </p>
             )}
           </div>
 
           <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+            <span className="text-xs font-bold text-[var(--t4)] uppercase tracking-widest">
               Data de Liberdade
             </span>
             <span className="text-lg font-black text-emerald-400 capitalize">
@@ -314,9 +314,9 @@ export function DebtManager() {
                 {insight.type === 'achievement' && <CheckCircle size={16} className="text-emerald-400 mt-0.5" />}
                 <div>
                   <p className="font-bold text-white text-sm">{insight.title}</p>
-                  <p className="text-xs text-slate-400 mt-1">{insight.description}</p>
+                  <p className="text-xs text-[var(--t3)] mt-1">{insight.description}</p>
                   {insight.impact && (
-                    <p className="text-[10px] text-slate-500 mt-2">{insight.impact}</p>
+                    <p className="text-[10px] text-[var(--t4)] mt-2">{insight.impact}</p>
                   )}
                 </div>
               </div>

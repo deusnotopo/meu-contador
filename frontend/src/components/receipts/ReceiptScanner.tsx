@@ -158,7 +158,7 @@ export const ReceiptScanner = ({
             <CardContent className="p-6 space-y-6">
               {!selectedImage ? (
                 <div className="space-y-4">
-                  <p className="text-slate-400 text-sm">
+                  <p className="text-neutral-500 text-sm">
                     Tire uma foto do recibo ou faça upload de uma imagem para
                     extrair os dados automaticamente.
                   </p>

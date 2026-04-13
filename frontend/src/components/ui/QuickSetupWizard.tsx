@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion } from "framer-motion";
 import { Sparkles, GraduationCap, Briefcase, Wallet, Check, ArrowRight } from "lucide-react";
 import { showSuccess } from "@/lib/toast";
@@ -115,7 +115,7 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({ type, onComp
             <h2 className="text-3xl font-black text-white tracking-tighter uppercase">
               Configuração <span className="premium-gradient-text">Instantânea</span>
             </h2>
-            <p className="text-slate-400 text-sm font-medium">
+            <p className="text-neutral-500 text-sm font-medium">
               Escolha um perfil abaixo para configurar esta área automaticamente em segundos.
             </p>
           </div>
@@ -137,7 +137,7 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({ type, onComp
                 </div>
 
                 <h4 className="text-xl font-black text-white mb-2 tracking-tight">{preset.title}</h4>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">{preset.desc}</p>
+                <p className="text-xs text-neutral-500 font-medium leading-relaxed">{preset.desc}</p>
                 
                 <div className="mt-6 flex items-center gap-2 text-white/40 group-hover:text-white transition-colors">
                   <span className="text-[10px] font-black uppercase tracking-widest">Aplicar</span>
@@ -150,7 +150,7 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({ type, onComp
           <div className="pt-4 flex justify-between items-center border-t border-white/5">
             <button 
               onClick={onClose}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+              className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-colors"
             >
               Agora não, quero fazer manual
             </button>
@@ -160,3 +160,4 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({ type, onComp
     </div>
   );
 };
+

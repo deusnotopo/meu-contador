@@ -83,7 +83,7 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
                          Sincronizar <span className="text-indigo-400">Dados</span>
                        </DialogTitle>
                     </div>
-                    <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                    <p className="text-sm text-neutral-500 font-medium leading-relaxed">
                       Sincronize com máxima segurança. Suas credenciais bancárias são encriptadas (TLS 256) e nunca armazenadas.
                     </p>
                   </DialogHeader>

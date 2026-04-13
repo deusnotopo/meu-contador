@@ -58,7 +58,7 @@ const TUTORIALS: Record<string, {
     action: { label: "Simular aposentadoria", tab: "retire_proj" },
   },
   academia: {
-    title: "Academia Financeira",
+    title: "Aprender Finanças",
     emoji: "🎓",
     tips: [
       { icon: "📚", title: "Trilha de aprendizado", body: "Conteúdo organizado do básico ao avançado. Do controle de gastos a investimentos em ações internacionais." },
@@ -102,7 +102,6 @@ export const AreaTutorialButton = ({ area, onNavigate, style }: AreaTutorialButt
   const total = tutorial?.tips.length ?? 0;
   const tip = tutorial?.tips[step];
 
-  // Close when clicking outside
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -117,29 +116,16 @@ export const AreaTutorialButton = ({ area, onNavigate, style }: AreaTutorialButt
 
   if (!tutorial || !tip) return null;
 
+  // Shared button class strings
+  const navBtnBase = "rounded-lg px-2.5 py-[5px] text-[11px] cursor-pointer border-none font-[var(--font)] font-semibold";
+
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-flex", ...style }}>
-      {/* Trigger button */}
+    <div ref={ref} className="relative inline-flex" style={style}>
+      {/* Trigger */}
       <button
         onClick={() => { setOpen(o => !o); setStep(0); }}
         aria-label={`Tutorial: ${tutorial.title}`}
-        style={{
-          width: 26,
-          height: 26,
-          borderRadius: "50%",
-          background: "var(--glass2)",
-          border: "1px solid var(--border)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          fontSize: 12,
-          fontWeight: 700,
-          color: "var(--t3)",
-          fontFamily: "var(--font)",
-          transition: "all 0.2s",
-          flexShrink: 0,
-        }}
+        className="w-[26px] h-[26px] rounded-full bg-[var(--glass2)] border border-[var(--border)] flex items-center justify-center cursor-pointer text-[12px] font-bold text-[var(--t3)] shrink-0 transition-all duration-200 hover:border-blue-400/40 hover:text-white"
       >
         ?
       </button>
@@ -147,102 +133,61 @@ export const AreaTutorialButton = ({ area, onNavigate, style }: AreaTutorialButt
       {/* Tooltip card */}
       {open && (
         <div
+          className="absolute bottom-[calc(100%+10px)] right-0 w-[280px] rounded-[20px] overflow-hidden z-[200] animate-[fsu_0.2s_cubic-bezier(0.34,1.1,0.64,1)]"
           style={{
-            position: "absolute",
-            bottom: "calc(100% + 10px)",
-            right: 0,
-            width: 280,
             background: "rgba(10,16,30,0.98)",
             border: "1px solid rgba(74,139,255,0.2)",
-            borderRadius: 20,
             boxShadow: "0 24px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)",
             backdropFilter: "blur(20px)",
-            zIndex: 200,
-            animation: "fsu 0.2s cubic-bezier(0.34,1.1,0.64,1)",
-            overflow: "hidden",
           }}
         >
           {/* Header */}
-          <div style={{
-            padding: "14px 16px 10px",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 16 }}>{tutorial.emoji}</span>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)" }}>{tutorial.title}</div>
+          <div className="px-4 pt-3.5 pb-2.5 border-b border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[16px]">{tutorial.emoji}</span>
+              <div className="text-[13px] font-bold text-[var(--t1)]">{tutorial.title}</div>
             </div>
             <button
               onClick={() => { setOpen(false); setStep(0); }}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", padding: 2 }}
+              className="bg-transparent border-none cursor-pointer text-[var(--t3)] p-0.5 hover:text-white transition-colors"
             >
               <X size={14} />
             </button>
           </div>
 
           {/* Tip content */}
-          <div style={{ padding: "14px 16px" }}>
-            <div style={{
-              display: "flex",
-              gap: 10,
-              marginBottom: 14,
-              animation: "fsu 0.18s ease",
-            }}>
-              <div style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "rgba(74,139,255,0.1)",
-                border: "1px solid rgba(74,139,255,0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 18,
-                flexShrink: 0,
-              }}>
+          <div className="p-4">
+            <div className="flex gap-2.5 mb-3.5 animate-[fsu_0.18s_ease]">
+              <div className="w-9 h-9 rounded-[10px] bg-blue-500/10 border border-blue-500/15 flex items-center justify-center text-[18px] shrink-0">
                 {tip.icon}
               </div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 4 }}>{tip.title}</div>
-                <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.55 }}>{tip.body}</div>
+                <div className="text-[13px] font-bold text-[var(--t1)] mb-1">{tip.title}</div>
+                <div className="text-[12px] text-[var(--t3)] leading-[1.55]">{tip.body}</div>
               </div>
             </div>
 
-            {/* Pagination dots + nav */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", gap: 5 }}>
+            {/* Pagination */}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-[5px]">
                 {tutorial.tips.map((_, i) => (
                   <div
                     key={i}
                     onClick={() => setStep(i)}
+                    className="h-[6px] rounded-[3px] cursor-pointer transition-all duration-300"
                     style={{
                       width: i === step ? 16 : 6,
-                      height: 6,
-                      borderRadius: 3,
                       background: i === step ? "var(--blue)" : "var(--glass2)",
-                      cursor: "pointer",
-                      transition: "all 0.3s cubic-bezier(0.34,1.4,0.64,1)",
                     }}
                   />
                 ))}
               </div>
 
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div className="flex gap-1.5 items-center">
                 {step > 0 && (
                   <button
                     onClick={() => setStep(s => s - 1)}
-                    style={{
-                      background: "var(--glass2)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 8,
-                      padding: "5px 10px",
-                      fontSize: 11,
-                      color: "var(--t2)",
-                      cursor: "pointer",
-                      fontFamily: "var(--font)",
-                    }}
+                    className={`${navBtnBase} bg-[var(--glass2)] border border-[var(--border)] text-[var(--t2)]`}
                   >
                     ← Anterior
                   </button>
@@ -250,51 +195,21 @@ export const AreaTutorialButton = ({ area, onNavigate, style }: AreaTutorialButt
                 {step < total - 1 ? (
                   <button
                     onClick={() => setStep(s => s + 1)}
-                    style={{
-                      background: "linear-gradient(135deg, #2F62D9, #5048E8)",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: "5px 10px",
-                      fontSize: 11,
-                      color: "#fff",
-                      cursor: "pointer",
-                      fontFamily: "var(--font)",
-                      fontWeight: 600,
-                    }}
+                    className={`${navBtnBase} bg-gradient-to-br from-[#2F62D9] to-[#5048E8] text-white`}
                   >
                     Próximo →
                   </button>
                 ) : tutorial.action ? (
                   <button
                     onClick={() => { onNavigate?.(tutorial.action!.tab); setOpen(false); }}
-                    style={{
-                      background: "linear-gradient(135deg, #00b377, #00D991)",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: "5px 10px",
-                      fontSize: 11,
-                      color: "#000",
-                      cursor: "pointer",
-                      fontFamily: "var(--font)",
-                      fontWeight: 700,
-                    }}
+                    className={`${navBtnBase} bg-gradient-to-br from-[#00b377] to-[#00D991] text-black font-bold`}
                   >
                     {tutorial.action.label} →
                   </button>
                 ) : (
                   <button
                     onClick={() => { setOpen(false); setStep(0); }}
-                    style={{
-                      background: "linear-gradient(135deg, #2F62D9, #5048E8)",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: "5px 10px",
-                      fontSize: 11,
-                      color: "#fff",
-                      cursor: "pointer",
-                      fontFamily: "var(--font)",
-                      fontWeight: 600,
-                    }}
+                    className={`${navBtnBase} bg-gradient-to-br from-[#2F62D9] to-[#5048E8] text-white`}
                   >
                     Entendido ✓
                   </button>

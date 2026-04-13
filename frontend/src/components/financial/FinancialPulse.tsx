@@ -161,7 +161,7 @@ export function FinancialPulse() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-white/10 p-6"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--bg)]/80 to-[var(--card)]/80 border border-white/10 p-6"
       >
         {/* Animated Heartbeat Background */}
         <div className="absolute inset-0 overflow-hidden">
@@ -175,7 +175,7 @@ export function FinancialPulse() {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
+            className="absolute top-1/2 left-1/2 -tran[var(--t3)]x-1/2 -tran[var(--t3)]y-1/2 w-[400px] h-[400px] rounded-full"
             style={{ background: `radial-gradient(circle, ${overallPulse.color}20 0%, transparent 70%)` }}
           />
         </div>
@@ -193,14 +193,14 @@ export function FinancialPulse() {
             </motion.div>
             <div>
               <h2 className="text-2xl font-black text-white tracking-tight">Pulse Financeiro</h2>
-              <p className="text-sm text-slate-400">Monitoramento em tempo real</p>
+              <p className="text-sm text-[var(--t3)]">Monitoramento em tempo real</p>
             </div>
           </div>
           <div className="text-right">
             <div className="text-3xl font-black" style={{ color: overallPulse.color }}>
               {overallPulse.bpm} BPM
             </div>
-            <div className="text-xs text-slate-500 uppercase tracking-widest font-bold">
+            <div className="text-xs text-[var(--t4)] uppercase tracking-widest font-bold">
               {overallPulse.status}
             </div>
           </div>
@@ -225,7 +225,7 @@ export function FinancialPulse() {
                   <div className="flex items-center gap-1">
                     {metric.trend === 'up' && <TrendingUp size={12} className="text-emerald-400" />}
                     {metric.trend === 'down' && <TrendingDown size={12} className="text-rose-400" />}
-                    {metric.trend === 'stable' && <div className="w-3 h-0.5 bg-slate-500 rounded-full" />}
+                    {metric.trend === 'stable' && <div className="w-3 h-0.5 bg-[var(--t4)] rounded-full" />}
                   </div>
                 </div>
 
@@ -233,9 +233,9 @@ export function FinancialPulse() {
                 <div className="mb-2">
                   <div className="text-2xl font-black" style={{ color: metric.color }}>
                     {metric.value.toFixed(metric.id === 'emotional' ? 1 : 0)}
-                    <span className="text-sm font-medium text-slate-400 ml-1">{metric.unit}</span>
+                    <span className="text-sm font-medium text-[var(--t3)] ml-1">{metric.unit}</span>
                   </div>
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <div className="text-xs font-bold text-[var(--t3)] uppercase tracking-wider">
                     {metric.label}
                   </div>
                 </div>
@@ -252,7 +252,7 @@ export function FinancialPulse() {
                 </div>
 
                 {/* Description */}
-                <p className="text-[10px] text-slate-500 leading-relaxed">{metric.description}</p>
+                <p className="text-[10px] text-[var(--t4)] leading-relaxed">{metric.description}</p>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -267,7 +267,7 @@ export function FinancialPulse() {
             </div>
             <div className="space-y-2">
               {insights.slice(0, 3).map((insight, i) => (
-                <p key={i} className="text-xs text-slate-300 leading-relaxed">{insight}</p>
+                <p key={i} className="text-xs text-[var(--t2)] leading-relaxed">{insight}</p>
               ))}
             </div>
           </div>
@@ -277,13 +277,13 @@ export function FinancialPulse() {
         <div className="relative z-10 mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
           {Object.entries(indicators).slice(0, 4).map(([key, indicator]) => (
             <div key={key} className="p-3 rounded-xl bg-white/5 border border-white/5">
-              <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">
+              <div className="text-[10px] text-[var(--t4)] uppercase tracking-widest font-bold mb-1">
                 {indicator.nome}
               </div>
               <div className="text-lg font-black text-white">
                 {indicator.valor.toFixed(key === 'TR' ? 2 : 2)}%
               </div>
-              <div className="text-[9px] text-slate-600">{indicator.fonte}</div>
+              <div className="text-[9px] text-[var(--t4)]">{indicator.fonte}</div>
             </div>
           ))}
         </div>
@@ -294,18 +294,18 @@ export function FinancialPulse() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="p-6 rounded-3xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-white/10"
+        className="p-6 rounded-3xl bg-gradient-to-br from-[var(--bg)]/80 to-[var(--card)]/80 border border-white/10"
       >
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-white mb-1">Resumo da Saúde</h3>
-            <p className="text-sm text-slate-400">{financialScore.classificacao}</p>
+            <p className="text-sm text-[var(--t3)]">{financialScore.classificacao}</p>
           </div>
           <div className="text-right">
             <div className="text-4xl font-black" style={{ color: financialScore.cor }}>
               {financialScore.score}
             </div>
-            <div className="text-xs text-slate-500 uppercase tracking-widest font-bold">de 100</div>
+            <div className="text-xs text-[var(--t4)] uppercase tracking-widest font-bold">de 100</div>
           </div>
         </div>
 
@@ -313,7 +313,7 @@ export function FinancialPulse() {
         {financialScore.recomendacoes.length > 0 && (
           <div className="mt-4 space-y-2">
             {financialScore.recomendacoes.slice(0, 3).map((rec, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
+              <div key={i} className="flex items-start gap-2 text-xs text-[var(--t3)]">
                 <CheckCircle size={12} className="text-emerald-400 mt-0.5 shrink-0" />
                 <span>{rec}</span>
               </div>

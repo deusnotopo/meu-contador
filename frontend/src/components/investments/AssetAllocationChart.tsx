@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+﻿import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/formatters";
 import type { Investment, Currency } from "@/types";
 import { PieChart, Plus } from "lucide-react";
@@ -88,7 +88,7 @@ export const AssetAllocationChart = ({ assets, loading, convert }: Props) => {
             </RePieChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500 italic">
+          <div className="flex flex-col items-center justify-center h-full text-neutral-500 italic">
             <Plus size={32} className="opacity-10 mb-4" />
             <p className="text-xs font-medium">Nenhum ativo cadastrado</p>
           </div>
@@ -97,3 +97,4 @@ export const AssetAllocationChart = ({ assets, loading, convert }: Props) => {
     </div>
   );
 };
+

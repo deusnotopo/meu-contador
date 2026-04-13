@@ -19,62 +19,34 @@ export const EmptyState = ({
   tips,
 }: EmptyStateProps) => {
   return (
-    <div 
-      className="card" 
-      style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        padding: '32px 24px', 
-        textAlign: 'center',
-        borderStyle: 'dashed',
-        background: 'rgba(255,255,255,0.02)',
-        animation: 'fsu 0.4s ease-out'
-      }}
+    <div
+      className="card flex flex-col items-center justify-center px-6 py-8 text-center border-dashed bg-white/[0.02] animate-[fsu_0.4s_ease-out]"
     >
-      <div 
-        style={{ 
-          padding: '16px', 
-          background: 'var(--purple-d)', 
-          borderRadius: '16px', 
-          marginBottom: '16px', 
-          color: 'var(--purple)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
+      {/* Icon box */}
+      <div className="p-4 bg-[var(--purple-d)] rounded-2xl mb-4 flex items-center justify-center text-[var(--purple)]">
         <Icon size={32} />
       </div>
-      
-      <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--t1)', marginBottom: '8px' }}>
-        {title}
-      </h3>
-      
-      <p style={{ fontSize: '13px', color: 'var(--t2)', lineHeight: 1.5, maxWidth: '240px', marginBottom: '20px' }}>
+
+      <h3 className="text-[18px] font-bold text-[var(--t1)] mb-2">{title}</h3>
+
+      <p className="text-[13px] text-[var(--t2)] leading-[1.5] max-w-[240px] mb-5">
         {description}
       </p>
 
       {onAction && actionLabel && (
         <button
           onClick={onAction}
-          className="btn-p"
-          style={{ width: 'auto', padding: '10px 24px', fontSize: '13px' }}
+          className="btn-p w-auto px-6 py-2.5 text-[13px]"
         >
           {actionLabel}
         </button>
       )}
 
       {tips && tips.length > 0 && (
-        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)', width: '100%' }}>
-          <div className="eyebrow" style={{ textAlign: 'center', marginBottom: '8px' }}>
-            💡 Dica de Mestre
-          </div>
-          <div className="nudge good" style={{ textAlign: 'left', margin: 0, padding: '12px' }}>
-            <div className="nudge-body" style={{ fontSize: '12px' }}>
-              {tips[0]}
-            </div>
+        <div className="mt-6 pt-5 border-t border-[var(--border)] w-full">
+          <div className="eyebrow text-center mb-2">💡 Dica de Mestre</div>
+          <div className="nudge good text-left m-0 p-3">
+            <div className="nudge-body text-[12px]">{tips[0]}</div>
           </div>
         </div>
       )}

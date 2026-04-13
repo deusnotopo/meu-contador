@@ -201,6 +201,7 @@ export interface UserProfile {
   lgpdConsent?: boolean;
   openFinanceBank?: string;
   insuranceTypes?: string[];
+  educationTrack?: string;
 }
 
 export interface OnboardingBudget {
@@ -235,6 +236,7 @@ export interface OnboardingExpense {
 }
 
 export interface OnboardingDebt {
+  id?: string;
   name: string;
   balance: number;
   interestRate: number; // %/mês
@@ -304,7 +306,7 @@ export interface InvestmentPortfolio {
 
 export interface Dividend {
   id: string;
-  assetId: number;
+  assetId: string;
   assetTicker: string;
   amount: number;
   date: string;
@@ -313,7 +315,7 @@ export interface Dividend {
 
 export interface InvestmentSale {
   id: string;
-  assetId: number;
+  assetId: string;
   assetTicker: string;
   type: "stock" | "fii" | "crypto" | "fixed_income" | "etf";
   amount: number; // Quantity sold

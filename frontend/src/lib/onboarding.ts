@@ -6,17 +6,16 @@ import {
   saveGoals,
   saveInvestments,
   saveProfile,
-  saveReminders,
   saveTransactions,
 } from "@/lib/storage";
 import type {
-  BillReminder,
   Budget,
   Investment,
   OnboardingData,
   SavingsGoal,
   Transaction,
 } from "@/types";
+import { normalizeBudgetCategory } from "@/features/budgets/budget-utils";
 
 const ONBOARDING_KEY = STORAGE_KEYS.ONBOARDING;
 
@@ -69,7 +68,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
     .filter((b) => b.enabled)
     .map((b, i) => ({
       id: String(Date.now() + i),
-      category: b.category,
+      category: normalizeBudgetCategory(b.category),
       limit: b.amount,
       spent: 0,
       month: new Date().toISOString().slice(0, 7),
@@ -98,24 +97,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
     }));
   saveGoals(goals);
 
-  // Save reminders
-  const now = new Date();
-  const reminders: BillReminder[] = data.reminders
-    .filter((r) => r.enabled && (r.amount ?? 0) > 0)
-    .map((r, i) => {
-      const dueDate = new Date(now.getFullYear(), now.getMonth(), r.dueDay ?? 1);
-      if (dueDate < now) dueDate.setMonth(dueDate.getMonth() + 1);
-      return {
-        id: String(Date.now() + i + 200),
-        name: r.name ?? "Lembrete",
-        amount: r.amount ?? 0,
-        dueDate: dueDate.toISOString().split("T")[0] || "",
-        category: r.category ?? "Outros",
-        isPaid: false,
-        recurring: "monthly" as const,
-      };
-    });
-  saveReminders(reminders);
+
 
   // Save historical expenses as transactions
   if (data.historicalExpenses && data.historicalExpenses.length > 0) {

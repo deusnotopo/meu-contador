@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Bot, Check, Crown, Star, Zap } from "lucide-react";
@@ -100,7 +100,7 @@ export const PremiumPlans = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  <span className="text-xl text-slate-500 line-through font-bold">
+                  <span className="text-xl text-neutral-500 line-through font-bold">
                     R$ 29,90
                   </span>
                   <span className="text-6xl font-black text-white glow-text tracking-tighter">
@@ -174,3 +174,4 @@ export const PremiumPlans = ({
     </motion.div>
   );
 };
+

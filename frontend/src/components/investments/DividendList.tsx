@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -17,14 +17,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useInvestments } from "@/hooks/useInvestments";
+import type { Dividend, Investment } from "@/types";
 import { BarChart3, DollarSign, Plus, Trash2, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PrivacyValue } from "../ui/PrivacyValue";
 
-export const DividendList = () => {
-  const { assets, dividends, addDividend, deleteDividend } = useInvestments();
+interface DividendListProps {
+  assets: Investment[];
+  dividends: Dividend[];
+  addDividend: (
+    investmentId: string,
+    dividend: Omit<Dividend, "id" | "assetId" | "assetTicker">
+  ) => Promise<void>;
+  deleteDividend: (investmentId: string, dividendId: string) => Promise<void>;
+}
+
+const toIsoDateTime = (date: string) => `${date}T12:00:00.000Z`;
+
+export const DividendList = ({ assets, dividends, addDividend, deleteDividend }: DividendListProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     assetId: "",
     amount: "",
@@ -46,7 +58,7 @@ export const DividendList = () => {
     return ((totalDividends / totalInvested) * 100).toFixed(2);
   }, [assets, totalDividends]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const assetId = formData.assetId;
     const amount = parseFloat(formData.amount.replace(",", "."));
@@ -55,19 +67,26 @@ export const DividendList = () => {
 
     if (!selectedAsset || isNaN(amount) || amount <= 0) return;
 
-    addDividend(assetId, {
-      amount,
-      date: (formData.date || new Date().toISOString().substring(0, 10)) as string,
-      type: formData.type as "dividend" | "jcp",
-    });
+    setIsSubmitting(true);
+    try {
+      await addDividend(assetId, {
+        amount,
+        date: toIsoDateTime(
+          formData.date || new Date().toISOString().substring(0, 10)
+        ),
+        type: formData.type as "dividend" | "jcp",
+      });
 
-    setIsOpen(false);
-    setFormData({
-      assetId: "",
-      amount: "",
-      date: new Date().toISOString().substring(0, 10),
-      type: "dividend",
-    });
+      setIsOpen(false);
+      setFormData({
+        assetId: "",
+        amount: "",
+        date: new Date().toISOString().substring(0, 10),
+        type: "dividend",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -81,7 +100,7 @@ export const DividendList = () => {
                 <DollarSign size={24} />
               </div>
               <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider">
                   Total Recebido
                 </p>
                 <div className="text-2xl font-black text-white">
@@ -99,7 +118,7 @@ export const DividendList = () => {
                 <TrendingUp size={24} />
               </div>
               <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider">
                   Yield da Carteira
                 </p>
                 <div className="text-2xl font-black text-white">
@@ -203,9 +222,10 @@ export const DividendList = () => {
                 <DialogFooter className="pt-4">
                   <Button
                     type="submit"
+                    disabled={isSubmitting}
                     className="w-full bg-emerald-600 hover:bg-emerald-500"
                   >
-                    Salvar
+                    {isSubmitting ? "Salvando..." : "Salvar"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -214,7 +234,7 @@ export const DividendList = () => {
         </CardHeader>
         <CardContent>
           {dividends.length === 0 ? (
-            <div className="text-center py-10 text-slate-500">
+            <div className="text-center py-10 text-neutral-500">
               <DollarSign size={48} className="mx-auto mb-4 opacity-20" />
               <p>Nenhum provento registrado ainda.</p>
             </div>
@@ -245,7 +265,7 @@ export const DividendList = () => {
                   return (
                     <div key={monthKey} className="space-y-3">
                       <div className="flex items-center justify-between px-2">
-                        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                        <h4 className="text-sm font-bold text-neutral-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                           {monthName}
                         </h4>
                         <span className="text-emerald-400 font-bold text-sm">
@@ -275,7 +295,7 @@ export const DividendList = () => {
                                         ? "JCP"
                                         : "Dividendo"}
                                     </span>
-                                    <span className="text-slate-500 text-[10px]">
+                                    <span className="text-neutral-500 text-[10px]">
                                       {new Date(
                                         dividend.date + "T12:00:00"
                                       ).toLocaleDateString()}
@@ -291,7 +311,7 @@ export const DividendList = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400"
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-rose-400"
                                   onClick={() => deleteDividend(dividend.assetId, dividend.id)}
                                 >
                                   <Trash2 size={14} />
@@ -310,5 +330,6 @@ export const DividendList = () => {
     </div>
   );
 };
+
 
 
