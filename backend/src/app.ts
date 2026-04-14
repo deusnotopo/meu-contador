@@ -1,4 +1,4 @@
-﻿import fastify from 'fastify';
+import fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -21,6 +21,10 @@ import { budgetRoutes } from './routes/budgets';
 import { goalRoutes } from './routes/goals';
 import { authRoutes } from './routes/auth';
 import { userRoutes } from './routes/user';
+import { userPreferencesRoutes } from './routes/user-preferences';
+import { userEducationRoutes } from './routes/user-education';
+import { userOnboardingRoutes } from './routes/user-onboarding';
+import { userExportRoutes } from './routes/user-export';
 import { aiRoutes } from './routes/ai';
 import { bankingRoutes } from './routes/banking';
 import { debtRoutes } from './routes/debts';
@@ -389,6 +393,10 @@ app.get('/health', {
 
 app.register(authRoutes);
 app.register(userRoutes);
+app.register(userPreferencesRoutes);
+app.register(userEducationRoutes);
+app.register(userOnboardingRoutes);
+app.register(userExportRoutes);
 app.register(transactionRoutes);
 app.register(investmentRoutes);
 app.register(budgetRoutes);
