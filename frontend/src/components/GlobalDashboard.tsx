@@ -13,7 +13,8 @@ import { useGamification } from "@/hooks/useGamification";
 import { ChevronRight, Trophy } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 import type { AuthUser } from "@/context/AuthContext";
-import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Sub-components
 import { HeroPatrimonio } from "./dashboard/HeroPatrimonio";
@@ -63,6 +64,47 @@ const getEmoji = (cat: string) => EMOJI_MAP[cat.toLowerCase()] ?? "💸";
 
 
 
+// ─── Skeletons ───────────────────────────────────────────────────────────────
+const GlobalDashboardSkeleton = () => {
+  return (
+    <div className="pt-1 pb-8 px-2 sm:px-3 space-y-3">
+      {/* Header Skeleton */}
+      <div className="flex justify-between items-center gap-2 mb-4 px-3 py-2.5 mx-1">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="w-9 h-9 rounded-xl" />
+          <div className="flex flex-col gap-1">
+            <Skeleton className="w-16 h-2 rounded-full" />
+            <Skeleton className="w-32 h-4 rounded-full" />
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <Skeleton className="w-8 h-8 rounded-xl" />
+          <Skeleton className="w-8 h-8 rounded-xl" />
+          <Skeleton className="w-8 h-8 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Hero Patrimônio Skeleton */}
+      <Skeleton className="w-full h-[220px] rounded-3xl" />
+
+      {/* Termômetro + Fluxo Mensal Skeleton (2 cols) */}
+      <div className="bento-grid">
+        <Skeleton className="w-full h-[180px] rounded-3xl" />
+        <Skeleton className="w-full h-[180px] rounded-3xl" />
+      </div>
+
+      {/* Recent + Categories Skeleton */}
+      <div className="bento-grid">
+        <Skeleton className="w-full h-[240px] rounded-3xl" />
+        <Skeleton className="w-full h-[240px] rounded-3xl" />
+      </div>
+      
+      {/* Open Bills Skeleton */}
+      <Skeleton className="w-full h-[120px] rounded-3xl" />
+    </div>
+  );
+};
+
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) => void }) => {
   const personal = useTransactions("personal");
@@ -72,9 +114,9 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
   const isBusinessUser = user?.employmentType === "pj";
   const business = useTransactions(isBusinessUser ? "business" : "personal");
 
-  const { totals: investTotals, assets, error: investError } = useInvestments();
-  const { totals: debtTotals, debts, error: debtError } = useDebts();
-  const { goals } = useGoals();
+  const { totals: investTotals, assets, error: investError, loading: investLoading } = useInvestments();
+  const { totals: debtTotals, debts, error: debtError, isLoading: debtLoading } = useDebts();
+  const { goals, loading: goalsLoading } = useGoals();
   const { startTour } = useTour();
   const { level } = useGamification();
 
@@ -221,6 +263,12 @@ export const GlobalDashboard = ({ onNavigate }: { onNavigate?: (tab: TabType) =>
 
   const setupPct = Math.round((setupMissions.filter((m) => m.done).length / setupMissions.length) * 100);
   const showSetupWidget = setupPct < 100;
+
+  const isAllLoading = personal.isLoading || investLoading || debtLoading || goalsLoading;
+
+  if (isAllLoading) {
+    return <GlobalDashboardSkeleton />;
+  }
 
   return (
     <motion.div
