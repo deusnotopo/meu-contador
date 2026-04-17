@@ -113,3 +113,24 @@ export const initialTransactionFormData = {
   scope: "personal" as const,
   classification: "necessity" as const,
 };
+
+// ============= Category Visuals =============
+export const EMOJI_MAP: Record<string, string> = {
+  moradia: "🏠",
+  mercado: "🛒",
+  delivery: "🍕",
+  transporte: "🚗",
+  saúde: "💊",
+  salário: "💰",
+  lazer: "🎮",
+  educação: "📚",
+  vestuário: "👕",
+  assinaturas: "📱",
+  academia: "🥋",
+  viagem: "✈️",
+  beleza: "✨",
+  investimentos: "📈",
+  outros: "💸",
+};
+
+export const getCategoryEmoji = (cat: string) => EMOJI_MAP[cat.toLowerCase()] ?? "💸";
