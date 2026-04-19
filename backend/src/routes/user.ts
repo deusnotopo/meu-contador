@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../lib/db.js';
+import * as UserService from '../services/UserService.js';
+import * as UserRepository from '../repositories/UserRepository.js';
 import type { UpdateUserProfileDto } from '../../../shared/contracts.js';
 
 const updateUserProfileSchema = z.object({
@@ -53,85 +54,42 @@ const userResponseSchema = z.object({
 const userErrorSchema = z.object({ message: z.string() });
 
 export async function userRoutes(app: FastifyInstance) {
+  app.addHook('preHandler', app.authenticate);
+
   // PUT /users/me - Update Profile
   app.put('/users/me', {
     schema: {
       tags: ['User'],
       security: [{ bearerAuth: [] }],
-      body: z.object({
-        ...updateUserProfileSchema.shape,
-      }),
+      body: updateUserProfileSchema,
       response: {
         200: userResponseSchema,
         404: userErrorSchema,
       }
-    },
-    preHandler: [app.authenticate]
+    }
   }, async (request) => {
     const data = request.body as UpdateUserProfileDto;
-    
-    // Filter out undefined
-    const updateData: any = {};
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.monthlyIncome !== undefined) updateData.monthlyIncome = data.monthlyIncome;
-    if (data.financialGoal !== undefined) updateData.financialGoal = data.financialGoal;
-    if (data.riskProfile !== undefined) updateData.riskProfile = data.riskProfile;
-    if (data.businessName !== undefined) updateData.businessName = data.businessName;
-    if (data.businessCnpj !== undefined) updateData.businessCnpj = data.businessCnpj;
-    if (data.businessSector !== undefined) updateData.businessSector = data.businessSector;
-    if (data.employmentType !== undefined) updateData.employmentType = data.employmentType;
-    if (data.hasEmergencyFund !== undefined) updateData.hasEmergencyFund = data.hasEmergencyFund;
-    if (data.hasDebts !== undefined) updateData.hasDebts = data.hasDebts;
-    if (data.initialBalance !== undefined) updateData.initialBalance = data.initialBalance;
-    if (data.age !== undefined) updateData.age = data.age;
-    if (data.dependents !== undefined) updateData.dependents = data.dependents;
-    if (data.investmentHorizon !== undefined) updateData.investmentHorizon = data.investmentHorizon;
-    if (data.onboardingCompleted !== undefined) updateData.onboardingCompleted = data.onboardingCompleted;
-
-    const user = await db.user.update({
-        where: { id: request.user.id },
-        data: updateData
-    });
-    
-    const { passwordHash, ...rest } = user;
-    return rest;
+    return UserService.updateProfile(request.user.id, data);
   });
 
   // GET /users/gamification - Get user's gamification data
   app.get('/users/gamification', {
     schema: {
-      description: 'Obtém os dados de gamificação do usuário logado',
       tags: ['User'],
       security: [{ bearerAuth: [] }],
       response: {
         200: z.object({ gamificationData: z.any().optional() }),
         404: userErrorSchema,
       },
-    },
-    preHandler: [app.authenticate],
-  }, async (request, reply) => {
-    const user = await db.user.findUnique({
-      where: { id: request.user.id },
-      select: { gamificationData: true },
-    });
-
-    if (!user) return reply.status(404).send({ message: 'User not found' });
-
-    let data = null;
-    if (user.gamificationData) {
-      try {
-        data = typeof user.gamificationData === 'string' ? JSON.parse(user.gamificationData) : user.gamificationData;
-      } catch (e) {
-        data = null;
-      }
     }
+  }, async (request, reply) => {
+    const data = await UserService.getGamificationData(request.user.id);
     return { gamificationData: data };
   });
 
   // PUT /users/gamification - Update user's gamification data
   app.put('/users/gamification', {
     schema: {
-      description: 'Atualiza os dados de gamificação do usuário logado',
       tags: ['User'],
       security: [{ bearerAuth: [] }],
       body: z.object({ gamificationData: z.any() }),
@@ -139,57 +97,31 @@ export async function userRoutes(app: FastifyInstance) {
         200: z.object({ success: z.boolean(), gamificationData: z.any() }),
         500: userErrorSchema,
       },
-    },
-    preHandler: [app.authenticate],
-  }, async (request, reply) => {
-    const { gamificationData } = request.body as { gamificationData: unknown };
-    try {
-      const dataToStore = typeof gamificationData === 'string' ? gamificationData : JSON.stringify(gamificationData);
-      await db.user.update({
-        where: { id: request.user.id },
-        data: { gamificationData: dataToStore },
-      });
-      return { success: true, gamificationData };
-    } catch (err) {
-      return reply.status(500).send({ message: 'Failed to update gamification data' });
     }
+  }, async (request) => {
+    const { gamificationData } = request.body as { gamificationData: unknown };
+    const data = await UserService.updateGamificationData(request.user.id, gamificationData);
+    return { success: true, gamificationData: data };
   });
 
   // GET /users/emotional - Get user's emotional journal entries
   app.get('/users/emotional', {
     schema: {
-      description: 'Obtém os registros emocionais do usuário logado',
       tags: ['User'],
       security: [{ bearerAuth: [] }],
       response: {
         200: z.object({ emotionalData: z.any().optional() }),
         404: userErrorSchema,
       },
-    },
-    preHandler: [app.authenticate],
-  }, async (request, reply) => {
-    const user = await db.user.findUnique({
-      where: { id: request.user.id },
-      select: { emotionalData: true },
-    });
-
-    if (!user) return reply.status(404).send({ message: 'User not found' });
-
-    let data = null;
-    if (user.emotionalData) {
-      try {
-        data = typeof user.emotionalData === 'string' ? JSON.parse(user.emotionalData) : user.emotionalData;
-      } catch (e) {
-        data = null;
-      }
     }
+  }, async (request) => {
+    const data = await UserService.getEmotionalData(request.user.id);
     return { emotionalData: data };
   });
 
   // PUT /users/emotional - Update user's emotional journal entries
   app.put('/users/emotional', {
     schema: {
-      description: 'Atualiza os registros emocionais do usuário logado',
       tags: ['User'],
       security: [{ bearerAuth: [] }],
       body: z.object({ emotionalData: z.any() }),
@@ -197,19 +129,35 @@ export async function userRoutes(app: FastifyInstance) {
         200: z.object({ success: z.boolean(), emotionalData: z.any() }),
         500: userErrorSchema,
       },
-    },
-    preHandler: [app.authenticate],
-  }, async (request, reply) => {
-    const { emotionalData } = request.body as { emotionalData: unknown };
-    try {
-      const dataToStore = typeof emotionalData === 'string' ? emotionalData : JSON.stringify(emotionalData);
-      await db.user.update({
-        where: { id: request.user.id },
-        data: { emotionalData: dataToStore },
-      });
-      return { success: true, emotionalData };
-    } catch (err) {
-      return reply.status(500).send({ message: 'Failed to update emotional data' });
     }
+  }, async (request) => {
+    const { emotionalData } = request.body as { emotionalData: unknown };
+    const data = await UserService.updateEmotionalData(request.user.id, emotionalData);
+    return { success: true, emotionalData: data };
+  });
+
+  // DELETE /users/me - Delete User Account
+  app.delete('/users/me', {
+    schema: {
+      tags: ['User'],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: z.object({ success: z.boolean() }),
+        400: userErrorSchema,
+        500: userErrorSchema,
+      },
+    }
+  }, async (request, reply) => {
+    const result = await UserService.deleteAccount(request.user.id);
+    if (!result) return reply.status(400).send({ message: 'Falha ao excluir conta. Talvez já tenha sido excluída.' });
+    
+    // Wipe cookies gracefully on the backend
+    reply.header('Set-Cookie', [
+      'mc_access_token=; Max-Age=0; HttpOnly; Path=/',
+      'mc_refresh_token=; Max-Age=0; HttpOnly; Path=/',
+      'mc_csrf_token=; Max-Age=0; Path=/'
+    ]);
+
+    return { success: true };
   });
 }

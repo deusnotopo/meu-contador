@@ -6,13 +6,14 @@ export async function createTestApp() {
   return app
 }
 
-export async function createTestUser() {
+export async function createTestUser(isPro: boolean = false) {
   return db.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
         email: `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`,
         name: 'Test User',
         passwordHash: 'hashed-password',
+        isPro: isPro,
       },
     })
 

@@ -1,13 +1,9 @@
 import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
+import { BudgetSchema } from "@/lib/schemas";
+import { z } from "zod";
 import type { Budget } from "@/types";
 import { useEffect, useState, useCallback } from "react";
-
-type BudgetListResponse = { items?: Budget[] };
-
-const normalizeBudgetResponse = (response: Budget[] | BudgetListResponse): Budget[] => (
-  Array.isArray(response) ? response : (response?.items || [])
-);
 
 export const useBudgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -19,12 +15,22 @@ export const useBudgets = () => {
     setError(null);
     
     try {
-      const response = await api.get<Budget[] | BudgetListResponse>("/budgets");
-      const items = normalizeBudgetResponse(response);
+      // AKITA MODE: Contrato estrito para orçamentos
+      const items = await api.get<Budget[]>("/budgets", {
+        schema: z.union([
+          z.array(BudgetSchema),
+          z.object({ items: z.array(BudgetSchema) }).transform(val => val.items)
+        ])
+      });
       setBudgets(items);
       return items;
-    } catch {
-      setError("Orçamentos indisponíveis. Verifique sua conexão.");
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        console.error("Zod Validation Error (Budgets):", err.errors);
+        setError("Erro de integridade nos dados de orçamentos.");
+      } else {
+        setError("Orçamentos indisponíveis. Verifique sua conexão.");
+      }
       return [];
     } finally {
       setLoading(false);
@@ -37,11 +43,18 @@ export const useBudgets = () => {
 
   const addBudget = async (budget: Omit<Budget, "id" | "spent">) => {
     try {
+      // AKITA MODE: Validação pre-submit
+      BudgetSchema.omit({ id: true, spent: true }).parse(budget);
+      
       const newBudget = await api.post<Budget>("/budgets", budget);
       setBudgets((prev) => [...prev, newBudget]);
       showSuccess("Orçamento definido!");
-    } catch {
-      showError("Erro ao definir orçamento.");
+    } catch (err: unknown) {
+      if (err instanceof z.ZodError) {
+        showError(`Erro de validação: ${err.errors[0]?.message}`);
+      } else {
+        showError("Erro ao definir orçamento.");
+      }
     }
   };
 
@@ -61,7 +74,7 @@ export const useBudgets = () => {
   const deleteBudget = async (id: string) => {
     try {
       await api.delete(`/budgets/${id}`);
-      setBudgets((prev) => prev.filter((b) => b.id === id));
+      setBudgets((prev) => prev.filter((b) => b.id !== id));
       showSuccess("Orçamento excluído.");
     } catch {
       showError("Erro ao excluir orçamentos.");

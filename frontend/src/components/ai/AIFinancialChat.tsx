@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { executeAction } from "@/lib/ai/action-executor";
 import { parseIntent } from "@/lib/ai/intent-parser";
-import { fetchWithCircuitBreaker } from "@/lib/circuitBreaker";
+import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useEducation } from "@/hooks/useEducation";
+import { getTutorContext } from "@/hooks/educationEngine";
+import type { EducationState } from "@/hooks/educationEngine";
 import { useFinancialContext } from "@/hooks/useFinancialContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Loader2, Send, User as LucideUser, X, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
@@ -79,8 +81,23 @@ export const AIFinancialChat = ({
 }: AIFinancialChatProps) => {
   const { user } = useAuth();
   const { context, insights, aiContextString } = useFinancialContext();
-  const { getTutorContext } = useEducation(user || undefined);
-  const tutorContext = getTutorContext();
+  const edu = useEducation();
+  const eduState: EducationState = {
+    completedModules: edu.state.completedModules,
+    xp: edu.state.xp,
+    streak: edu.state.streak,
+    lastActiveDate: edu.state.lastActiveDate,
+    lessonReviewDueAt: {},
+  };
+  const tutorContext = getTutorContext(eduState, {
+    hasDebts: user?.hasDebts,
+    hasEmergencyFund: user?.hasEmergencyFund,
+    financialGoal: user?.financialGoal,
+    employmentType: user?.employmentType,
+    currentWorkspaceId: user?.currentWorkspaceId,
+    hasInvestments: false,
+    riskProfile: user?.riskProfile,
+  });
   const pedagogicalContext = `Você é um tutor financeiro brasileiro, pragmático e didático. Ensine sem economês desnecessário, priorize clareza, exemplo brasileiro, contabilidade aplicada e sempre termine com próxima ação prática quando fizer sentido. Se houver risco financeiro imediato, priorize proteção de caixa, dívida cara e reserva antes de investimento sofisticado. Regras de resposta: ${TUTOR_RESPONSE_RULES.join('; ')}.
 
 CONTEXTO PEDAGÓGICO DA ACADEMIA:
@@ -157,6 +174,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    console.log("[AI ENGINE] v2.1 Activated - Security: Centralized CSRF");
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -208,49 +226,35 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
       }
 
       // STEP 2: AI Q&A with full financial context
-      const response = await fetchWithCircuitBreaker(
-        "/api/ai-proxy",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            conversation: messages.map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-            systemContext: `${aiContextString}\n\n${pedagogicalContext}`,
-            userMessage: input,
-            financialSnapshot: buildFinancialSnapshot({
-              balance: context.balance,
-              monthlyIncome: context.totalIncome,
-              monthlyExpenses: context.totalExpense,
-              savingsRate: context.savingsRate,
-            }, {
-              score: insights.score,
-              alerts: insights.alerts,
-              recommendations: insights.recommendations,
-              predictions: insights.predictions.goalCompletionDates.map(g => ({
-                category: g.goal,
-                trend: g.estimatedDate,
-              })),
-            }, { expensesByCategory: Object.fromEntries(context.topCategories.map(c => [c.category, c.amount])) }),
-          }),
-        },
-        {
-          maxRetries: 3,
-          initialDelay: 1200,
-          fallbackMessage: "Processando com análise local. Aguarde enquanto reconecto com o núcleo de IA.",
-        }
-      );
+      const requestBody = {
+        conversation: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        systemContext: `${aiContextString}\n\n${pedagogicalContext}`,
+        userMessage: input,
+        financialSnapshot: buildFinancialSnapshot({
+          balance: context.balance,
+          monthlyIncome: context.totalIncome,
+          monthlyExpenses: context.totalExpense,
+          savingsRate: context.savingsRate,
+        }, {
+          score: insights.score,
+          alerts: insights.alerts,
+          recommendations: insights.recommendations,
+          predictions: insights.predictions.goalCompletionDates.map(g => ({
+            category: g.goal,
+            trend: g.estimatedDate,
+          })),
+        }, { expensesByCategory: Object.fromEntries(context.topCategories.map(c => [c.category, c.amount])) }),
+      };
 
-      if (!response.ok) {
-        throw new Error("Falha na Rede Neural");
+      let data: { response?: string };
+      try {
+        data = await api.post<{ response: string }>('/ai-proxy', requestBody);
+      } catch {
+        data = { response: "Processando com análise local. Aguarde enquanto reconecto com o núcleo de IA." };
       }
-
-      const data = await response.json();
       const aiResponse = data.response ?? "Não foi possível obter resposta da IA";
 
       let messageType: Message["type"] = "text";
@@ -459,7 +463,7 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Pergunte algo..."
               className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium text-sm"
               disabled={isLoading}

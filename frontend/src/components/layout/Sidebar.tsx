@@ -7,10 +7,10 @@ import {
 
 import type { TabType } from "@/types/navigation";
 import { UserNav } from "./UserNav";
+import { useAppNavigate } from "@/hooks/useAppNavigate";
 
 interface SidebarProps {
   currentTab: string;
-  onTabChange: (tab: TabType) => void;
 }
 
 const NAV_GROUPS = [
@@ -33,8 +33,13 @@ const NAV_GROUPS = [
 
 const navBtnShared = "w-full flex items-center border-none rounded-[10px] cursor-pointer transition-[background,color] duration-150 [-webkit-tap-highlight-color:transparent] font-[var(--font)] group";
 
-const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
+const Sidebar = ({ currentTab }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
+  const { navigateTo } = useAppNavigate();
+
+  const handleTabChange = (t: TabType) => {
+    navigateTo(t);
+  };
 
   return (
     <motion.aside
@@ -101,7 +106,7 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => onTabChange(item.tab)}
+                  onClick={() => handleTabChange(item.tab)}
                   aria-label={item.label}
                   aria-current={isActive ? "page" : undefined}
                   className={`${navBtnShared} mb-0.5
@@ -157,7 +162,7 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
       <div className="p-2 border-t border-white/5 flex flex-col gap-1">
         {/* Settings */}
         <button
-          onClick={() => onTabChange("settings")}
+          onClick={() => handleTabChange("settings")}
           aria-label="Configurações"
           className={`${navBtnShared} bg-transparent hover:bg-white/[0.04]
             ${collapsed ? "justify-center px-0 py-[9px]" : "justify-start px-3 py-[9px]"}`}
@@ -178,7 +183,7 @@ const Sidebar = ({ currentTab, onTabChange }: SidebarProps) => {
 
         {/* User */}
         <div className={collapsed ? "py-1" : "p-1"}>
-          <UserNav onNavigate={onTabChange} collapsed={collapsed} />
+          <UserNav onNavigate={handleTabChange} collapsed={collapsed} />
         </div>
 
         {/* Collapse toggle */}

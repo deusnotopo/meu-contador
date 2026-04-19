@@ -19,7 +19,8 @@ interface Props {
 export const DRESection = ({ transactions, convert }: Props) => {
   // Helper to normalize amount to BRL
   const getAmountInBRL = (t: Transaction) => {
-    return convert(t.amount, t.currency || "BRL", "BRL");
+    const curr = (t.currency as Currency) || "BRL";
+    return convert(t.amount, curr, "BRL");
   };
 
   // Receita
@@ -35,7 +36,8 @@ export const DRESection = ({ transactions, convert }: Props) => {
         const cat = t.category.toLowerCase();
         const desc = (t.description || "").toLowerCase();
         return keywords.some(
-          (k) => cat.includes(k.toLowerCase()) || desc.includes(k.toLowerCase())
+          (k) =>
+            cat.includes(k.toLowerCase()) || desc.includes(k.toLowerCase()),
         );
       })
       .reduce((s, t) => s + getAmountInBRL(t), 0);
@@ -95,7 +97,7 @@ export const DRESection = ({ transactions, convert }: Props) => {
         ];
         return allKeywords.some((k) => cat.includes(k) || desc.includes(k));
       })
-      .map((t) => t.id)
+      .map((t) => t.id),
   );
 
   const operational = transactions
@@ -129,22 +131,43 @@ export const DRESection = ({ transactions, convert }: Props) => {
               const headers = ["Descrição", "Mensal", "Percentual"];
               const rows = [
                 ["Receita Bruta", grossIncome, "100%"],
-                ["Impostos", taxes, `${((taxes / grossIncome) * 100 || 0).toFixed(1)}%`],
-                ["Custo Mercadoria", cogs, `${((cogs / grossIncome) * 100 || 0).toFixed(1)}%`],
-                ["Pessoal", personnel, `${((personnel / grossIncome) * 100 || 0).toFixed(1)}%`],
-                ["Operacional", operational, `${((operational / grossIncome) * 100 || 0).toFixed(1)}%`],
+                [
+                  "Impostos",
+                  taxes,
+                  `${((taxes / grossIncome) * 100 || 0).toFixed(1)}%`,
+                ],
+                [
+                  "Custo Mercadoria",
+                  cogs,
+                  `${((cogs / grossIncome) * 100 || 0).toFixed(1)}%`,
+                ],
+                [
+                  "Pessoal",
+                  personnel,
+                  `${((personnel / grossIncome) * 100 || 0).toFixed(1)}%`,
+                ],
+                [
+                  "Operacional",
+                  operational,
+                  `${((operational / grossIncome) * 100 || 0).toFixed(1)}%`,
+                ],
                 ["Resultado Líquido", netResult, `${margin.toFixed(1)}%`],
               ];
-              
+
               const csvContent = [
                 headers.join(","),
-                ...rows.map(r => r.join(","))
+                ...rows.map((r) => r.join(",")),
               ].join("\n");
-              
-              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+              const blob = new Blob([csvContent], {
+                type: "text/csv;charset=utf-8;",
+              });
               const link = document.createElement("a");
               link.href = URL.createObjectURL(blob);
-              link.setAttribute("download", `DRE_${new Date().toISOString().split('T')[0]}.csv`);
+              link.setAttribute(
+                "download",
+                `DRE_${new Date().toISOString().split("T")[0]}.csv`,
+              );
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
@@ -319,4 +342,3 @@ export const DRESection = ({ transactions, convert }: Props) => {
     </div>
   );
 };
-

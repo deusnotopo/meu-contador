@@ -1,6 +1,6 @@
 /**
- * Professional logging utility with environment-aware behavior
- * Replaces console.log statements throughout the application
+ * Professional logging utility with environment-aware behavior and Audit Trail.
+ * Akita Mode: Logging is not just 'printing', it's documentation of state changes.
  */
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
@@ -14,11 +14,26 @@ interface LogEntry {
 
 class Logger {
   private isDevelopment = import.meta.env.DEV;
+  private readonly AUDIT_LIMIT = 50;
 
   private sendToRemoteMonitor(entry: LogEntry): void {
-    // In a real app, this would send to Sentry, LogRocket, etc.
-    // For this audit, we log a special tag that can be picked up by automated tools.
+    // Simulated remote monitor (Sentry/LogRocket/etc)
     console.debug(`[REMOTE-MONITOR] [${entry.level.toUpperCase()}] ${entry.message}`, entry.data);
+  }
+
+  private persistAuditLog(entry: LogEntry): void {
+    if (!this.isDevelopment) return;
+
+    try {
+      const logsRaw = localStorage.getItem('mc_audit_trail');
+      const logs: LogEntry[] = logsRaw ? JSON.parse(logsRaw) : [];
+      logs.unshift(entry);
+      
+      // Manter apenas os últimos X logs para não estourar storage
+      localStorage.setItem('mc_audit_trail', JSON.stringify(logs.slice(0, this.AUDIT_LIMIT)));
+    } catch (e) {
+      // Falha silenciosa no audit para não quebrar a aplicação principal
+    }
   }
 
   private formatMessage(level: LogLevel, message: string, data?: unknown): LogEntry {
@@ -33,7 +48,10 @@ class Logger {
   private log(level: LogLevel, message: string, data?: unknown): void {
     const entry = this.formatMessage(level, message, data);
 
-    // In production, only log errors and warnings
+    // Persiste localmente para auditoria (Akita Mode)
+    this.persistAuditLog(entry);
+
+    // Em produção, ignoramos logs verbosos
     if (!this.isDevelopment && (level === 'info' || level === 'debug')) {
       return;
     }
@@ -43,61 +61,48 @@ class Logger {
 
     switch (level) {
       case 'error':
-        console.error(`${prefix} ${timestamp} ${message}`, data || '');
+        console.error(`${prefix} ${timestamp} ${message}`, data ?? '');
         if (!this.isDevelopment) {
-          // Simulated production error monitoring (Sentry/LogRocket)
           this.sendToRemoteMonitor(entry);
         }
         break;
       case 'warn':
-        console.warn(`${prefix} ${timestamp} ${message}`, data || '');
+        console.warn(`${prefix} ${timestamp} ${message}`, data ?? '');
         break;
       case 'info':
-        console.log(`${prefix} ${timestamp} ${message}`, data || '');
+        console.log(`${prefix} ${timestamp} ${message}`, data ?? '');
         break;
       case 'debug':
-        console.debug(`${prefix} ${timestamp} ${message}`, data || '');
+        console.debug(`${prefix} ${timestamp} ${message}`, data ?? '');
         break;
     }
   }
 
-  /**
-   * Log informational messages (development only)
-   */
   info(message: string, data?: unknown): void {
     this.log('info', message, data);
   }
 
-  /**
-   * Log warnings (all environments)
-   */
   warn(message: string, data?: unknown): void {
     this.log('warn', message, data);
   }
 
-  /**
-   * Log errors (all environments, sent to monitoring)
-   */
   error(message: string, error?: unknown): void {
     this.log('error', message, error);
   }
 
-  /**
-   * Log debug information (development only)
-   */
   debug(message: string, data?: unknown): void {
     this.log('debug', message, data);
   }
 
   /**
-   * Log sync operations (development only)
+   * Log de sincronização e estado de rede
    */
   sync(message: string, data?: unknown): void {
     this.log('debug', `[Sync] ${message}`, data);
   }
 
   /**
-   * Log toast notifications (development only)
+   * Log de notificações e feedback visual
    */
   toast(type: 'success' | 'error' | 'loading' | 'promise', message: string): void {
     const emoji = {
@@ -106,7 +111,7 @@ class Logger {
       loading: '⏳',
       promise: '🤞',
     };
-    this.log('debug', `${emoji[type]} [Toast ${type}]: ${message}`);
+    this.log('debug', `${emoji[type] ?? ''} [Toast ${type}]: ${message}`);
   }
 }
 

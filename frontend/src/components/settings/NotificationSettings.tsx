@@ -23,8 +23,8 @@ export const NotificationSettings: React.FC = () => {
       await registerPushWithBackend(subscription);
       setPushEnabled(true);
       alert("Notificações ativadas com sucesso!");
-    } catch (error: any) {
-      alert(`Falha ao ativar notificações: ${error.message}`);
+    } catch (error: unknown) {
+      alert(`Falha ao ativar notificações: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setLoadingPush(false);
     }

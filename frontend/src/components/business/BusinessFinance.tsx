@@ -96,7 +96,9 @@ export const BusinessFinance = () => {
         category: normalizeBudgetCategory(b.category),
         limit: b.amount,
         spent: 0,
-        month: new Date().toISOString().slice(0, 7)
+        month: new Date().toISOString().slice(0, 7),
+        period: "monthly" as const,
+        priority: "medium" as const,
       })));
     }
     // Business categories are implicit in transactions/budgets here

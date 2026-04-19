@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { DataReliability } from '@/lib/data-reliability';
 
 interface GlobalTotals {
   income: number;
@@ -18,7 +19,19 @@ interface UserMetrics {
 
 export const useFinancialScore = (globalTotals: GlobalTotals, user: UserMetrics | null) => {
   return useMemo(() => {
-    if (!user) return { score: 0, tooltip: "Usuário não identificado.", sustainableDaily: 0, estimatedTax: 0 };
+    const scoreReliability: DataReliability = 'HEURISTIC';
+    const scoreSourceLabel = 'regras internas do app';
+
+    if (!user) {
+      return {
+        score: 0,
+        tooltip: "Usuário não identificado.",
+        sustainableDaily: 0,
+        estimatedTax: 0,
+        scoreReliability,
+        scoreSourceLabel,
+      };
+    }
 
     const isPj = user.employmentType === 'pj';
     const dependents = user.dependents ?? 0;
@@ -40,7 +53,14 @@ export const useFinancialScore = (globalTotals: GlobalTotals, user: UserMetrics 
 
     // Health Score
     if (globalTotals.income === 0) {
-      return { score: 0, tooltip: "Registre receitas para calcular o score de saúde.", sustainableDaily, estimatedTax };
+      return {
+        score: 0,
+        tooltip: "Registre receitas para calcular o score de saúde.",
+        sustainableDaily,
+        estimatedTax,
+        scoreReliability,
+        scoreSourceLabel,
+      };
     }
 
     const savingsRatio = globalTotals.balance / globalTotals.income;
@@ -67,7 +87,9 @@ export const useFinancialScore = (globalTotals: GlobalTotals, user: UserMetrics 
       score: Math.min(100, Math.max(0, score)),
       tooltip,
       sustainableDaily,
-      estimatedTax
+      estimatedTax,
+      scoreReliability,
+      scoreSourceLabel,
     };
   }, [globalTotals, user]);
 };

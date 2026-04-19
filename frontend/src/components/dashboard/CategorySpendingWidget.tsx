@@ -118,12 +118,19 @@ export const CategorySpendingWidget = ({
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center py-6 gap-2">
-          <span className="text-2xl" aria-hidden>📊</span>
-          <div className="text-[13px] font-semibold text-white/60">Nenhum gasto</div>
-          <div className="text-[11px] text-white/25 text-center">
-            Lançamentos categorizados figurarão aqui.
+        <div className="flex items-center gap-3 py-3 px-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+          <span className="text-lg" aria-hidden>📊</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-[12px] font-semibold text-white/50">Nenhum gasto categorizado</div>
+            <div className="text-[10px] text-white/25">Lance despesas para ver o breakdown</div>
           </div>
+          <button
+            type="button"
+            onClick={() => onNavigate?.("launch")}
+            className="text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg hover:bg-blue-500/15 transition-colors whitespace-nowrap"
+          >
+            + Lançar
+          </button>
         </div>
       )}
     </div>

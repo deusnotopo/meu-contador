@@ -1,20 +1,26 @@
-import { useOnboarding } from "../OnboardingContext";
-import { Target, Shield, Check } from "lucide-react";
-import { motion } from "framer-motion";
-import { SummaryItem } from "../StepCards";
-import { formatCurrency } from "@/lib/formatters";
-import type { AcademySignal } from "../types";
-import { api } from "@/lib/api";
-import { showSuccess, showError } from "@/lib/toast";
-import { useMemo, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { memo, useCallback, useMemo, useState } from 'react';
+import { useOnboarding } from '../OnboardingContext';
+import { Target, Shield, Check } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { SummaryItem } from '../StepCards';
+import { formatCurrency } from '@/lib/formatters';
+import { api } from '@/lib/api';
+import { showSuccess, showError } from '@/lib/toast';
+import { useAuth } from '@/context/AuthContext';
+
+interface AcademySignalResult {
+  title: string;
+  reason: string;
+  emoji: string;
+  color: string;
+}
 
 function getAcademySignal(profile: {
   hasDebts?: boolean;
   hasEmergencyFund?: boolean;
   employmentType?: string;
   financialGoal?: string;
-}): AcademySignal {
+}): AcademySignalResult {
   if (profile.hasDebts)
     return {
       title: "Quitação Inteligente de Dívidas",
@@ -59,7 +65,7 @@ function getAcademySignal(profile: {
   };
 }
 
-export function SummaryStep() {
+export const SummaryStep = memo(function SummaryStep() {
   const { user } = useAuth();
   const {
     profile,
@@ -87,7 +93,7 @@ export function SummaryStep() {
     ]
   );
 
-  const isPJ = profile.employmentType === "pj";
+  const isPJ = profile.employmentType === 'pj';
   const hasDebts = !!profile.hasDebts;
   const noReserve = !profile.hasEmergencyFund;
   const savingsCapacity = profile.monthlyIncome * strategyRules.pF;
@@ -110,6 +116,27 @@ export function SummaryStep() {
   const activeWorkspaceId = user?.currentWorkspaceId;
   const canInviteToWorkspace = Boolean(activeWorkspaceId && activeWorkspaceId !== user?.id && activeWorkspaceId !== user?.uid);
   const isInviteEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim());
+
+  const handleInviteEmailChange = useCallback((value: string) => {
+    setInviteEmail(value);
+  }, [setInviteEmail]);
+
+  const handleSendInvite = useCallback(async () => {
+    if (!activeWorkspaceId || !isInviteEmailValid || isSendingInvite) return;
+    try {
+      setIsSendingInvite(true);
+      await api.post(`/workspace/${activeWorkspaceId}/invite`, {
+        email: inviteEmail,
+        role: "viewer",
+      });
+      setInviteSent(true);
+      showSuccess(`Convite enviado para ${inviteEmail}!`);
+    } catch (_e) {
+      showError("Não foi possível enviar o convite agora.");
+    } finally {
+      setIsSendingInvite(false);
+    }
+  }, [activeWorkspaceId, inviteEmail, isInviteEmailValid, isSendingInvite, setInviteSent]);
 
   return (
     <div className="space-y-6 pt-6">
@@ -226,7 +253,7 @@ export function SummaryStep() {
         </div>
       </motion.div>
 
-      {/* ── Badge de Segurança e Backup ── */}
+      {/* Badge de Segurança e Backup */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -279,7 +306,7 @@ export function SummaryStep() {
             <input
               type="email"
               value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
+              onChange={(e) => handleInviteEmailChange(e.target.value)}
               placeholder="email@exemplo.com"
               aria-invalid={inviteEmail.length > 0 && !isInviteEmailValid}
               className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white font-medium focus:outline-none focus:border-purple-500/50"
@@ -287,22 +314,7 @@ export function SummaryStep() {
             <button
               type="button"
               disabled={!canInviteToWorkspace || !isInviteEmailValid || isSendingInvite}
-              onClick={async () => {
-                if (!activeWorkspaceId || !isInviteEmailValid || isSendingInvite) return;
-                try {
-                  setIsSendingInvite(true);
-                  await api.post(`/workspace/${activeWorkspaceId}/invite`, {
-                    email: inviteEmail,
-                    role: "viewer",
-                  });
-                  setInviteSent(true);
-                  showSuccess(`Convite enviado para ${inviteEmail}!`);
-                } catch (_e) {
-                  showError("Não foi possível enviar o convite agora.");
-                } finally {
-                  setIsSendingInvite(false);
-                }
-              }}
+              onClick={handleSendInvite}
               className="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs transition-all"
             >
               {isSendingInvite ? 'Enviando...' : 'Convidar'}
@@ -320,4 +332,4 @@ export function SummaryStep() {
       </motion.div>
     </div>
   );
-}
+});

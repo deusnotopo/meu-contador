@@ -193,10 +193,10 @@ export const TermometroDoMes: React.FC<TermometroProps> = ({
       <div className="grid grid-cols-3 gap-1 mt-1 rounded-xl overflow-hidden bg-white/[0.03]">
         {stats.map((item) => (
           <div key={item.label} className="py-2 px-2 text-center">
-            <div className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 mb-0.5">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 mb-0.5 truncate">
               {item.label}
             </div>
-            <div className={`text-[12px] font-black tabular-nums font-mono ${item.colorClass}`}>
+            <div className={`text-[12px] font-black tabular-nums font-mono truncate ${item.colorClass}`}>
               {item.value}
             </div>
           </div>

@@ -17,6 +17,7 @@ import {
 } from "@/data/educationData";
 import { useEducation } from "@/hooks/useEducation";
 import { LessonDetailView } from "./LessonDetailView";
+import { FinancialInsightsTutor } from "./FinancialInsightsTutor";
 import { showSuccess, showError } from "@/lib/toast";
 import type { Debt, SavingsGoal } from "@/types";
 import { TAB_TO_PILLAR, type TabType } from "@/types/navigation";
@@ -85,8 +86,8 @@ export const EducationSection = ({
     state, error, isLoading, completeModule, saveLessonProgress,
     isModuleCompleted, getModuleProgress, getNextRecommendedLesson,
     getContextualRecommendation, getJourneyStage, getProgressPct,
-    getReviewRecommendation, getMaturityRoadmap,
-  } = useEducation(educationProfile);
+    getReviewRecommendation, getMaturityRoadmap, isSyncing, forceSync,
+  } = useEducation();
 
   const filteredLessons = (
     activeTrilha === "todas"
@@ -130,10 +131,12 @@ export const EducationSection = ({
       { emoji: "🚀", nome: "Renda Ativa", desc: "Milhas e Renda Ativa", ok: completedTrails.has("renda_ativa") && allOf("renda_ativa") },
       { emoji: "🧠", nome: "Mente Blindada", desc: "Psicologia Financeira", ok: completedTrails.has("mental") && allOf("mental") },
       { emoji: "🎓", nome: "Mestre do Aprender", desc: `${doneCount}/${totalCount} aulas`, ok: doneCount === totalCount },
-      { emoji: "⚡", nome: "XP Grandmaster", desc: "1000+ XP acumulados", ok: xp >= 1000 },
-      { emoji: "🔥", nome: "Streak de Ouro", desc: "30+ dias consecutivos", ok: streak >= 30 },
+      // xp e streak derivados de state — referenciar state.xp e state.streak diretamente evita deps duplas
+      { emoji: "⚡", nome: "XP Grandmaster", desc: "1000+ XP acumulados", ok: (state.xp || 0) >= 1000 },
+      { emoji: "🔥", nome: "Streak de Ouro", desc: "30+ dias consecutivos", ok: (state.streak || 0) >= 30 },
     ];
-  }, [doneCount, state.completedModules, state.streak, state.xp, totalCount, streak, xp]);
+  // Deps: apenas as fontes primárias — state.xp / state.streak não duplicadas com variáveis locais
+  }, [doneCount, state.completedModules, state.xp, state.streak, totalCount]);
 
   const weeklyMission = useMemo(() => {
     // ── Nível 1: CRISE (Saldo ou Fluxo Negativo) ──
@@ -142,7 +145,7 @@ export const EducationSection = ({
         title: "Operação Resgate: Fluxo de Caixa", 
         desc: "Você tem contas atrasadas ou um peso de boleto maior que sua renda média. Priorize a aula de 'Estancando o Sangramento'.", 
         cta: "Ir para Emergência", 
-        lessonId: "br_crise", // Assuming this ID or fallback to contextual
+        lessonId: "br_crise",
         type: "crisis",
         icon: <Flame size={20} />
       };
@@ -181,7 +184,9 @@ export const EducationSection = ({
       type: "expansion",
       icon: <Sparkles size={20} />
     };
-  }, [educationProfile, user, contextualRecommendation.lesson?.id, nextLesson?.id]);
+  // AKITA FIX: contextualRecommendation.lesson?.id e nextLesson?.id eram deps fantasma —
+  // não usados dentro do memo. A missão semanal deriva apenas do perfil financeiro do usuário.
+  }, [educationProfile, user]);
 
   const handleComplete = (lessonId: string, xpEarned: number) => {
     completeModule(lessonId);
@@ -221,8 +226,14 @@ export const EducationSection = ({
         focusMode={lessonViewSettings.focusMode}
         expandGuideByDefault={lessonViewSettings.expandGuideByDefault}
         onSettingsChange={updateLessonViewSettings}
-        onBack={() => setActiveLessonId(null)}
-        onNavigate={(tab) => safeNavigate(tab)}
+        onBack={() => {
+          forceSync();
+          setActiveLessonId(null);
+        }}
+        onNavigate={(tab) => {
+          forceSync();
+          safeNavigate(tab);
+        }}
         onProgress={(completedSteps) => saveLessonProgress(activeLesson.id, completedSteps)}
         onComplete={(xp) => handleComplete(activeLesson.id, xp)}
       />
@@ -278,6 +289,20 @@ export const EducationSection = ({
               <p className="text-sm text-[var(--t2)] mt-2 max-w-md leading-relaxed">
                 Conteúdo guiado pelo seu momento financeiro real — com teoria, exemplo brasileiro e ação dentro do app.
               </p>
+              
+              <AnimatePresence>
+                {isSyncing && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="flex items-center gap-2 mt-4 text-[10px] font-medium text-indigo-400 bg-indigo-500/5 py-1 px-3 rounded-full w-fit border border-indigo-500/10"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    Sincronizando progresso...
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             {/* XP + Streak badges */}
             <div className="flex items-center gap-3 shrink-0">
@@ -362,7 +387,7 @@ export const EducationSection = ({
 
             {/* MAIN RECOMMENDATION (Primary Bento) */}
             {topRecommendation && (
-              <div className="col-span-6 md:col-span-4 relative overflow-hidden rounded-[2.5rem] p-8 border border-indigo-500/20 group bg-card-obsidian shadow-2xl">
+              <div className="card-obsidian col-span-6 md:col-span-4 relative overflow-hidden rounded-[2.5rem] p-8 border border-indigo-500/20 group shadow-2xl">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 blur-[90px] rounded-full pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-1000" />
                 <div className="absolute bottom-[-100px] left-[-100px] w-60 h-60 bg-blue-600/5 blur-[80px] rounded-full pointer-events-none" />
                 
@@ -379,7 +404,7 @@ export const EducationSection = ({
                     onClick={() => setActiveLessonId(topRecommendation.id ?? null)}
                     className="flex items-center gap-3 bg-white text-black text-[11px] font-black uppercase tracking-widest px-10 py-4.5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl"
                   >
-                    {contextualRecommendation.actionLabel || "Iniciar Jornada"}
+                    {contextualRecommendation.reason ? 'Continuar Jornada' : "Iniciar Jornada"}
                     <ChevronRight size={18} />
                   </button>
                 </div>
@@ -434,6 +459,9 @@ export const EducationSection = ({
                 </div>
               ))}
             </div>
+
+            {/* PHASE 30: AI Financial Tutor — Contextual Insights */}
+            <FinancialInsightsTutor onOpenLesson={(id) => setActiveLessonId(id)} />
 
             {/* REVIEW CARD & ROADMAP (Combined row) */}
             {reviewRecommendation.lesson ? (

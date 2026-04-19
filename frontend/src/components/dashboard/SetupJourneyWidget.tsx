@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import type { TabType } from "@/types/navigation";
+import { useSetupMissions } from "@/hooks/dashboard/useSetupMissions";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export interface SetupMission {
@@ -15,20 +16,22 @@ export interface SetupMission {
 }
 
 interface SetupJourneyWidgetProps {
-  missions: SetupMission[];
   onNavigate?: (tab: TabType) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export const SetupJourneyWidget = ({
-  missions,
   onNavigate,
 }: SetupJourneyWidgetProps) => {
+  const { missions } = useSetupMissions();
+
   const done = missions.filter((m) => m.done);
   const pct = Math.round((done.length / missions.length) * 100);
   const totalXp = missions.reduce((s, m) => s + m.xp, 0);
   const xpEarned = done.reduce((s, m) => s + m.xp, 0);
   const pending = missions.filter((m) => !m.done);
+
+  if (pending.length === 0) return null;
 
   return (
     <div className="rounded-[20px] border border-white/[0.07] bg-gradient-to-br from-indigo-500/10 via-white/[0.02] to-purple-500/10 p-5 space-y-4">
@@ -95,7 +98,7 @@ export const SetupJourneyWidget = ({
         {done.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1" role="list" aria-label="Missões concluídas">
             {done.map((mission) => (
-              <div
+               <div
                 key={mission.id}
                 role="listitem"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20"
@@ -113,3 +116,4 @@ export const SetupJourneyWidget = ({
     </div>
   );
 };
+

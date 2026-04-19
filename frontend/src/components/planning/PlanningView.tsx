@@ -14,6 +14,7 @@ import {
   buildSpentByCategory,
   mapBudgetsWithInsights,
 } from "@/features/budgets/budget-utils";
+import { BudgetService } from "@/services/BudgetService";
 
 const GROUPS = BUDGET_GROUP_ORDER.map((group) => ({
   name: `${group}${group === "Necessidades" ? " · 50%" : group === "Desejos" ? " · 30%" : " · 20%"}`,
@@ -184,7 +185,7 @@ export const PlanningView = ({ onBack: _onBack, onNavigate: _onNavigate }: Plann
     setShowUlyssesModal(false);
   };
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = BudgetService.getCurrentLocalMonth();
   const monthExpenses = transactions.filter(t => t.type === "expense" && t.date.startsWith(currentMonth));
   const spentByCategory = useMemo(() => buildSpentByCategory(monthExpenses, currentMonth), [monthExpenses, currentMonth]);
   const mappedBudgets = useMemo(() => mapBudgetsWithInsights(budgets, spentByCategory), [budgets, spentByCategory]);

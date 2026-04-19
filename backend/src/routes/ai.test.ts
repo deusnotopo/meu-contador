@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestApp, createTestUser, cleanupTestData } from '../test/helpers'
 import { db } from '../lib/db'
 
-const mockGenerateContent = vi.fn()
+const { mockGenerateContent } = vi.hoisted(() => {
+  return { mockGenerateContent: vi.fn() }
+})
 
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
@@ -41,7 +43,7 @@ describe('AI Routes', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/api/ai-proxy',
+      url: '/ai-proxy',
       headers: { authorization: `Bearer ${authToken}` },
       payload: {
         conversation: [{ role: 'user', content: 'Como melhorar meu orçamento?' }],
@@ -57,7 +59,7 @@ describe('AI Routes', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/api/ai-proxy',
+      url: '/ai-proxy',
       headers: { authorization: `Bearer ${authToken}` },
       payload: {
         conversation: [{ role: 'user', content: 'Analise meus gastos' }],
@@ -74,7 +76,7 @@ describe('AI Routes', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/api/ai-proxy',
+      url: '/ai-proxy',
       headers: { authorization: `Bearer ${authToken}` },
       payload: {
         conversation: Array.from({ length: 12 }).map(() => ({ role: 'user', content: 'x'.repeat(2000) })),
@@ -108,7 +110,7 @@ describe('AI Routes', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/api/ai-proxy',
+      url: '/ai-proxy',
       headers: { authorization: `Bearer ${authToken}` },
       payload: {
         conversation: [{ role: 'user', content: 'Analise meu fluxo de caixa' }],

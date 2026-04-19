@@ -2,26 +2,20 @@ import type { EmotionType, PurchaseMotivation } from "./emotional";
 
 export type Currency = "BRL" | "USD" | "EUR" | "GBP";
 
-export interface Transaction {
-  id: string;
-  type: "income" | "expense";
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-  paymentMethod: string;
-  notes: string;
-  recurring: boolean;
-  recurrenceInterval?: "monthly" | "weekly" | "bi-weekly" | "yearly";
-  scope: "personal" | "business";
-  classification?: "necessity" | "want" | "investment" | "debt";
-  mood?: EmotionType;
-  motivation?: PurchaseMotivation;
-  currency?: "BRL" | "USD" | "EUR" | "GBP";
-  originalAmount?: number;
-  exchangeRate?: number;
-  receiptUrl?: string;
-}
+import {
+  TransactionSchema,
+  InvestmentSchema,
+  DebtSchema,
+  GoalSchema,
+  BudgetSchema,
+  InvoiceSchema,
+  ReminderSchema,
+  ProvisionSchema,
+} from "@/lib/schemas";
+import { z } from "zod";
+
+export type Transaction = z.infer<typeof TransactionSchema>;
+export type Provision = z.infer<typeof ProvisionSchema>;
 
 export interface TransactionFormData {
   type: "income" | "expense";
@@ -43,51 +37,16 @@ export interface TransactionFormData {
 }
 
 // ============= Budget Types =============
-export interface Budget {
-  id: string;
-  category: string;
-  limit: number;
-  spent: number;
-  month: string; // YYYY-MM
-}
+export type Budget = z.infer<typeof BudgetSchema>;
 
 // ============= Goals Types =============
-export interface SavingsGoal {
-  id: string;
-  name: string;
-  targetAmount: number;
-  currentAmount: number;
-  deadline?: string;
-  icon: string;
-  color?: string;
-}
+export type SavingsGoal = z.infer<typeof GoalSchema>;
 
 // ============= Bill Reminder Types =============
-export interface BillReminder {
-  id: string;
-  name: string;
-  amount: number;
-  dueDate: string;
-  category: string;
-  isPaid: boolean;
-  recurring: "monthly" | "yearly" | "once";
-}
+export type BillReminder = z.infer<typeof ReminderSchema>;
 
 // ============= Business Types =============
-export interface Invoice {
-  id: string;
-  number: string;
-  client: string;
-  amount: number;
-  dueDate: string;
-  status: "pending" | "paid" | "overdue";
-}
-
-export interface InvoiceItem {
-  description: string;
-  quantity: number;
-  unitPrice: number;
-}
+export type Invoice = z.infer<typeof InvoiceSchema>;
 
 export interface CashFlowProjection {
   id: string;
@@ -190,7 +149,7 @@ export interface UserProfile {
   workspaces?: string[]; // List of workspace IDs user has access to
   workspaceRoles?: Record<string, WorkspaceRole>; // Map of workspaceId -> role
   isPro?: boolean;
-  employmentType?: 'clt' | 'pj';
+  employmentType?: "clt" | "pj";
   subscriptionPlan?: "free" | "pro";
   age?: number;
   retirementAge?: number;
@@ -241,7 +200,7 @@ export interface OnboardingDebt {
   balance: number;
   interestRate: number; // %/mês
   minPayment: number;
-  category: 'credit_card' | 'loan' | 'overdraft' | 'other';
+  category: "credit_card" | "loan" | "overdraft" | "other";
 }
 
 export interface OnboardingData {
@@ -282,19 +241,7 @@ export interface InvestmentWithRelations extends Investment {
   dividends?: Dividend[];
 }
 
-export interface Investment {
-  id: string;
-  name: string;
-  ticker: string;
-  type: "stock" | "fii" | "crypto" | "fixed_income" | "etf";
-  amount: number; // Quantity
-  averagePrice: number;
-  currentPrice: number;
-  currency?: "BRL" | "USD" | "EUR" | "GBP";
-  sector: string;
-  targetAllocation?: number; // Target percentage (0-100)
-  lastUpdate: string;
-}
+export type Investment = z.infer<typeof InvestmentSchema>;
 
 export interface InvestmentPortfolio {
   totalValue: number;
@@ -332,15 +279,7 @@ export interface TaxIndicator {
   estimatedTax: number;
 }
 
-export interface Debt {
-  id: string;
-  name: string;
-  balance: number;
-  interestRate: number; // Monthly %
-  minPayment: number;
-  dueDate?: string;
-  category: "credit_card" | "loan" | "overdraft" | "other";
-}
+export type Debt = z.infer<typeof DebtSchema>;
 
 // ============= Education Types =============
 export interface QuizQuestion {
@@ -359,7 +298,16 @@ export interface Lesson {
   difficulty: "beginner" | "intermediate" | "advanced";
   completed: boolean;
   category: string;
-  iconName: "Target" | "BarChart3" | "TrendingUp" | "DollarSign" | "Star" | "PiggyBank" | "CheckCircle" | "CreditCard" | "Trophy"; // Added missing icons
+  iconName:
+    | "Target"
+    | "BarChart3"
+    | "TrendingUp"
+    | "DollarSign"
+    | "Star"
+    | "PiggyBank"
+    | "CheckCircle"
+    | "CreditCard"
+    | "Trophy"; // Added missing icons
   quiz?: QuizQuestion;
 }
 
@@ -367,7 +315,13 @@ export interface Achievement {
   id: string;
   title: string;
   description: string;
-  iconName: "CheckCircle" | "Target" | "PiggyBank" | "CreditCard" | "Star" | "Trophy";
+  iconName:
+    | "CheckCircle"
+    | "Target"
+    | "PiggyBank"
+    | "CreditCard"
+    | "Star"
+    | "Trophy";
   unlocked: boolean;
   progress: number;
   maxProgress: number;

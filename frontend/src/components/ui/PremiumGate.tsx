@@ -1,4 +1,4 @@
-﻿import { ReactNode, useState } from "react";
+import { ReactNode, useState } from "react";
 import { Lock, Sparkles, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFeatureFlags } from "../../context/FeatureFlagsContext";
@@ -11,6 +11,9 @@ interface PremiumGateProps {
   fallback?: ReactNode;
 }
 
+// Centralizado aqui — quando o preço mudar, muda uma linha só.
+const UPGRADE_PRICE_LABEL = "Apenas R\u00a014,99 • Vitalício";
+
 const FEATURE_LABELS: Record<string, { title: string; desc: string }> = {
   premium_analytics: { title: "Analytics Avançado", desc: "Visualize tendências e projeções detalhadas do seu patrimônio." },
   ai_advisor: { title: "Consultor IA 24/7", desc: "Obtenha insights em tempo real sobre sua saúde financeira com inteligência artificial." },
@@ -19,7 +22,7 @@ const FEATURE_LABELS: Record<string, { title: string; desc: string }> = {
   invoices: { title: "Gestão Empresarial", desc: "Emita notas, controle faturamento e gerencie seu negócio com DRE completo." },
 };
 
-export function PremiumGate({ children, feature }: PremiumGateProps) {
+export function PremiumGate({ children, feature, fallback }: PremiumGateProps) {
   const { isEnabled } = useFeatureFlags();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const hasAccess = isEnabled(feature);
@@ -27,6 +30,11 @@ export function PremiumGate({ children, feature }: PremiumGateProps) {
 
   if (hasAccess) {
     return <>{children}</>;
+  }
+
+  // Se o caller passar um fallback customizado, usa ele em vez do paywall padrão.
+  if (fallback) {
+    return <>{fallback}</>;
   }
 
   return (
@@ -78,7 +86,7 @@ export function PremiumGate({ children, feature }: PremiumGateProps) {
             </Button>
             
             <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">
-              Apenas R$ 14,99 • Vitalício
+              {UPGRADE_PRICE_LABEL}
             </p>
           </div>
         </div>

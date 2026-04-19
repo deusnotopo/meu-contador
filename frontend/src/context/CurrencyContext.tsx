@@ -56,17 +56,22 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchRates();
   }, []);
 
-  const convert = (amount: number, from: Currency, to: Currency) => {
+  const convert = React.useCallback((amount: number, from: Currency, to: Currency) => {
     return currencyService.convertFromBRL(
       currencyService.convertToBRL(amount, from),
       to
     );
-  };
+  }, []);
+
+  const contextValue = React.useMemo(() => ({
+    baseCurrency: "BRL" as const,
+    rates,
+    convert,
+    loading
+  }), [rates, convert, loading]);
 
   return (
-    <CurrencyContext.Provider
-      value={{ baseCurrency: "BRL", rates, convert, loading }}
-    >
+    <CurrencyContext.Provider value={contextValue}>
       {children}
     </CurrencyContext.Provider>
   );

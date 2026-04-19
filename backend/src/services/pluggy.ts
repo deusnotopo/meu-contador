@@ -68,14 +68,19 @@ export async function syncBankConnection(itemId: string, userId: string) {
       const bankAccount = await db.bankAccount.upsert({
         where: { pluggyAccountId: acc.id },
         update: {
-          balance: acc.balance,
+          balance: Math.round(acc.balance * 100),
+          currencyCode: acc.currencyCode,
+          type: acc.type,
+          subtype: acc.subtype,
           bankName: item.connector ? item.connector.name : null,
           bankImageUrl: item.connector ? item.connector.imageUrl : null,
+          userId: userId,
+          connectionId: bankConnection.id,
         },
         create: {
           pluggyAccountId: acc.id,
           name: acc.name,
-          balance: acc.balance,
+          balance: Math.round(acc.balance * 100),
           currencyCode: acc.currencyCode,
           type: acc.type,
           subtype: acc.subtype,
@@ -93,9 +98,9 @@ export async function syncBankConnection(itemId: string, userId: string) {
         const insertData = transactions.results.map((t) => ({
           userId: userId,
           description: t.description || 'Transação Pluggy',
-          amount: t.amount,
+          amount: Math.abs(Math.round(t.amount * 100)),
           type: t.amount >= 0 ? "income" : "expense",
-          category: "Outros", // Dependendo do Pluggy t.category, pode-se mapear
+          category: "Outros",
           date: new Date(t.date),
           paymentMethod: "Pluggy",
           scope: "personal", // Transações pluggy são pessoais por padrão (no app Meu Contador, o usuário separa se quiser)
@@ -104,8 +109,9 @@ export async function syncBankConnection(itemId: string, userId: string) {
         }));
 
         if (insertData.length > 0) {
+          // Utiliza tipagem correta em vez de as any. O TransactionRepository cuida das validações severas.
           await db.transaction.createMany({
-            data: insertData as any,
+            data: insertData,
           });
         }
 
@@ -113,9 +119,7 @@ export async function syncBankConnection(itemId: string, userId: string) {
         // O app se baseia na soma de Transaction para o saldo. Somar apenas 90 dias do Pluggy daria saldo distorcido.
         // Calculamos o Saldo Importado e criamos uma transação no passado para o Saldo Total bater com o BankAccount.balance
         const sumImported = transactions.results.reduce((acc, t) => {
-          return acc + (t.amount >= 0 ? t.amount : -Math.abs(t.amount)); 
-          // O amount do Pluggy já vem com sinal na maioria dos casos, mas dependendo pode vir apenas positivo e com type em outro field. 
-          // O SDK garante amount negativo para despesa.
+          return acc + Math.round(t.amount * 100);
         }, 0);
 
         const diff = bankAccount.balance - sumImported;

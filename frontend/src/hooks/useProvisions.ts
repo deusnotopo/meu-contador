@@ -1,15 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
+import { ProvisionSchema } from '@/lib/schemas';
+import { z } from 'zod';
 
-export interface Provision {
-  id: string;
-  name: string;
-  month: number;
-  yearlyAmount: number;
-  accumulated: number;
-  createdAt: string;
-  updatedAt: string;
-}
+export type Provision = z.infer<typeof ProvisionSchema>;
 
 export function useProvisions() {
   const [provisions, setProvisions] = useState<Provision[]>([]);
@@ -20,11 +14,22 @@ export function useProvisions() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get<{ items: Provision[] }>('/provisions');
-      setProvisions(response.items);
-    } catch (err: any) {
-      console.error('Failed to fetch provisions:', err);
-      setError(err.message || 'Erro ao carregar provisões');
+      // AKITA MODE: Contrato estrito para provisões
+      const response = await api.get<Provision[]>('/provisions', {
+        schema: z.union([
+          z.array(ProvisionSchema),
+          z.object({ items: z.array(ProvisionSchema) }).transform(val => val.items)
+        ])
+      });
+      setProvisions(response);
+    } catch (err: unknown) {
+      if (err instanceof z.ZodError) {
+        console.error('Zod Validation Error (Provisions):', err.errors);
+        setError('Dados de provisões incompatíveis.');
+      } else {
+        console.error('Failed to fetch provisions:', err);
+        setError((err as Error)?.message || 'Erro ao carregar provisões');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -9,6 +9,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { TrendingUp, Info } from "lucide-react";
 import { INDICADORES_BRASIL } from "@/lib/finance/brasil-indicadores";
 import { fetchMarketData, type MarketData } from "@/lib/market-data";
+import { DataReliabilityBadge } from "@/components/ui/DataReliabilityBadge";
 
 const buildBenchmarks = (live?: MarketData) => {
   const selic    = live?.selic    ?? INDICADORES_BRASIL.SELIC?.valor    ?? 13.75;
@@ -116,6 +117,14 @@ export const CDIBenchmark: React.FC<BenchmarkCardProps> = ({ rentabilidade, valo
         </div>
 
         {/* Big CDI % */}
+        <div className="mb-2.5 flex flex-wrap items-center gap-2">
+          <DataReliabilityBadge
+            reliability={BENCHMARKS.IS_REFERENCE ? "BENCHMARK" : "EXTERNAL_SOURCE"}
+            sourceLabel={BENCHMARKS.REF_FONTE}
+            compact
+          />
+        </div>
+
         <div className="flex items-baseline gap-1.5 mb-1.5">
           <span
             className="text-[36px] font-extrabold font-mono tracking-[-1px]"
@@ -234,6 +243,9 @@ export const CDIBenchmark: React.FC<BenchmarkCardProps> = ({ rentabilidade, valo
       <div className="text-center text-[10px] text-[var(--t4)] mt-2 leading-relaxed">
         Rentabilidade calculada sobre patrimônio atual. CDI/IPCA/Poupança são simulados sobre o valor investido.
         Taxas de referência: Selic {BENCHMARKS.SELIC_ANUAL.toFixed(2)}% · {BENCHMARKS.REF_DATA}
+      </div>
+      <div className="text-center text-[10px] text-[var(--t4)] mt-1 leading-relaxed">
+        Benchmarks servem como comparação de mercado e não representam sua verdade operacional individual.
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Bot, Check, Crown, Star, Zap } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useUserActions } from "@/hooks/useUserActions";
 
 export const PremiumPlans = ({
   onClose,
@@ -11,7 +11,7 @@ export const PremiumPlans = ({
   onClose: () => void;
   userEmail?: string | null;
 }) => {
-  const { upgradeToPro } = useAuth();
+  const { upgradeToPro } = useUserActions();
   const CHECKOUT_URL = `https://pay.finaliza.shop/checkout/dados?pl=422c50ed69&email=${
     userEmail || ""
   }`;

@@ -41,6 +41,9 @@ export interface TransactionCreateData {
   receiptUrl?: string;
   mood?: string;
   motivation?: string;
+  recurrenceId?: string;
+  installmentNumber?: number;
+  totalInstallments?: number;
 }
 
 export interface TransactionUpdateData {
@@ -79,6 +82,16 @@ export async function invalidateBudgetCache(userId: string) {
   await deleteCacheByPrefix(`budgets:list:${userId}:`);
 }
 
+// ── Mapping Helper ────────────────────────────────────────────────────────────
+
+function formatTransaction<T extends { amount: number, originalAmount?: number | null }>(tx: T): T {
+  return {
+    ...tx,
+    amount: tx.amount / 100,
+    ...(tx.originalAmount != null ? { originalAmount: tx.originalAmount / 100 } : {}),
+  } as T;
+}
+
 // ── Queries ───────────────────────────────────────────────────────────────────
 
 export async function findManyPaginated(opts: TransactionFindManyOptions) {
@@ -103,7 +116,7 @@ async function _queryPaginated({ userId, scope, page, limit }: TransactionFindMa
   ]);
 
   return {
-    items,
+    items: items.map(formatTransaction),
     page,
     limit,
     total,
@@ -112,19 +125,30 @@ async function _queryPaginated({ userId, scope, page, limit }: TransactionFindMa
 }
 
 export async function findOneBelongingTo(id: string, userId: string) {
-  return db.transaction.findFirst({ where: { id, userId, deletedAt: null } });
+  const tx = await db.transaction.findFirst({ where: { id, userId, deletedAt: null } });
+  return tx ? formatTransaction(tx) : null;
 }
 
-export async function createOne(data: TransactionCreateData) {
-  return db.transaction.create({ data });
+export async function createOne(data: TransactionCreateData, tx?: any) {
+  const client = tx || db;
+  const createdTx = await client.transaction.create({ data });
+  return formatTransaction(createdTx);
 }
 
-export async function updateOne(id: string, data: TransactionUpdateData) {
-  return db.transaction.update({ where: { id }, data });
+export async function createMany(data: TransactionCreateData[], tx?: any) {
+  const client = tx || db;
+  return client.transaction.createMany({ data });
 }
 
-export async function softDeleteOne(id: string, userId: string): Promise<boolean> {
-  const result = await db.transaction.updateMany({
+export async function updateOne(id: string, data: TransactionUpdateData, tx?: any) {
+  const client = tx || db;
+  const updatedTx = await client.transaction.update({ where: { id }, data });
+  return formatTransaction(updatedTx);
+}
+
+export async function softDeleteOne(id: string, userId: string, tx?: any): Promise<boolean> {
+  const client = tx || db;
+  const result = await client.transaction.updateMany({
     where: { id, userId, deletedAt: null },
     data: { deletedAt: new Date() },
   });
@@ -150,8 +174,9 @@ export async function findCursor(opts: TransactionCursorOptions) {
   const data = hasMore ? items.slice(0, -1) : items;
 
   return {
-    items: data,
+    items: data.map(formatTransaction),
     nextCursor: hasMore ? data[data.length - 1]!.id : null,
     hasMore,
   };
 }
+

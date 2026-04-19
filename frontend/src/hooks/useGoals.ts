@@ -1,5 +1,7 @@
 import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
+import { GoalSchema } from "@/lib/schemas";
+import { z } from "zod";
 import type { SavingsGoal } from "@/types";
 import { useEffect, useState, useCallback } from "react";
 
@@ -9,14 +11,25 @@ export const useGoals = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchGoals = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response = await api.get<SavingsGoal[] | { items?: SavingsGoal[] }>("/goals");
-      const items = Array.isArray(response) ? response : (response?.items || []);
-      setGoals(items);
-    } catch {
-      setError("Metas de economia indisponíveis. Verifique sua conexão.");
+      setLoading(true);
+      setError(null);
+      // AKITA MODE: Contrato estrito para metas
+      const response = await api.get<SavingsGoal[]>("/goals", {
+        schema: z.union([
+          z.array(GoalSchema),
+          z.object({ items: z.array(GoalSchema) }).transform(val => val.items)
+        ])
+      });
+      setGoals(response);
+    } catch (err: unknown) {
+      if (err instanceof z.ZodError) {
+        console.error('Zod Validation Error (Goals):', err.errors);
+        setError('Dados de metas incompatíveis.');
+      } else {
+        console.error('Failed to fetch goals:', err);
+        setError("Metas de economia indisponíveis. Verifique sua conexão.");
+      }
     } finally {
       setLoading(false);
     }

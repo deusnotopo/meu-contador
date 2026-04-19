@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkline } from "@/components/ui/Charts";
+import { DataReliabilityBadge } from "@/components/ui/DataReliabilityBadge";
+import { FinancialFormatter } from "@/services/FinancialFormatter";
 import type { TabType } from "@/types/navigation";
+import type { DataReliability } from "@/lib/data-reliability";
 
 interface HeroPatrimonioProps {
   netWorth: number;
@@ -9,11 +12,12 @@ interface HeroPatrimonioProps {
   liabilities: number;
   healthScore: number;
   healthScoreTooltip?: string;
+  healthScoreReliability?: DataReliability;
+  healthScoreSourceLabel?: string;
   monthlyVariation: { amount: number; percentage: number };
   sparklineData: number[];
   onNavigate?: (tab: TabType) => void;
-  fmtM: (n: number) => string;
-  fmt: (n: number) => string;
+  onlyChart?: boolean;
 }
 
 /** Animates a number from 0 to target over ~900ms (easeOutCubic) */
@@ -66,11 +70,12 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
   liabilities,
   healthScore,
   healthScoreTooltip,
+  healthScoreReliability = "HEURISTIC",
+  healthScoreSourceLabel = "regras internas do app",
   monthlyVariation,
   sparklineData,
   onNavigate,
-  fmtM,
-  fmt,
+  onlyChart = false,
 }) => {
   const isEmpty = assets === 0 && liabilities === 0;
   const animatedNetWorth   = useCountUp(netWorth);
@@ -84,6 +89,16 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
       ? "text-amber-400"
       : "text-rose-400";
 
+  if (onlyChart) {
+    return (
+      <div className="w-full h-full opacity-80">
+        {sparklineData.length > 0 && (
+          <Sparkline data={sparklineData} color="var(--blue)" />
+        )}
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -95,7 +110,6 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
         border border-blue-500/[0.15]
       "
     >
-      {/* ── Ambient breathing glow (data state only) ── */}
       {!isEmpty && (
         <motion.div
           animate={{ opacity: [0.3, 0.55, 0.3], scale: [1, 1.08, 1] }}
@@ -109,11 +123,10 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
         />
       )}
 
-      {/* ── Floating Score Badge ── */}
       {!isEmpty && (
         <button
           onClick={() => onNavigate?.("health")}
-          title={healthScoreTooltip || "Score de Saúde Financeira"}
+          title={healthScoreTooltip || "Score de Saude Financeira"}
           className="
             absolute top-5 right-5 z-10 flex items-center gap-1.5 px-2.5 py-1
             rounded-full cursor-pointer border border-white/[0.05]
@@ -121,10 +134,10 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
             hover:bg-white/[0.06] hover:scale-105 active:scale-95 transition-all
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50
           "
-          aria-label={healthScoreTooltip || "Score de Saúde Financeira"}
+          aria-label={healthScoreTooltip || "Score de Saude Financeira"}
         >
           {healthScore === 0 ? (
-            <span className="text-[10px] font-bold text-amber-400">Config score →</span>
+            <span className="text-[10px] font-bold text-amber-400">Config score -&gt;</span>
           ) : (
             <>
               <ScoreDot score={healthScore} />
@@ -136,20 +149,28 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
         </button>
       )}
 
-      {/* ── Section Label ── */}
+      {!isEmpty && healthScore > 0 && (
+        <div className="absolute top-[52px] right-5 z-10">
+          <DataReliabilityBadge
+            reliability={healthScoreReliability}
+            sourceLabel={healthScoreSourceLabel}
+            compact
+          />
+        </div>
+      )}
+
       <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
-        Patrimônio Total
+        Patrimonio Total
       </div>
 
       {isEmpty ? (
-        /* ── Empty state ── */
         <div className="py-[18px] pb-2 flex flex-col items-center text-center">
           <div className="text-4xl mb-2.5" aria-hidden>🌱</div>
           <div className="text-base font-bold text-[var(--t1)] mb-1.5">
-            Seu patrimônio começa aqui
+            Seu patrimonio comeca aqui
           </div>
           <div className="text-[12px] text-[var(--t3)] leading-relaxed mb-4 max-w-[220px]">
-            Lance sua primeira transação e veja seu patrimônio crescer em tempo real.
+            Lance sua primeira transacao e veja seu patrimonio crescer em tempo real.
           </div>
           <button
             onClick={() => onNavigate?.("launch")}
@@ -160,52 +181,39 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
               hover:brightness-110 active:scale-95 transition-all
             "
           >
-            + Lançar primeira transação
+            + Lancar primeira transacao
           </button>
         </div>
       ) : (
-        /* ── Data state ── */
         <>
-          {/* Animated net-worth number — THE dominant value */}
           <div
             className="bignum mt-1 mb-2 font-black leading-none"
             style={{
               fontSize: "46px",
               letterSpacing: "-2.5px",
-              // WebkitBackgroundClip has no Tailwind equivalent — keep inline
               background: "linear-gradient(180deg, #FFFFFF 0%, rgba(255,255,255,0.7) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               filter: "drop-shadow(0px 8px 32px rgba(255,255,255,0.15))",
             }}
           >
-            {fmtM(animatedNetWorth)}
+            {FinancialFormatter.formatCompact(animatedNetWorth)}
           </div>
 
-          {/* Secondary stats */}
           <div className="flex items-center gap-4 mt-3 mb-4 pl-1">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">
-                Ativos
-              </span>
-              <span className="text-[13px] font-mono text-emerald-400 font-medium">
-                {fmtM(animatedAssets)}
-              </span>
+              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Ativos</span>
+              <span className="text-[13px] font-mono text-emerald-400 font-medium">{FinancialFormatter.formatCompact(animatedAssets)}</span>
             </div>
             <div className="w-px h-3 bg-white/10" aria-hidden />
             <div className="flex items-baseline gap-1.5">
-              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">
-                Passivos
-              </span>
-              <span className="text-[13px] font-mono text-rose-400 font-medium">
-                {fmt(animatedLiabilities)}
-              </span>
+              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Passivos</span>
+              <span className="text-[13px] font-mono text-rose-400 font-medium">{FinancialFormatter.formatCurrency(animatedLiabilities)}</span>
             </div>
           </div>
 
           <div className="h-px w-full bg-white/[0.05] my-3" />
 
-          {/* Monthly variation + sparkline */}
           <div className="flex items-center justify-between gap-4 h-8">
             {monthlyVariation.amount !== 0 && (
               <div className="flex items-center gap-2">
@@ -217,7 +225,7 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
                   }`}
                 >
                   {monthlyVariation.amount > 0 ? "▲" : "▼"}{" "}
-                  {fmt(Math.abs(monthlyVariation.amount))} este mês
+                  {FinancialFormatter.formatCurrency(Math.abs(monthlyVariation.amount))} este mes
                 </span>
                 <span className="text-[10px] text-gray-500 font-mono font-medium">
                   {monthlyVariation.percentage > 0 ? "+" : ""}
@@ -226,7 +234,6 @@ export const HeroPatrimonio: React.FC<HeroPatrimonioProps> = ({
               </div>
             )}
 
-            {/* Sparkline — width: flex 1 is fine via Tailwind; height needs inline */}
             <div className="flex-1 min-w-[60px] h-full opacity-80">
               {sparklineData.length > 0 && (
                 <Sparkline data={sparklineData} color="var(--blue)" />

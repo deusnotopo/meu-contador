@@ -1,10 +1,10 @@
-import { useOnboarding } from "../OnboardingContext";
-import { StrategyRow } from "../StepCards";
-import { formatCurrency } from "@/lib/formatters";
+import { memo } from 'react';
+import { useOnboarding } from '../OnboardingContext';
+import { StrategyRow } from '../StepCards';
+import { formatCurrency } from '@/lib/formatters';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
-
-export function StrategyStep() {
+export const StrategyStep = memo(function StrategyStep() {
   const { profile, strategyRules } = useOnboarding();
   const {
     ruleName,
@@ -100,4 +100,4 @@ export function StrategyStep() {
       </div>
     </div>
   );
-}
+});

@@ -3,8 +3,9 @@ import { LogOut, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export const DangerousActions: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout, deleteAccount } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   return (
     <>
@@ -42,10 +43,21 @@ export const DangerousActions: React.FC = () => {
                 Cancelar
               </button>
               <button
-                className="btn-s flex-1 text-[var(--red)] border-[rgba(255,79,110,0.3)]"
-                onClick={() => { setShowDeleteConfirm(false); logout(); }}
+                className="btn-s flex-1 text-[var(--red)] border-[rgba(255,79,110,0.3)] disabled:opacity-50"
+                disabled={isDeleting}
+                onClick={async () => {
+                  try {
+                    setIsDeleting(true);
+                    await deleteAccount();
+                  } catch (e) {
+                    console.error("Falha na deleção da conta", e);
+                  } finally {
+                    setShowDeleteConfirm(false);
+                    setIsDeleting(false);
+                  }
+                }}
               >
-                Excluir
+                {isDeleting ? "Excluindo..." : "Excluir"}
               </button>
             </div>
           </div>

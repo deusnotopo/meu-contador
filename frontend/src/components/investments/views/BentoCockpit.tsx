@@ -11,6 +11,7 @@ import { AssetAllocationChart } from '../AssetAllocationChart';
 import { RealTimeQuotes } from '../RealTimeQuotes';
 import { TesouroDiretoRates } from '../TesouroDiretoRates';
 import { Zap, Activity, TrendingUp, TrendingDown, Compass, Cpu, ChevronRight } from 'lucide-react';
+import { InvestmentIntelligence } from '../InvestmentIntelligence';
 import type { Currency } from '@/types';
 import { formatCurrency } from '@/lib/formatters';
 
@@ -46,7 +47,7 @@ export const BentoCockpit: React.FC<Props> = ({ totalValue, totalInvested, profi
   }, [assets, convert]);
 
   // Vehicle assets from FIPE
-  const vehicleAssets = useMemo(() => assets.filter(a => a.type === ('vehicle' as any)), [assets]);
+  const vehicleAssets = useMemo(() => assets.filter(a => (a.type as string) === 'vehicle'), [assets]);
 
   return (
     <motion.div
@@ -153,6 +154,11 @@ export const BentoCockpit: React.FC<Props> = ({ totalValue, totalInvested, profi
           </motion.div>
         </div>
       </div>
+
+      {/* ── PHASE 28: Investment Intelligence ── */}
+      <motion.div variants={cardVariant} className="w-full">
+        <InvestmentIntelligence />
+      </motion.div>
 
       {/* ── ROW 2: Intelligence Row ── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-5">

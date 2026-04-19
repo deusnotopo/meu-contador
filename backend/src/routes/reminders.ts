@@ -1,18 +1,18 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../lib/db';
+import * as ReminderService from '../services/ReminderService.js';
 
 const reminderResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   amount: z.number(),
-  dueDate: z.string(),
+  dueDate: z.union([z.string(), z.date()]),
   category: z.string(),
   isPaid: z.boolean(),
   recurring: z.string(),
   userId: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.union([z.string(), z.date()]),
+  updatedAt: z.union([z.string(), z.date()]),
 });
 
 const reminderSchema = z.object({
@@ -27,9 +27,7 @@ const reminderSchema = z.object({
 const reminderUpdateSchema = reminderSchema.partial();
 
 export async function reminderRoutes(app: FastifyInstance) {
-  app.addHook('preHandler', async (request, reply) => {
-    await (app as any).authenticate(request, reply);
-  });
+  app.addHook('preHandler', app.authenticate);
 
   app.get('/reminders', {
     schema: {
@@ -39,15 +37,8 @@ export async function reminderRoutes(app: FastifyInstance) {
         200: z.array(reminderResponseSchema),
       },
     },
-  }, async (request, reply) => {
-    const userId = (request.user as any).id;
-
-    const reminders = await db.billReminder.findMany({
-      where: { userId },
-      orderBy: { dueDate: 'asc' },
-    });
-    
-    return reminders;
+  }, async (request) => {
+    return ReminderService.listReminders(request.user.id);
   });
 
   app.post('/reminders', {
@@ -60,16 +51,8 @@ export async function reminderRoutes(app: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const userId = (request.user as any).id;
     const data = request.body as z.infer<typeof reminderSchema>;
-
-    const reminder = await db.billReminder.create({
-      data: {
-        ...data,
-        userId,
-      },
-    });
-
+    const reminder = await ReminderService.createReminder(request.user.id, data);
     return reply.status(201).send(reminder);
   });
 
@@ -85,24 +68,14 @@ export async function reminderRoutes(app: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const userId = (request.user as any).id;
     const { id } = request.params as { id: string };
     const data = request.body as z.infer<typeof reminderUpdateSchema>;
 
-    const existing = await db.billReminder.findFirst({
-      where: { id, userId },
-    });
-
-    if (!existing) {
+    const reminder = await ReminderService.updateReminder(id, request.user.id, data);
+    if (!reminder) {
       return reply.status(404).send({ message: 'Reminder not found' });
     }
-
-    const updated = await db.billReminder.update({
-      where: { id },
-      data,
-    });
-
-    return updated;
+    return reminder;
   });
 
   app.delete('/reminders/:id', {
@@ -111,26 +84,16 @@ export async function reminderRoutes(app: FastifyInstance) {
       security: [{ bearerAuth: [] }],
       params: z.object({ id: z.string().uuid() }),
       response: {
-        204: z.void(),
+        204: z.null(),
         404: z.object({ message: z.string() }),
       },
     },
   }, async (request, reply) => {
-    const userId = (request.user as any).id;
     const { id } = request.params as { id: string };
-
-    const existing = await db.billReminder.findFirst({
-      where: { id, userId },
-    });
-
-    if (!existing) {
+    const success = await ReminderService.deleteReminder(id, request.user.id);
+    if (!success) {
       return reply.status(404).send({ message: 'Reminder not found' });
     }
-
-    await db.billReminder.delete({
-      where: { id },
-    });
-
     return reply.status(204).send();
   });
 }

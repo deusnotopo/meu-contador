@@ -37,7 +37,7 @@ const CATEGORY_RULES: CategoryRule[] = [
   { pattern: /steam|playstation|xbox|nintendo|epic\s?games|riot\s?games/i, category: 'Lazer', priority: 10 },
   // Vestuário
   { pattern: /roupa|vestido|camisa|calça|sapato|tênis|tenis|zara|hm|h&m|renner|riachuelo|cea|marisa/i, category: 'Roupas', priority: 10 },
-  { pattern: /magazine\s?luiza|casas\s?bahia|americanas|kabum|pichau|terabyte|mercado\s?livre|shopee/i, category: 'Roupas', priority: 9 },
+  { pattern: /magazine\s?luiza|casas\s?bahia|americanas|kabum|pichau|terabyte|mercado\s?livre|shopee/i, category: 'Compras', priority: 9 },
   // Beleza
   { pattern: /cabelereiro|salão|salao|barbeiro|estética|estetica|spa|manicure|pedicure/i, category: 'Beleza', priority: 10 },
   { pattern: /avon|natura|boticário|boticario|sephora/i, category: 'Beleza', priority: 10 },
@@ -61,10 +61,13 @@ const CATEGORY_RULES: CategoryRule[] = [
   { pattern: /empréstimo|emprestimo|parcela|financiamento|leasing/i, category: 'Empréstimos', priority: 10 },
 ];
 
+// Pré-ordenado por prioridade decrescente — feito UMA vez na inicialização do módulo.
+// Não re-sort a cada chamada de categorizeTransaction() — o array nunca muda.
+const SORTED_RULES = [...CATEGORY_RULES].sort((a, b) => b.priority - a.priority);
+
 export function categorizeTransaction(description: string): CategorizationResult {
   const normalizedDesc = description.trim().toLowerCase();
-  const sortedRules = [...CATEGORY_RULES].sort((a, b) => b.priority - a.priority);
-  for (const rule of sortedRules) {
+  for (const rule of SORTED_RULES) {
     const pattern = rule.pattern;
     let matches = false;
     if (pattern instanceof RegExp) {
@@ -118,9 +121,8 @@ export function getCategorySuggestions(
 ): Array<{ category: string; confidence: number }> {
   const normalizedDesc = _description.trim().toLowerCase();
   const suggestions: Array<{ category: string; confidence: number }> = [];
-  const sortedRules = [...CATEGORY_RULES].sort((a, b) => b.priority - a.priority);
 
-  for (const rule of sortedRules) {
+  for (const rule of SORTED_RULES) {
     if (suggestions.length >= _limit) break;
 
     const pattern = rule.pattern;
@@ -157,22 +159,19 @@ export function detectDuplicates(
   _existingTransactions: Array<{ date: string; description: string; amount: number }>
 ): Set<number> {
   const duplicates = new Set<number>();
+  
+  // Mapeamento O(1) com hashes para buscas instantâneas
+  const existingKeys = new Set(
+    _existingTransactions.map(e => `${e.date}|${Math.abs(e.amount).toFixed(2)}|${normalizeForComparison(e.description)}`)
+  );
 
   for (let index = 0; index < _newTransactions.length; index++) {
     const transaction = _newTransactions[index];
     if (!transaction) continue;
 
-    for (const existing of _existingTransactions) {
-      const sameDate = transaction.date === existing.date;
-      const sameAmount = Math.abs(transaction.amount - existing.amount) < 0.01;
-      const sameDescription =
-        normalizeForComparison(transaction.description) ===
-        normalizeForComparison(existing.description);
-
-      if (sameDate && sameAmount && sameDescription) {
-        duplicates.add(index);
-        break;
-      }
+    const key = `${transaction.date}|${Math.abs(transaction.amount).toFixed(2)}|${normalizeForComparison(transaction.description)}`;
+    if (existingKeys.has(key)) {
+      duplicates.add(index);
     }
   }
 

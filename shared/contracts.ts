@@ -50,6 +50,7 @@ export interface UpdateUserProfileDto {
   dependents?: number;
   investmentHorizon?: string;
   onboardingCompleted?: boolean;
+  fireTargetIncome?: number;
 }
 
 export interface UserProfileDto extends UpdateUserProfileDto {

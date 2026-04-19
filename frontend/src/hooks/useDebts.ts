@@ -1,5 +1,8 @@
 import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
+import { confirmAction } from "@/lib/confirm";
+import { DebtSchema } from "@/lib/schemas";
+import { z } from "zod";
 import { Debt } from "@/types";
 import { useEffect, useMemo, useState, useCallback } from "react";
 
@@ -9,34 +12,52 @@ export const useDebts = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchDebts = useCallback(async () => {
-    let cancelled = false; // ← Flag para cleanup
+    let cancelled = false;
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const response = await api.get<Debt[] | { items?: Debt[] }>("/debts");
-      if (!cancelled) { // ← Verifica se componente ainda está montado
-        const items = Array.isArray(response) ? response : (response?.items || []);
-        setDebts(items);
+      // AKITA MODE: Contrato estrito para dívidas
+      const response = await api.get<Debt[]>("/debts", {
+        schema: z.union([
+          z.array(DebtSchema),
+          z
+            .object({ items: z.array(DebtSchema) })
+            .transform((val) => val.items),
+        ]),
+      });
+      if (!cancelled) {
+        setDebts(response);
       }
     } catch (err) {
       if (!cancelled) {
-        console.error("Debts API Error:", err);
-        setError("Dívidas indisponíveis no momento. Verifique sua conexão.");
+        if (err instanceof z.ZodError) {
+          console.error("Zod Validation Error (Debts):", err.errors);
+          setError("Dados de dívidas incompatíveis.");
+        } else {
+          console.error("Debts API Error:", err);
+          setError("Dívidas indisponíveis no momento. Verifique sua conexão.");
+        }
       }
     } finally {
       if (!cancelled) {
         setIsLoading(false);
       }
     }
-    
-    return () => { cancelled = true; }; // ← Cleanup function
+
+    return () => {
+      cancelled = true;
+    }; // ← Cleanup function
   }, []);
 
   useEffect(() => {
     let cancelFn = () => {};
-    fetchDebts().then(fn => { if (fn) cancelFn = fn; });
-    return () => { cancelFn(); };
+    fetchDebts().then((fn) => {
+      if (fn) cancelFn = fn;
+    });
+    return () => {
+      cancelFn();
+    };
   }, [fetchDebts]);
 
   const addDebt = async (debtData: Omit<Debt, "id">) => {
@@ -60,20 +81,22 @@ export const useDebts = () => {
   };
 
   const deleteDebt = async (id: string) => {
-    if (window.confirm("Deseja excluir esta dívida?")) {
-      try {
-        await api.delete(`/debts/${id}`);
-        setDebts((prev) => prev.filter((d) => d.id !== id));
-        showSuccess("Dívida excluída!");
-      } catch {
-        showError("Erro ao excluir dívida.");
-      }
+    if (!await confirmAction('Deseja excluir esta dívida?')) return;
+    try {
+      await api.delete(`/debts/${id}`);
+      setDebts((prev) => prev.filter((d) => d.id !== id));
+      showSuccess('Dívida excluída!');
+    } catch {
+      showError('Erro ao excluir dívida.');
     }
   };
 
   const totals = useMemo(() => {
     const totalBalance = debts.reduce((sum, d) => sum + d.balance, 0);
-    const totalMinPayment = debts.reduce((sum, d) => sum + d.minPayment, 0);
+    const totalMinPayment = debts.reduce(
+      (sum, d) => sum + (d.minPayment ?? 0),
+      0,
+    );
     return { totalBalance, totalMinPayment };
   }, [debts]);
 

@@ -7,6 +7,17 @@ interface CircuitBreakerOptions {
   fallbackMessage?: string;
 }
 
+/**
+ * Circuit Breaker Error — thrown when all retries are exhausted.
+ * Callers MUST handle this explicitly instead of receiving a fake 200 response.
+ */
+export class CircuitBreakerExhaustedError extends Error {
+  constructor(message: string, public readonly attempts: number) {
+    super(message);
+    this.name = 'CircuitBreakerExhaustedError';
+  }
+}
+
 export async function fetchWithCircuitBreaker(
   url: string,
   options: RequestInit,
@@ -16,7 +27,6 @@ export async function fetchWithCircuitBreaker(
     maxRetries = 3,
     initialDelay = 1000,
     maxDelay = 5000,
-    fallbackMessage = "Nossos servidores de IA estão momentaneamente sobrecarregados. Por favor, tente novamente em alguns instantes."
   } = cbOptions;
 
   let attempt = 0;
@@ -24,7 +34,16 @@ export async function fetchWithCircuitBreaker(
 
   while (attempt < maxRetries) {
     try {
-      const response = await fetch(url, options);
+      // Inject CSRF token from cookie so backend's CSRF check (app.ts onRequest hook) passes
+      const csrfCookie = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('mc_csrf_token='));
+      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.slice('mc_csrf_token='.length)) : null;
+
+      const headersInit = new Headers((options.headers as HeadersInit | undefined) || {});
+      if (csrfToken && !headersInit.has('X-CSRF-Token')) {
+        headersInit.set('X-CSRF-Token', csrfToken);
+      }
+
+      const response = await fetch(url, { ...options, headers: headersInit });
       
       // If successful or client error (4xx) not meant for retry, return it
       if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
@@ -38,17 +57,13 @@ export async function fetchWithCircuitBreaker(
       attempt++;
       
       if (attempt >= maxRetries) {
-        // Build a synthetic Response to smoothly fallback without breaking the UI component
-        console.error(`[CircuitBreaker] Failed after ${maxRetries} attempts:`, error);
-        
-        const fallbackBody = JSON.stringify({
-          response: fallbackMessage
-        });
-        
-        return new Response(fallbackBody, {
-          status: 200, // Pretend it succeeded but with fallback message
-          headers: { 'Content-Type': 'application/json' }
-        });
+        // AKITA FIX: NEVER fake a 200 response. Throw a typed error so the caller
+        // can decide how to handle it (show error toast, use fallback data, etc.)
+        logger.error(`[CircuitBreaker] Failed after ${maxRetries} attempts:`, error);
+        throw new CircuitBreakerExhaustedError(
+          `Conexão falhou após ${maxRetries} tentativas. Serviço indisponível.`,
+          maxRetries
+        );
       }
       
       // Exponential backoff
@@ -58,6 +73,6 @@ export async function fetchWithCircuitBreaker(
     }
   }
   
-  // This will never be hit due to the fallback returned above, but fixes TS return paths.
-  throw new Error("Conexão interrompida");
+  // Unreachable, but satisfies TypeScript return path
+  throw new CircuitBreakerExhaustedError("Max retries exceeded unexpectedly.", maxRetries);
 }

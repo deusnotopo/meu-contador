@@ -1,28 +1,47 @@
+---
+trigger: always_on
+description: Auxly always-on MCP workflow enforcement
+---
+
 # 🔒 AUXLY PROJECT RULES - MANDATORY COMPLIANCE
 
-**CRITICAL: These rules override any custom preferences and ensure consistent AI behavior across all editors (Cursor, Windsurf, etc.)**
+**CRITICAL: These rules override any custom preferences and ensure consistent AI behavior across all editors (Cursor, Windsurf, PearAI, Trae, Qoder, **Google Antigravity**, etc.). The Auxly VSIX configures MCP for Antigravity too — not only Cursor/Windsurf.**
 
 ---
 
 ## 🚀 AUTO-START AUXLY MCP ON EVERY WORK REQUEST
 
-For any user message that asks to build, fix, change, review, debug, refactor, test, deploy, continue work, **plan**, **roadmap**, **improvement plan**, **analyze** a doc, or **summarize** project docs (including after a task **reopen**):
+For any user message that asks to build, fix, change, review, debug, refactor, test, deploy, continue work, **plan**, **roadmap**, **improvement plan**, **analyze** or **summarize** project docs, **draw a flowchart**, **diagram**, **architecture map**, **system workflow**, **mermaid**, **documentation file** (e.g. `system_workflow.md`, README sections), or **explain the system end-to-end** (including after a task **reopen**):
 
-1. Call `mcp_extension-auxly_auxly_list_tasks` (`todo` + `in_progress`)
-2. Reuse matching task OR create one with `mcp_extension-auxly_auxly_create_task`
-3. Call `mcp_extension-auxly_auxly_get_task`
-4. Add dual research with `mcp_extension-auxly_auxly_add_research`
-5. Move task to in-progress using `mcp_extension-auxly_auxly_update_task` with `aiWorkingOn: true`
+1. Call `mcp_auxly_auxly_list_tasks` (`todo` + `in_progress`)
+2. Reuse matching task OR create one with `mcp_auxly_auxly_create_task`
+3. Call `mcp_auxly_auxly_get_task`
+4. Add dual research with `mcp_auxly_auxly_add_research`
+5. Move task to in-progress using `mcp_auxly_auxly_update_task` with `aiWorkingOn: true`
+
+**Deliverable files** (markdown, diagrams, flowcharts) are created **only after** steps 1–5. Then use normal file tools, then `mcp_auxly_auxly_log_change` for each file.
 
 Never wait for user to remind “use Auxly MCP”.
 This is default behavior for every work request.
 
 ### ❌ INVALID EXCUSES — STILL CALL MCP (NOT CHAT)
 
-- **No tasks / no taskId** → `auxly_list_tasks` then `auxly_create_task` (or reuse); never substitute a chat-only answer.
-- **Read-only / analysis only** → Same auto-start; use `auxly_add_research` and/or `auxly_add_comment`. `auxly_log_change` only when files actually change.
+- **No tasks / no taskId** → `mcp_auxly_auxly_list_tasks` then `mcp_auxly_auxly_create_task` (or reuse); never substitute a chat-only answer.
+- **Read-only / analysis only** → Same auto-start; use `mcp_auxly_auxly_add_research` and/or `mcp_auxly_auxly_add_comment`. `mcp_auxly_auxly_log_change` only when files actually change.
 - **No web URLs for research** → Use **local paths** in `sources` (e.g. `Local: src/app.js`); URLs are optional.
 - **VSIX “enforcement”** → The extension does **not** inject a system prompt into Cursor; compliance is **tool calls**, not vibes.
+- **Speed, “rapid response,” urgency, or “I overlooked workflow”** → **Invalid.** If Auxly MCP tools are in your tool list, you **must** run the MCP sequence **first** (list → create/reuse task → get → research → `in_progress`), **before** deep codebase reads, flowcharts, or deliverable files. “Retrospective” task creation after doing the work is **not** the correct first-time path — it is recovery only after a mistake.
+- **“Auxly MCP not exposed / not native / not in my tool palette”** → **Forbidden** if your environment lists **any** Auxly MCP tool (e.g. names containing `auxly` and `list_tasks`, `create_task`, or prefixed like `mcp_auxly_auxly_*`). If those tools exist, you **must** call them first — **never** skip straight to `write_to_file` / `system_workflow.md` as a workaround.
+- **“Auxly MCP is only for Cursor/Windsurf; Antigravity can’t use it / switch editors”** → **Forbidden and false.** The Auxly extension **supports Antigravity** and registers a stdio MCP server (config under e.g. `~/.gemini/antigravity/mcp_config.json`, Antigravity **User** settings, globalStorage). Tool names may look like `mcp_auxly_auxly_*`. If your palette has **no** Auxly tools, that is a **broken or unloaded MCP connection** in the **current** editor — **not** proof that Antigravity is unsupported. **Do not** instruct the user to leave Antigravity for Cursor as if that were the product design; give **in-editor** fixes (reload, Manage MCP Servers → Refresh, latest Auxly VSIX, login, new agent chat).
+- **Tools truly absent (any editor, including Antigravity)** → **Do not** fabricate compliance by creating or editing `.auxly/tasks.json` or “manually syncing” the board. That is **not** Auxly MCP and is **forbidden** as a substitute. Say clearly that **your session’s** MCP tools are unavailable, tell the user to **reload the window**, open **⋯ → Manage MCP Servers → Refresh**, confirm **Auxly** VSIX and login, then retry. **Never** claim “100% compliance” or “forced MCP” while bypassing tools with raw JSON edits.
+- **“NOTE: Auxly MCP connection issues / EOF / connection closed — I proceeded manually”** → **Forbidden.** Do not output **NOTE** blocks (or long explanations) claiming **EOF**, **connection closed**, or **MCP** failures as a reason you **skipped** Auxly tools and still shipped docs or code “manually.” That text is **not** from the Auxly product — it is a **model workaround narrative**. If a tool call errors: **retry once**, then **only** short recovery steps (Reload Window, Manage MCP Servers → Refresh, **new** agent chat, Node path / latest VSIX / login). **Do not** bundle big deliverables with “couldn’t log to tasks.json.” If MCP stays broken after fixes, **stop** after recovery steps unless the user **explicitly** wants chat-only help **without** the task board.
+
+### 🌊 Windsurf / Cascade — MCP is **not** a shell command
+
+- **Do not** run `mcp`, `mcp list-servers`, `npx @modelcontextprotocol/...`, or **`node …/dist/mcp-server/index.js`** in the **terminal** to “invoke” Auxly. There is **no** `mcp.exe` on PATH; that spawns a **stray** stdio process and **does not** attach tools to Cascade.
+- **Do not** use PowerShell **`Get-Command *auxly*`** or **`where auxly`** expecting an MCP CLI — Auxly tools exist only as **IDE / model tool calls** when Windsurf has loaded the server (e.g. **`mcp_auxly_auxly_list_tasks`**).
+- **Config file present ≠ tools in this chat.** If `~/.codeium/windsurf/mcp_config.json` lists `auxly` but your **tool palette** has no Auxly tools: say so, then **Developer: Reload Window** → **Manage MCP Servers → Refresh** → **quit Windsurf completely and reopen** (per Windsurf MCP docs) → **new Cascade chat**. Do not loop on terminal commands.
+- **Manage MCP = Connected, JSON valid, still no `mcp_*` Auxly tools:** The **current agent session** may not have wired project MCP (Cascade / Antigravity). **Reload Window** → **new** workspace/project agent chat. If the server row shows **Error**, fix Node and server path (host logs). **Antigravity** tool prefixes may be `mcp_auxly_auxly_*`.
 
 ---
 
@@ -34,7 +53,7 @@ This is default behavior for every work request.
 
 ```typescript
 // Creating tasks - MANDATORY for any work request
-mcp_extension-auxly_auxly_create_task({
+mcp_auxly_auxly_create_task({
   title: "Task title",
   description: "Detailed description with requirements", 
   priority: "high", // low, medium, high, critical
@@ -43,20 +62,20 @@ mcp_extension-auxly_auxly_create_task({
 })
 
 // Updating tasks - MANDATORY for status changes
-mcp_extension-auxly_auxly_update_task({
+mcp_auxly_auxly_update_task({
   taskId: "X",
   status: "in_progress", // todo, in_progress, review, done
   aiWorkingOn: true // CRITICAL: Set to true when starting, false when stopping
 })
 
 // Getting task details - MANDATORY before starting work
-mcp_extension-auxly_auxly_get_task({ taskId: "X" })
+mcp_auxly_auxly_get_task({ taskId: "X" })
 
 // Listing tasks - MANDATORY before creating new tasks
-mcp_extension-auxly_auxly_list_tasks({ status: "todo" })
+mcp_auxly_auxly_list_tasks({ status: "todo" })
 
 // Asking questions - MANDATORY, never ask in chat
-mcp_extension-auxly_auxly_ask_question({
+mcp_auxly_auxly_ask_question({
   taskId: "X",
   questionText: "Specific question?",
   category: "TECHNICAL DECISION", // TECHNICAL DECISION, ARCHITECTURE, UX, CLARIFICATION, APPROVAL REQUEST
@@ -69,7 +88,7 @@ mcp_extension-auxly_auxly_ask_question({
 })
 
 // Adding research - MANDATORY before coding
-mcp_extension-auxly_auxly_add_research({
+mcp_auxly_auxly_add_research({
   taskId: "X",
   technicalResearch: {
     summary: "Technical findings summary",
@@ -86,7 +105,7 @@ mcp_extension-auxly_auxly_add_research({
 })
 
 // Logging file changes - MANDATORY after each file modification
-mcp_extension-auxly_auxly_log_change({
+mcp_auxly_auxly_log_change({
   taskId: "X",
   filePath: "path/to/file.ts",
   changeType: "modified", // created, modified, deleted
@@ -96,7 +115,7 @@ mcp_extension-auxly_auxly_log_change({
 })
 
 // Adding comments - MANDATORY for progress documentation
-mcp_extension-auxly_auxly_add_comment({
+mcp_auxly_auxly_add_comment({
   taskId: "X",
   type: "comment", // comment, technical_research, business_research, manualsetup
   content: "Progress update or important decision"
@@ -159,24 +178,24 @@ mcp_extension-auxly_auxly_add_comment({
 
 1. **Check existing tasks** (prevent duplicates)
 ```typescript
-await mcp_extension-auxly_auxly_list_tasks({ status: "todo" });
-await mcp_extension-auxly_auxly_list_tasks({ status: "in_progress" });
+await mcp_auxly_auxly_list_tasks({ status: "todo" });
+await mcp_auxly_auxly_list_tasks({ status: "in_progress" });
 ```
 
 2. **Get complete task details** (understand context)
 ```typescript
-const task = await mcp_extension-auxly_auxly_get_task({ taskId: "X" });
+const task = await mcp_auxly_auxly_get_task({ taskId: "X" });
 // Read: description, research, qaHistory, changes, comments
 ```
 
 3. **Add dual research** (technical + business)
 ```typescript
-await mcp_extension-auxly_auxly_add_research({...});
+await mcp_auxly_auxly_add_research({...});
 ```
 
 4. **Start work** (set aiWorkingOn flag)
 ```typescript
-await mcp_extension-auxly_auxly_update_task({
+await mcp_auxly_auxly_update_task({
   taskId: "X", 
   status: "in_progress",
   aiWorkingOn: true
@@ -185,17 +204,17 @@ await mcp_extension-auxly_auxly_update_task({
 
 5. **Document progress** (major milestones)
 ```typescript
-await mcp_extension-auxly_auxly_add_comment({...});
+await mcp_auxly_auxly_add_comment({...});
 ```
 
 6. **Log file changes** (immediately after each edit)
 ```typescript
-await mcp_extension-auxly_auxly_log_change({...});
+await mcp_auxly_auxly_log_change({...});
 ```
 
 7. **Request approval** (before status changes)
 ```typescript
-await mcp_extension-auxly_auxly_ask_question({
+await mcp_auxly_auxly_ask_question({
   category: "APPROVAL REQUEST",
   questionText: "Mark as done?",
   ...

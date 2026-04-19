@@ -1,13 +1,11 @@
 import { useId } from "react";
 
-
-
 // Helper to validate and sanitize numbers
 const safeNumber = (n: number, fallback: number = 0): number => {
   return typeof n === 'number' && !isNaN(n) && isFinite(n) ? n : fallback;
 };
 
-// SVG Sparkline Component matching finapp_v3.html exactly
+// SVG Sparkline Component
 export const Sparkline = ({ data, color = "var(--blue)", h = 44, w = 318 }: { data: number[], color?: string, h?: number, w?: number }) => {
   const baseId = useId();
   if (!data || data.length === 0) return null;
@@ -56,7 +54,7 @@ export const Sparkline = ({ data, color = "var(--blue)", h = 44, w = 318 }: { da
   );
 };
 
-// SVG BarChart Component matching finapp_v3.html exactly
+// SVG BarChart Component
 export const BarChart = ({ data, colors, h = 50, w = 318 }: { data: number[], colors: string | string[], h?: number, w?: number }) => {
   const filterId = useId();
   if (!data || data.length === 0) return null;
@@ -97,6 +95,39 @@ export const BarChart = ({ data, colors, h = 50, w = 318 }: { data: number[], co
           />
         );
       })}
+    </svg>
+  );
+};
+
+// SVG AreaChart Component for projections
+export const AreaChart = ({ data, color = "#4A8BFF", h = 100, w = 318 }: { data: number[], color?: string, h?: number, w?: number }) => {
+  const baseId = useId();
+  if (!data || data.length === 0) return null;
+  
+  const validData = data.map(v => safeNumber(v, 0));
+  const max = Math.max(...validData) || 1;
+  const min = Math.min(...validData);
+  const range = (max - min) || 1;
+  
+  const pts = validData.map((v, i) => {
+    const x = (i / (validData.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 10) - 5;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const pathContent = `0,${h} ${pts} ${w},${h}`;
+  const gradId = `${baseId}-gap`;
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible" }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={pathContent} fill={`url(#${gradId})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 };

@@ -1,0 +1,16 @@
+# 🔒 ANTIGRAVITY SUBAGENT LOCKS
+
+## ACTIVE MUTEX REGISTRY
+Format: `FILEPATH | AGENT_ID | LOCK_TIMESTAMP | EXPIRES_AT`
+
+### SYSTEM LOCKS
+- `frontend/src/App.tsx` | `b9da6ffa` (Supervisor) | 2026-04-17T15:59:45Z | 2026-04-17T16:29:45Z
+- `frontend/src/lib/schemas/index.ts` | `bad3d107` (Budget) | 2026-04-17T15:59:45Z | 2026-04-17T16:29:45Z
+- `frontend/src/lib/constants.ts` | `18e5a3d9` (Home) | 2026-04-17T15:59:45Z | 2026-04-17T16:29:45Z
+
+---
+## LOCK PROTOCOL (AKITA MODE)
+1. Check this file BEFORE any `multi_replace_file_content` or `replace_file_content`.
+2. If the file is locked by another agent, enter `WAIT_STATE`.
+3. If the lock is expired (>30min), you may preemptively claim it.
+4. Always release your lock by removing the line from this file after your task is DONE.

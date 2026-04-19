@@ -53,6 +53,9 @@ export const InvoicesSection = () => {
     amount: "",
     status: "pending" as InvoiceStatus,
     dueDate: new Date().toISOString().substring(0, 10),
+    customerName: "",
+    customerTaxId: "",
+    issueDate: new Date().toISOString().substring(0, 10),
   });
 
   const handleOpenChange = (open: boolean) => {
@@ -65,6 +68,9 @@ export const InvoicesSection = () => {
         amount: "",
         status: "pending",
         dueDate: new Date().toISOString().substring(0, 10),
+        customerName: "",
+        customerTaxId: "",
+        issueDate: new Date().toISOString().substring(0, 10),
       });
     }
   };
@@ -73,10 +79,13 @@ export const InvoicesSection = () => {
     setEditingInv(inv);
     setFormData({
       number: inv.number,
-      client: inv.client,
+      client: inv.client ?? "",
       amount: inv.amount.toString(),
       status: inv.status,
-      dueDate: inv.dueDate,
+      dueDate: inv.dueDate ?? "",
+      customerName: inv.customerName,
+      customerTaxId: inv.customerTaxId ?? "",
+      issueDate: inv.issueDate ?? new Date().toISOString().substring(0, 10),
     });
     setIsOpen(true);
   };
@@ -86,6 +95,8 @@ export const InvoicesSection = () => {
     const data = {
       ...formData,
       amount: parseFloat(formData.amount),
+      customerName: formData.client,
+      customerTaxId: formData.customerTaxId || "00000000000",
     };
 
     if (editingInv) {
@@ -98,21 +109,29 @@ export const InvoicesSection = () => {
 
   const handleDownloadPDF = (inv: Invoice) => {
     const doc = new jsPDF();
-    
+
     // Header
     doc.setFontSize(22);
     doc.text("NOTA FISCAL DE SERVIÇOS", 105, 20, { align: "center" });
-    
+
     doc.setFontSize(10);
     doc.text(`Número: ${inv.number}`, 20, 40);
-    doc.text(`Data de Emissão: ${new Date().toLocaleDateString("pt-BR")}`, 20, 45);
-    doc.text(`Vencimento: ${new Date(inv.dueDate).toLocaleDateString("pt-BR")}`, 20, 50);
+    doc.text(
+      `Data de Emissão: ${new Date().toLocaleDateString("pt-BR")}`,
+      20,
+      45,
+    );
+    doc.text(
+      `Vencimento: ${inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("pt-BR") : "N/A"}`,
+      20,
+      50,
+    );
 
     // Client Info
     doc.setFontSize(14);
     doc.text("TOMADOR DO SERVIÇO", 20, 65);
     doc.setFontSize(10);
-    doc.text(`Cliente: ${inv.client}`, 20, 75);
+    doc.text(`Cliente: ${inv.client ?? inv.customerName}`, 20, 75);
 
     // Table
     autoTable(doc, {
@@ -132,9 +151,15 @@ export const InvoicesSection = () => {
 
     const finalY = ((doc as AutoTableDoc).lastAutoTable?.finalY ?? 90) + 20;
     doc.setFontSize(12);
-    doc.text(`VALOR TOTAL: R$ ${inv.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 140, finalY);
+    doc.text(
+      `VALOR TOTAL: R$ ${inv.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      140,
+      finalY,
+    );
 
-    doc.save(`NF_${inv.number}_${inv.client.replace(/\s+/g, "_")}.pdf`);
+    doc.save(
+      `NF_${inv.number}_${(inv.client ?? inv.customerName).replace(/\s+/g, "_")}.pdf`,
+    );
   };
 
   const statusConfig = {
@@ -319,7 +344,9 @@ export const InvoicesSection = () => {
           ) : (
             <div className="divide-y divide-white/5">
               {invoices.map((inv) => {
-                const config = statusConfig[inv.status as keyof typeof statusConfig] || statusConfig.pending;
+                const config =
+                  statusConfig[inv.status as keyof typeof statusConfig] ||
+                  statusConfig.pending;
                 const Icon = config.icon;
 
                 return (
@@ -329,9 +356,14 @@ export const InvoicesSection = () => {
                   >
                     <div className="flex items-center gap-6">
                       <div
-                        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${(config.color || "")
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${(
+                          config.color || ""
+                        )
                           .split(" ")[0]
-                          ?.replace("10", "20")} ${(config.color || "").split(" ")[1] || ""}`}
+                          ?.replace(
+                            "10",
+                            "20",
+                          )} ${(config.color || "").split(" ")[1] || ""}`}
                       >
                         <Icon size={24} />
                       </div>
@@ -347,11 +379,15 @@ export const InvoicesSection = () => {
                           </span>
                         </div>
                         <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider">
-                          {inv.client}{" "}
+                          {inv.client ?? inv.customerName}{" "}
                           <span className="mx-2 text-neutral-800">|</span>{" "}
                           <span className="text-neutral-500">
                             Venc:{" "}
-                            {new Date(inv.dueDate).toLocaleDateString("pt-BR")}
+                            {inv.dueDate
+                              ? new Date(inv.dueDate).toLocaleDateString(
+                                  "pt-BR",
+                                )
+                              : "N/A"}
                           </span>
                         </p>
                       </div>
@@ -363,7 +399,9 @@ export const InvoicesSection = () => {
                           size="sm"
                           variant="outline"
                           className="h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 rounded-lg text-[10px] font-black uppercase tracking-widest px-4"
-                          onClick={() => updateInvoice(inv.id, { status: "paid" })}
+                          onClick={() =>
+                            updateInvoice(inv.id, { status: "paid" })
+                          }
                         >
                           Marcar como Pago
                         </Button>
@@ -418,4 +456,3 @@ export const InvoicesSection = () => {
     </FadeIn>
   );
 };
-

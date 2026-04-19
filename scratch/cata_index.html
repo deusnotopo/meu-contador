@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATA — Camisas de Futebol Premium</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #00C853;
+    --amarelo: #FFD600;
+    --azul: #1565C0;
+    --bg: #080A0E;
+    --bg2: #0F1218;
+    --bg3: #161B24;
+    --text: #F0F2F5;
+    --muted: #8892A0;
+    --border: rgba(255,255,255,0.07);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; cursor: default; }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    background: linear-gradient(180deg, rgba(8,10,14,0.95) 0%, transparent 100%);
+    backdrop-filter: blur(10px);
+  }
+  .nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 6px; color: var(--text); text-decoration: none; }
+  .nav-logo span { color: var(--verde); }
+  .nav-links { display: flex; gap: 36px; list-style: none; }
+  .nav-links a { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta { background: var(--verde); color: #000 !important; padding: 10px 24px; border-radius: 2px; font-weight: 500; font-size: 12px !important; letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none; transition: opacity 0.2s; }
+  .nav-cta:hover { opacity: 0.85; }
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 120px 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 80% at 70% 50%, rgba(0,200,83,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 30% 20%, rgba(21,101,192,0.12) 0%, transparent 50%);
+  }
+  .hero-grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 80px 80px;
+  }
+  .hero-left { position: relative; z-index: 2; }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,200,83,0.1);
+    border: 1px solid rgba(0,200,83,0.25);
+    color: var(--verde);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 2px;
+    margin-bottom: 32px;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--verde);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 8vw, 120px);
+    line-height: 0.9;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .hero-title .line2 { color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.3); display: block; }
+  .hero-title .line3 { color: var(--amarelo); display: block; }
+  .hero-subtitle { font-size: 16px; color: var(--muted); line-height: 1.7; max-width: 420px; margin: 28px 0 48px; font-weight: 300; }
+  .hero-actions { display: flex; gap: 16px; align-items: center; }
+  .btn-primary {
+    background: var(--verde);
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 16px 36px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+  .btn-primary:hover { background: #00E676; transform: translateY(-2px); }
+  .btn-secondary {
+    color: var(--text);
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    transition: border-color 0.2s, gap 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--verde); gap: 14px; }
+  .hero-stats { display: flex; gap: 48px; margin-top: 64px; padding-top: 40px; border-top: 1px solid var(--border); }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 1px; line-height: 1; color: var(--text); }
+  .stat-num span { color: var(--verde); }
+  .stat-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+  .hero-right { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; }
+  .jersey-showcase { position: relative; width: 420px; height: 520px; }
+  .jersey-main {
+    width: 320px;
+    height: 380px;
+    background: linear-gradient(135deg, #FFD600 0%, #FFC107 50%, #FF8F00 100%);
+    border-radius: 8px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 60px rgba(255,214,0,0.15);
+  }
+  .jersey-card-float { position: absolute; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 14px 18px; backdrop-filter: blur(20px); }
+  .jersey-card-float.top-right { top: 20px; right: 0; width: 170px; }
+  .jersey-card-float.bottom-left { bottom: 30px; left: 0; width: 190px; }
+  .float-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .float-value { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+  .float-value.price { font-size: 22px; color: var(--verde); }
+  .float-tag { display: inline-block; background: rgba(255,214,0,0.1); border: 1px solid rgba(255,214,0,0.2); color: var(--amarelo); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; margin-top: 6px; }
+  .dot-ring { position: absolute; width: 450px; height: 450px; border: 1px solid rgba(255,255,255,0.04); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: spin 20s linear infinite; }
+  .dot-ring::before { content: ''; position: absolute; width: 8px; height: 8px; background: var(--verde); border-radius: 50%; top: 0; left: 50%; transform: translateX(-50%); box-shadow: 0 0 12px var(--verde); }
+  @keyframes spin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+  .marquee-bar { background: var(--verde); padding: 14px 0; overflow: hidden; position: relative; z-index: 10; }
+  .marquee-track { display: flex; gap: 0; animation: marquee 20s linear infinite; white-space: nowrap; width: max-content; }
+  .marquee-item { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 3px; color: #000; padding: 0 36px; display: flex; align-items: center; gap: 16px; }
+  .marquee-item::after { content: '✦'; font-size: 10px; }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .products { padding: 100px 48px; position: relative; }
+  .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 60px; }
+  .section-eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--verde); margin-bottom: 12px; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px, 5vw, 68px); line-height: 0.95; letter-spacing: 1px; }
+  .section-title .outline { -webkit-text-stroke: 1px rgba(255,255,255,0.25); color: transparent; }
+  .filter-tabs { display: flex; gap: 4px; background: var(--bg2); border: 1px solid var(--border); padding: 4px; border-radius: 4px; align-self: flex-start; }
+  .filter-tab { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; padding: 8px 20px; border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all 0.2s; }
+  .filter-tab.active { background: var(--verde); color: #000; font-weight: 700; }
+  .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+  .product-card { position: relative; background: var(--bg2); overflow: hidden; cursor: pointer; }
+  .product-card.featured { grid-row: span 2; grid-column: span 2; }
+  .product-card:hover .product-overlay { opacity: 1; }
+  .product-card:hover .product-img-wrap { transform: scale(1.05); }
+  .product-img-wrap { width: 100%; padding-bottom: 120%; background: var(--bg3); position: relative; transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); overflow: hidden; }
+  .product-card.featured .product-img-wrap { padding-bottom: 65%; }
+  .product-img-bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .jersey-svg { width: 60%; height: 60%; opacity: 0.9; }
+  .product-overlay { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 60%); opacity: 0; transition: opacity 0.3s; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px; }
+  .product-overlay.always-show { opacity: 1; background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, transparent 50%); }
+  .product-badge { position: absolute; top: 16px; left: 16px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; border-radius: 2px; font-weight: 700; }
+  .badge-new { background: var(--verde); color: #000; }
+  .badge-hot { background: #FF3D00; color: #fff; }
+  .badge-limited { background: var(--amarelo); color: #000; }
+  .product-name { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .product-card.featured .product-name { font-size: 26px; }
+  .product-team { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 12px; }
+  .product-footer { display: flex; align-items: center; justify-content: space-between; }
+  .product-price { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--verde); letter-spacing: 1px; }
+  .product-card.featured .product-price { font-size: 40px; }
+  .product-price-old { font-size: 14px; color: rgba(255,255,255,0.35); text-decoration: line-through; margin-left: 6px; }
+  .btn-add { width: 36px; height: 36px; background: var(--verde); border: none; color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; transition: all 0.2s; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+  .btn-add:hover { background: #00E676; transform: scale(1.1); }
+  .wpp-section { margin: 2px; background: linear-gradient(135deg, #0F1218 0%, #111820 100%); border: 1px solid rgba(0,200,83,0.15); padding: 80px 48px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 40px; position: relative; overflow: hidden; }
+  .wpp-section::before { content: ''; position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(0,200,83,0.06) 0%, transparent 70%); top: 50%; right: -100px; transform: translateY(-50%); pointer-events: none; }
+  .wpp-eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--verde); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .wpp-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 4vw, 60px); line-height: 0.95; margin-bottom: 20px; }
+  .wpp-text { font-size: 15px; color: var(--muted); line-height: 1.7; max-width: 480px; font-weight: 300; }
+  .wpp-btn { display: flex; align-items: center; gap: 14px; background: #25D366; color: #000; text-decoration: none; padding: 20px 36px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; transition: all 0.2s; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)); white-space: nowrap; }
+  .wpp-btn:hover { background: #2EE472; transform: translateY(-3px); box-shadow: 0 20px 40px rgba(37,211,102,0.3); }
+  .wpp-icon { width: 26px; height: 26px; fill: #000; flex-shrink: 0; }
+  .clubs-section { padding: 80px 48px; }
+  .clubs-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; margin-top: 48px; }
+  .club-card { background: var(--bg2); padding: 28px 20px; text-align: center; cursor: pointer; border: 1px solid transparent; transition: all 0.25s; position: relative; overflow: hidden; }
+  .club-card::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--verde); transform: scaleX(0); transition: transform 0.25s; }
+  .club-card:hover { background: var(--bg3); border-color: var(--border); }
+  .club-card:hover::before { transform: scaleX(1); }
+  .club-icon { width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .club-name { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text); margin-bottom: 4px; }
+  .club-count { font-size: 11px; color: var(--muted); }
+  .trust-section { padding: 80px 48px; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+  .trust-item { padding: 40px 32px; background: var(--bg2); position: relative; overflow: hidden; }
+  .trust-item::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--verde), transparent); opacity: 0; transition: opacity 0.3s; }
+  .trust-item:hover::after { opacity: 1; }
+  .trust-num { font-family: 'Bebas Neue', sans-serif; font-size: 56px; color: var(--verde); line-height: 1; margin-bottom: 8px; }
+  .trust-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .trust-text { font-size: 13px; color: var(--muted); line-height: 1.6; font-weight: 300; }
+  .reviews-section { padding: 80px 48px; overflow: hidden; }
+  .reviews-track { display: flex; gap: 16px; margin-top: 48px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+  .reviews-track::-webkit-scrollbar { display: none; }
+  .review-card { background: var(--bg2); border: 1px solid var(--border); padding: 32px; min-width: 300px; max-width: 300px; flex-shrink: 0; }
+  .review-stars { color: var(--amarelo); font-size: 14px; letter-spacing: 2px; margin-bottom: 16px; }
+  .review-text { font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: 20px; font-weight: 300; }
+  .review-author { display: flex; align-items: center; gap: 10px; }
+  .review-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--verde); }
+  .review-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
+  .review-city { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 48px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; }
+  .footer-brand { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 5px; margin-bottom: 16px; }
+  .footer-brand span { color: var(--verde); }
+  .footer-desc { font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 280px; font-weight: 300; }
+  .footer-col h4 { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; font-family: 'Syne', sans-serif; font-weight: 700; }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .footer-col a { font-size: 13px; color: var(--text); text-decoration: none; opacity: 0.75; transition: opacity 0.2s, color 0.2s; }
+  .footer-col a:hover { opacity: 1; color: var(--verde); }
+  .footer-bottom { background: var(--bg); border-top: 1px solid var(--border); padding: 20px 48px; display: flex; justify-content: space-between; align-items: center; }
+  .footer-bottom p { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+  .sticky-wpp { position: fixed; bottom: 32px; right: 32px; z-index: 800; width: 58px; height: 58px; background: #25D366; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 32px rgba(37,211,102,0.4); transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; }
+  .sticky-wpp:hover { transform: scale(1.1); box-shadow: 0 12px 40px rgba(37,211,102,0.5); }
+  .sticky-wpp svg { width: 28px; height: 28px; fill: #000; }
+  .countdown-bar { background: linear-gradient(90deg, #FF3D00, #FF6D00); padding: 12px 48px; display: flex; align-items: center; justify-content: center; gap: 24px; }
+  .countdown-text { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px; color: #fff; }
+  .countdown-timer { display: flex; gap: 4px; align-items: center; }
+  .countdown-unit { background: rgba(0,0,0,0.3); padding: 4px 10px; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; color: #fff; }
+  .countdown-sep { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: rgba(255,255,255,0.6); }
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .nav-links { display: none; }
+    .hero { grid-template-columns: 1fr; padding: 100px 20px 60px; }
+    .hero-right { display: none; }
+    .products { padding: 60px 20px; }
+    .product-grid { grid-template-columns: repeat(2, 1fr); }
+    .product-card.featured { grid-row: span 1; grid-column: span 2; }
+    .clubs-grid { grid-template-columns: repeat(3, 1fr); }
+    .trust-section { grid-template-columns: repeat(2, 1fr); padding: 40px 20px; }
+    .reviews-section, .clubs-section { padding: 60px 20px; }
+    footer { grid-template-columns: 1fr; padding: 40px 20px; gap: 32px; }
+    .footer-bottom { padding: 16px 20px; flex-direction: column; gap: 8px; text-align: center; }
+    .wpp-section { grid-template-columns: 1fr; padding: 60px 20px; }
+    .section-header { flex-direction: column; align-items: flex-start; gap: 24px; }
+    .countdown-bar { padding: 12px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="countdown-bar">
+  <span class="countdown-text">⚡ PROMOÇÃO RELÂMPAGO — TERMINA EM:</span>
+  <div class="countdown-timer">
+    <div class="countdown-unit" id="hours">08</div>
+    <div class="countdown-sep">:</div>
+    <div class="countdown-unit" id="minutes">47</div>
+    <div class="countdown-sep">:</div>
+    <div class="countdown-unit" id="seconds">22</div>
+  </div>
+</div>
+<nav>
+  <a href="#" class="nav-logo">CATA<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="#produtos">Produtos</a></li>
+    <li><a href="#clubes">Clubes</a></li>
+    <li><a href="#selecoes">Seleções</a></li>
+    <li><a href="#avaliacoes">Avaliações</a></li>
+  </ul>
+  <a href="https://wa.me/5500000000000?text=Olá!%20Vi%20o%20catálogo%20e%20quero%20fazer%20um%20pedido!" class="nav-cta">Pedir Agora</a>
+</nav>
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="hero-left reveal">
+    <div class="hero-tag">🔥 +384 Modelos Disponíveis</div>
+    <h1 class="hero-title">CAMISAS<br><span class="line2">QUE</span><span class="line3">VENCEM</span></h1>
+    <p class="hero-subtitle">Réplicas premium das maiores seleções e clubes do mundo. Qualidade que supera as expectativas — entrega rápida, tamanhos P ao Plus Size.</p>
+    <div class="hero-actions">
+      <a href="https://wa.me/5500000000000?text=Quero%20ver%20o%20catálogo%20completo!" class="btn-primary">Ver Catálogo Completo →</a>
+      <a href="#produtos" class="btn-secondary">Explorar coleção <span>→</span></a>
+    </div>
+    <div class="hero-stats">
+      <div><div class="stat-num">384<span>+</span></div><div class="stat-label">Modelos</div></div>
+      <div><div class="stat-num">5K<span>+</span></div><div class="stat-label">Clientes</div></div>
+      <div><div class="stat-num">48<span>h</span></div><div class="stat-label">Entrega</div></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="jersey-showcase">
+      <div class="dot-ring"></div>
+      <div class="jersey-main">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 200 230" style="width:75%;height:75%;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M70 10 L30 40 L10 80 L35 90 L35 210 L165 210 L165 90 L190 80 L170 40 L130 10 L110 30 L90 30 Z" fill="rgba(0,0,0,0.2)" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
+            <path d="M90 30 L100 55 L110 30" stroke="rgba(0,0,0,0.3)" stroke-width="2" fill="none"/>
+            <path d="M35 90 L35 210" stroke="rgba(255,255,255,0.1)" stroke-width="20"/>
+            <path d="M165 90 L165 210" stroke="rgba(255,255,255,0.1)" stroke-width="20"/>
+            <circle cx="130" cy="65" r="22" fill="rgba(0,0,0,0.25)" stroke="rgba(0,0,0,0.3)" stroke-width="1.5"/>
+            <text x="130" y="70" font-family="sans-serif" font-size="9" fill="rgba(255,255,255,0.7)" text-anchor="middle">CBF</text>
+            <path d="M55 62 Q65 55 75 65 Q80 70 70 68" stroke="rgba(0,0,0,0.4)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <text x="130" y="44" font-family="sans-serif" font-size="8" fill="rgba(0,0,0,0.5)" text-anchor="middle">★★★★★</text>
+            <text x="130" y="93" font-family="sans-serif" font-size="11" font-weight="bold" fill="rgba(0,0,0,0.4)" text-anchor="middle">BRASIL</text>
+          </svg>
+        </div>
+      </div>
+      <div class="jersey-card-float top-right"><div class="float-label">Modelo</div><div class="float-value">Brasil I — 2024</div><div class="float-tag">⭐ Mais Vendida</div></div>
+      <div class="jersey-card-float bottom-left"><div class="float-label">Preço especial</div><div class="float-value price">R$ 89</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">+ frete grátis acima R$199</div></div>
+    </div>
+  </div>
+</section>
+<div class="marquee-bar"><div class="marquee-track" id="marquee"><div class="marquee-item">Brasil</div><div class="marquee-item">Real Madrid</div><div class="marquee-item">Barcelona</div><div class="marquee-item">Manchester City</div><div class="marquee-item">PSG</div><div class="marquee-item">Argentina</div><div class="marquee-item">Flamengo</div><div class="marquee-item">Liverpool</div><div class="marquee-item">Bayern München</div><div class="marquee-item">Corinthians</div><div class="marquee-item">Chelsea</div><div class="marquee-item">Portugal</div><div class="marquee-item">Inter de Milão</div><div class="marquee-item">Plus Size</div><div class="marquee-item">Brasil</div><div class="marquee-item">Real Madrid</div><div class="marquee-item">Barcelona</div><div class="marquee-item">Manchester City</div><div class="marquee-item">PSG</div><div class="marquee-item">Argentina</div><div class="marquee-item">Flamengo</div><div class="marquee-item">Liverpool</div><div class="marquee-item">Bayern München</div><div class="marquee-item">Corinthians</div><div class="marquee-item">Chelsea</div><div class="marquee-item">Portugal</div><div class="marquee-item">Inter de Milão</div><div class="marquee-item">Plus Size</div></div></div>
+<section class="products" id="produtos">
+  <div class="section-header reveal">
+    <div><div class="section-eyebrow">Destaques da Semana</div><h2 class="section-title">OS MAIS<br><span class="outline">PEDIDOS</span></h2></div>
+    <div class="filter-tabs"><button class="filter-tab active" onclick="filterTab(this,'todos')">Todos</button><button class="filter-tab" onclick="filterTab(this,'selecoes')">Seleções</button><button class="filter-tab" onclick="filterTab(this,'clubes')">Clubes</button><button class="filter-tab" onclick="filterTab(this,'plus')">Plus Size</button></div>
+  </div>
+  <div class="product-grid reveal">
+    <div class="product-card featured"><div class="product-img-wrap"><div class="product-img-bg" style="background:linear-gradient(135deg,#FFD600,#FFC107,#FF8F00);"><svg viewBox="0 0 200 230" class="jersey-svg" fill="none"><path d="M70 10 L30 40 L10 80 L35 90 L35 210 L165 210 L165 90 L190 80 L170 40 L130 10 L110 30 L90 30 Z" fill="rgba(0,0,0,0.15)" stroke="rgba(0,0,0,0.2)" stroke-width="2"/><path d="M90 30 L100 55 L110 30" stroke="rgba(0,0,0,0.2)" stroke-width="2" fill="none"/><circle cx="130" cy="70" r="24" fill="rgba(0,100,200,0.6)" stroke="rgba(0,0,0,0.2)"/><text x="130" y="74" font-family="sans-serif" font-size="9" fill="white" text-anchor="middle" font-weight="bold">CBF</text><text x="130" y="47" font-family="sans-serif" font-size="8" fill="rgba(0,0,0,0.5)" text-anchor="middle">★★★★★</text><text x="130" y="100" font-family="sans-serif" font-size="12" font-weight="bold" fill="rgba(0,0,0,0.4)" text-anchor="middle">BRASIL</text></svg></div></div><div class="product-badge badge-hot">🔥 Mais Vendido</div><div class="product-overlay always-show"><div class="product-team">Seleção Brasileira · CBF</div><div class="product-name">Brasil I — Amarela 2024</div><div class="product-footer"><div><span class="product-price">R$ 89</span><span class="product-price-old">R$ 130</span></div><button class="btn-add" onclick="pedirWpp('Brasil I Amarela 2024')">+</button></div></div></div>
+    <div class="product-card"><div class="product-img-wrap"><div class="product-img-bg" style="background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);"><svg viewBox="0 0 200 230" class="jersey-svg" fill="none"><path d="M70 10 L30 40 L10 80 L35 90 L35 210 L165 210 L165 90 L190 80 L170 40 L130 10 L110 30 L90 30 Z" fill="rgba(0,100,255,0.2)" stroke="rgba(100,150,255,0.3)" stroke-width="2"/><path d="M90 30 L100 55 L110 30" stroke="rgba(100,150,255,0.3)" stroke-width="2" fill="none"/><text x="100" y="130" font-family="sans-serif" font-size="11" font-weight="bold" fill="rgba(255,255,255,0.5)" text-anchor="middle">JORDAN</text><text x="130" y="74" font-family="sans-serif" font-size="8" fill="rgba(255,214,0,0.8)" text-anchor="middle" font-weight="bold">CBF</text></svg></div></div><div class="product-badge badge-limited">Limitada</div><div class="product-overlay"><div class="product-team">Brasil · Jordan Brand</div><div class="product-name">Brasil II — Navy 2024</div><div class="product-footer"><span class="product-price">R$ 95</span><button class="btn-add" onclick="pedirWpp('Brasil II Navy 2024')">+</button></div></div></div>
+    <div class="product-card"><div class="product-img-wrap"><div class="product-img-bg" style="background:linear-gradient(135deg,#1a0533,#3d0066,#7700cc);"><svg viewBox="0 0 200 230" class="jersey-svg" fill="none"><path d="M70 10 L30 40 L10 80 L35 90 L35 210 L165 210 L165 90 L190 80 L170 40 L130 10 L110 30 L90 30 Z" fill="rgba(180,0,255,0.15)" stroke="rgba(200,100,255,0.3)" stroke-width="2"/><text x="100" y="130" font-family="sans-serif" font-size="10" font-weight="bold" fill="rgba(255,255,255,0.5)" text-anchor="middle">PSG</text><path d="M55 62 Q65 55 75 65 Q80 70 70 68" stroke="rgba(255,255,255,0.5)" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div></div><div class="product-badge badge-new">Novo</div><div class="product-overlay"><div class="product-team">Paris Saint-Germain</div><div class="product-name">PSG I — 2024/25</div><div class="product-footer"><span class="product-price">R$ 89</span><button class="btn-add" onclick="pedirWpp('PSG I 2024/25')">+</button></div></div></div>
+    <div class="product-card"><div class="product-img-wrap"><div class="product-img-bg" style="background:linear-gradient(135deg,#4a0000,#8b0000,#cc0000);"><svg viewBox="0 0 200 230" class="jersey-svg" fill="none"><path d="M70 10 L30 40 L10 80 L35 90 L35 210 L165 210 L165 90 L190 80 L170 40 L130 10 L110 30 L90 30 Z" fill="rgba(255,0,0,0.15)" stroke="rgba(255,100,100,0.3)" stroke-width="2"/><rect x="75" y="90" width="50" height="65" fill="rgba(0,0,0,0.15)" rx="2"/><text x="100" y="130" font-family="sans-serif" font-size="9" font-weight="bold" fill="rgba(255,255,255,0.6)" text-anchor="middle">EMIRATES</text></svg></div></div><div class="product-overlay"><div class="product-team">Arsenal FC</div><div class="product-name">Arsenal I — 2024/25</div><div class="product-footer"><span class="product-price">R$ 89</span><button class="btn-add" onclick="pedirWpp('Arsenal I 2024/25')">+</button></div></div></div>
+    <div class="product-card"><div class="product-img-wrap"><div class="product-img-bg" style="background:linear-gradient(135deg,#001540,#003090,#0050ff);"><svg viewBox="0 0 200 230" class="jersey-svg" fill="none"><path d="M70 10 L30 40 L10 80 L35 90 L35 210 L165 210 L165 90 L190 80 L170 40 L130 10 L110 30 L90 30 Z" fill="rgba(0,80,255,0.15)" stroke="rgba(100,150,255,0.3)" stroke-width="2"/><text x="100" y="125" font-family="sans-serif" font-size="9" font-weight="bold" fill="rgba(255,255,255,0.5)" text-anchor="middle">etihad</text></svg></div></div><div class="product-badge badge-new">Novo</div><div class="product-overlay"><div class="product-team">Manchester City</div><div class="product-name">City I — 2024/25</div><div class="product-footer"><span class="product-price">R$ 89</span><button class="btn-add" onclick="pedirWpp('Manchester City I 2024/25')">+</button></div></div></div>
+    <div class="product-card"><div class="product-img-wrap"><div class="product-img-bg" style="background:linear-gradient(135deg,#002060,#0039a6,#0060ff);"><svg viewBox="0 0 200 230" class="jersey-svg" fill="none"><path d="M70 10 L30 40 L10 80 L35 90 L35 210 L165 210 L165 90 L190 80 L170 40 L130 10 L110 30 L90 30 Z" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/><text x="100" y="120" font-family="sans-serif" font-size="10" font-weight="bold" fill="rgba(255,255,255,0.5)" text-anchor="middle">FCB</text></svg></div></div><div class="product-overlay"><div class="product-team">FC Barcelona</div><div class="product-name">Barça II — Away 2024</div><div class="product-footer"><span class="product-price">R$ 89</span><button class="btn-add" onclick="pedirWpp('Barça II Away 2024')">+</button></div></div></div>
+  </div>
+  <div style="text-align:center;margin-top:48px;" class="reveal"><a href="https://wa.me/5500000000000?text=Quero%20ver%20o%20catálogo%20completo%20com%20todos%20os%20384%20modelos!" class="btn-primary" style="font-size:14px;padding:18px 48px;">Ver Todos os 384 Modelos no WhatsApp →</a></div>
+</section>
+<div class="wpp-section reveal">
+  <div>
+    <div class="wpp-eyebrow">Atendimento Via WhatsApp</div>
+    <h2 class="wpp-title">ESCOLHA, PEÇA<br>E RECEBA EM CASA</h2>
+    <p class="wpp-text">Sem complicação. Chame no WhatsApp, diga o modelo que quer, informe seu tamanho e endereço — a gente cuida do resto. Pagamento facilitado, entrega rápida.</p>
+  </div>
+  <a href="https://wa.me/5500000000000?text=Olá!%20Quero%20fazer%20um%20pedido%20de%20camisa!" class="wpp-btn">Falar no WhatsApp</a>
+</div>
+<section class="clubs-section reveal" id="clubes">
+  <div class="section-eyebrow">Navegar por categoria</div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;"><h2 class="section-title" style="font-size:clamp(36px,4vw,56px);">CLUBES &<br><span class="outline">SELEÇÕES</span></h2></div>
+  <div class="clubs-grid">
+    <div class="club-card" onclick="pedirWpp('camisas do Brasil')"><div class="club-icon" style="background:rgba(255,214,0,0.1);">🇧🇷</div><div class="club-name">Brasil</div><div class="club-count">12 modelos</div></div>
+    <div class="club-card" onclick="pedirWpp('camisas da Argentina')"><div class="club-icon" style="background:rgba(100,180,255,0.1);">🇦🇷</div><div class="club-name">Argentina</div><div class="club-count">8 modelos</div></div>
+    <div class="club-card" onclick="pedirWpp('camisas do Real Madrid')"><div class="club-icon" style="background:rgba(255,255,255,0.05);">⚽</div><div class="club-name">Real Madrid</div><div class="club-count">10 modelos</div></div>
+    <div class="club-card" onclick="pedirWpp('camisas do Flamengo')"><div class="club-icon" style="background:rgba(200,0,0,0.1);">🔴</div><div class="club-name">Flamengo</div><div class="club-count">9 modelos</div></div>
+    <div class="club-card" onclick="pedirWpp('camisas do Barcelona')"><div class="club-icon" style="background:rgba(100,50,200,0.1);">🔵</div><div class="club-name">Barcelona</div><div class="club-count">11 modelos</div></div>
+    <div class="club-card" onclick="pedirWpp('camisas Plus Size')"><div class="club-icon" style="background:rgba(0,200,83,0.1);">📏</div><div class="club-name">Plus Size</div><div class="club-count">40+ modelos</div></div>
+  </div>
+</section>
+<div class="trust-section reveal">
+  <div class="trust-item"><div class="trust-num">384</div><div class="trust-title">Modelos em estoque</div><div class="trust-text">Maior variedade de camisas do mercado. Seleções, clubes e edições especiais.</div></div>
+  <div class="trust-item"><div class="trust-num">48h</div><div class="trust-title">Entrega expressa</div><div class="trust-text">Despacho rápido para todo o Brasil. Rastreamento em tempo real via WhatsApp.</div></div>
+  <div class="trust-item"><div class="trust-num">5K+</div><div class="trust-title">Clientes felizes</div><div class="trust-text">Mais de 5.000 clientes satisfeitos. Avaliação média de 4.9 estrelas.</div></div>
+  <div class="trust-item"><div class="trust-num">P→4G</div><div class="trust-title">Todos os tamanhos</div><div class="trust-text">Do P ao Plus Size 4G. Modelos especialmente selecionados para todos os biotipos.</div></div>
+</div>
+<section class="reviews-section" id="avaliacoes">
+  <div class="reveal"><div class="section-eyebrow">Avaliações reais</div><h2 class="section-title" style="font-size:clamp(36px,4vw,56px);">O QUE<br><span class="outline">FALAM</span></h2></div>
+  <div class="reviews-track">
+    <div class="review-card"><div class="review-stars">★★★★★</div><p class="review-text">"Produto chegou em 2 dias, qualidade incrível! Bordado do escudo perfeito, tecido muito bom. Recomendo muito para quem quer uma camisa bonita com preço justo."</p><div class="review-author"><div class="review-avatar">MO</div><div><div class="review-name">Marcos Oliveira</div><div class="review-city">São Paulo, SP</div></div></div></div>
+    <div class="review-card"><div class="review-stars">★★★★★</div><p class="review-text">"Comprei a Brasil II navy e ficou incrível. Qualidade surpreendente para o preço. Já fiz 3 pedidos e todos chegaram no prazo. Atendimento no WhatsApp é muito rápido."</p><div class="review-author"><div class="review-avatar">AV</div><div><div class="review-name">Ana Vasconcelos</div><div class="review-city">Recife, PE</div></div></div></div>
+    <div class="review-card"><div class="review-stars">★★★★★</div><p class="review-text">"Minha camisa plus size da Seleção ficou perfeita! Normalmente tenho dificuldade de encontrar tamanho grande com qualidade. Aqui tem tudo e o preço é ótimo."</p><div class="review-author"><div class="review-avatar">RP</div><div><div class="review-name">Ricardo Pereira</div><div class="review-city">Belo Horizonte, MG</div></div></div></div>
+  </div>
+</section>
+<footer>
+  <div><div class="footer-brand">CATA<span>.</span></div><p class="footer-desc">As melhores réplicas de camisas de futebol do Brasil. Qualidade premium, preço justo, entrega rápida em todo o país.</p></div>
+  <div class="footer-col"><h4>Coleções</h4><ul><li><a href="#">Seleção Brasileira</a></li><li><a href="#">Clubes Nacionais</a></li><li><a href="#">Clubes Europeus</a></li><li><a href="#">Plus Size</a></li><li><a href="#">Edições Especiais</a></li></ul></div>
+  <div class="footer-col"><h4>Informações</h4><ul><li><a href="#">Tabela de Tamanhos</a></li><li><a href="#">Como Comprar</a></li><li><a href="#">Formas de Pagamento</a></li><li><a href="#">Prazo de Entrega</a></li><li><a href="#">Trocas e Devoluções</a></li></ul></div>
+  <div class="footer-col"><h4>Contato</h4><ul><li><a href="#">WhatsApp</a></li><li><a href="#">Instagram</a></li><li><a href="#">Catálogo Completo</a></li></ul></div>
+</footer>
+<div class="footer-bottom"><p>© 2026 CATA. Todos os direitos reservados.</p><p>Frete grátis em compras acima de R$ 199</p></div>
+<a href="https://wa.me/5500000000000?text=Olá!%20Vim%20pelo%20site%20e%20quero%20fazer%20um%20pedido!" class="sticky-wpp" title="Pedir no WhatsApp">W</a>
+<script>
+function startCountdown(){let total=8*3600+47*60+22;setInterval(()=>{total--;if(total<0) total=24*3600;const h=Math.floor(total/3600);const m=Math.floor((total%3600)/60);const s=total%60;document.getElementById('hours').textContent=String(h).padStart(2,'0');document.getElementById('minutes').textContent=String(m).padStart(2,'0');document.getElementById('seconds').textContent=String(s).padStart(2,'0');},1000);}startCountdown();
+const reveals=document.querySelectorAll('.reveal');const observer=new IntersectionObserver((entries)=>{entries.forEach((entry,i)=>{if(entry.isIntersecting){setTimeout(()=>entry.target.classList.add('visible'),i*80);observer.unobserve(entry.target);}})},{threshold:0.1});reveals.forEach(el=>observer.observe(el));
+function filterTab(btn){document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');}
+function pedirWpp(produto){const msg=encodeURIComponent(`Olá! Vim pelo site e quero saber mais sobre: ${produto}`);window.open(`https://wa.me/5500000000000?text=${msg}`,'_blank');}
+window.addEventListener('load',()=>{document.querySelector('.hero-left')?.classList.add('visible');});
+</script>
+</body>
+</html>

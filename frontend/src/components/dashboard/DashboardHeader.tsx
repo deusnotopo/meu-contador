@@ -2,17 +2,16 @@ import React from "react";
 import { motion } from "framer-motion";
 import { FileDown, Trophy, Flame } from "lucide-react";
 import { UserNav } from "../layout/UserNav";
+import { useAuth } from "@/context/AuthContext";
+import { useGamification } from "@/hooks/useGamification";
+import { showSuccess } from "@/lib/toast";
+import { generateWealthSnapshot } from "@/lib/pdf-export";
+import { useWealthStats } from "@/hooks/dashboard/useWealthStats";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { TabType } from "@/types/navigation";
 
 interface DashboardHeaderProps {
-  firstName: string;
-  capitalizedDate: string;
-  greeting: string;
-  level: { level: number; currentXp: number; xpToNextLevel: number };
-  streaks: { login?: { current: number } };
-  gamLoading: boolean;
   onNavigate?: (tab: TabType) => void;
-  onExport: () => void;
 }
 
 const itemVariants = {
@@ -25,15 +24,49 @@ const itemVariants = {
 };
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-  firstName,
-  capitalizedDate,
-  greeting,
-  level,
-  streaks,
-  gamLoading,
   onNavigate,
-  onExport,
 }) => {
+  const { user } = useAuth();
+  const { level, streaks, isLoading: gamLoading } = useGamification();
+  const { stats, health: _health, isLoading: statsLoading } = useWealthStats();
+
+  const firstName = user?.displayName?.split(" ")[0] || "Usuário";
+  const capitalizedDate = new Date()
+    .toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "short" })
+    .replace("-feira", "")
+    .replace(".", "");
+
+  const greeting = (() => {
+    const hr = new Date().getHours();
+    if (hr < 12) return "Bom dia";
+    if (hr < 18) return "Boa tarde";
+    return "Boa noite";
+  })();
+
+  const handleWealthSnapshot = async () => {
+    if (!user || statsLoading) return;
+    try {
+      await generateWealthSnapshot({
+        userName: firstName,
+        netWorth: stats.netWorth,
+        totalInvested: stats.assets,
+        totalDebt: stats.liabilities,
+        monthlyIncome: 0,
+        monthlyExpenses: 0,
+        monthlySurplus: 0,
+        fireProgress: 0,
+        yearsToFire: 0,
+        wealthSurvivalDays: 0,
+        topCategories: [],
+        goals: [],
+        optimizationTips: [],
+      });
+      showSuccess("Snapshot gerado com sucesso!");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <motion.header
       variants={itemVariants}
@@ -56,7 +89,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <h1 className="text-lg font-bold tracking-tight text-[var(--t1)] truncate">
             {greeting}, {firstName}
           </h1>
-          {!gamLoading && (
+          {!gamLoading ? (
             <div className="flex items-center gap-2 mt-1">
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30">
                 <Trophy size={10} className="text-amber-400" />
@@ -72,14 +105,18 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   }}
                 />
               </div>
-              {(streaks.login?.current ?? 0) > 0 && (
+              {((streaks as Record<string, { current?: number }>).login?.current ?? 0) > 0 && (
                 <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-500/20">
                   <Flame size={10} className="text-orange-400" />
                   <span className="text-[10px] font-bold text-orange-400">
-                    {streaks.login?.current}
+                    {(streaks as Record<string, { current?: number }>).login?.current}
                   </span>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mt-1">
+               <Skeleton className="w-24 h-4 rounded-full" />
             </div>
           )}
         </div>
@@ -87,7 +124,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
       <div className="flex items-center gap-2">
         <button
-          onClick={onExport}
+          onClick={handleWealthSnapshot}
           className="w-10 h-10 rounded-2xl flex items-center justify-center bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.08] transition-all"
         >
           <FileDown size={18} className="text-amber-400 opacity-90" />
@@ -97,3 +134,4 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     </motion.header>
   );
 };
+

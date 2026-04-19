@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Flame, Star, Award, Zap, ChevronRight, ShieldCheck } from 'lucide-react';
 import { useGamification } from '@/hooks/useGamification';
 import type { TabType } from '@/types/navigation';
-import type { Achievement } from '@/types/gamification';
+import type { Achievement } from '@/hooks/useIntelligence';
 
 interface MasterySectionProps {
   onBack?: (tab: TabType) => void;
@@ -35,7 +35,7 @@ export const MasterySection: React.FC<MasterySectionProps> = ({ onBack }) => {
 
   const xpPercentage = (level.currentXp / level.xpToNextLevel) * 100;
 
-  const getRarityColor = (rarity: Achievement['rarity']) => {
+  const getRarityColor = (rarity: Achievement['rarity'] | undefined) => {
     switch (rarity) {
       case 'legendary': return 'var(--amber)';
       case 'epic': return 'var(--purple)';
@@ -44,7 +44,7 @@ export const MasterySection: React.FC<MasterySectionProps> = ({ onBack }) => {
     }
   };
 
-  const getRarityGlow = (rarity: Achievement['rarity']) => {
+  const getRarityGlow = (rarity: Achievement['rarity'] | undefined) => {
     switch (rarity) {
       case 'legendary': return '0 0 20px rgba(251,191,36,0.4)';
       case 'epic': return '0 0 20px rgba(168,85,247,0.4)';

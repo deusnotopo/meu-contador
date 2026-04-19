@@ -18,7 +18,7 @@ export const InvestCompostosView = lazy(() => import('@/components/investments/I
 export const InvestDividasView = lazy(() => import('@/components/investments/InvestDividasView').then((m) => ({ default: m.InvestDividasView })));
 export const RetireFireView = lazy(() => import('@/components/planning/RetireFireView').then((m) => ({ default: m.RetireFireView })));
 export const RetireProjView = lazy(() => import('@/components/planning/RetireProjView').then((m) => ({ default: m.RetireProjView })));
-export const InvestmentsSection = lazy(() => import('@/components/investments/InvestmentsDashboard').then((m) => ({ default: m.InvestmentsDashboard })));
+export const InvestmentsDashboard = lazy(() => import('@/components/investments/InvestmentsDashboard').then((m) => ({ default: m.InvestmentsDashboard })));
 export const EducationSection = lazy(() => import('@/components/education/EducationSection').then((m) => ({ default: m.EducationSection })));
 export const AIAssistantView = lazy(() => import('@/components/ai/AIAssistantView').then((m) => ({ default: m.AIAssistantView })));
 export const SettingsSection = lazy(() => import('@/components/settings/SettingsSection').then((m) => ({ default: m.SettingsSection })));
@@ -30,6 +30,7 @@ export const OnboardingWizard = lazy(() => import('@/components/onboarding/Onboa
 export const ProvisaoView = lazy(() => import('@/components/financial/ProvisaoView').then((m) => ({ default: m.ProvisaoView })));
 export const DebtPayoffPlanner = lazy(() => import('@/components/financial/DebtPayoffPlanner').then((m) => ({ default: m.DebtPayoffPlanner })));
 export const CashFlowCalendar = lazy(() => import('@/components/financial/CashFlowCalendar').then((m) => ({ default: m.CashFlowCalendar })));
+export const BusinessFinance = lazy(() => import('@/components/business/BusinessFinance').then((m) => ({ default: m.BusinessFinance })));
 
 export const TAB_PATHS: Record<TabType, string> = {
   inicio: '/',

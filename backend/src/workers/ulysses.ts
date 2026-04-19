@@ -44,7 +44,7 @@ export class UlyssesEngine {
 
         // Simulador heurístico: Assumimos um teto médio protetivo de R$ 5.000,00 para disparo
         // (Em produção: buscar isso das preferências do usuário no BD)
-        const SAFE_THRESHOLD = 5000;
+        const SAFE_THRESHOLD = 5000 * 100; // Multiplicado por 100 por causa da arquitetura Cents
         
         if (currentBalance > SAFE_THRESHOLD) {
           const surplus = currentBalance - SAFE_THRESHOLD;
@@ -54,9 +54,9 @@ export class UlyssesEngine {
             action: 'ULYSSES_RULE_TRIGGERED',
             resource: 'ulysses_engine',
             metadata: {
-              currentBalance,
-              surplus,
-              action_taken: `Alerta Neuronal: Saldo ultrapassou o teto. Sugerimos realocar R$ ${surplus.toFixed(2)} para Investimentos/Segurança imediatamente.`
+              currentBalance: currentBalance / 100,
+              surplus: surplus / 100,
+              action_taken: `Alerta Neuronal: Saldo ultrapassou o teto. Sugerimos realocar R$ ${(surplus / 100).toFixed(2)} para Investimentos/Segurança imediatamente.`
             }
           });
           

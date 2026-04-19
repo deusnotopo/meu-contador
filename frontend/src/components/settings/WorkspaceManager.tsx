@@ -101,8 +101,8 @@ export const WorkspaceManager = () => {
       setInviteEmail("");
       setShowInviteModal(false);
       showSuccess(`Convite enviado para ${inviteEmail}!`);
-    } catch (err: any) {
-      const msg = err?.data?.error || "Erro ao enviar convite";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao enviar convite";
       showError(msg);
     } finally {
       setInviting(false);

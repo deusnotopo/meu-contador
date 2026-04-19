@@ -1,12 +1,30 @@
-import { useOnboarding } from "../OnboardingContext";
-import { Home, TrendingUp } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { memo, useCallback } from 'react';
+import { useOnboarding } from '../OnboardingContext';
+import { Home, TrendingUp } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-
-export function FireGoalStep() {
+export const FireGoalStep = memo(function FireGoalStep() {
   const { profile, handleProfileChange: onChange, validationErrors } = useOnboarding();
+
+  const handleRetirementAgeChange = useCallback((value: number[]) => {
+    if (value[0] !== undefined) {
+      onChange('retirementAge', value[0]);
+    }
+  }, [onChange]);
+
+  const handleFireTargetIncomeChange = useCallback((value: string) => {
+    const numValue = parseFloat(value) || 0;
+    if (numValue >= 0) {
+      onChange('fireTargetIncome', numValue);
+    }
+  }, [onChange]);
+
+  const handleEducationTrackChange = useCallback((value: string) => {
+    onChange('educationTrack', value);
+  }, [onChange]);
+
   return (
     <div className="space-y-8 pt-6 text-center">
       <div className="space-y-3">
@@ -29,7 +47,7 @@ export function FireGoalStep() {
           </div>
           <Slider
             value={[profile.retirementAge ?? 60]}
-            onValueChange={([v]) => onChange('retirementAge', v)}
+            onValueChange={handleRetirementAgeChange}
             min={35} max={80} step={1}
             className="py-4"
           />
@@ -48,7 +66,7 @@ export function FireGoalStep() {
             <Input
               type="number"
               value={profile.fireTargetIncome ?? profile.monthlyIncome}
-              onChange={e => onChange('fireTargetIncome', parseFloat(e.target.value) || 0)}
+              onChange={e => handleFireTargetIncomeChange(e.target.value)}
               aria-invalid={!!validationErrors.fireTargetIncome}
               className={`h-16 pl-14 bg-white/5 border-white/10 rounded-2xl text-2xl font-black ${validationErrors.fireTargetIncome ? 'border-rose-500/60' : ''}`}
               placeholder={String(profile.monthlyIncome)}
@@ -63,7 +81,7 @@ export function FireGoalStep() {
           <p>Com base nesses números, o <strong>Simulador FIRE</strong> vai calcular exatamente quanto patrimônio você precisa acumular e quanto te falta.</p>
         </div>
 
-        {/* ── Trilha da Academia ── */}
+        {/* Trilha da Academia */}
         <div className="space-y-4 pt-2">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Qual assunto te interessa mais em Aprender?</p>
@@ -81,7 +99,7 @@ export function FireGoalStep() {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => onChange('educationTrack', opt.value)}
+                onClick={() => handleEducationTrackChange(opt.value)}
                 className={`p-4 rounded-2xl border text-sm font-bold transition-all text-left flex items-center gap-3 ${
                   profile.educationTrack === opt.value
                     ? 'bg-amber-500/20 border-amber-400 text-white'
@@ -97,4 +115,4 @@ export function FireGoalStep() {
       </div>
     </div>
   );
-}
+});

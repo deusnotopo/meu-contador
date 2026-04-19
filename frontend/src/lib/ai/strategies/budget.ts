@@ -48,6 +48,8 @@ export const executeBudgetAction = async (
     limit,
     spent: 0,
     month: currentMonth,
+    period: "monthly",
+    priority: "medium",
   };
 
   saveBudgets([...budgets, newBudget]);

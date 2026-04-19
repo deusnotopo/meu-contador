@@ -10,13 +10,13 @@ describe('Invoice Routes', () => {
 
   beforeEach(async () => {
     app = await createTestApp()
-    testUser = await createTestUser()
+    testUser = await createTestUser(true)
     workspaceId = testUser.currentWorkspaceId
     authToken = app.jwt.sign({
       id: testUser.id as string,
       email: testUser.email,
       name: testUser.name || '',
-      isPro: (testUser.isPro as boolean) ?? false,
+      isPro: true,
     })
   })
 

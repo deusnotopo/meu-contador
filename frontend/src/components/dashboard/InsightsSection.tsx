@@ -6,31 +6,20 @@ import { DailySpendingWidget } from "./DailySpendingWidget";
 import { TaxAuditorWidget } from "./TaxAuditorWidget";
 import { CategorySpendingWidget } from "./CategorySpendingWidget";
 import { RecentTransactions } from "./RecentTransactions";
+import { FinancialFormatter } from "@/services/FinancialFormatter";
+import { useInsightsStats } from "@/hooks/dashboard/useInsightsStats";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { TabType } from "@/types/navigation";
 
-interface InsightsSectionProps {
-  globalTotals: { income: number; expense: number; balance: number };
-  sustainableDaily: number;
-  estimatedTax: number;
-  monthlyRevenue: number;
-  categorySpending: any[];
-  recentPurchases: any[];
-  personalError: string | null;
-  onNavigate: (tab: TabType) => void;
-  fmt: (v: number) => string;
-}
-
-export const InsightsSection: React.FC<InsightsSectionProps> = ({
-  globalTotals,
-  sustainableDaily,
-  estimatedTax,
-  monthlyRevenue,
-  categorySpending,
-  recentPurchases,
-  personalError,
+export const InsightsSection: React.FC<{ onNavigate: (tab: TabType) => void }> = ({
   onNavigate,
-  fmt,
 }) => {
+  const { stats, health, activity, monthlyRevenue, isLoading, error } = useInsightsStats();
+
+  if (isLoading) {
+    return <Skeleton className="h-[400px] w-full rounded-[24px]" />;
+  }
+
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2.5 px-1 mb-1">
@@ -45,19 +34,22 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         <div className="md:col-span-7 space-y-3">
           <DashboardErrorBoundary componentName="TermometroDoMes">
             <TermometroDoMes
-              income={globalTotals.income}
-              expense={globalTotals.expense}
-              balance={globalTotals.balance}
+              income={stats.income}
+              expense={stats.expense}
+              balance={stats.balance}
               onNavigate={onNavigate}
             />
           </DashboardErrorBoundary>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <DailySpendingWidget sustainableDaily={sustainableDaily} fmt={fmt} />
+            <DailySpendingWidget 
+              sustainableDaily={health.sustainableDaily} 
+              fmt={FinancialFormatter.formatCurrency.bind(FinancialFormatter)} 
+            />
             <TaxAuditorWidget
-              estimatedTax={estimatedTax}
+              estimatedTax={health.estimatedTax}
               monthlyRevenue={monthlyRevenue}
-              fmt={fmt}
+              fmt={FinancialFormatter.formatCurrency.bind(FinancialFormatter)}
             />
           </div>
         </div>
@@ -65,8 +57,8 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
         {/* Lista de Gastos e Categorias */}
         <div className="md:col-span-5 bento-card p-6">
           <CategorySpendingWidget
-            categories={categorySpending}
-            hasError={personalError}
+            categories={activity.categorySpending}
+            hasError={!!error}
             onNavigate={onNavigate}
           />
         </div>
@@ -74,12 +66,13 @@ export const InsightsSection: React.FC<InsightsSectionProps> = ({
 
       <div className="bento-card p-6 md:col-span-12">
         <RecentTransactions
-          transactions={recentPurchases}
+          transactions={activity.recentPurchases}
           onNavigate={onNavigate}
-          fmt={fmt}
-          error={personalError}
+          fmt={FinancialFormatter.formatCurrency.bind(FinancialFormatter)}
+          error={error}
         />
       </div>
     </section>
   );
 };
+

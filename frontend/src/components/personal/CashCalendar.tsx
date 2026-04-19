@@ -8,14 +8,8 @@ export const CashCalendar = () => {
   const currentDay = today.getDate();
 
   // Sort upcoming expenses by day
-  const upcoming = [...recurringExpenses].sort((a, b) => {
-    let dayA = a.paymentDay;
-    let dayB = b.paymentDay;
-    // Se o dia já passou, joga pro fim da fila (próximo mês virtual)
-    if (dayA < currentDay) dayA += 31;
-    if (dayB < currentDay) dayB += 31;
-    return dayA - dayB;
-  });
+  const getSortWeight = (day: number) => day < currentDay ? day + 31 : day;
+  const upcoming = [...recurringExpenses].sort((a, b) => getSortWeight(a.paymentDay) - getSortWeight(b.paymentDay));
 
   if (upcoming.length === 0) return null;
 

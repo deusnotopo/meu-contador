@@ -16,7 +16,7 @@ import { logger } from "./logger.js";
 import { encrypt, decrypt } from "./crypto.js";
 
 // Volatile Memory Cache for sync access
-const MEMORY_CACHE: Record<string, any> = {};
+const MEMORY_CACHE: Record<string, unknown> = {};
 
 /**
  * Privacy Fortress: Hydrates the memory cache from encrypted LocalStorage.
@@ -269,26 +269,21 @@ export const saveFromCloud = <T>(key: string, data: T) => {
 // ============= Transactions =============
 export const loadTransactions = (): Transaction[] => {
   try {
-    // 1. Memory Cache (Volatile, fast, decrypted)
-    if (MEMORY_CACHE[STORAGE_KEYS.TRANSACTIONS]) {
-      return MEMORY_CACHE[STORAGE_KEYS.TRANSACTIONS];
-    }
+    const cached = MEMORY_CACHE[STORAGE_KEYS.TRANSACTIONS];
+    if (Array.isArray(cached)) return cached as Transaction[];
 
     // 2. Local Storage (Persistent, Slow, Encrypted)
     const data = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
     if (!data) return [];
 
-    // Note: This sync path is only hit if memory cache was cleared but localStorage exists.
-    // Since decryption is async, we return empty list if not already in memory cache 
-    // to avoid UI blocking, and rely on syncAllData to have loaded it.
-    // If it's pure JSON (legacy), return it while migration happens.
-    if (data.startsWith("[") || data.startsWith("{")) {
-       return JSON.parse(data);
+    // Legacy non-encrypted data (pure JSON)
+    if (data.startsWith('[') || data.startsWith('{')) {
+      return JSON.parse(data);
     }
-    
+
     return [];
   } catch (error) {
-    logger.error("Error loading transactions", error);
+    logger.error('Error loading transactions', error);
     return [];
   }
 };
@@ -369,63 +364,72 @@ export const importTransactions = (file: File): Promise<Transaction[]> => {
 };
 
 // ============= Budgets =============
-export const loadBudgets = (): Budget[] => MEMORY_CACHE[STORAGE_KEYS.BUDGETS] || [];
+export const loadBudgets = (): Budget[] => (MEMORY_CACHE[STORAGE_KEYS.BUDGETS] as Budget[] | undefined) ?? [];
 
 export const saveBudgets = (budgets: Budget[]): void => {
   persistData(STORAGE_KEYS.BUDGETS, budgets);
 };
 
 // ============= Goals =============
-export const loadGoals = (): SavingsGoal[] => MEMORY_CACHE[STORAGE_KEYS.GOALS] || [];
+export const loadGoals = (): SavingsGoal[] => (MEMORY_CACHE[STORAGE_KEYS.GOALS] as SavingsGoal[] | undefined) ?? [];
 
 export const saveGoals = (goals: SavingsGoal[]): void => {
   persistData(STORAGE_KEYS.GOALS, goals);
 };
 
 // ============= Invoices =============
-export const loadInvoices = (): Invoice[] => MEMORY_CACHE[STORAGE_KEYS.INVOICES] || [];
+export const loadInvoices = (): Invoice[] => (MEMORY_CACHE[STORAGE_KEYS.INVOICES] as Invoice[] | undefined) ?? [];
 
 export const saveInvoices = (invoices: Invoice[]): void => {
   persistData(STORAGE_KEYS.INVOICES, invoices);
 };
 
 // ============= Cash Flow =============
-export const loadCashFlow = (): CashFlowProjection[] => MEMORY_CACHE[STORAGE_KEYS.CASH_FLOW] || [];
+export const loadCashFlow = (): CashFlowProjection[] => (MEMORY_CACHE[STORAGE_KEYS.CASH_FLOW] as CashFlowProjection[] | undefined) ?? [];
 
 export const saveCashFlow = (cashFlow: CashFlowProjection[]): void => {
   persistData(STORAGE_KEYS.CASH_FLOW, cashFlow);
 };
 
 // ============= Profile =============
-export const loadProfile = (): UserProfile | null => MEMORY_CACHE[STORAGE_KEYS.PROFILE] || null;
+export const loadProfile = (): UserProfile | null => (MEMORY_CACHE[STORAGE_KEYS.PROFILE] as UserProfile | undefined) ?? null;
 
 export const saveProfile = (d: UserProfile) => {
   persistData(STORAGE_KEYS.PROFILE, d);
 };
 
 // ============= Education =============
-export const loadEducationProgress = (): EducationProgress | null => MEMORY_CACHE[STORAGE_KEYS.EDUCATION_PROGRESS] || null;
+export const loadEducationProgress = (): EducationProgress | null => (MEMORY_CACHE[STORAGE_KEYS.EDUCATION_PROGRESS] as EducationProgress | undefined) ?? null;
 
 export const saveEducationProgress = (progress: EducationProgress) => {
   persistData(STORAGE_KEYS.EDUCATION_PROGRESS, progress);
 };
 
+// ============= Onboarding =============
+export const isOnboardingDone = (userId: string): boolean => {
+  return localStorage.getItem(`onboarding_done_${userId}`) === "true";
+};
+
+export const setOnboardingDone = (userId: string): void => {
+  localStorage.setItem(`onboarding_done_${userId}`, "true");
+};
+
 // ============= Investments =============
-export const loadInvestments = (): Investment[] => MEMORY_CACHE[STORAGE_KEYS.INVESTMENTS] || [];
+export const loadInvestments = (): Investment[] => (MEMORY_CACHE[STORAGE_KEYS.INVESTMENTS] as Investment[] | undefined) ?? [];
 
 export const saveInvestments = (investments: Investment[]): void => {
   persistData(STORAGE_KEYS.INVESTMENTS, investments);
 };
 
 // ============= Dividends =============
-export const loadDividends = (): Dividend[] => MEMORY_CACHE[STORAGE_KEYS.DIVIDENDS] || [];
+export const loadDividends = (): Dividend[] => (MEMORY_CACHE[STORAGE_KEYS.DIVIDENDS] as Dividend[] | undefined) ?? [];
 
 export const saveDividends = (dividends: Dividend[]): void => {
   persistData(STORAGE_KEYS.DIVIDENDS, dividends);
 };
 
 // ============= Investment Sales =============
-export const loadInvestmentSales = (): InvestmentSale[] => MEMORY_CACHE[STORAGE_KEYS.INVESTMENT_SALES] || [];
+export const loadInvestmentSales = (): InvestmentSale[] => (MEMORY_CACHE[STORAGE_KEYS.INVESTMENT_SALES] as InvestmentSale[] | undefined) ?? [];
 
 export const saveInvestmentSales = (sales: InvestmentSale[]): void => {
   persistData(STORAGE_KEYS.INVESTMENT_SALES, sales);

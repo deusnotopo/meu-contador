@@ -1,30 +1,42 @@
-import { api } from "@/lib/api";
+import { api, ApiRequestError } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
+import { InvoiceSchema } from "@/lib/schemas";
+import { z } from "zod";
 import type { Invoice } from "@/types";
 import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { confirmAction } from "@/lib/confirm";
 
 export const useInvoices = () => {
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchInvoices = useCallback(async () => {
+    // Don't even try if user is not PRO — invoices is a PRO-only feature
+    if (!user?.isPro) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.get<Invoice[] | { items?: Invoice[] }>("/invoices");
-      const items = Array.isArray(response) ? response : (response?.items || []);
-      setInvoices(items);
+      // AKITA MODE: Enforcing strict schema validation at the edge
+      const response = await api.get<Invoice[]>("/invoices", {
+        schema: z.union([
+          z.array(InvoiceSchema),
+          z.object({ items: z.array(InvoiceSchema) }).transform(val => val.items)
+        ])
+      });
+      setInvoices(response);
     } catch (err: unknown) {
-      // 403 = usuário free (proGuard). Não é um erro de UI — apenas não tem acesso.
-      const is403 =
-        (err instanceof Error && err.message.toLowerCase().includes("forbidden")) ||
-        (err as { status?: number })?.status === 403 ||
-        (err as { statusCode?: number })?.statusCode === 403;
-
-      if (is403) {
-        // Silent: plan gate, not a runtime error
+      // 403 = plan gate (proGuard). Silent — not a runtime error.
+      if (err instanceof ApiRequestError && err.status === 403) {
         setInvoices([]);
+      } else if (err instanceof z.ZodError) {
+        setError("Dados do servidor incompatíveis.");
+        console.error("Zod Validation Error (Invoices):", err.errors);
       } else {
         setError("Falha ao carregar as notas fiscais.");
         showError("Falha ao carregar as notas fiscais.");
@@ -32,8 +44,7 @@ export const useInvoices = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
+  }, [user?.isPro]);
 
   useEffect(() => {
     fetchInvoices();
@@ -42,7 +53,6 @@ export const useInvoices = () => {
   const addInvoice = useCallback(async (invoice: Omit<Invoice, "id">) => {
     try {
       setError(null);
-      // Backend automatically creates the invoice with a UUID and parses the date
       const newInvoice = await api.post<Invoice>("/invoices", invoice);
       setInvoices(prev => [...prev, newInvoice]);
       showSuccess(`Nota Fiscal ${invoice.number} cadastrada!`);
@@ -67,17 +77,16 @@ export const useInvoices = () => {
   }, []);
 
   const deleteInvoice = useCallback(async (id: string) => {
-    if (window.confirm("Deseja realmente excluir esta nota?")) {
-      try {
-        setError(null);
-        await api.delete(`/invoices/${id}`);
-        setInvoices(prev => prev.filter(inv => inv.id !== id));
-        showSuccess("Nota Fiscal excluída.");
+    if (!await confirmAction('Deseja realmente excluir esta nota?')) return;
+    try {
+      setError(null);
+      await api.delete(`/invoices/${id}`);
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+      showSuccess('Nota Fiscal excluída.');
     } catch {
-      const msg = "Erro crítico ao excluir a nota fiscal.";
-        setError(msg);
-        showError(msg);
-      }
+      const msg = 'Erro crítico ao excluir a nota fiscal.';
+      setError(msg);
+      showError(msg);
     }
   }, []);
 
@@ -85,6 +94,7 @@ export const useInvoices = () => {
     invoices,
     isLoading,
     error,
+    isPro: !!user?.isPro,
     addInvoice,
     updateInvoice,
     deleteInvoice,

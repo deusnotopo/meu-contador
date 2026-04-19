@@ -1,5 +1,7 @@
 import type { StatementTransaction, StatementFormat } from '../../../../shared/types-statement';
-import type { StatementProvenance, StatementParsingIssue } from '../../../../shared/types-statement-provenance';
+import type { StatementProvenance } from '../../../../shared/types-statement-provenance';
+import type { DataReliability } from '../../../../shared/contracts';
+import { api } from '../api';
 
 const MAX_STATEMENT_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_STATEMENT_ROWS = 5_000;
@@ -12,9 +14,7 @@ function buildProvenance(file: File, provenance: Omit<StatementProvenance, 'sour
   };
 }
 
-function buildIssue(issue: StatementParsingIssue): StatementParsingIssue {
-  return issue;
-}
+
 
 export async function parseStatementFile(file: File, format: StatementFormat): Promise<StatementTransaction[]> {
   if (file.size > MAX_STATEMENT_FILE_BYTES) {
@@ -27,9 +27,8 @@ export async function parseStatementFile(file: File, format: StatementFormat): P
     case 'ofx':
       return parseOFX(file);
     case 'pdf':
-      return parsePDF(file);
     case 'image':
-      return parseImage(file);
+      return parseWithGeminiAPI(file);
     default:
       throw new Error(`Formato não suportado: ${format}`);
   }
@@ -65,9 +64,9 @@ async function parseCSV(file: File): Promise<StatementTransaction[]> {
         date,
         description,
         amount: Math.abs(amount),
-        type: amount >= 0 ? 'income' : 'expense',
+        type: amount >= 0 ? 'income' as const : 'expense' as const,
         originalDescription: description,
-        dataReliability: 'REAL',
+        dataReliability: 'REAL' as DataReliability,
         provenance: buildProvenance(file, {
           origin: 'BANK_FILE',
           reliability: 'REAL',
@@ -75,7 +74,7 @@ async function parseCSV(file: File): Promise<StatementTransaction[]> {
           extractionMethod: 'structured',
           confidence: 1,
         }),
-        status: 'pending',
+        status: 'pending' as const,
       });
     }
   }
@@ -106,9 +105,9 @@ async function parseOFX(file: File): Promise<StatementTransaction[]> {
         date,
         description: memo,
         amount: Math.abs(amount),
-        type: amount >= 0 ? 'income' : 'expense',
+        type: amount >= 0 ? 'income' as const : 'expense' as const,
         originalDescription: memo,
-        dataReliability: 'REAL',
+        dataReliability: 'REAL' as DataReliability,
         provenance: buildProvenance(file, {
           origin: 'BANK_FILE',
           reliability: 'REAL',
@@ -116,7 +115,7 @@ async function parseOFX(file: File): Promise<StatementTransaction[]> {
           extractionMethod: 'structured',
           confidence: 1,
         }),
-        status: 'pending',
+        status: 'pending' as const,
       });
       idx++;
     }
@@ -124,96 +123,43 @@ async function parseOFX(file: File): Promise<StatementTransaction[]> {
   return transactions;
 }
 
-async function parsePDF(file: File): Promise<StatementTransaction[]> {
-  const text = await file.text();
-  const lines = text.split('\n').filter(l => l.trim());
-  if (lines.length > MAX_STATEMENT_ROWS) throw new Error('PDF extraído excede o limite de linhas suportado.');
-  const transactions: StatementTransaction[] = [];
-  const dateRegex = /(\d{2})[/.-](\d{2})[/.-](\d{2,4})/;
-  const amountRegex = /[-+]?\s*R?\$?\s?[\d.,]+/;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
-    const dateMatch = line.match(dateRegex);
-    const amountMatch = line.match(amountRegex);
-    if (dateMatch && amountMatch) {
-      let year = dateMatch[3] || '2024';
-      if (year.length === 2) year = '20' + year;
-      const date = `${year}-${dateMatch[2]}-${dateMatch[1]}`;
-      const amountStr = (amountMatch[0] || '').replace(/[^-\d.,]/g, '').replace(/\./g, '').replace(',', '.');
-      const amount = parseFloat(amountStr);
-      const description = sanitizeText(line.replace(dateRegex, '').replace(amountRegex, ''));
-      if (!isNaN(amount)) {
-        const issues: StatementParsingIssue[] = [];
-        if (!description) {
-          issues.push(buildIssue({
-            code: 'PARTIAL_DESCRIPTION',
-            severity: 'warning',
-            message: 'Descrição parcial inferida a partir de linha PDF.',
-          }));
-        }
+async function parseWithGeminiAPI(file: File): Promise<StatementTransaction[]> {
+  const formData = new FormData();
+  formData.append('file', file);
 
-        transactions.push({
-          id: `pdf-${i}`,
-          importId: '',
-          date,
-          description: description || 'Transação PDF',
-          amount: Math.abs(amount),
-          type: amount >= 0 ? 'income' : 'expense',
-          originalDescription: description,
-          dataReliability: 'HEURISTIC',
-          provenance: buildProvenance(file, {
-            origin: 'PDF_TEXT_EXTRACTED',
-            reliability: 'HEURISTIC',
-            parser: 'pdf-text',
-            extractionMethod: 'regex',
-            confidence: description ? 0.78 : 0.62,
-            issues,
-          }),
-          status: 'pending',
-        });
-      }
-    }
+  interface GeminiTransaction {
+    date?: string;
+    description?: string;
+    amount?: number;
+    type?: string;
   }
-  return transactions;
-}
 
-async function parseImage(file: File): Promise<StatementTransaction[]> {
-  const { processReceiptImage } = await import('../ocr/tesseract-service');
-  const data = await processReceiptImage(file);
-  if (data.amount) {
-    const confidence = data.confidence / 100;
-    const issues: StatementParsingIssue[] = confidence < 0.75
-      ? [buildIssue({
-          code: 'LOW_CONFIDENCE_OCR',
-          severity: 'warning',
-          message: 'OCR com baixa confiança; revise antes de confirmar.',
-        })]
-      : [];
+  try {
+    const data = await api.post<{ transactions?: GeminiTransaction[] }>('/statements/upload', formData);
+    const rawTransactions = data.transactions || [];
 
-    return [{
-      id: 'img-1',
+    return rawTransactions.map((tx, i: number): StatementTransaction => ({
+      id: `gemini-${i}`,
       importId: '',
-      date: data.date || new Date().toISOString().split('T')[0] || '',
-      description: data.merchant || 'Recibo',
-      amount: data.amount,
-      type: 'expense',
-      category: data.category,
-      categoryConfidence: confidence,
-      originalDescription: sanitizeText(data.merchant || ''),
-      dataReliability: confidence >= 0.85 ? 'ESTIMATED' : 'HEURISTIC',
+      date: tx.date || new Date().toISOString().split('T')[0] || '',
+      description: tx.description || 'Transação IA',
+      amount: Math.abs(tx.amount || 0),
+      type: tx.type === 'income' ? 'income' : 'expense',
+      originalDescription: tx.description,
+      dataReliability: 'REAL' as DataReliability,
       provenance: buildProvenance(file, {
         origin: 'OCR_EXTRACTED',
-        reliability: confidence >= 0.85 ? 'ESTIMATED' : 'HEURISTIC',
+        reliability: 'REAL',
         parser: 'image-ocr',
-        extractionMethod: 'ocr',
-        confidence,
-        issues,
+        extractionMethod: 'structured',
+        confidence: 0.99,
       }),
       status: 'pending',
-    }];
+    }));
+  } catch (err: unknown) {
+    console.error('[parser] Gemini API failed:', err);
+    throw new Error('Falha ao processar extrato com IA. Tente novamente.');
   }
-  return [];
 }
 
 function parseDate(str: string): string {
@@ -266,15 +212,12 @@ function splitDelimitedLine(line: string): string[] {
 }
 
 function sanitizeText(value: string): string {
-  const withoutControlChars = Array.from(value)
+  return Array.from(value)
     .filter((char) => {
       const code = char.charCodeAt(0);
       return code >= 32 && code !== 127;
     })
-    .join(' ');
-
-  return value
-    .replace(value, withoutControlChars)
+    .join('')
     .replace(/\s+/g, ' ')
     .replace(/^[-+=@]+/, '')
     .trim()

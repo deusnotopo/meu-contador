@@ -1,7 +1,7 @@
-﻿import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Flame, Lock, ChevronRight } from 'lucide-react';
 import { useGamification } from '@/hooks/useGamification';
-import type { Achievement } from '@/types/gamification';
+import type { Achievement } from '@/hooks/useIntelligence';
 
 const rarityColors = {
   common: 'from-gray-500 to-gray-600',
@@ -136,7 +136,11 @@ function AchievementCard({
   achievement: Achievement;
   index: number;
 }) {
-  const progressPercent = (achievement.progress / achievement.maxProgress) * 100;
+  const rarity = achievement.rarity || 'common';
+  const progress = achievement.progress || 0;
+  const maxProgress = achievement.maxProgress || 1;
+  const xpReward = achievement.xpReward || 0;
+  const progressPercent = (progress / maxProgress) * 100;
 
   return (
     <motion.div
@@ -147,7 +151,7 @@ function AchievementCard({
         relative p-4 rounded-2xl border transition-all duration-300
         ${
           achievement.isUnlocked
-            ? `bg-gradient-to-r ${rarityColors[achievement.rarity]}/10 ${rarityBorders[achievement.rarity]}`
+            ? `bg-gradient-to-r ${rarityColors[rarity]}/10 ${rarityBorders[rarity]}`
             : 'bg-white/5 border-white/5 opacity-60'
         }
       `}
@@ -159,7 +163,7 @@ function AchievementCard({
             w-12 h-12 rounded-xl flex items-center justify-center text-2xl
             ${
               achievement.isUnlocked
-                ? `bg-gradient-to-br ${rarityColors[achievement.rarity]}`
+                ? `bg-gradient-to-br ${rarityColors[rarity]}`
                 : 'bg-white/10 grayscale'
             }
           `}
@@ -181,28 +185,28 @@ function AchievementCard({
               className={`
                 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full
                 ${
-                  achievement.rarity === 'legendary'
+                  rarity === 'legendary'
                     ? 'bg-amber-500/20 text-amber-400'
-                    : achievement.rarity === 'epic'
+                    : rarity === 'epic'
                     ? 'bg-purple-500/20 text-purple-400'
-                    : achievement.rarity === 'rare'
+                    : rarity === 'rare'
                     ? 'bg-blue-500/20 text-blue-400'
                     : 'bg-gray-500/20 text-gray-400'
                 }
               `}
             >
-              {achievement.rarity}
+              {rarity}
             </span>
           </div>
           <p className="text-xs text-neutral-500 mt-1">{achievement.description}</p>
 
           {/* Progress */}
-          {!achievement.isUnlocked && achievement.maxProgress > 1 && (
+          {!achievement.isUnlocked && maxProgress > 1 && (
             <div className="mt-2">
               <div className="flex justify-between text-[10px] text-neutral-500 mb-1">
                 <span>Progresso</span>
                 <span>
-                  {achievement.progress}/{achievement.maxProgress}
+                  {progress}/{maxProgress}
                 </span>
               </div>
               <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
@@ -224,7 +228,7 @@ function AchievementCard({
               achievement.isUnlocked ? 'text-amber-400' : 'text-neutral-700'
             }`}
           >
-            +{achievement.xpReward} XP
+            +{xpReward} XP
           </span>
           {achievement.isUnlocked && achievement.unlockedAt && (
             <p className="text-[10px] text-neutral-500 mt-1">

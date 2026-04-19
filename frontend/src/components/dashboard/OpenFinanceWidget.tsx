@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, Building2, Unplug, Check, AlertTriangle, ChevronRight, Wifi } from "lucide-react";
 import { useOpenFinance, type BankConnection } from "@/hooks/useOpenFinance";
 import type { TabType } from "@/types/navigation";
+import { DataReliabilityBadge } from "@/components/ui/DataReliabilityBadge";
 
 interface OpenFinanceWidgetProps {
   onNavigate?: (tab: TabType) => void;
@@ -135,21 +136,19 @@ export const OpenFinanceWidget = ({ onNavigate }: OpenFinanceWidgetProps) => {
   // Empty state — user has no connections
   if (!isLoading && !error && connections.length === 0) {
     return (
-      <div className="bento-card bento-full p-6 flex flex-col items-center gap-4 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-          <Wifi size={24} />
+      <div className="bento-card bento-full p-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+          <Wifi size={18} />
         </div>
-        <div>
-          <p className="text-[14px] font-bold text-white/80 mb-1">Nenhum banco conectado</p>
-          <p className="text-[11px] text-white/30 leading-snug max-w-[200px]">
-            Conecte sua conta bancária via Open Finance para importar transações automaticamente.
-          </p>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12px] font-bold text-white/70">Nenhum banco conectado</p>
+          <p className="text-[10px] text-white/30">Open Finance — importação automática</p>
         </div>
         <button
           onClick={() => onNavigate?.("settings")}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-bold text-blue-300 border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold text-blue-300 border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition-all whitespace-nowrap shrink-0"
         >
-          <Unplug size={13} /> Conectar banco
+          <Unplug size={11} /> Conectar
         </button>
       </div>
     );
@@ -177,6 +176,13 @@ export const OpenFinanceWidget = ({ onNavigate }: OpenFinanceWidgetProps) => {
             Gerenciar <ChevronRight size={12} />
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <DataReliabilityBadge reliability="EXTERNAL_SOURCE" sourceLabel="Pluggy / Open Finance" compact />
+        <p className="text-[10px] text-white/40 leading-relaxed">
+          Saldos dependem da última sincronização e podem divergir do internet banking em tempo real.
+        </p>
       </div>
 
       {/* Loading */}

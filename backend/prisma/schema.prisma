@@ -19,12 +19,12 @@ model User {
   email           String      @unique
   name            String?
   passwordHash    String      @default("")
-  monthlyIncome   Float?
+  monthlyIncome   Int?       // Cents × 100
   financialGoal   String?
   riskProfile     String?
   hasEmergencyFund Boolean    @default(false)
   hasDebts        Boolean    @default(false)
-  initialBalance  Float       @default(0)
+  initialBalance  Int         @default(0) // Cents × 100
   isPro           Boolean     @default(false)
   employmentType  String?
   onboardingCompleted Boolean @default(false)
@@ -43,7 +43,7 @@ model User {
   investmentHorizon String?
   investorProfile  String?    // anxious | stuck | excited | protective
   retirementAge    Int?
-  fireTargetIncome Float?
+  fireTargetIncome Int?       // Cents × 100
 
   // ProteÃ§Ã£o e Compliance
   lgpdConsent      Boolean    @default(false)
@@ -126,7 +126,7 @@ model Transaction {
   id                 String              @id @default(uuid())
   type               String
   description        String
-  amount             Float
+  amount             Int
   category           String
   date               DateTime
   paymentMethod      String?
@@ -136,12 +136,17 @@ model Transaction {
   scope              String
   classification     String?
   currency           String              @default("BRL")
-  originalAmount     Float?
+  originalAmount     Int?
   exchangeRate       Float?
   receiptUrl         String?
   mood               String?
   motivation         String?
   fitid              String?
+
+  // Recurrency and Installments
+  recurrenceId       String?             // groups related transactions
+  installmentNumber  Int?                // e.g. 1
+  totalInstallments  Int?                // e.g. 12
 
   userId             String
   user               User     @relation(fields: [userId], references: [id])
@@ -189,7 +194,7 @@ model BankAccount {
   id              String          @id @default(uuid())
   pluggyAccountId String          @unique
   name            String
-  balance         Float
+  balance         Int        // Cents × 100
   currencyCode    String          @default("BRL")
   type            String
   subtype         String?
@@ -204,10 +209,10 @@ model BankAccount {
   deletedAt       DateTime?
 
   // Reconciliation fields
-  calculatedBalance Float?      // Sum of user transactions
+  calculatedBalance Int?        // Sum of user transactions — Cents × 100
   lastReconciledAt  DateTime?   // Last time reconciliation was performed
   reconciliationStatus String? // MATCHING, DISCREPANCY, ERROR
-  discrepancyAmount Float?      // bank balance - calculated balance
+  discrepancyAmount Int?        // bank balance - calculated balance — Cents × 100
 
   transactions      Transaction[]
 
@@ -218,8 +223,8 @@ model BankAccount {
 model Budget {
   id        String   @id @default(uuid())
   category  String
-  limit     Float
-  spent     Float    @default(0)
+  limit     Int
+  spent     Int      @default(0)
   month     String   // YYYY-MM
   userId    String
   user      User     @relation(fields: [userId], references: [id])
@@ -235,8 +240,8 @@ model Budget {
 model SavingsGoal {
   id            String   @id @default(uuid())
   name          String
-  targetAmount  Float
-  currentAmount Float    @default(0)
+  targetAmount  Int
+  currentAmount Int      @default(0)
   deadline      DateTime
   icon          String?
   color         String?
@@ -254,7 +259,7 @@ model SavingsGoal {
 model BillReminder {
   id        String       @id @default(uuid())
   name      String
-  amount    Float
+  amount    Int
   dueDate   DateTime
   category  String
   isPaid    Boolean      @default(false)
@@ -273,7 +278,7 @@ model Invoice {
   id          String        @id @default(uuid())
   number      String
   client      String
-  amount      Float
+  amount      Int
   dueDate     DateTime
   status      String        @default("PENDING")
   workspaceId String
@@ -293,12 +298,12 @@ model Investment {
   name              String
   ticker            String
   type              String
-  amount            Float
-  averagePrice      Float
-  currentPrice      Float
+  amount            Float      // Quantity of shares/units (NOT currency — remains Float)
+  averagePrice      Int        // Cents × 100
+  currentPrice      Int        // Cents × 100
   currency          String          @default("BRL")
   sector            String?
-  targetAllocation  Float?
+  targetAllocation  Float?     // Percentage 0.0–1.0 (remains Float)
   lastUpdate        DateTime        @default(now())
   userId            String
   dataReliability   String          @default("REAL")
@@ -320,7 +325,7 @@ model Dividend {
   id           String       @id @default(uuid())
   investmentId String
   investment   Investment   @relation(fields: [investmentId], references: [id], onDelete: Cascade)
-  amount       Float
+  amount       Int        // Cents × 100
   date         DateTime
   type         String
   createdAt    DateTime     @default(now())
@@ -335,9 +340,9 @@ model InvestmentSale {
   investmentId String
   investment   Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
   ticker       String
-  amount       Float
-  price        Float
-  totalValue   Float
+  amount       Float      // Quantity of shares/units (NOT currency — remains Float)
+  price        Int        // Cents × 100 per unit
+  totalValue   Int        // Cents × 100
   date         DateTime
   currency     String   @default("BRL")
   userId       String
@@ -352,9 +357,9 @@ model InvestmentSale {
 model Debt {
   id           String       @id @default(uuid())
   name         String
-  balance      Float
-  interestRate Float
-  minPayment   Float
+  balance      Int        // Cents × 100
+  interestRate Float      // Rate 0.0–1.0 (remains Float)
+  minPayment   Int        // Cents × 100
   dueDate      DateTime?
   category     String
   userId       String
@@ -405,8 +410,8 @@ model Provision {
   id           String   @id @default(uuid())
   name         String
   month        Int
-  yearlyAmount Float
-  accumulated  Float    @default(0)
+  yearlyAmount Int        // Cents × 100
+  accumulated  Int        @default(0) // Cents × 100
   userId       String
   user         User     @relation(fields: [userId], references: [id])
   createdAt    DateTime @default(now())

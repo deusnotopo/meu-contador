@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -19,13 +19,14 @@ import { formatCurrency } from "@/lib/formatters";
 import { useReminders } from "@/hooks/useReminders";
 import type { BillReminder } from "@/types";
 import { Bell, Check, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export const RemindersSection = () => {
-  const { reminders, addReminder, updateReminder, removeReminder } = useReminders();
+  const { reminders, addReminder, updateReminder, removeReminder } =
+    useReminders();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<BillReminder | null>(
-    null
+    null,
   );
   const [formData, setFormData] = useState<{
     name: string;
@@ -41,9 +42,7 @@ export const RemindersSection = () => {
     recurring: "monthly",
   });
 
-  const today = new Date();
-
-
+  const today = useMemo(() => new Date(), []);
 
   const handleSave = () => {
     if (!formData.name || formData.amount <= 0 || !formData.dueDate) return;
@@ -54,7 +53,7 @@ export const RemindersSection = () => {
         amount: formData.amount,
         dueDate: formData.dueDate,
         category: formData.category,
-        recurring: formData.recurring,
+        recurring: formData.recurring || undefined,
       });
     } else {
       addReminder({
@@ -63,7 +62,10 @@ export const RemindersSection = () => {
         dueDate: formData.dueDate,
         category: formData.category,
         isPaid: false,
-        recurring: formData.recurring,
+        recurring: formData.recurring || undefined,
+        type: "payment",
+        priority: "medium",
+        completed: false,
       });
     }
 
@@ -85,7 +87,8 @@ export const RemindersSection = () => {
       amount: reminder.amount,
       dueDate: reminder.dueDate,
       category: reminder.category,
-      recurring: reminder.recurring,
+      recurring:
+        (reminder.recurring as "monthly" | "yearly" | "once") || "monthly",
     });
     setIsDialogOpen(true);
   };
@@ -100,13 +103,24 @@ export const RemindersSection = () => {
 
   const openNewDialog = () => {
     setEditingReminder(null);
-    // Set default due date to next month same day
-    const nextMonth = new Date();
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    // Set default due date to next month same day, bypass rollover bug where Day 31 shifts Feb into March
+    const now = new Date();
+    const startDay = now.getDate();
+    now.setMonth(now.getMonth() + 1, 1);
+    now.setDate(
+      Math.min(
+        startDay,
+        new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
+      ),
+    );
+
+    // Timezone safe YYYY-MM-DD
+    const defaultDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
     setFormData({
       name: "",
       amount: 0,
-      dueDate: nextMonth.toISOString().split("T")[0] || "",
+      dueDate: defaultDateStr,
       category: "",
       recurring: "monthly",
     });
@@ -302,8 +316,8 @@ export const RemindersSection = () => {
                         r.isPaid
                           ? "bg-emerald-500 text-black scale-90"
                           : isOverdue
-                          ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
-                          : "bg-white/5 text-neutral-500 hover:bg-white/10 border border-white/5"
+                            ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                            : "bg-white/5 text-neutral-500 hover:bg-white/10 border border-white/5"
                       }`}
                     >
                       <Check size={20} strokeWidth={r.isPaid ? 3 : 2} />
@@ -398,4 +412,3 @@ export const RemindersSection = () => {
     </div>
   );
 };
-

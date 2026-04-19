@@ -98,11 +98,14 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
         type: data.type!,
         amount,
         averagePrice,
-        currentPrice: Number(data.currentPrice) > 0 ? Number(data.currentPrice) : averagePrice,
+        currentPrice:
+          Number(data.currentPrice) > 0
+            ? Number(data.currentPrice)
+            : averagePrice,
         currency: data.currency!,
         sector: data.sector || "Geral",
         targetAllocation: allocationNum,
-        lastUpdate: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
       });
     }
   };
@@ -208,7 +211,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                   </Label>
                   <Input
                     autoFocus
-                    value={data.ticker}
+                    value={data.ticker ?? ""}
                     onChange={(e) =>
                       setData({ ...data, ticker: e.target.value.toUpperCase() })
                     }
@@ -224,7 +227,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     Nome do Ativo
                   </Label>
                   <Input
-                    value={data.name}
+                    value={data.name ?? ""}
                     onChange={(e) => setData({ ...data, name: e.target.value })}
                     placeholder="Ex: Petrobras PN"
                     className="h-14 bg-white/5 border-white/10 rounded-xl"
@@ -250,7 +253,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                       type="number"
                       step="any"
                       autoFocus
-                      value={data.amount}
+                      value={data.amount ?? ""}
                       onChange={(e) =>
                         setData({ ...data, amount: e.target.value })
                       }
@@ -264,7 +267,10 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     <Select
                       value={data.currency}
                       onValueChange={(v) =>
-                        setData({ ...data, currency: v as Investment["currency"] })
+                        setData({
+                          ...data,
+                          currency: v as Investment["currency"],
+                        })
                       }
                     >
                       <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-xl">
@@ -289,7 +295,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     <Input
                       type="number"
                       step="0.01"
-                      value={data.averagePrice}
+                      value={data.averagePrice ?? ""}
                       onChange={(e) =>
                         setData({ ...data, averagePrice: e.target.value })
                       }
@@ -308,7 +314,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                     <Input
                       type="number"
                       step="0.01"
-                      value={data.currentPrice}
+                      value={data.currentPrice ?? ""}
                       onChange={(e) =>
                         setData({ ...data, currentPrice: e.target.value })
                       }
@@ -343,7 +349,7 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
                   <Input
                     type="number"
                     placeholder="0%"
-                    value={data.targetAllocation}
+                    value={data.targetAllocation ?? ""}
                     onChange={(e) =>
                       setData({ ...data, targetAllocation: e.target.value })
                     }
@@ -372,7 +378,9 @@ export const AddAssetWizard = ({ onComplete, onClose }: Props) => {
               className="bg-white text-black hover:bg-white/90 font-bold px-8 rounded-xl"
             >
               {step === STEPS.length - 1 ? "Concluir" : "Próximo"}
-              {step < STEPS.length - 1 && <ArrowRight size={18} className="ml-2" />}
+              {step < STEPS.length - 1 && (
+                <ArrowRight size={18} className="ml-2" />
+              )}
             </Button>
           )}
         </div>

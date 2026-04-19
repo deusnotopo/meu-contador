@@ -1,9 +1,10 @@
-import { useOnboarding } from "../OnboardingContext";
-import { Flame, Trash2, Plus, Zap } from "lucide-react";
-import type { OnboardingDebt } from "@/types";
+import { memo, useCallback } from 'react';
+import { useOnboarding } from '../OnboardingContext';
+import { Flame, Trash2, Plus, Zap } from 'lucide-react';
+import type { OnboardingDebt } from '@/types';
 
 const createDebtDraft = (): OnboardingDebt => ({
-  id: `debt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  id: crypto.randomUUID(),
   name: '',
   balance: 0,
   interestRate: 0,
@@ -11,8 +12,22 @@ const createDebtDraft = (): OnboardingDebt => ({
   category: 'credit_card',
 });
 
-export function DebtsStep() {
+export const DebtsStep = memo(function DebtsStep() {
   const { onboardingDebts, setOnboardingDebts, validationErrors } = useOnboarding();
+
+  const handleAddDebt = useCallback(() => {
+    setOnboardingDebts(prev => [...prev, createDebtDraft()]);
+  }, [setOnboardingDebts]);
+
+  const handleRemoveDebt = useCallback((index: number) => {
+    setOnboardingDebts(prev => prev.filter((_, i) => i !== index));
+  }, [setOnboardingDebts]);
+
+  const handleDebtChange = useCallback((index: number, field: keyof OnboardingDebt, value: string | number) => {
+    setOnboardingDebts(prev => prev.map((debt, i) =>
+      i === index ? { ...debt, [field]: value } : debt
+    ));
+  }, [setOnboardingDebts]);
 
   return (
     <div className="space-y-6 pt-6">
@@ -26,12 +41,12 @@ export function DebtsStep() {
 
       <div className="space-y-3">
         {onboardingDebts.map((debt, i) => (
-          <div key={debt.id || `${debt.name}-${i}`} className="p-5 rounded-2xl bg-white/5 border border-rose-500/20 space-y-4">
+          <div key={debt.id} className="p-5 rounded-2xl bg-white/5 border border-rose-500/20 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">Dívida {i + 1}</span>
               <button
                 type="button"
-                onClick={() => setOnboardingDebts(prev => prev.filter((_, idx) => idx !== i))}
+                onClick={() => handleRemoveDebt(i)}
                 className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
               >
                 <Trash2 size={14} className="text-white/40" />
@@ -44,11 +59,7 @@ export function DebtsStep() {
                   type="text"
                   value={debt.name}
                   placeholder="Ex: Cartão Nubank"
-                  onChange={e => {
-                    const updated = [...onboardingDebts];
-                    if (updated[i]) updated[i].name = e.target.value;
-                    setOnboardingDebts(updated);
-                  }}
+                  onChange={e => handleDebtChange(i, 'name', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-rose-500/50"
                 />
               </div>
@@ -60,9 +71,8 @@ export function DebtsStep() {
                     value={debt.balance || ''}
                     placeholder="0"
                     onChange={e => {
-                      const updated = [...onboardingDebts];
-                      if (updated[i]) updated[i].balance = Number(e.target.value);
-                      setOnboardingDebts(updated);
+                      const value = parseFloat(e.target.value) || 0;
+                      if (value >= 0) handleDebtChange(i, 'balance', value);
                     }}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-rose-500/50"
                   />
@@ -75,9 +85,8 @@ export function DebtsStep() {
                     placeholder="0"
                     step="0.1"
                     onChange={e => {
-                      const updated = [...onboardingDebts];
-                      if (updated[i]) updated[i].interestRate = Number(e.target.value);
-                      setOnboardingDebts(updated);
+                      const value = parseFloat(e.target.value) || 0;
+                      if (value >= 0) handleDebtChange(i, 'interestRate', value);
                     }}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-rose-500/50"
                   />
@@ -89,9 +98,8 @@ export function DebtsStep() {
                     value={debt.minPayment || ''}
                     placeholder="0"
                     onChange={e => {
-                      const updated = [...onboardingDebts];
-                      if (updated[i]) updated[i].minPayment = Number(e.target.value);
-                      setOnboardingDebts(updated);
+                      const value = parseFloat(e.target.value) || 0;
+                      if (value >= 0) handleDebtChange(i, 'minPayment', value);
                     }}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-semibold focus:outline-none focus:border-rose-500/50"
                   />
@@ -104,7 +112,7 @@ export function DebtsStep() {
         {onboardingDebts.length < 5 && (
           <button
             type="button"
-            onClick={() => setOnboardingDebts(prev => [...prev, createDebtDraft()])}
+            onClick={handleAddDebt}
             className="w-full py-4 rounded-2xl border border-dashed border-rose-500/30 text-rose-400/70 text-sm font-semibold hover:border-rose-500/60 hover:text-rose-400 transition-all flex items-center justify-center gap-2"
           >
             <Plus size={16} /> Adicionar dívida
@@ -125,4 +133,4 @@ export function DebtsStep() {
       </div>
     </div>
   );
-}
+});

@@ -102,7 +102,7 @@ body {
 .stime{font-size:15px;font-weight:600;color:var(--t1);letter-spacing:-0.2px;font-family:var(--mono)}
 .sicons{display:flex;gap:5px;align-items:center}
 
-/* Screen — único container de scroll é o .scontent */
+/* Screen ï¿½ ï¿½nico container de scroll ï¿½ o .scontent */
 .screen{
   flex:1;
   overflow:hidden;
@@ -539,7 +539,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 
 /* -- NOVOS ESTILOS v3 -- */
 
-/* Transação card aprimorado */
+/* Transaï¿½ï¿½o card aprimorado */
 .tx-card{
   background:var(--glass);
   border:1px solid var(--border);
@@ -548,7 +548,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   transition:all 0.2s;
 }
 
-/* Input de transação */
+/* Input de transaï¿½ï¿½o */
 .input-group{margin-bottom:14px}
 .input-label{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px}
 .input-field{
@@ -598,7 +598,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-handle{width:40px;height:4px;background:var(--glass3);border-radius:2px;margin:0 auto 20px}
 
-/* Filtro de período */
+/* Filtro de perï¿½odo */
 .period-tabs{display:flex;gap:6px;margin-bottom:16px}
 .period-tab{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);color:var(--t3);background:transparent;font-family:var(--font);transition:all 0.15s}
 .period-tab.active{background:var(--blue);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(74,139,255,0.35)}
@@ -631,7 +631,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   align-items:center;justify-content:center;
 }
 
-/* Dívida payoff */
+/* Dï¿½vida payoff */
 .payoff-bar{
   height:10px;background:var(--glass2);border-radius:5px;overflow:hidden;margin:8px 0;
 }
@@ -643,7 +643,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 .compare-bar-wrap{flex:1;height:5px;background:var(--glass2);border-radius:3px;overflow:hidden}
 .compare-bar-fill{height:100%;border-radius:3px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1)}
 
-/* Notificação lida/não-lida */
+/* Notificaï¿½ï¿½o lida/nï¿½o-lida */
 .notif-item{
   background:var(--glass);
   border:1px solid var(--border);
@@ -661,7 +661,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 .notif-item:hover{border-color:var(--border2);background:var(--glass2)}
 .notif-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);flex-shrink:0}
 
-/* Gráfico donut wrapper */
+/* Grï¿½fico donut wrapper */
 .donut-wrap{position:relative;display:inline-block;width:100px;height:100px}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 
@@ -670,7 +670,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 .drag-item:last-child{border-bottom:none}
 .drag-handle{color:var(--t4);font-size:16px;flex-shrink:0;cursor:grab}
 
-/* Anotação financeira */
+/* Anotaï¿½ï¿½o financeira */
 .note{
   background:rgba(255,173,59,0.06);
   border:1px solid rgba(255,173,59,0.15);
@@ -682,7 +682,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   line-height:1.5;
 }
 
-/* Cartão de assinatura / recorrente */
+/* Cartï¿½o de assinatura / recorrente */
 .recurrence-chip{
   display:inline-flex;align-items:center;gap:5px;
   padding:3px 10px;border-radius:20px;
@@ -691,7 +691,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   border:1px solid rgba(155,127,255,0.2);
 }
 
-/* Percentual em círculo */
+/* Percentual em cï¿½rculo */
 .pct-circle{
   width:44px;height:44px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
@@ -699,7 +699,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   flex-shrink:0;
 }
 
-/* Input de valor monetário */
+/* Input de valor monetï¿½rio */
 .money-input{
   font-size:36px;font-weight:700;color:var(--t1);
   background:transparent;border:none;outline:none;
@@ -740,7 +740,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 }
 .seg-opt.active{background:var(--glass3);color:var(--t1)}
 
-/* -- TELA DE LANÇAMENTO -- */
+/* -- TELA DE LANï¿½AMENTO -- */
 .launch-amount{text-align:center;padding:16px 0 8px}
 .launch-cats{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0 8px}
 .launch-cats::-webkit-scrollbar{display:none}
@@ -1488,9 +1488,9 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  /* overflow: hidden apenas no X para não quebrar scroll vertical */
+  /* overflow: hidden apenas no X para nï¿½o quebrar scroll vertical */
   overflow-x: hidden;
-  overflow-y: hidden; /* .scontent é o único scrollable */
+  overflow-y: hidden; /* .scontent ï¿½ o ï¿½nico scrollable */
   background: var(--bg);
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -1500,7 +1500,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 @media (max-width: 639px) {
   body { overflow: hidden; }
 
-  /* Mobile: app ocupa 100% da viewport, scontent é quem rola */
+  /* Mobile: app ocupa 100% da viewport, scontent ï¿½ quem rola */
   .app-root {
     width: 100vw;
     height: 100dvh;          /* altura fixa = viewport exata */
@@ -1515,14 +1515,14 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;         /* não rola aqui */
+    overflow: hidden;         /* nï¿½o rola aqui */
     min-height: 0;            /* crucial para flex child poder rolar */
   }
 
-  /* scontent já tem overflow-y:auto definido globalmente */
+  /* scontent jï¿½ tem overflow-y:auto definido globalmente */
 
   .scontent {
-    padding: 0 16px calc(88px + env(safe-area-inset-bottom, 0px)) 16px;
+    padding: 0 16px calc(140px + env(safe-area-inset-bottom, 0px)) 16px;
   }
 
   /* Typography mobile */
@@ -1563,7 +1563,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   .wizard-container { max-width: 100%; }
 }
 
-/* -- Tablet (640px – 1023px): Centered card layout -- */
+/* -- Tablet (640px ï¿½ 1023px): Centered card layout -- */
 @media (min-width: 640px) and (max-width: 1023px) {
   body { overflow: auto; background: #020509; }
 
@@ -1607,7 +1607,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   .wizard-container { max-width: 100%; }
 }
 
-/* -- Tablet Landscape (640px – 1023px landscape) -- */
+/* -- Tablet Landscape (640px ï¿½ 1023px landscape) -- */
 @media (min-width: 640px) and (max-width: 1023px) and (orientation: landscape) {
   .app-root {
     max-width: 780px;
@@ -1624,7 +1624,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 /* -- Desktop (= 1024px): Sidebar + main content -- */
 @media (min-width: 1024px) {
   body {
-    overflow: hidden; /* o scroll acontece dentro do .scontent, não no body */
+    overflow: hidden; /* o scroll acontece dentro do .scontent, nï¿½o no body */
     background: #020408;
     height: 100dvh;
   }
@@ -1651,7 +1651,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 
   .scontent {
     flex: 1;
-    overflow-y: auto;         /* único scroll no desktop */
+    overflow-y: auto;         /* ï¿½nico scroll no desktop */
     padding: 0 28px 40px 28px;
     max-width: 980px;
   }
@@ -1664,7 +1664,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
   .bignum { font-size: 44px; }
   .m-val { font-size: 24px; }
 
-  /* Bento grid desktop: até 3 cols para cards menores */
+  /* Bento grid desktop: atï¿½ 3 cols para cards menores */
   .bento-grid { gap: 16px; }
   .bento-card { border-radius: 20px; padding: 20px; }
 
@@ -1680,7 +1680,7 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
     max-height: 100dvh;
   }
 
-  /* FAB posição desktop */
+  /* FAB posiï¿½ï¿½o desktop */
   .adviser-fab { bottom: 28px; right: 28px; }
 
   /* Keypad: teclas menos altas em desktop */
@@ -1829,8 +1829,8 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.25)}
 
 
 /* -- Sistema de scroll corrigido -- */
-/* .scontent já tem overflow-x: hidden definido acima */
-/* .screen usa overflow:hidden para conter layout, scontent é quem rola */
+/* .scontent jï¿½ tem overflow-x: hidden definido acima */
+/* .screen usa overflow:hidden para conter layout, scontent ï¿½ quem rola */
 
 /* -- Sticky header responsivo -- */
 .sticky-header {

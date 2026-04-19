@@ -11,7 +11,7 @@ const auditEntrySchema = z.object({
 
 export async function auditRoutes(app: FastifyInstance) {
   app.post('/audit', {
-    preHandler: [(app as any).authenticate],
+    preHandler: [app.authenticate],
     schema: {
       tags: ['Audit'],
       security: [{ bearerAuth: [] }],
@@ -44,7 +44,7 @@ export async function auditRoutes(app: FastifyInstance) {
 
   // GET /audit/me - Permite que o usuário veja seu próprio rastro de auditoria (Transparência LGPD)
   app.get('/audit/me', {
-    preHandler: [(app as any).authenticate],
+    preHandler: [app.authenticate],
     schema: {
       tags: ['Audit'],
       security: [{ bearerAuth: [] }],

@@ -9,12 +9,12 @@ describe('Goals Routes', () => {
 
   beforeEach(async () => {
     app = await createTestApp()
-    testUser = await createTestUser()
+    testUser = await createTestUser(true)
     authToken = app.jwt.sign({
       id: testUser.id,
       email: testUser.email,
       name: testUser.name,
-      isPro: false,
+      isPro: true,
     })
   })
 

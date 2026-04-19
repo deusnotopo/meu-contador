@@ -1,7 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import crypto from 'crypto';
 import { z } from 'zod';
-import { db } from '../lib/db.js';
+import * as WorkspaceService from '../services/WorkspaceService.js';
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -12,6 +11,10 @@ const updateMemberSchema = z.object({
   role: z.enum(['editor', 'viewer'])
 });
 
+const createWorkspaceSchema = z.object({
+  name: z.string().trim().min(1).max(80)
+});
+
 export async function workspaceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', async (request, reply) => {
     await fastify.authenticate(request, reply);
@@ -19,199 +22,82 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
 
   // GET / — lista workspaces do usuário (owner ou membro)
   fastify.get('/', async (request) => {
-    const userId = request.user.id;
-    const workspaces = await db.workspace.findMany({
-      where: {
-        OR: [
-          { ownerId: userId },
-          { members: { some: { id: userId } } },
-        ],
-      },
-      include: {
-        members: { select: { id: true, name: true, email: true } },
-        _count: { select: { members: true } },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-    return workspaces;
+    return WorkspaceService.listUserWorkspaces(request.user.id);
   });
 
   // POST / — cria novo workspace
   fastify.post('/', async (request) => {
-    const userId = request.user.id;
-    const { name } = z.object({ name: z.string().trim().min(1).max(80) }).parse(request.body);
-    const workspace = await db.workspace.create({
-      data: {
-        name,
-        ownerId: userId,
-        members: { connect: { id: userId } },
-      },
-      include: {
-        members: { select: { id: true, name: true, email: true } },
-      },
-    });
-    return workspace;
+    const { name } = createWorkspaceSchema.parse(request.body);
+    return WorkspaceService.createWorkspace(request.user.id, name);
   });
 
+  // POST /:workspaceId/invite — envia convite
   fastify.post<{ Params: { workspaceId: string } }>(
     '/:workspaceId/invite',
-    async (request: FastifyRequest<{ Params: { workspaceId: string } }>, reply: FastifyReply) => {
-      const userId = request.user.id;
+    async (request, reply) => {
       const { workspaceId } = request.params;
-      const body = inviteSchema.parse(request.body);
-
-      const workspace = await db.workspace.findUnique({
-        where: { id: workspaceId },
-        include: { members: true }
-      });
-
-      if (!workspace) {
-        return reply.code(404).send({ error: 'Workspace not found' });
+      const { email, role } = inviteSchema.parse(request.body);
+      
+      try {
+        const invite = await WorkspaceService.sendInvite(request.user.id, workspaceId, email, role);
+        return { invite };
+      } catch (error: any) {
+        if (error.message === 'FORBIDDEN') return reply.code(403).send({ error: 'Permission denied' });
+        if (error.message === 'WORKSPACE_NOT_FOUND') return reply.code(404).send({ error: 'Workspace not found' });
+        return reply.code(400).send({ error: error.message });
       }
-
-      if (workspace.ownerId !== userId) {
-        return reply.code(403).send({ error: 'Only owner can invite members' });
-      }
-
-      const existingMember = workspace.members.find(m => m.email === body.email);
-      if (existingMember) {
-        return reply.code(400).send({ error: 'User is already a member' });
-      }
-
-      const existingInvite = await db.workspaceInvite.findFirst({
-        where: { email: body.email, workspaceId }
-      });
-      if (existingInvite && new Date(existingInvite.expiresAt) > new Date()) {
-        return reply.code(400).send({ error: 'Invite already sent to this email' });
-      }
-
-      const token = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-      const invite = await db.workspaceInvite.create({
-        data: {
-          email: body.email,
-          role: body.role,
-          token,
-          workspaceId,
-          expiresAt
-        }
-      });
-
-      return { invite: { ...invite, token } };
     }
   );
 
+  // GET /:workspaceId/invites — lista convites
   fastify.get<{ Params: { workspaceId: string } }>(
     '/:workspaceId/invites',
-    async (request: FastifyRequest<{ Params: { workspaceId: string } }>, reply: FastifyReply) => {
-      const userId = request.user.id;
-
-      const workspace = await db.workspace.findUnique({
-        where: { id: request.params.workspaceId }
-      });
-
-      if (!workspace || workspace.ownerId !== userId) {
+    async (request, reply) => {
+      try {
+        return await WorkspaceService.listInvites(request.user.id, request.params.workspaceId);
+      } catch (error: any) {
         return reply.code(403).send({ error: 'Forbidden' });
       }
-
-      const invites = await db.workspaceInvite.findMany({
-        where: { workspaceId: request.params.workspaceId },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      return invites;
     }
   );
 
+  // DELETE /:workspaceId/invites/:inviteId — remove convite
   fastify.delete<{ Params: { workspaceId: string; inviteId: string } }>(
     '/:workspaceId/invites/:inviteId',
-    async (request: FastifyRequest<{ Params: { workspaceId: string; inviteId: string } }>, reply: FastifyReply) => {
-      const userId = request.user.id;
-
-      const workspace = await db.workspace.findUnique({
-        where: { id: request.params.workspaceId }
-      });
-
-      if (!workspace || workspace.ownerId !== userId) {
+    async (request, reply) => {
+      try {
+        await WorkspaceService.revokeInvite(request.user.id, request.params.workspaceId, request.params.inviteId);
+        return { success: true };
+      } catch (error: any) {
         return reply.code(403).send({ error: 'Forbidden' });
       }
-
-      await db.workspaceInvite.delete({
-        where: { id: request.params.inviteId }
-      });
-
-      return { success: true };
     }
   );
 
+  // PUT /:workspaceId/members/:memberId — atualiza cargo
   fastify.put<{ Params: { workspaceId: string; memberId: string } }>(
     '/:workspaceId/members/:memberId',
-    async (request: FastifyRequest<{ Params: { workspaceId: string; memberId: string } }>, reply: FastifyReply) => {
-      const userId = request.user.id;
+    async (request, reply) => {
       const body = updateMemberSchema.parse(request.body);
-
-      const workspace = await db.workspace.findUnique({
-        where: { id: request.params.workspaceId }
-      });
-
-      if (!workspace || workspace.ownerId !== userId) {
-        return reply.code(403).send({ error: 'Forbidden' });
+      try {
+        await WorkspaceService.updateMemberRole(request.user.id, request.params.workspaceId, request.params.memberId, body.role);
+        return { success: true };
+      } catch (error: any) {
+        return reply.code(400).send({ error: error.message });
       }
-
-      if (request.params.memberId === workspace.ownerId) {
-        return reply.code(400).send({ error: 'Cannot change owner role' });
-      }
-
-      const member = await db.user.findUnique({
-        where: { id: request.params.memberId }
-      });
-
-      if (!member) {
-        return reply.code(404).send({ error: 'Member not found' });
-      }
-
-      await db.user.update({
-        where: { id: request.params.memberId },
-        data: {
-          workspaces: {
-            disconnect: { id: workspace.id },
-            connect: { id: workspace.id }
-          }
-        }
-      });
-
-      return { success: true, role: body.role };
     }
   );
 
+  // DELETE /:workspaceId/members/:memberId — remove membro
   fastify.delete<{ Params: { workspaceId: string; memberId: string } }>(
     '/:workspaceId/members/:memberId',
-    async (request: FastifyRequest<{ Params: { workspaceId: string; memberId: string } }>, reply: FastifyReply) => {
-      const userId = request.user.id;
-
-      const workspace = await db.workspace.findUnique({
-        where: { id: request.params.workspaceId }
-      });
-
-      if (!workspace || workspace.ownerId !== userId) {
-        return reply.code(403).send({ error: 'Forbidden' });
+    async (request, reply) => {
+      try {
+        await WorkspaceService.removeMember(request.user.id, request.params.workspaceId, request.params.memberId);
+        return { success: true };
+      } catch (error: any) {
+        return reply.code(400).send({ error: error.message });
       }
-
-      if (request.params.memberId === workspace.ownerId) {
-        return reply.code(400).send({ error: 'Cannot remove owner' });
-      }
-
-      await db.user.update({
-        where: { id: request.params.memberId },
-        data: {
-          workspaces: {
-            disconnect: { id: workspace.id }
-          }
-        }
-      });
-
-      return { success: true };
     }
   );
 }

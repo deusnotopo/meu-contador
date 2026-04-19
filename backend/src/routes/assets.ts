@@ -1,34 +1,24 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { getCacheValue, setCacheValue } from '../lib/cache';
-
-const FIPE_API = 'https://parallelum.com.br/fipe/api/v1';
+import * as AssetService from '../services/AssetService.js';
 
 export async function assetRoutes(app: FastifyInstance) {
+  app.addHook('preHandler', app.authenticate);
+
   // 1. Marcas
   app.get('/assets/fipe/brands/:type', {
     schema: {
       tags: ['Assets'],
       summary: 'Lista marcas de veículos da Tabela FIPE',
+      security: [{ bearerAuth: [] }],
       params: z.object({
         type: z.enum(['carros', 'motos', 'caminhoes']),
       }),
     },
-  }, async (req, reply) => {
-    const { type } = req.params as { type: string };
-    const cacheKey = `fipe:brands:${type}`;
-    const cached = await getCacheValue<any>(cacheKey);
-    if (cached) return reply.send({ records: cached });
-
-    try {
-      const res = await fetch(`${FIPE_API}/${type}/marcas`);
-      if (!res.ok) throw new Error('FIPE API Down');
-      const data = await res.json();
-      await setCacheValue(cacheKey, data, 7 * 24 * 60 * 60 * 1000);
-      return reply.send({ records: data });
-    } catch (err) {
-      return reply.status(502).send({ message: 'Erro ao conectar com FIPE API' });
-    }
+  }, async (req) => {
+    const { type } = req.params as { type: any };
+    const records = await AssetService.getFipeBrands(type);
+    return { records };
   });
 
   // 2. Modelos
@@ -36,26 +26,16 @@ export async function assetRoutes(app: FastifyInstance) {
     schema: {
       tags: ['Assets'],
       summary: 'Lista modelos de uma marca específica',
+      security: [{ bearerAuth: [] }],
       params: z.object({
         type: z.enum(['carros', 'motos', 'caminhoes']),
         brandId: z.string(),
       }),
     },
-  }, async (req, reply) => {
-    const { type, brandId } = req.params as { type: string, brandId: string };
-    const cacheKey = `fipe:models:${type}:${brandId}`;
-    const cached = await getCacheValue<any>(cacheKey);
-    if (cached) return reply.send({ records: { modelos: cached.modelos || cached } });
-
-    try {
-      const res = await fetch(`${FIPE_API}/${type}/marcas/${brandId}/modelos`);
-      if (!res.ok) throw new Error('FIPE API Down');
-      const data = await res.json();
-      await setCacheValue(cacheKey, data, 7 * 24 * 60 * 60 * 1000);
-      return reply.send({ records: { modelos: data.modelos || data } });
-    } catch (err) {
-      return reply.status(502).send({ message: 'Erro ao buscar modelos FIPE' });
-    }
+  }, async (req) => {
+    const { type, brandId } = req.params as { type: any, brandId: string };
+    const models = await AssetService.getFipeModels(type, brandId);
+    return { records: { modelos: models } };
   });
 
   // 3. Anos
@@ -63,27 +43,17 @@ export async function assetRoutes(app: FastifyInstance) {
     schema: {
       tags: ['Assets'],
       summary: 'Lista anos disponíveis para um modelo',
+      security: [{ bearerAuth: [] }],
       params: z.object({
         type: z.enum(['carros', 'motos', 'caminhoes']),
         brandId: z.string(),
         modelId: z.string(),
       }),
     },
-  }, async (req, reply) => {
-    const { type, brandId, modelId } = req.params as { type: string, brandId: string, modelId: string };
-    const cacheKey = `fipe:years:${type}:${brandId}:${modelId}`;
-    const cached = await getCacheValue<any>(cacheKey);
-    if (cached) return reply.send({ records: cached });
-
-    try {
-      const res = await fetch(`${FIPE_API}/${type}/marcas/${brandId}/modelos/${modelId}/anos`);
-      if (!res.ok) throw new Error('FIPE API Down');
-      const data = await res.json();
-      await setCacheValue(cacheKey, data, 7 * 24 * 60 * 60 * 1000);
-      return reply.send({ records: data });
-    } catch (err) {
-      return reply.status(502).send({ message: 'Erro ao buscar anos FIPE' });
-    }
+  }, async (req) => {
+    const { type, brandId, modelId } = req.params as { type: any, brandId: string, modelId: string };
+    const records = await AssetService.getFipeYears(type, brandId, modelId);
+    return { records };
   });
 
   // 4. Avaliação Específica
@@ -91,6 +61,7 @@ export async function assetRoutes(app: FastifyInstance) {
     schema: {
       tags: ['Assets'],
       summary: 'Busca avaliação específica do veículo na FIPE',
+      security: [{ bearerAuth: [] }],
       params: z.object({
         type: z.enum(['carros', 'motos', 'caminhoes']),
         brandId: z.string(),
@@ -98,34 +69,23 @@ export async function assetRoutes(app: FastifyInstance) {
         yearId: z.string(),
       }),
     },
-  }, async (req, reply) => {
-    const { type, brandId, modelId, yearId } = req.params as { type: string, brandId: string, modelId: string, yearId: string };
-    const cacheKey = `fipe:val:${type}:${brandId}:${modelId}:${yearId}`;
-    const cached = await getCacheValue<any>(cacheKey);
-    if (cached) return reply.send({ records: cached });
-
-    try {
-      const res = await fetch(`${FIPE_API}/${type}/marcas/${brandId}/modelos/${modelId}/anos/${yearId}`);
-      if (!res.ok) throw new Error('FIPE API Down');
-      const data = await res.json();
-      await setCacheValue(cacheKey, data, 24 * 60 * 60 * 1000); // 1 dia
-      return reply.send({ records: data });
-    } catch (err) {
-      return reply.status(502).send({ message: 'Erro ao buscar preco especifico FIPE' });
-    }
+  }, async (req) => {
+    const { type, brandId, modelId, yearId } = req.params as { type: any, brandId: string, modelId: string, yearId: string };
+    const records = await AssetService.getVehicleValuation(type, brandId, modelId, yearId);
+    return { records };
   });
 
-  // 5. Genérico (BrasilAPI default)
+  // 5. Genérico
   app.get('/assets/fipe/price/:fipeCode', {
     schema: {
       tags: ['Assets'],
       summary: 'Busca preco Brasil API',
+      security: [{ bearerAuth: [] }],
       params: z.object({ fipeCode: z.string() }),
     },
-  }, async (req, reply) => {
+  }, async (req) => {
     const { fipeCode } = req.params as { fipeCode: string };
-    const res = await fetch(`https://brasilapi.com.br/api/fipe/preco/v1/${fipeCode}`);
-    const data = await res.json();
-    return reply.send({ records: data });
+    const records = await AssetService.getPriceByFipeCode(fipeCode);
+    return { records };
   });
 }

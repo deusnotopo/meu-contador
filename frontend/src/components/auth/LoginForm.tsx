@@ -1,3 +1,4 @@
+import { ErrorService } from "@/services/ErrorService";
 import { useAuth } from "@/context/AuthContext";
 import { showError, showSuccess } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -52,33 +53,15 @@ export const LoginForm = () => {
         showSuccess("Bem-vindo de volta!");
       }
     } catch (err: unknown) {
-      const e = err as { message?: string; code?: string };
-      console.error("Auth Error:", e);
-
-      const isServerStarting =
-        e.message?.includes("timeout") ||
-        e.message?.includes("Failed to fetch") ||
-        e.message?.includes("NetworkError") ||
-        e.message?.includes("503") ||
-        e.message?.includes("Service Unavailable");
-
-      if (isServerStarting) {
+      console.error("Auth Error:", err);
+      const appError = ErrorService.normalize(err);
+      
+      // Caso especial para despertar o servidor (503/Timeout)
+      if (appError.category === 'SERVER' || appError.category === 'NETWORK') {
         setServerWaking(true);
-        showError("Servidor iniciando. Aguarde alguns segundos e tente novamente.");
-      } else if (e.code === "auth/email-already-in-use" || e.message === "User already exists") {
-        showError("E-mail já cadastrado. Tente fazer login.");
-        setIsRegistering(false);
-      } else if (
-        e.code === "auth/invalid-credential" ||
-        e.code === "auth/wrong-password" ||
-        e.message === "Invalid credentials"
-      ) {
-        showError("E-mail ou senha incorretos.");
-      } else if (e.code === "auth/weak-password") {
-        showError("A senha é muito fraca. Use pelo menos 6 caracteres.");
-      } else {
-        showError("Erro na autenticação. Tente novamente.");
       }
+      
+      showError(appError.message);
     } finally {
       setLoading(false);
     }
@@ -91,14 +74,14 @@ export const LoginForm = () => {
       await loginWithGoogle();
       showSuccess("Conectado com Google!");
     } catch (err: unknown) {
-      const e = err as { message?: string; code?: string };
-      console.error("Google Login Error:", e);
-      if (e.code === "auth/unauthorized-domain" || e.message?.includes("domain is not authorized")) {
+      console.error("Google Login Error:", err);
+      const appError = ErrorService.normalize(err);
+      
+      if (appError.code === "auth/unauthorized-domain") {
         setDomainError(true);
-        showError("Domínio não autorizado no Firebase.");
-      } else {
-        showError(e.message || "Erro ao conectar com Google.");
       }
+      
+      showError(appError.message);
     } finally {
       setLoading(false);
     }

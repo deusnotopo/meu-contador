@@ -1,13 +1,26 @@
-import { useOnboarding } from "../OnboardingContext";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Zap } from "lucide-react";
-import type { ExpenseKey, ExpensesStepProps } from "../types";
+import { memo, useCallback } from 'react';
+import { useOnboarding } from '../OnboardingContext';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Zap } from 'lucide-react';
+import type { ExpenseField, ExpenseKey } from '../types';
 
-export function ExpensesStep(props: Partial<ExpensesStepProps> = {}) {
+interface ExpensesStepProps {
+  profile?: ReturnType<typeof useOnboarding>['profile'];
+  onChange?: (key: ExpenseField, value: number) => void;
+}
+
+export const ExpensesStep = memo(function ExpensesStep(props: Partial<ExpensesStepProps> = {}) {
   const { profile: contextProfile, handleProfileChange } = useOnboarding();
   const profile = props.profile ?? contextProfile;
   const onChange = props.onChange ?? handleProfileChange;
+
+  const handleExpenseChange = useCallback((key: ExpenseField, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    if (numValue >= 0) {
+      onChange(key, numValue);
+    }
+  }, [onChange]);
 
   return (
     <div className="space-y-8 pt-6">
@@ -34,8 +47,8 @@ export function ExpensesStep(props: Partial<ExpensesStepProps> = {}) {
                   type="number"
                   placeholder={item.placeholder}
                   value={profile[`expense_${item.key as ExpenseKey}`] || ""}
-                  onChange={e => onChange(`expense_${item.key as ExpenseKey}`, parseFloat(e.target.value) || 0)}
-                  className="h-12 bg-white/5 border-white/10 rounded-xl text-sm font-bold flex-1"
+                  onChange={e => handleExpenseChange(`expense_${item.key as ExpenseKey}`, e.target.value)}
+                  className="h-12 bg-white/5 border border-white/10 rounded-xl text-sm font-bold flex-1"
                 />
               </div>
             ))}
@@ -57,8 +70,8 @@ export function ExpensesStep(props: Partial<ExpensesStepProps> = {}) {
                   type="number"
                   placeholder={item.placeholder}
                   value={profile[`expense_${item.key as ExpenseKey}`] || ""}
-                  onChange={e => onChange(`expense_${item.key as ExpenseKey}`, parseFloat(e.target.value) || 0)}
-                  className="h-12 bg-white/5 border-white/10 rounded-xl text-sm font-bold flex-1"
+                  onChange={e => handleExpenseChange(`expense_${item.key as ExpenseKey}`, e.target.value)}
+                  className="h-12 bg-white/5 border border-white/10 rounded-xl text-sm font-bold flex-1"
                 />
               </div>
             ))}
@@ -73,4 +86,4 @@ export function ExpensesStep(props: Partial<ExpensesStepProps> = {}) {
       </div>
     </div>
   );
-}
+});

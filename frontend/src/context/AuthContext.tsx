@@ -1,34 +1,12 @@
-import { api, clearAuthSession, setCsrfToken, subscribeToAuthSession } from "@/lib/api";
-import { logger } from '@/lib/logger';
-import type { UserProfile, WorkspaceRole } from "@/types";
-import { auth, googleProvider } from "@/lib/firebase";
-import { trackEvent, analyticsEvents } from "@/lib/analytics";
-import { signInWithPopup } from "firebase/auth";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { syncAllData, clearAllStorage, hydrateCacheFromLocalStorage } from "@/lib/storage";
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import type { WorkspaceRole } from "@/types";
+import { AuthService, mapBackendUserToAuthUser, type AuthUser } from "@/services/AuthService";
+import { ErrorService } from "@/services/ErrorService";
+import { useAuthInit } from "@/hooks/useAuthInit";
+import { useSessionGuard } from "@/hooks/useSessionGuard";
+import { syncAllData } from "@/lib/storage";
 
-const REQUEST_TIMEOUT_MS = 10000;
-const COLD_START_RETRY_DELAY_MS = 2000;
-
-interface BackendUser extends Partial<AuthUser> {
-  id: string;
-  email: string;
-  isPro?: boolean;
-}
-
-interface LoginResponse {
-  user: BackendUser;
-  csrfToken: string;
-}
-// Extended User type to support both Profile data and Auth IDs
-export interface AuthUser extends UserProfile {
-  id: string;
-  uid: string; // Alias for legacy compatibility
-  email: string;
-  onboardingCompleted?: boolean; // Persisted after wizard completion
-  createdAt?: string;
-  // Behavioral profile fields are already in UserProfile (age, dependents, investmentHorizon, employmentType)
-}
+export type { AuthUser };
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -39,9 +17,7 @@ interface AuthContextType {
   register: (email: string, password: string, name?: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
-  setGlobalLoading: (isLoading: boolean) => void;
-  upgradeToPro: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -55,323 +31,120 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPro, setIsPro] = useState(false);
 
+  /**
+   * 🛠️ AKITA-STYLE REFACTOR: 
+   * Extraímos a inicialização e o guard de sessão para hooks isolados.
+   */
+  useAuthInit({ setUser, setIsPro, setLoading, setIsSyncing });
 
-  const mapBackendUserToAuthUser = (backendUser: BackendUser): AuthUser => ({
-    ...backendUser,
-    name: backendUser.name ?? "Sua Conta",
-    id: backendUser.id,
-    uid: backendUser.id,
-    email: backendUser.email,
-    monthlyIncome: backendUser.monthlyIncome || 0,
-    financialGoal: backendUser.financialGoal || "save",
-    riskProfile: backendUser.riskProfile || "moderate",
-    hasEmergencyFund: backendUser.hasEmergencyFund || false,
-    hasDebts: backendUser.hasDebts || false,
-    initialBalance: backendUser.initialBalance || 0,
-    isPro: backendUser.isPro || false,
-    age: backendUser.age,
-    dependents: backendUser.dependents ?? 0,
-    investmentHorizon: backendUser.investmentHorizon,
-    employmentType: backendUser.employmentType || 'clt',
-    businessName: backendUser.businessName,
-    businessCnpj: backendUser.businessCnpj,
-    businessSector: backendUser.businessSector,
-    onboardingCompleted: backendUser.onboardingCompleted,
+  useSessionGuard(user, () => {
+    setUser(null);
+    setIsPro(false);
   });
 
   const refreshUser = useCallback(async () => {
-    const backendUser = await api.get<BackendUser>("/auth/me");
-    const authUser = mapBackendUserToAuthUser(backendUser);
-    setUser(authUser);
-    setIsPro(!!backendUser.isPro);
-  }, []);
-
-  // Helper: promessa com timeout
-  function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-    const timeout = new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Tempo limite da requisição excedido.')), ms)
-    );
-    return Promise.race([promise, timeout]);
-  }
-
-  // Helper: promessa com timeout e retry para Cold Starts do Render
-  async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
-    for (let i = 0; i < retries; i++) {
-      try {
-        return await fn();
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message.toLowerCase() : '';
-        const errorName = error instanceof Error ? error.name : '';
-        const isNetworkOrTimeout = errorName === 'TimeoutError' || message.includes('fetch') || message.includes('timeout');
-        if (i === retries - 1 || !isNetworkOrTimeout) throw error;
-        logger.warn(`Tentativa ${i + 1} falhou, aguardando backend acordar...`);
-        await new Promise(r => setTimeout(r, COLD_START_RETRY_DELAY_MS));
-      }
+    try {
+      const backendUser = await AuthService.fetchCurrentUser();
+      const authUser = mapBackendUserToAuthUser(backendUser);
+      setUser(authUser);
+      setIsPro(!!backendUser.isPro);
+    } catch (error) {
+      ErrorService.log(error, "AuthContext:refreshUser");
     }
-    throw new Error('Unreachable');
-  }
-
-  // Unificado: único fluxo de inicialização com cleanup
-  useEffect(() => {
-    let cancelled = false;
-    const syncAbort = new AbortController();
-
-    const runInit = async () => {
-      try {
-        setIsSyncing(true);
-        // Privacy Fortress: Hydrate local cache from encrypted storage immediately
-        await hydrateCacheFromLocalStorage();
-
-        const userData = await fetchWithRetry(() => withTimeout(api.get<BackendUser>("/auth/me"), REQUEST_TIMEOUT_MS), 2);
-        if (cancelled) return;
-
-        const authUser = mapBackendUserToAuthUser(userData);
-        setUser(authUser);
-        setIsPro(!!userData.isPro);
-
-        // Signal to other contexts that auth is ready (e.g. PreferencesContext)
-        window.dispatchEvent(new CustomEvent('auth:session-ready'));
-
-
-        // Restaurar o CSRF token na memória após reload de página.
-        // O /auth/me confirma que o cookie JWT é válido, mas o csrfToken
-        // in-memory é perdido ao recarregar. O /auth/refresh devolve cookies
-        // frescos e o csrfToken que o CSRF middleware exige nos POSTs.
-        try {
-          const refreshData = await api.post<{ csrfToken?: string }>("/auth/refresh", {});
-          if (!cancelled && refreshData?.csrfToken) {
-            setCsrfToken(refreshData.csrfToken);
-          }
-        } catch {
-          // Se refresh falhar, seguimos de qualquer forma — o 403 vai disparar
-          // o tryRefreshSession interno do api.ts num próximo POST
-        }
-
-        syncAllData(authUser.id).catch(err => {
-          if (!cancelled) console.error("Background sync failed:", err);
-        });
-      } catch (error: unknown) {
-        if (!cancelled) {
-          console.error("Session restoration failed:", error);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-          setIsSyncing(false);
-        }
-      }
-    };
-
-    runInit();
-
-    const unsub = subscribeToAuthSession((snapshot) => {
-      if (!snapshot.isAuthenticated && !snapshot.csrfToken && !cancelled) {
-        // Só limpa se checkAuth ainda não tiver resolvido com dados
-        setUser((prev) => prev ? prev : null);
-        setIsPro(false);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      syncAbort.abort();
-      unsub();
-    };
   }, []);
 
-
+  const handlePostAuth = useCallback((authUser: AuthUser) => {
+    setUser(authUser);
+    setIsPro(authUser.isPro || false);
+    window.dispatchEvent(new CustomEvent('auth:session-ready'));
+    syncAllData(authUser.id).catch((err: unknown) => {
+      ErrorService.log(err, "AuthContext:syncData");
+    });
+  }, []);
 
   const login = useCallback(async (email: string, password?: string) => {
-    if (!password) throw new Error("Senha é obrigatória.");
-    
     try {
       setIsSyncing(true);
-      const { user: backendUser, csrfToken } = await api.post<LoginResponse>("/auth/login", {
-        email,
-        password,
-      });
-      setCsrfToken(csrfToken);
-
-
-
-       const authUser = mapBackendUserToAuthUser(backendUser);
-
-      setUser(authUser);
-      setIsPro(authUser.isPro || false);
-      window.dispatchEvent(new CustomEvent('auth:session-ready'));
-      
-      // Sync em background — não bloquear a UI no login
-      syncAllData(authUser.id).catch(err => console.error("Background sync failed:", err));
-
-      // Track Login Event
-      trackEvent(analyticsEvents.LOGIN, { 
-        method: "email",
-        userId: authUser.id 
-      });
+      const { user: authUser } = await AuthService.login(email, password);
+      handlePostAuth(authUser);
     } catch (error) {
-       console.error("Login error:", error);
-       throw error;
+      const appError = ErrorService.normalize(error);
+      ErrorService.log(error, "AuthContext:login");
+      throw appError; // Lançamos para que a UI possa mostrar a mensagem normalizada
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [handlePostAuth]);
 
   const register = useCallback(async (email: string, password: string, name?: string) => {
     try {
       setIsSyncing(true);
-      const { user: backendUser, csrfToken } = await api.post<LoginResponse>("/auth/register", {
-        email,
-        password,
-        name
-      });
-      setCsrfToken(csrfToken);
-      
-
-      
-      const authUser = mapBackendUserToAuthUser(backendUser);
-        
-      setUser(authUser);
-      
-      // Perform initial sync in the background so it doesn't block the UI
-      syncAllData(authUser.id).catch(err => console.error("Initial sync background failure:", err));
-
-      // Track Registration Event
-      trackEvent(analyticsEvents.SIGN_UP, { userId: authUser.id });
+      const { user: authUser } = await AuthService.register(email, password, name);
+      handlePostAuth(authUser);
     } catch (error) {
-      console.error("Registration failed:", error);
-      throw error;
+      const appError = ErrorService.normalize(error);
+      ErrorService.log(error, "AuthContext:register");
+      throw appError;
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [handlePostAuth]);
 
   const loginWithGoogle = useCallback(async () => {
     try {
       setIsSyncing(true);
-      const result = await signInWithPopup(auth, googleProvider);
-      const idToken = await result.user.getIdToken();
-      
-      const { user: apiUser, csrfToken } = await api.post<LoginResponse>("/auth/google", {
-        token: idToken
-      });
-      setCsrfToken(csrfToken);
-
-
-
-      const authUser = mapBackendUserToAuthUser(apiUser);
-      
-      setUser(authUser);
-      setIsPro(authUser.isPro || false);
-      window.dispatchEvent(new CustomEvent('auth:session-ready'));
-      
-      syncAllData(authUser.id).catch(err => console.error("Google sync failed:", err));
-
-      // Track Google Login Event
-      trackEvent(analyticsEvents.LOGIN, { 
-        method: "google",
-        userId: authUser.id 
-      });
+      const { user: authUser } = await AuthService.loginWithGoogle();
+      handlePostAuth(authUser);
     } catch (error) {
-      console.error("Google Login Failed", error);
-      throw error;
+      const appError = ErrorService.normalize(error);
+      ErrorService.log(error, "AuthContext:loginWithGoogle");
+      throw appError;
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [handlePostAuth]);
 
   const logout = useCallback(async () => {
-    // Track Logout Event
-    trackEvent(analyticsEvents.LOGOUT);
     try {
-      await api.post<{ success: boolean }>("/auth/logout", {});
-    } catch {
-      // noop
+      await AuthService.logout();
+    } catch (error) {
+      ErrorService.log(error, "AuthContext:logout");
+    } finally {
+      setUser(null);
+      setIsPro(false);
     }
-    clearAuthSession();
-    setCsrfToken(null);
-    setUser(null);
-    setIsPro(false);
-    // Privacy Fortress: Unconditional PII wipeout
-    clearAllStorage();
   }, []);
 
-  const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
+  const deleteAccount = useCallback(async () => {
     try {
-      await api.put('/users/me', data);
-      // Update local state with proper type merge
-      if (user) {
-        setUser({ ...user, ...(data as Partial<AuthUser>) });
-        // Track Profile Update
-        trackEvent(analyticsEvents.UPDATE_PROFILE);
-      }
+      await AuthService.deleteAccount();
     } catch (error) {
-      console.error("Failed to update profile:", error);
-      throw error;
-    }
-  }, [user]);
-
-
-
-  const upgradeToPro = useCallback(async () => {
-    try {
-      setIsSyncing(true);
-      const res = await api.post<{ success: boolean; user: BackendUser }>("/auth/upgrade", {});
-      if (res.success) {
-        setIsPro(true);
-        if (user) {
-          setUser({ ...user, isPro: true });
-        }
-      }
-    } catch (error) {
-      console.error("Failed to upgrade:", error);
+      ErrorService.log(error, "AuthContext:deleteAccount");
       throw error;
     } finally {
-      setIsSyncing(false);
+      setUser(null);
+      setIsPro(false);
     }
-  }, [user]);
+  }, []);
 
   const value = useMemo(() => ({
-    user,
-    loading,
-    isSyncing,
-    isPro,
-    login,
-    register,
-    loginWithGoogle,
-    logout,
-    updateProfile,
-    upgradeToPro,
-    refreshUser,
-    setGlobalLoading: setIsSyncing,
-  }), [user, loading, isSyncing, isPro, login, register, loginWithGoogle, logout, updateProfile, upgradeToPro, refreshUser]);
+    user, loading, isSyncing, isPro,
+    login, register, loginWithGoogle, logout, deleteAccount, refreshUser,
+  }), [user, loading, isSyncing, isPro, login, register, loginWithGoogle, logout, deleteAccount, refreshUser]);
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (context === undefined) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
 
 export const useRole = () => {
   const { user } = useAuth();
-  
   if (!user) return { role: "owner" as WorkspaceRole, isOwner: true, isEditorAtLeast: true, isViewer: false };
-  
   const activeWorkspaceId = user.currentWorkspaceId || user.uid || user.id;
   const role = (user.workspaceRoles?.[activeWorkspaceId] || "owner") as WorkspaceRole;
-  
-  return {
-    role,
-    isOwner: role === "owner",
-    isEditorAtLeast: role === "owner" || role === "editor",
-    isViewer: role === "viewer"
-  };
+  return { role, isOwner: role === "owner", isEditorAtLeast: role === "owner" || role === "editor", isViewer: role === "viewer" };
 };

@@ -47,27 +47,21 @@ export async function runReconciliation() {
 
         // Buscar exclusivamente transações associadas a esta conta bancária
         // Ignorar o que foi deletado (soft-delete) e transações do futuro (agendadas)
-        const userTransactions = await db.transaction.findMany({
-          where: { 
-            userId: account.userId,
-            bankAccountId: account.id,
-            deletedAt: null,
-            date: {
-              lte: new Date() // Só considerar transações passadas/hoje
-            }
-          },
-          select: { amount: true, type: true },
-        });
+        // Otimização O(1): Fazer a DB somar, e não explodir a memória do Node.
+        const [incomeAgg, expenseAgg] = await Promise.all([
+          db.transaction.aggregate({
+            where: { userId: account.userId, bankAccountId: account.id, deletedAt: null, type: 'income', date: { lte: new Date() } },
+            _sum: { amount: true },
+          }),
+          db.transaction.aggregate({
+            where: { userId: account.userId, bankAccountId: account.id, deletedAt: null, type: 'expense', date: { lte: new Date() } },
+            _sum: { amount: true },
+          })
+        ]);
 
-        // Calcular saldo calculado (entradas - saídas)
-        const calculatedBalance = userTransactions.reduce((sum, tx) => {
-          if (tx.type === "INCOME" || tx.type === "CREDIT") {
-            return sum + tx.amount;
-          } else if (tx.type === "EXPENSE" || tx.type === "DEBIT") {
-            return sum - tx.amount;
-          }
-          return sum;
-        }, 0);
+        const totalIncome = incomeAgg._sum.amount ?? 0;
+        const totalExpense = expenseAgg._sum.amount ?? 0;
+        const calculatedBalance = totalIncome - totalExpense;
 
         // Calcular discrepância
         const bankBalance = account.balance ?? 0;
@@ -97,36 +91,25 @@ export async function runReconciliation() {
           ) {
             const payload = JSON.stringify({
               title: `Saldo não confere! 🔍`,
-              body: `Sua conta ${account.name} tem R$ ${discrepancyAmount.toFixed(2)} a mais/menos do que o esperado. Verifique suas transações.`,
+              body: `Sua conta ${account.name} tem R$ ${(discrepancyAmount / 100).toFixed(2)} a mais/menos do que o esperado. Verifique suas transações.`,
             });
 
-            // Dispatch push notifications
-            for (const sub of account.connection.user.pushSubscriptions) {
+            // Dispatch push notifications em PARALELO, não trave o thread do Worker
+            await Promise.allSettled(account.connection.user.pushSubscriptions.map(async (sub) => {
               try {
                 await webpush.sendNotification(
-                  {
-                    endpoint: sub.endpoint,
-                    keys: { p256dh: sub.p256dh, auth: sub.auth },
-                  },
+                  { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
                   payload,
                 );
-              } catch (pushError: any) {
-                console.error(
-                  "Falha ao enviar Push de reconciliação:",
-                  pushError,
-                );
-                if (
-                  pushError.statusCode === 410 ||
-                  pushError.statusCode === 404
-                ) {
-                  // Remove expired subscription
-                  await db.pushSubscription.delete({
-                    where: { id: sub.id }
-                  });
-                  console.log(`🧹 Assinatura de Push removida (Expirada/410). ID: ${sub.id}`);
+              } catch (pushError: unknown) {
+                const statusCode = (pushError as { statusCode?: number })?.statusCode;
+                if (statusCode === 410 || statusCode === 404) {
+                  await db.pushSubscription.delete({ where: { id: sub.id } });
+                } else {
+                  console.error("Falha ao enviar Push de reconciliação:", pushError);
                 }
               }
-            }
+            }));
           }
         } else {
           reconciliationStatus = "MATCHING"; // Pequena diferença aceitável
@@ -144,7 +127,7 @@ export async function runReconciliation() {
         });
 
         console.log(
-          `✅ Conta ${account.id} reconciliada: banco=R$ ${bankBalance.toFixed(2)}, calculado=R$ ${calculatedBalance.toFixed(2)}, diferença=R$ ${discrepancyAmount.toFixed(2)} (${discrepancyPercent.toFixed(1)}%)`,
+          `✅ Conta ${account.id} reconciliada: banco=R$ ${(bankBalance / 100).toFixed(2)}, calculado=R$ ${(calculatedBalance / 100).toFixed(2)}, diferença=R$ ${(discrepancyAmount / 100).toFixed(2)} (${discrepancyPercent.toFixed(1)}%)`,
         );
       } catch (accountError) {
         console.error(
@@ -178,7 +161,7 @@ export async function runReconciliation() {
     });
 
     console.log("✅ Job de Reconciliação de Saldo concluído");
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Erro durante o Job de Reconciliação de Saldo:", error);
 
     // Tentar logar o erro
@@ -187,7 +170,7 @@ export async function runReconciliation() {
         action: "BALANCE_RECONCILIATION_FAILED",
         resource: "reconciliation_worker",
         metadata: {
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           timestamp: new Date().toISOString(),
         },
       });

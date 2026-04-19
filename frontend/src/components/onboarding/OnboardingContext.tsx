@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from "react";
 import type {
   OnboardingBudget,
   OnboardingGoal,
@@ -52,7 +52,12 @@ interface OnboardingContextProps {
     weeklyReport: boolean;
     alerts: boolean;
   };
-  setPreferences: React.Dispatch<React.SetStateAction<any>>;
+  setPreferences: React.Dispatch<React.SetStateAction<{
+    showScore: boolean;
+    showPredictions: boolean;
+    weeklyReport: boolean;
+    alerts: boolean;
+  }>>;
   
   validationErrors: Record<string, string>;
   setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -106,15 +111,15 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
   const strategyRules = useStrategyRules({
     monthlyIncome: profile.monthlyIncome,
     hasDebts: profile.hasDebts,
-    riskProfile: profile.riskProfile as any,
-    employmentType: profile.employmentType as any,
+    riskProfile: profile.riskProfile,
+    employmentType: profile.employmentType,
     dependents: profile.dependents,
     age: profile.age,
   });
 
-  const handleProfileChange = (field: keyof UserProfile | ExpenseField, value: unknown) => {
+  const handleProfileChange = useCallback((field: keyof UserProfile | ExpenseField, value: unknown) => {
     setProfile(prev => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
   // Carregar rascunho (Draft)
   useEffect(() => {
@@ -135,13 +140,15 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
           setLoadedStep(draft.currentStep);
         }
       } catch (err) {
-        console.error("Erro ao carregar rascunho do onboarding", err);
+        import("@/services/ErrorService").then(({ ErrorService }) => {
+          ErrorService.log(err, "OnboardingContext:draft");
+        });
       }
     }
     setIsLoaded(true);
   }, []);
 
-  const saveDraft = (currentStep: number) => {
+  const saveDraft = useCallback((currentStep: number) => {
     const draft = {
       currentStep,
       profile,
@@ -153,34 +160,50 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
       preferences,
     };
     localStorage.setItem("ONBOARDING_DRAFT", JSON.stringify(draft));
-  };
+  }, [profile, budgets, goals, reminders, investments, onboardingDebts, preferences]);
 
-  const clearDraft = () => {
+  const clearDraft = useCallback(() => {
     localStorage.removeItem("ONBOARDING_DRAFT");
-  };
+  }, []);
 
   if (!isLoaded) return null; // Avoid rendering until draft is loaded
 
+  const contextValue = useMemo(() => ({
+    profile, setProfile, handleProfileChange,
+    budgets, setBudgets,
+    goals, setGoals,
+    reminders, setReminders,
+    investments, setInvestments,
+    onboardingDebts, setOnboardingDebts,
+    pushGranted, setPushGranted,
+    inviteEmail, setInviteEmail,
+    inviteSent, setInviteSent,
+    preferences, setPreferences,
+    validationErrors, setValidationErrors,
+    strategyRules,
+    saveDraft,
+    clearDraft,
+    loadedStep
+  }), [
+    profile, handleProfileChange,
+    budgets,
+    goals,
+    reminders,
+    investments,
+    onboardingDebts,
+    pushGranted,
+    inviteEmail,
+    inviteSent,
+    preferences,
+    validationErrors,
+    strategyRules,
+    saveDraft,
+    clearDraft,
+    loadedStep
+  ]);
+
   return (
-    <OnboardingContext.Provider
-      value={{
-        profile, setProfile, handleProfileChange,
-        budgets, setBudgets,
-        goals, setGoals,
-        reminders, setReminders,
-        investments, setInvestments,
-        onboardingDebts, setOnboardingDebts,
-        pushGranted, setPushGranted,
-        inviteEmail, setInviteEmail,
-        inviteSent, setInviteSent,
-        preferences, setPreferences,
-        validationErrors, setValidationErrors,
-        strategyRules,
-        saveDraft,
-        clearDraft,
-        loadedStep
-      }}
-    >
+    <OnboardingContext.Provider value={contextValue}>
       {children}
     </OnboardingContext.Provider>
   );

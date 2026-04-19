@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useDebts } from '@/hooks/useDebts';
 import { ShieldAlert, Trash2, Plus, CreditCard } from 'lucide-react';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { showError } from '@/lib/toast';
 import { formatCurrency } from '@/lib/formatters';
+import { DebtOptimizer } from './DebtOptimizer';
 
 export const DebtManagerView = () => {
    const { debts, totals: debtTotals, deleteDebt, addDebt, isLoading: debtLoading } = useDebts();
@@ -113,6 +114,9 @@ export const DebtManagerView = () => {
             </div>
             )}
       </div>
+
+      {/* Phase 29: Debt Optimizer */}
+      <DebtOptimizer />
 
     </div>
    );

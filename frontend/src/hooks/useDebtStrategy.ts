@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
-import { useDebts } from './useDebts';
-import { useTransactions } from './useTransactions';
+import { useMemo } from "react";
+import { useDebts } from "./useDebts";
+import { useTransactions } from "./useTransactions";
 
 export interface DebtWithMetrics {
   id: string;
@@ -17,7 +17,7 @@ export interface DebtWithMetrics {
 }
 
 export interface DebtStrategy {
-  method: 'avalanche' | 'snowball';
+  method: "avalanche" | "snowball";
   debts: DebtWithMetrics[];
   totalDebt: number;
   totalMonthlyPayment: number;
@@ -28,7 +28,7 @@ export interface DebtStrategy {
 }
 
 export interface DebtInsight {
-  type: 'warning' | 'tip' | 'achievement';
+  type: "warning" | "tip" | "achievement";
   title: string;
   description: string;
   impact?: string;
@@ -36,25 +36,27 @@ export interface DebtInsight {
 
 export function useDebtStrategy(extrasMensais: number = 0) {
   const { debts } = useDebts();
-  const personal = useTransactions('personal');
+  const personal = useTransactions("personal");
 
   // Calculate metrics for each debt
   const debtsWithMetrics = useMemo((): DebtWithMetrics[] => {
     return debts.map((debt) => {
       const monthlyInterest = debt.balance * (debt.interestRate / 100);
       const annualInterest = debt.interestRate * 12;
-      
+
       // Calculate months to payoff with minimum payment
       let balance = debt.balance;
       let months = 0;
       let totalInterest = 0;
-      
-      while (balance > 0 && months < 600) { // Max 50 years
+      const minPay = debt.minPayment ?? 0;
+
+      while (balance > 0 && months < 600) {
+        // Max 50 years
         const interest = balance * (debt.interestRate / 100);
         totalInterest += interest;
-        balance = balance + interest - debt.minPayment;
+        balance = balance + interest - minPay;
         months++;
-        
+
         if (balance > debt.balance * 2) break; // Safety check
       }
 
@@ -63,7 +65,7 @@ export function useDebtStrategy(extrasMensais: number = 0) {
         name: debt.name,
         balance: debt.balance,
         interestRate: debt.interestRate,
-        minPayment: debt.minPayment,
+        minPayment: debt.minPayment ?? 0,
         category: debt.category,
         monthlyInterest,
         annualInterest,
@@ -76,27 +78,29 @@ export function useDebtStrategy(extrasMensais: number = 0) {
 
   // Avalanche Method (highest interest first)
   const avalancheStrategy = useMemo((): DebtStrategy => {
-    const sorted = [...debtsWithMetrics].sort((a, b) => b.interestRate - a.interestRate);
-    
+    const sorted = [...debtsWithMetrics].sort(
+      (a, b) => b.interestRate - a.interestRate,
+    );
+
     let totalInterest = 0;
     let months = 0;
-    const payoffOrder: DebtStrategy['payoffOrder'] = [];
-    
+    const payoffOrder: DebtStrategy["payoffOrder"] = [];
+
     // Simulate payoff
-    const simulatedDebts = sorted.map(d => ({ ...d, remaining: d.balance }));
+    const simulatedDebts = sorted.map((d) => ({ ...d, remaining: d.balance }));
     let freedUpMinPayments = 0;
-    
-    while (simulatedDebts.some(d => d.remaining > 0) && months < 600) {
+
+    while (simulatedDebts.some((d) => d.remaining > 0) && months < 600) {
       months++;
-      
+
       let availableExtras = extrasMensais + freedUpMinPayments;
-      
-      simulatedDebts.forEach(debt => {
+
+      simulatedDebts.forEach((debt) => {
         if (debt.remaining <= 0) return;
-        
+
         const interest = debt.remaining * (debt.interestRate / 100);
         totalInterest += interest;
-        
+
         let payment = debt.minPayment;
         if (availableExtras > 0) {
           payment += availableExtras;
@@ -106,10 +110,14 @@ export function useDebtStrategy(extrasMensais: number = 0) {
         if (debt.remaining + interest <= payment) {
           // Debt is paid off this month
           const paymentNeeded = debt.remaining + interest;
-          payoffOrder.push({ month: months, debtName: debt.name, amount: paymentNeeded });
-          
+          payoffOrder.push({
+            month: months,
+            debtName: debt.name,
+            amount: paymentNeeded,
+          });
+
           // Overflow any remaining payment (modulo minPayment) and permanently add its minPayment to freedUp
-          availableExtras += (payment - paymentNeeded);
+          availableExtras += payment - paymentNeeded;
           freedUpMinPayments += debt.minPayment;
           debt.remaining = 0;
         } else {
@@ -119,10 +127,13 @@ export function useDebtStrategy(extrasMensais: number = 0) {
     }
 
     const totalDebt = debtsWithMetrics.reduce((sum, d) => sum + d.balance, 0);
-    const totalMonthlyPayment = debtsWithMetrics.reduce((sum, d) => sum + d.minPayment, 0);
+    const totalMonthlyPayment = debtsWithMetrics.reduce(
+      (sum, d) => sum + d.minPayment,
+      0,
+    );
 
     return {
-      method: 'avalanche',
+      method: "avalanche",
       debts: sorted.map((d, i) => ({ ...d, priority: i + 1 })),
       totalDebt,
       totalMonthlyPayment,
@@ -131,30 +142,30 @@ export function useDebtStrategy(extrasMensais: number = 0) {
       interestSaved: 0, // Calculated below
       payoffOrder,
     };
-  }, [debtsWithMetrics]);
+  }, [debtsWithMetrics, extrasMensais]);
 
   // Snowball Method (smallest balance first)
   const snowballStrategy = useMemo((): DebtStrategy => {
     const sorted = [...debtsWithMetrics].sort((a, b) => a.balance - b.balance);
-    
+
     let totalInterest = 0;
     let months = 0;
-    const payoffOrder: DebtStrategy['payoffOrder'] = [];
-    
-    const simulatedDebts = sorted.map(d => ({ ...d, remaining: d.balance }));
+    const payoffOrder: DebtStrategy["payoffOrder"] = [];
+
+    const simulatedDebts = sorted.map((d) => ({ ...d, remaining: d.balance }));
     let freedUpMinPayments = 0;
-    
-    while (simulatedDebts.some(d => d.remaining > 0) && months < 600) {
+
+    while (simulatedDebts.some((d) => d.remaining > 0) && months < 600) {
       months++;
-      
+
       let availableExtras = extrasMensais + freedUpMinPayments;
-      
-      simulatedDebts.forEach(debt => {
+
+      simulatedDebts.forEach((debt) => {
         if (debt.remaining <= 0) return;
-        
+
         const interest = debt.remaining * (debt.interestRate / 100);
         totalInterest += interest;
-        
+
         let payment = debt.minPayment;
         if (availableExtras > 0) {
           payment += availableExtras;
@@ -163,9 +174,13 @@ export function useDebtStrategy(extrasMensais: number = 0) {
 
         if (debt.remaining + interest <= payment) {
           const paymentNeeded = debt.remaining + interest;
-          payoffOrder.push({ month: months, debtName: debt.name, amount: paymentNeeded });
-          
-          availableExtras += (payment - paymentNeeded);
+          payoffOrder.push({
+            month: months,
+            debtName: debt.name,
+            amount: paymentNeeded,
+          });
+
+          availableExtras += payment - paymentNeeded;
           freedUpMinPayments += debt.minPayment;
           debt.remaining = 0;
         } else {
@@ -175,10 +190,13 @@ export function useDebtStrategy(extrasMensais: number = 0) {
     }
 
     const totalDebt = debtsWithMetrics.reduce((sum, d) => sum + d.balance, 0);
-    const totalMonthlyPayment = debtsWithMetrics.reduce((sum, d) => sum + d.minPayment, 0);
+    const totalMonthlyPayment = debtsWithMetrics.reduce(
+      (sum, d) => sum + d.minPayment,
+      0,
+    );
 
     return {
-      method: 'snowball',
+      method: "snowball",
       debts: sorted.map((d, i) => ({ ...d, priority: i + 1 })),
       totalDebt,
       totalMonthlyPayment,
@@ -187,19 +205,25 @@ export function useDebtStrategy(extrasMensais: number = 0) {
       interestSaved: 0,
       payoffOrder,
     };
-  }, [debtsWithMetrics]);
+  }, [debtsWithMetrics, extrasMensais]);
 
   // Calculate interest saved by using best strategy
   const bestStrategy = useMemo(() => {
-    if (avalancheStrategy.totalInterestPaid < snowballStrategy.totalInterestPaid) {
+    if (
+      avalancheStrategy.totalInterestPaid < snowballStrategy.totalInterestPaid
+    ) {
       return {
         ...avalancheStrategy,
-        interestSaved: snowballStrategy.totalInterestPaid - avalancheStrategy.totalInterestPaid,
+        interestSaved:
+          snowballStrategy.totalInterestPaid -
+          avalancheStrategy.totalInterestPaid,
       };
     } else {
       return {
         ...snowballStrategy,
-        interestSaved: avalancheStrategy.totalInterestPaid - snowballStrategy.totalInterestPaid,
+        interestSaved:
+          avalancheStrategy.totalInterestPaid -
+          snowballStrategy.totalInterestPaid,
       };
     }
   }, [avalancheStrategy, snowballStrategy]);
@@ -210,20 +234,24 @@ export function useDebtStrategy(extrasMensais: number = 0) {
 
     if (debtsWithMetrics.length === 0) {
       result.push({
-        type: 'achievement',
-        title: 'Parabéns! 🎉',
-        description: 'Você não tem dívidas registradas. Continue assim!',
+        type: "achievement",
+        title: "Parabéns! 🎉",
+        description: "Você não tem dívidas registradas. Continue assim!",
       });
       return result;
     }
 
     // High interest warning
-    const highInterestDebts = debtsWithMetrics.filter(d => d.interestRate > 10);
+    const highInterestDebts = debtsWithMetrics.filter(
+      (d) => d.interestRate > 10,
+    );
     if (highInterestDebts.length > 0) {
-      const highest = highInterestDebts.reduce((a, b) => a.interestRate > b.interestRate ? a : b);
+      const highest = highInterestDebts.reduce((a, b) =>
+        a.interestRate > b.interestRate ? a : b,
+      );
       result.push({
-        type: 'warning',
-        title: 'Juros Altos Detectados',
+        type: "warning",
+        title: "Juros Altos Detectados",
         description: `"${highest.name}" tem juros de ${highest.interestRate.toFixed(1)}% ao mês. Priorize quitar!`,
         impact: `Você pagará R$ ${highest.totalInterestPaid.toFixed(2)} em juros se pagar apenas o mínimo.`,
       });
@@ -232,46 +260,48 @@ export function useDebtStrategy(extrasMensais: number = 0) {
     // Total debt warning
     const totalDebt = debtsWithMetrics.reduce((sum, d) => sum + d.balance, 0);
     const monthlyIncome = personal.totals.income;
-    
+
     if (monthlyIncome > 0) {
       const debtToIncomeRatio = (totalDebt / monthlyIncome) * 100;
-      
+
       if (debtToIncomeRatio > 200) {
         result.push({
-          type: 'warning',
-          title: 'Endividamento Crítico',
+          type: "warning",
+          title: "Endividamento Crítico",
           description: `Suas dívidas equivalem a ${debtToIncomeRatio.toFixed(0)}% da sua renda mensal.`,
-          impact: 'Considere renegociar ou buscar orientação financeira.',
+          impact: "Considere renegociar ou buscar orientação financeira.",
         });
       }
     }
 
     // Strategy recommendation
-    if (bestStrategy.method === 'avalanche') {
+    if (bestStrategy.method === "avalanche") {
       result.push({
-        type: 'tip',
-        title: 'Método Avalanche Recomendado',
+        type: "tip",
+        title: "Método Avalanche Recomendado",
         description: `Quitando primeiro "${bestStrategy.debts[0]?.name}", você economiza R$ ${bestStrategy.interestSaved.toFixed(2)} em juros.`,
       });
     } else {
       result.push({
-        type: 'tip',
-        title: 'Método Bola de Neve Recomendado',
+        type: "tip",
+        title: "Método Bola de Neve Recomendado",
         description: `Quitando primeiro "${bestStrategy.debts[0]?.name}", você ganha motivação rápida!`,
       });
     }
 
     // Credit card warning
-    const creditCardDebts = debtsWithMetrics.filter(d => 
-      d.category === 'credit_card' || d.name.toLowerCase().includes('cartão')
+    const creditCardDebts = debtsWithMetrics.filter(
+      (d) =>
+        d.category === "credit_card" || d.name.toLowerCase().includes("cartão"),
     );
-    
+
     if (creditCardDebts.length > 0) {
       result.push({
-        type: 'warning',
-        title: 'Cartão de Crédito Detectado',
-        description: 'O rotativo do cartão tem os maiores juros do Brasil (até 400% a.a.).',
-        impact: 'Considere empréstimo pessoal para quitar o cartão.',
+        type: "warning",
+        title: "Cartão de Crédito Detectado",
+        description:
+          "O rotativo do cartão tem os maiores juros do Brasil (até 400% a.a.).",
+        impact: "Considere empréstimo pessoal para quitar o cartão.",
       });
     }
 
@@ -282,7 +312,7 @@ export function useDebtStrategy(extrasMensais: number = 0) {
   const debtFreeDate = useMemo(() => {
     const date = new Date();
     date.setMonth(date.getMonth() + bestStrategy.monthsToFreedom);
-    return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   }, [bestStrategy.monthsToFreedom]);
 
   return {
@@ -293,6 +323,9 @@ export function useDebtStrategy(extrasMensais: number = 0) {
     insights,
     debtFreeDate,
     totalDebt: debtsWithMetrics.reduce((sum, d) => sum + d.balance, 0),
-    totalMonthlyInterest: debtsWithMetrics.reduce((sum, d) => sum + d.monthlyInterest, 0),
+    totalMonthlyInterest: debtsWithMetrics.reduce(
+      (sum, d) => sum + d.monthlyInterest,
+      0,
+    ),
   };
 }

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
+import { ReminderSchema } from '@/lib/schemas';
+import { z } from 'zod';
 import type { BillReminder } from '@/types';
 
 export type UseRemindersReturn = ReturnType<typeof useReminders>;
@@ -13,17 +15,25 @@ export function useReminders() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get<BillReminder[] | { items?: BillReminder[] }>('/reminders');
-      const items = Array.isArray(response) ? response : (response?.items || []);
-      setReminders(items);
+      // AKITA MODE: Contrato estrito para lembretes
+      const response = await api.get<BillReminder[]>('/reminders', {
+        schema: z.union([
+          z.array(ReminderSchema),
+          z.object({ items: z.array(ReminderSchema) }).transform(val => val.items)
+        ])
+      });
+      setReminders(response);
     } catch (err: unknown) {
+      if (err instanceof z.ZodError) {
+        console.error('Zod Validation Error (Reminders):', err.errors);
+        setError('Dados de lembretes incompatíveis.');
+        return;
+      }
       // During cold boot, auth race can cause transient 401/500 — stay silent
       const status = (err as { status?: number; statusCode?: number })?.status
         ?? (err as { statusCode?: number })?.statusCode;
-      if (status === 401 || status === 500) {
-        // Silently ignore — will retry on next event or manual refetch
-        return;
-      }
+      if (status === 401) return;
+      
       console.error('Failed to fetch reminders:', err);
       setError((err as Error)?.message || 'Erro ao carregar lembretes');
     } finally {
@@ -32,7 +42,12 @@ export function useReminders() {
   }, []);
 
   useEffect(() => {
-    // Wait for auth to be confirmed before fetching — prevents 401/500 race on cold load
+    // Check local storage or global variable. Presuming the auth provider puts a flag
+    // so we don't wait forever if session is already ready implicitly.
+    const isReady = localStorage.getItem("meu_contador_auth_token") !== null;
+    if (isReady) {
+      fetchReminders();
+    }
     const handleSessionReady = () => { fetchReminders(); };
     window.addEventListener('auth:session-ready', handleSessionReady);
     return () => window.removeEventListener('auth:session-ready', handleSessionReady);

@@ -19,7 +19,7 @@ export async function createAndEmitNotification(
   // Emit over WebSocket if app available
   if (app) {
     try {
-      const { wsManager } = await import('./websocket.js');
+      const { wsManager } = await import('../lib/ws-manager.js');
       wsManager.sendToUser(userId, {
         type: 'notification:new',
         payload: {

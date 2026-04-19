@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../lib/db.js';
+import * as EducationService from '../services/EducationService.js';
 
 const educationStateSchema = z.object({
   completedModules: z.array(z.string()),
@@ -14,39 +14,25 @@ const educationStateSchema = z.object({
 });
 
 export async function userEducationRoutes(app: FastifyInstance) {
+  app.addHook('preHandler', app.authenticate);
+
+  // GET /users/education
   app.get('/users/education', {
     schema: {
-      description: 'Obtém o progresso educacional do usuário logado',
       tags: ['User'],
       security: [{ bearerAuth: [] }],
       response: {
         200: z.object({ education: educationStateSchema.nullable() }),
       },
     },
-    preHandler: [app.authenticate],
   }, async (request) => {
-    const user = await db.user.findUnique({
-      where: { id: request.user.id },
-      select: { educationData: true },
-    });
-
-    if (!user) throw new Error('User not found');
-
-    let educationState = null;
-    if (user.educationData) {
-      if (typeof user.educationData === 'string') {
-        try { educationState = JSON.parse(user.educationData); } catch {}
-      } else {
-        educationState = user.educationData;
-      }
-    }
-
-    return { education: educationState };
+    const education = await EducationService.getEducationData(request.user.id);
+    return { education };
   });
 
+  // PUT /users/education
   app.put('/users/education', {
     schema: {
-      description: 'Atualiza o progresso educacional do usuário logado',
       tags: ['User'],
       security: [{ bearerAuth: [] }],
       body: z.object({ education: educationStateSchema }),
@@ -54,15 +40,9 @@ export async function userEducationRoutes(app: FastifyInstance) {
         200: z.object({ success: z.boolean(), education: educationStateSchema }),
       },
     },
-    preHandler: [app.authenticate],
   }, async (request) => {
-    const { education } = request.body as { education: z.infer<typeof educationStateSchema> };
-
-    await db.user.update({
-      where: { id: request.user.id },
-      data: { educationData: JSON.stringify(education) },
-    });
-
-    return { success: true, education };
+    const { education } = request.body as { education: any };
+    const result = await EducationService.updateEducationData(request.user.id, education);
+    return { success: true, education: result };
   });
 }

@@ -1,8 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../lib/db.js';
-
-const userErrorSchema = z.object({ message: z.string() });
+import * as ExportService from '../services/ExportService.js';
 
 export async function userExportRoutes(app: FastifyInstance) {
   // GET /users/export - LGPD Data Export
@@ -13,66 +11,20 @@ export async function userExportRoutes(app: FastifyInstance) {
       security: [{ bearerAuth: [] }],
       response: {
         200: z.any(),
-        404: userErrorSchema,
+        404: z.object({ message: z.string() }),
       },
     },
-    preHandler: [app.authenticate, (app as any).proGuard],
+    preHandler: [app.authenticate, app.proGuard],
   }, async (request, reply) => {
-    const userId = request.user.id;
+    const data = await ExportService.getUserFullData(request.user.id);
 
-    const userData = await db.user.findUnique({
-      where: { id: userId },
-      include: {
-        transactions: {
-          where: { deletedAt: null },
-          orderBy: { date: 'desc' },
-        },
-        budgets: {
-          where: { deletedAt: null },
-        },
-        goals: {
-          where: { deletedAt: null },
-        },
-        investments: {
-          where: { deletedAt: null },
-          include: {
-            dividends: true,
-            sales: true,
-          },
-        },
-        debts: {
-          where: { deletedAt: null },
-        },
-        reminders: {
-          where: { deletedAt: null },
-        },
-        bankAccounts: {
-          where: { deletedAt: null },
-        },
-      },
-    });
-
-    if (!userData) {
+    if (!data) {
       return reply.status(404).send({ message: 'User not found' });
     }
 
-    // Remove sensitive fields
-    const { passwordHash, ...exportData } = userData;
-
-    // Log export for audit
-    await db.auditLog.create({
-      data: {
-        userId,
-        action: 'DATA_EXPORT',
-        resource: 'user',
-        resourceId: userId,
-        metadata: JSON.stringify({ exportedAt: new Date().toISOString() }),
-      },
-    });
-
     reply.header('Content-Type', 'application/json');
-    reply.header('Content-Disposition', `attachment; filename="user-data-${userId}.json"`);
+    reply.header('Content-Disposition', `attachment; filename="user-data-${request.user.id}.json"`);
     
-    return exportData;
+    return data;
   });
 }

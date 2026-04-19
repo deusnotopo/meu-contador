@@ -31,14 +31,16 @@ export const executeReminderAction = async (
       recurring: "monthly",
     });
 
+    const [year, month, day] = dueDate.split('-');
+    const safeDate = `${day}/${month}/${year}`;
+
     return {
       success: true,
-      message: `🔔 Lembrete criado!\n📌 ${name}\n📅 Vencimento: ${new Date(
-        dueDate
-      ).toLocaleDateString("pt-BR")}`,
+      message: `🔔 Lembrete criado!\n📌 ${name}\n📅 Vencimento: ${safeDate}`,
       data: response,
     };
   } catch (err) {
+    console.error("[ReminderStrategy] Falha ao criar lembrete via API:", err);
     return {
       success: false,
       message: "Ocorreu um erro ao tentar salvar o lembrete via API.",

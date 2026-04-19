@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useInterestRates, CreditModality } from '@/hooks/useInterestRates';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, ShieldAlert, BadgePercent, Loader2, Info } from 'lucide-react';
@@ -26,6 +26,8 @@ export const SmartCreditRadar = () => {
   };
 
   const currentInfo = getModalityInfo(selectedModality);
+
+    const topRates = [...rates].sort((a, b) => a.TaxaJurosAoMes - b.TaxaJurosAoMes).slice(0, 5);
 
   return (
     <div className="card" style={{ 
@@ -93,7 +95,7 @@ export const SmartCreditRadar = () => {
              <div className="text-[12px] text-red-200/80 font-medium">{error}</div>
              <button onClick={() => fetchRates(selectedModality)} className="mt-3 text-[10px] uppercase font-bold text-red-400 hover:text-red-300 tracking-wider">Tentar Novamente</button>
            </div>
-        ) : rates.length === 0 ? (
+        ) : topRates.length === 0 ? (
            <div className="py-6 px-4 text-center">
              <Info size={28} className="text-neutral-500 mx-auto mb-2 opacity-60" />
              <div className="text-[12px] text-neutral-500">Nenhum dado encontrado para o período.</div>
@@ -101,7 +103,7 @@ export const SmartCreditRadar = () => {
         ) : (
           <div className="space-y-1">
             <AnimatePresence mode="popLayout">
-              {rates.slice(0, 5).map((r, i) => (
+              {topRates.map((r, i) => (
                 <motion.div 
                   key={r.cnpj8 + i}
                   initial={{ opacity: 0, x: -10 }}
@@ -139,11 +141,11 @@ export const SmartCreditRadar = () => {
         )}
       </div>
       
-      {rates.length > 0 && (
+      {topRates.length > 0 && (
          <div className="mt-4 flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
            <Trophy size={14} className="text-blue-400 mt-0.5 shrink-0" />
            <div className="text-[11px] text-blue-200 leading-relaxed">
-             Para <strong>{currentInfo.name}</strong>, a instituição <strong>{rates[0]?.InstituicaoFinanceira?.split('-')[0]?.trim() || 'Desconhecida'}</strong> oferece a melhor taxa do mercado atual. Use isso como moeda de troca ao negociar no seu banco!
+             Para <strong>{currentInfo.name}</strong>, a instituição <strong>{topRates[0]?.InstituicaoFinanceira?.split('-')[0]?.trim() || 'Desconhecida'}</strong> oferece a melhor taxa do mercado atual. Use isso como moeda de troca ao negociar no seu banco!
            </div>
          </div>
       )}

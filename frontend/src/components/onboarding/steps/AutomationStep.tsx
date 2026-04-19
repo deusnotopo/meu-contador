@@ -1,11 +1,57 @@
-import { useOnboarding } from "../OnboardingContext";
-import { Switch } from "@/components/ui/switch";
-import { Bell, BellRing, Check } from "lucide-react";
-import { showSuccess, showError } from "@/lib/toast";
+import { memo, useCallback } from 'react';
+import { useOnboarding } from '../OnboardingContext';
+import { Switch } from '@/components/ui/switch';
+import { Bell, BellRing, Check } from 'lucide-react';
+import { showSuccess, showError } from '@/lib/toast';
 
-export function AutomationStep() {
+const createReminderDraft = () => ({
+  name: "Nova Conta",
+  amount: 0,
+  dueDay: 10,
+  category: "Outros",
+  enabled: true,
+});
+
+export const AutomationStep = memo(function AutomationStep() {
   const { profile, reminders, setReminders, pushGranted, setPushGranted, preferences, setPreferences, strategyRules } = useOnboarding();
-  type PreferenceKey = keyof typeof preferences;
+
+  const handleToggleReminder = useCallback((index: number) => {
+    setReminders(prev => prev.map((r, i) =>
+      i === index ? { ...r, enabled: !r.enabled } : r
+    ));
+  }, [setReminders]);
+
+  const handleReminderFieldChange = useCallback((index: number, field: string, value: string | number) => {
+    setReminders(prev => prev.map((r, i) =>
+      i === index ? { ...r, [field]: value } : r
+    ));
+  }, [setReminders]);
+
+  const handleAddReminder = useCallback(() => {
+    setReminders(prev => [...prev, createReminderDraft()]);
+  }, [setReminders]);
+
+  const handlePreferenceChange = useCallback((key: string, checked: boolean) => {
+    setPreferences((prev: typeof preferences) => ({ ...prev, [key]: checked }));
+  }, [setPreferences]);
+
+  const handleRequestNotificationPermission = useCallback(async () => {
+    try {
+      if (typeof Notification === 'undefined') {
+        showError('Seu navegador não suporta notificações neste momento.');
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted' && 'serviceWorker' in navigator) {
+        setPushGranted(true);
+        showSuccess('Notificações ativadas! Você não vai mais perder nenhum vencimento.');
+      } else if (permission === 'denied') {
+        showError('Permissão negada. Você pode ativar notificações depois nas configurações do navegador.');
+      }
+    } catch (_e) {
+      showError('Não foi possível ativar notificações agora.');
+    }
+  }, [setPushGranted]);
 
   return (
     <div className="space-y-6 pt-6">
@@ -25,10 +71,7 @@ export function AutomationStep() {
             {/* Toggle row */}
             <div
               className="p-4 flex items-center justify-between cursor-pointer"
-              onClick={() => {
-                const newR = [...reminders];
-                if (newR[i]) { newR[i].enabled = !newR[i].enabled; setReminders(newR); }
-              }}
+              onClick={() => handleToggleReminder(i)}
             >
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${r.enabled ? "bg-indigo-500" : "bg-white/5"}`}>
@@ -41,10 +84,7 @@ export function AutomationStep() {
                   </p>
                 </div>
               </div>
-              <Switch checked={r.enabled} onCheckedChange={() => {
-                const newR = [...reminders];
-                if (newR[i]) { newR[i].enabled = !newR[i].enabled; setReminders(newR); }
-              }} />
+              <Switch checked={r.enabled} onCheckedChange={() => handleToggleReminder(i)} />
             </div>
 
             {/* Editable fields — only when enabled */}
@@ -55,10 +95,7 @@ export function AutomationStep() {
                   <input
                     type="text"
                     value={r.name}
-                    onChange={(e) => {
-                      const newR = [...reminders];
-                      if (newR[i]) { newR[i].name = e.target.value; setReminders(newR); }
-                    }}
+                    onChange={(e) => handleReminderFieldChange(i, 'name', e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-medium"
                   />
@@ -67,11 +104,11 @@ export function AutomationStep() {
                   <label className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1 block">Valor (R$)</label>
                   <input
                     type="number"
-                    value={r.amount || ""}
+                    value={r.amount || ''}
                     placeholder="0"
                     onChange={(e) => {
-                      const newR = [...reminders];
-                      if (newR[i]) { newR[i].amount = Number(e.target.value); setReminders(newR); }
+                      const value = parseFloat(e.target.value) || 0;
+                      if (value >= 0) handleReminderFieldChange(i, 'amount', value);
                     }}
                     onClick={(e) => e.stopPropagation()}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-medium"
@@ -85,8 +122,8 @@ export function AutomationStep() {
                     max={31}
                     value={r.dueDay}
                     onChange={(e) => {
-                      const newR = [...reminders];
-                      if (newR[i]) { newR[i].dueDay = Number(e.target.value); setReminders(newR); }
+                      const value = parseInt(e.target.value) || 1;
+                      if (value >= 1 && value <= 31) handleReminderFieldChange(i, 'dueDay', value);
                     }}
                     onClick={(e) => e.stopPropagation()}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-medium"
@@ -100,21 +137,13 @@ export function AutomationStep() {
         {/* Adicionar conta personalizada */}
         <button
           type="button"
-          onClick={() => {
-            setReminders([...reminders, {
-              name: "Nova Conta",
-              amount: 0,
-              dueDay: 10,
-              category: "Outros",
-              enabled: true,
-            }]);
-          }}
+          onClick={handleAddReminder}
           className="w-full py-3 rounded-2xl border border-dashed border-white/20 text-white/40 text-sm font-semibold hover:border-indigo-500/50 hover:text-indigo-400 transition-all flex items-center justify-center gap-2"
         >
           <span className="text-lg">＋</span> Adicionar conta personalizada
         </button>
 
-        {/* ── Push Notification Banner ── */}
+        {/* Push Notification Banner */}
         <div className="mt-4 p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
@@ -132,23 +161,7 @@ export function AutomationStep() {
           ) : (
             <button
               type="button"
-              onClick={async () => {
-                try {
-                  if (typeof Notification === 'undefined') {
-                    showError('Seu navegador não suporta notificações neste momento.');
-                    return;
-                  }
-                  const permission = await Notification.requestPermission();
-                  if (permission === 'granted' && 'serviceWorker' in navigator) {
-                    setPushGranted(true);
-                    showSuccess('Notificações ativadas! Você não vai mais perder nenhum vencimento.');
-                  } else if (permission === 'denied') {
-                    showError('Permissão negada. Você pode ativar notificações depois nas configurações do navegador.');
-                  }
-                } catch (_e) {
-                  showError('Não foi possível ativar notificações agora.');
-                }
-              }}
+              onClick={handleRequestNotificationPermission}
               className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-sm transition-all active:scale-95"
             >
               🔔 Ativar Alertas Automáticos
@@ -175,9 +188,7 @@ export function AutomationStep() {
               </div>
               <Switch
                 checked={preferences[item.key as keyof typeof preferences]}
-                onCheckedChange={(checked) =>
-                  setPreferences((prev: typeof preferences) => ({ ...prev, [item.key as PreferenceKey]: checked }))
-                }
+                onCheckedChange={(checked) => handlePreferenceChange(item.key, checked)}
               />
             </div>
           ))}
@@ -191,7 +202,7 @@ export function AutomationStep() {
         </div>
       </div>
 
-      {/* ── Provisões Sazonais IPVA/IPTU ── */}
+      {/* Provisões Sazonais IPVA/IPTU */}
       <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
@@ -199,7 +210,7 @@ export function AutomationStep() {
           </div>
           <div>
             <p className="font-bold text-sm">Provisões Sazonais</p>
-            <p className="text-xs text-white/50">Reserve mensalmente para não ser pego de surpresa</p>
+            <p className="text-xs text-white/50">Reserve mensalmente para não ser pego de sorpresa</p>
           </div>
         </div>
         <div className="space-y-2">
@@ -226,4 +237,4 @@ export function AutomationStep() {
       </div>
     </div>
   );
-}
+});

@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { ArrowLeft, Briefcase, User as UserIcon, Sparkles, AlertCircle, Zap, Mic, WifiOff, Globe } from "lucide-react";
+import {
+  ArrowLeft,
+  Briefcase,
+  User as UserIcon,
+  Sparkles,
+  AlertCircle,
+  Zap,
+  Mic,
+  WifiOff,
+  Globe,
+} from "lucide-react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
@@ -10,30 +20,31 @@ import { HelpButton } from "@/components/ui/HelpButton";
 import type { TabType } from "@/types/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { EMOTION_CONFIG, type EmotionType } from "@/types/emotional";
+import { TransactionSchema } from "@/lib/schemas";
 
 // ── Categories ──────────────────────────
 const EXPENSE_CATS = [
-  { id: "Moradia",      ico: "🏠", nm: "Moradia" },
-  { id: "Mercado",      ico: "🛒", nm: "Mercado" },
-  { id: "Delivery",     ico: "🍕", nm: "Delivery" },
-  { id: "Transporte",   ico: "🚗", nm: "Transp." },
-  { id: "Saúde",        ico: "💊", nm: "Saúde" },
-  { id: "Lazer",        ico: "🎬", nm: "Lazer" },
-  { id: "Roupas",       ico: "👕", nm: "Roupas" },
-  { id: "Educação",     ico: "📚", nm: "Educação" },
-  { id: "Assinaturas",  ico: "📱", nm: "Assina." },
-  { id: "Outros",       ico: "📦", nm: "Outros" },
+  { id: "Moradia", ico: "🏠", nm: "Moradia" },
+  { id: "Mercado", ico: "🛒", nm: "Mercado" },
+  { id: "Delivery", ico: "🍕", nm: "Delivery" },
+  { id: "Transporte", ico: "🚗", nm: "Transp." },
+  { id: "Saúde", ico: "💊", nm: "Saúde" },
+  { id: "Lazer", ico: "🎬", nm: "Lazer" },
+  { id: "Roupas", ico: "👕", nm: "Roupas" },
+  { id: "Educação", ico: "📚", nm: "Educação" },
+  { id: "Assinaturas", ico: "📱", nm: "Assina." },
+  { id: "Outros", ico: "📦", nm: "Outros" },
 ];
 
 const INCOME_CATS = [
-  { id: "Salário",       ico: "💼", nm: "Salário" },
-  { id: "Freelance",     ico: "💻", nm: "Freelance" },
-  { id: "Aluguel",       ico: "🏘️", nm: "Aluguel" },
+  { id: "Salário", ico: "💼", nm: "Salário" },
+  { id: "Freelance", ico: "💻", nm: "Freelance" },
+  { id: "Aluguel", ico: "🏘️", nm: "Aluguel" },
   { id: "Investimentos", ico: "📈", nm: "Investim." },
-  { id: "Dividendos",    ico: "💰", nm: "Dividendos" },
-  { id: "Bônus",         ico: "🎁", nm: "Bônus" },
-  { id: "Reembolso",     ico: "🔄", nm: "Reembolso" },
-  { id: "Outros",        ico: "✨", nm: "Outros" },
+  { id: "Dividendos", ico: "💰", nm: "Dividendos" },
+  { id: "Bônus", ico: "🎁", nm: "Bônus" },
+  { id: "Reembolso", ico: "🔄", nm: "Reembolso" },
+  { id: "Outros", ico: "✨", nm: "Outros" },
 ];
 
 interface LaunchScreenProps {
@@ -46,7 +57,10 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
   const { budgets } = useBudgets();
   const { isOffline, offlineFetch } = useOfflineSync();
   const location = useLocation();
-  const initialType = new URLSearchParams(location.search).get("type") === "income" ? "income" : "expense";
+  const initialType =
+    new URLSearchParams(location.search).get("type") === "income"
+      ? "income"
+      : "expense";
 
   const [tipo, setTipo] = useState<"expense" | "income">(initialType);
   const [amtStr, setAmtStr] = useState("0");
@@ -55,20 +69,34 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
   const [loading, setLoading] = useState(false);
   const [showEmotional, setShowEmotional] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [savedTransaction, setSavedTransaction] = useState<{ amount: number; category: string } | null>(null);
+  const [savedTransaction, setSavedTransaction] = useState<{
+    amount: number;
+    category: string;
+  } | null>(null);
   const [scope, setScope] = useState<"personal" | "business">("personal");
   const [selectedMood, setSelectedMood] = useState<EmotionType | null>(null);
   const [isListening, setIsListening] = useState(false);
-  const [currency, setCurrency] = useState<'BRL' | 'USD' | 'EUR' | 'GBP'>('BRL');
+  const [currency, setCurrency] = useState<"BRL" | "USD" | "EUR" | "GBP">(
+    "BRL",
+  );
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
 
   // Fetch exchange rates when currency changes
   useEffect(() => {
-    if (currency === 'BRL') { setExchangeRate(null); return; }
-    fetchMarketData().then(m => {
-      const rates: Record<string, number> = { USD: m.usd, EUR: m.eur, GBP: m.gbp };
-      setExchangeRate(rates[currency] ?? null);
-    }).catch(() => {});
+    if (currency === "BRL") {
+      setExchangeRate(null);
+      return;
+    }
+    fetchMarketData()
+      .then((m) => {
+        const rates: Record<string, number> = {
+          USD: m.usd,
+          EUR: m.eur,
+          GBP: m.gbp,
+        };
+        setExchangeRate(rates[currency] ?? null);
+      })
+      .catch(() => {});
   }, [currency]);
 
   const categories = tipo === "expense" ? EXPENSE_CATS : INCOME_CATS;
@@ -84,11 +112,22 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
     if (!isExpense) return { status: "safe", message: "" };
     const amountVal = parseInt(amtStr, 10) / 100;
     if (amountVal === 0) return { status: "neutral", message: "" };
-    const budget = budgets.find((b) => b.category.toLowerCase().includes(catId.toLowerCase()));
-    if (!budget) return { status: "unknown", message: "💸 Categoria sem orçamento definido" };
+    const budget = budgets.find((b) =>
+      b.category.toLowerCase().includes(catId.toLowerCase()),
+    );
+    if (!budget)
+      return {
+        status: "unknown",
+        message: "💸 Categoria sem orçamento definido",
+      };
     const remaining = budget.limit - budget.spent;
-    if (amountVal > remaining) return { status: "critical", message: "⚠️ Ultrapassa o orçamento restante!" };
-    if (amountVal / remaining > 0.7) return { status: "warning", message: "Próximo ao limite do orçamento" };
+    if (amountVal > remaining)
+      return {
+        status: "critical",
+        message: "⚠️ Ultrapassa o orçamento restante!",
+      };
+    if (amountVal / remaining > 0.7)
+      return { status: "warning", message: "Próximo ao limite do orçamento" };
     return { status: "safe", message: "Dentro das metas estabelecidas" };
   }, [amtStr, catId, budgets, isExpense]);
 
@@ -139,19 +178,40 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
         scope,
         mood: selectedMood || undefined,
         // Multi-moeda
-        ...(currency !== 'BRL' && exchangeRate ? {
-          currency,
-          originalAmount: amountRaw.toString(),
-          exchangeRate: exchangeRate.toString(),
-        } : {}),
+        ...(currency !== "BRL" && exchangeRate
+          ? {
+              currency,
+              originalAmount: amountRaw.toString(),
+              exchangeRate: exchangeRate.toString(),
+            }
+          : {}),
         // _token é removido pelo SW antes de enviar — usado apenas para auth offline
-        _token: localStorage.getItem('auth_token') ?? undefined,
+      }; // AKITA MODE: Validação rigorosa na borda (Pre-submit)
+
+      const validationPayload = {
+        ...payload,
+        amount: amountRaw, // Number para validação
       };
+
+      const validationResult = TransactionSchema.omit({
+        id: true,
+        userId: true,
+      }).safeParse(validationPayload);
+
+      if (!validationResult.success) {
+        console.error(
+          "Validation Error (Launch):",
+          validationResult.error.format(),
+        );
+        const firstError =
+          validationResult.error.errors[0]?.message || "Dados inválidos";
+        throw new Error(`Erro de contrato: ${firstError}`);
+      }
 
       if (isOffline) {
         // Modo offline: salva na fila IndexedDB
-        const apiBase = import.meta.env.VITE_API_URL || '/api';
-        await offlineFetch(`${apiBase}/transactions`, payload, 'create');
+        const apiBase = import.meta.env.VITE_API_URL || "/api";
+        await offlineFetch(`${apiBase}/transactions`, payload, "create");
         if (onSuccess) onSuccess();
         resetFields();
         onBack?.("inicio");
@@ -170,13 +230,32 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
     } finally {
       setLoading(false);
     }
-  }, [addTransaction, amountRaw, catId, categories, description, isOffline, isZero, loading, offlineFetch, onBack, onSuccess, resetFields, scope, tipo, selectedMood]);
-
+  }, [
+    addTransaction,
+    amountRaw,
+    catId,
+    categories,
+    currency,
+    description,
+    exchangeRate,
+    isOffline,
+    isZero,
+    loading,
+    offlineFetch,
+    onBack,
+    onSuccess,
+    resetFields,
+    scope,
+    tipo,
+    selectedMood,
+  ]);
 
   const startListening = useCallback(() => {
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const win = window as unknown as Record<string, unknown>;
+    const SpeechRecognition =
+      (win.SpeechRecognition || win.webkitSpeechRecognition) as
+        | { new(): { lang: string; continuous: boolean; interimResults: boolean; onstart: (() => void) | null; onresult: ((event: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null; start: () => void } }
+        | undefined;
     if (!SpeechRecognition) {
       alert("Reconhecimento de voz não suportado neste navegador.");
       return;
@@ -186,15 +265,16 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.onstart = () => setIsListening(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript.toLowerCase();
+    recognition.onresult = (event: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => {
+      const transcript = (event.results[0]?.[0]?.transcript ?? '').toLowerCase();
       const numMatches = transcript.match(/\d+(?:[.,]\d+)?/g);
       if (numMatches?.length) {
         const valStr = numMatches[0].replace(",", ".");
         setAmtStr(Math.round(parseFloat(valStr) * 100).toString());
       }
-      const foundCat = categories.find((c) => transcript.includes(c.nm.toLowerCase()));
+      const foundCat = categories.find((c) =>
+        transcript.includes(c.nm.toLowerCase()),
+      );
       if (foundCat) setCatId(foundCat.id);
       setDescription(transcript.charAt(0).toUpperCase() + transcript.slice(1));
       setShowDetails(true);
@@ -216,9 +296,16 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
     const handleKeyboardInput = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
-      if (/^[0-9]$/.test(event.key)) { event.preventDefault(); handleKey(event.key); }
-      else if (event.key === "Backspace" || event.key === "Delete") { event.preventDefault(); handleKey("⌫"); }
-      else if (event.key === "Enter") { event.preventDefault(); void handleConfirm(); }
+      if (/^[0-9]$/.test(event.key)) {
+        event.preventDefault();
+        handleKey(event.key);
+      } else if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        handleKey("⌫");
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        void handleConfirm();
+      }
     };
     window.addEventListener("keydown", handleKeyboardInput);
     return () => window.removeEventListener("keydown", handleKeyboardInput);
@@ -254,7 +341,9 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
           {isOffline && (
             <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
               <WifiOff size={11} className="text-amber-400" />
-              <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Offline</span>
+              <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">
+                Offline
+              </span>
             </div>
           )}
         </div>
@@ -349,7 +438,11 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
                 className="flex items-center gap-2 mt-2 text-xs font-black"
                 style={{ color: accentColor }}
               >
-                {budgetImpact.status === "critical" ? <AlertCircle size={13} /> : <Zap size={13} />}
+                {budgetImpact.status === "critical" ? (
+                  <AlertCircle size={13} />
+                ) : (
+                  <Zap size={13} />
+                )}
                 {budgetImpact.message}
               </motion.div>
             )}
@@ -364,12 +457,17 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
               className="w-full flex items-center justify-between p-3 rounded-xl border border-dashed border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg">{categories.find((c) => c.id === catId)?.ico}</span>
+                <span className="text-lg">
+                  {categories.find((c) => c.id === catId)?.ico}
+                </span>
                 <span className="text-sm font-semibold text-white/70">
                   Categoria: {categories.find((c) => c.id === catId)?.nm}
                 </span>
               </div>
-              <span className="text-xs font-black" style={{ color: accentColor }}>
+              <span
+                className="text-xs font-black"
+                style={{ color: accentColor }}
+              >
                 + Detalhes
               </span>
             </button>
@@ -381,7 +479,11 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
                     key={c.id}
                     className={`lcat${catId === c.id ? " active" : ""}`}
                     onClick={() => setCatId(c.id)}
-                    style={catId === c.id ? { borderColor: accentColor, color: accentColor } : {}}
+                    style={
+                      catId === c.id
+                        ? { borderColor: accentColor, color: accentColor }
+                        : {}
+                    }
                   >
                     <span className="lcat-ico">{c.ico}</span>
                     <span className="lcat-nm">{c.nm}</span>
@@ -397,24 +499,30 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
               {/* Currency selector */}
               <div className="flex items-center gap-2">
                 <Globe size={13} className="text-white/30" />
-                <span className="text-[10px] text-white/30 uppercase font-black tracking-widest">Moeda</span>
+                <span className="text-[10px] text-white/30 uppercase font-black tracking-widest">
+                  Moeda
+                </span>
                 <div className="flex gap-1.5 ml-auto">
-                  {(['BRL', 'USD', 'EUR', 'GBP'] as const).map(c => (
+                  {(["BRL", "USD", "EUR", "GBP"] as const).map((c) => (
                     <button
                       key={c}
                       onClick={() => setCurrency(c)}
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
                         currency === c
-                          ? 'bg-indigo-500/30 border border-indigo-500/50 text-indigo-300'
-                          : 'bg-white/5 border border-white/5 text-white/30 hover:text-white/60'
+                          ? "bg-indigo-500/30 border border-indigo-500/50 text-indigo-300"
+                          : "bg-white/5 border border-white/5 text-white/30 hover:text-white/60"
                       }`}
-                    >{c}</button>
+                    >
+                      {c}
+                    </button>
                   ))}
                 </div>
               </div>
-              {currency !== 'BRL' && (
+              {currency !== "BRL" && (
                 <div className="text-[10px] text-white/30 text-right">
-                  {exchangeRate ? `1 ${currency} ≈ R$ ${exchangeRate.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Carregando cotação...'}
+                  {exchangeRate
+                    ? `1 ${currency} ≈ R$ ${exchangeRate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                    : "Carregando cotação..."}
                 </div>
               )}
             </div>
@@ -429,12 +537,19 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
               Money Mood: Como se sente com este gasto?
             </div>
             <div className="flex justify-between gap-1 overflow-x-auto pb-1">
-              {(Object.entries(EMOTION_CONFIG) as [EmotionType, typeof EMOTION_CONFIG[EmotionType]][])
+              {(
+                Object.entries(EMOTION_CONFIG) as [
+                  EmotionType,
+                  (typeof EMOTION_CONFIG)[EmotionType],
+                ][]
+              )
                 .slice(0, 6)
                 .map(([key, config]) => (
                   <button
                     key={key}
-                    onClick={() => setSelectedMood(selectedMood === key ? null : key)}
+                    onClick={() =>
+                      setSelectedMood(selectedMood === key ? null : key)
+                    }
                     className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all min-w-[52px] cursor-pointer ${
                       selectedMood === key
                         ? "bg-indigo-500/20 border border-indigo-500/40"
@@ -442,7 +557,9 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
                     }`}
                   >
                     <span className="text-xl mb-1">{config.emoji}</span>
-                    <span className="text-[9px] font-bold text-white/40">{config.label}</span>
+                    <span className="text-[9px] font-bold text-white/40">
+                      {config.label}
+                    </span>
                   </button>
                 ))}
             </div>
@@ -453,17 +570,19 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
       {/* ── Keypad ── */}
       <div className="shrink-0 mt-4 relative z-10">
         <div className="keypad">
-          {["1","2","3","4","5","6","7","8","9",",","0","⌫"].map((k) => (
-            <motion.button
-              whileTap={{ scale: 0.88, opacity: 0.85 }}
-              key={k}
-              className={`key${k === "⌫" ? " del" : ""}`}
-              onClick={() => handleKey(k)}
-              aria-label={k === "⌫" ? "Apagar" : k}
-            >
-              {k}
-            </motion.button>
-          ))}
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0", "⌫"].map(
+            (k) => (
+              <motion.button
+                whileTap={{ scale: 0.88, opacity: 0.85 }}
+                key={k}
+                className={`key${k === "⌫" ? " del" : ""}`}
+                onClick={() => handleKey(k)}
+                aria-label={k === "⌫" ? "Apagar" : k}
+              >
+                {k}
+              </motion.button>
+            ),
+          )}
         </div>
 
         {/* ── Confirm Button ── */}
@@ -475,8 +594,8 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
             background: isZero
               ? "rgba(255,255,255,0.04)"
               : isExpense
-              ? "linear-gradient(135deg, #F05A7E, #e0385e)"
-              : "linear-gradient(135deg, #00D991, #00b07a)",
+                ? "linear-gradient(135deg, #F05A7E, #e0385e)"
+                : "linear-gradient(135deg, #00D991, #00b07a)",
             boxShadow: isZero ? "none" : `0 8px 30px ${accentColor}44`,
             border: isZero ? "1px solid rgba(255,255,255,0.06)" : "none",
             color: isZero ? "rgba(255,255,255,0.25)" : "white",
@@ -488,10 +607,14 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
           {loading ? (
             <span className="flex items-center gap-2">
               <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin inline-block" />
-              {isOffline ? 'Salvando offline...' : 'Processando...'}
+              {isOffline ? "Salvando offline..." : "Processando..."}
             </span>
           ) : isOffline ? (
-            isExpense ? "✓  Salvar Gasto (offline)" : "✓  Salvar Receita (offline)"
+            isExpense ? (
+              "✓  Salvar Gasto (offline)"
+            ) : (
+              "✓  Salvar Receita (offline)"
+            )
           ) : isExpense ? (
             "✓  Confirmar Gasto"
           ) : (
@@ -511,4 +634,3 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
     </motion.div>
   );
 };
-

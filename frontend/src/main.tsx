@@ -17,6 +17,7 @@ import { initSentry } from "./lib/sentry";
 import { PreferencesProvider } from "./context/PreferencesContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { ToastProvider } from "./lib/toast";
+import { OverlayProvider } from "./context/OverlayContext";
 
 // Initialize Sentry error tracking
 initSentry();
@@ -33,9 +34,11 @@ createRoot(document.getElementById("root")!).render(
             <FeatureFlagsProvider>
               <LanguageProvider>
                 <CurrencyProvider>
-                  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                    <App />
-                  </BrowserRouter>
+                  <OverlayProvider>
+                    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                      <App />
+                    </BrowserRouter>
+                  </OverlayProvider>
                 </CurrencyProvider>
               </LanguageProvider>
             </FeatureFlagsProvider>

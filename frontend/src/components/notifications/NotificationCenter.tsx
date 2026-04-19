@@ -1,5 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -11,349 +9,353 @@ import {
   Clock,
   Zap,
   Info,
-  AlertCircle
+  AlertCircle,
+  TrendingUp,
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import { useState } from "react";
+import { useNotifications, type AppNotification } from "@/hooks/useNotifications";
+import { api } from "@/lib/api";
 
-interface Notification {
-  id: string;
-  type: "warning" | "success" | "info" | "alert";
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-  actionUrl?: string;
-  actionText?: string;
+// ── Notification type → visual mapping ───────────────────────────────────────
+function getTypeConfig(type: string): {
+  icon: React.ReactNode;
+  border: string;
+  bg: string;
+  badge: string;
+} {
+  switch (type) {
+    case "spending_anomaly":
+      return {
+        icon: <TrendingUp className="text-amber-400 flex-shrink-0 mt-0.5" size={18} />,
+        border: "border-amber-500/30",
+        bg: "bg-amber-500/5",
+        badge: "bg-amber-500/20 text-amber-400",
+      };
+    case "budget_exceeded":
+      return {
+        icon: <AlertTriangle className="text-orange-400 flex-shrink-0 mt-0.5" size={18} />,
+        border: "border-orange-500/30",
+        bg: "bg-orange-500/5",
+        badge: "bg-orange-500/20 text-orange-400",
+      };
+    case "goal_reached":
+      return {
+        icon: <Check className="text-emerald-400 flex-shrink-0 mt-0.5" size={18} />,
+        border: "border-emerald-500/30",
+        bg: "bg-emerald-500/5",
+        badge: "bg-emerald-500/20 text-emerald-400",
+      };
+    case "invoice_due":
+    case "reminder_due":
+      return {
+        icon: <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={18} />,
+        border: "border-red-500/30",
+        bg: "bg-red-500/5",
+        badge: "bg-red-500/20 text-red-400",
+      };
+    case "weekly_briefing":
+    case "system_alert":
+      return {
+        icon: <Zap className="text-indigo-400 flex-shrink-0 mt-0.5" size={18} />,
+        border: "border-indigo-500/30",
+        bg: "bg-indigo-500/5",
+        badge: "bg-indigo-500/20 text-indigo-400",
+      };
+    default:
+      return {
+        icon: <Info className="text-blue-400 flex-shrink-0 mt-0.5" size={18} />,
+        border: "border-blue-500/30",
+        bg: "bg-blue-500/5",
+        badge: "bg-blue-500/20 text-blue-400",
+      };
+  }
 }
 
-interface NotificationSettings {
-  budgetAlerts: boolean;
-  spendingAlerts: boolean;
-  goalReminders: boolean;
-  weeklyReports: boolean;
-  pushNotifications: boolean;
+function formatTimeAgo(dateStr: string): string {
+  const now = Date.now();
+  const diff = Math.floor((now - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return "agora";
+  if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`;
+  return `${Math.floor(diff / 86400)}d atrás`;
 }
 
+// ── Notification card ─────────────────────────────────────────────────────────
+function NotificationCard({ n, onRead, onDelete }: {
+  n: AppNotification;
+  onRead: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const config = getTypeConfig(n.type);
+  const isUnread = !n.readAt;
+
+  return (
+    <div
+      className={`
+        flex items-start gap-4 p-4 rounded-2xl border transition-all
+        ${config.border} ${config.bg}
+        ${isUnread ? "ring-1 ring-indigo-500/40" : "opacity-70"}
+      `}
+    >
+      {config.icon}
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h4 className="font-bold text-[var(--t1)] text-sm leading-snug mb-0.5">{n.title}</h4>
+            <p className="text-[var(--t2)] text-xs leading-relaxed">{n.body}</p>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="flex items-center gap-1 text-[10px] text-[var(--t4)]">
+                <Clock size={11} />
+                {formatTimeAgo(n.createdAt)}
+              </span>
+              {isUnread && (
+                <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full ${config.badge}`}>
+                  Novo
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {isUnread && (
+              <button
+                onClick={() => onRead(n.id)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--t3)] hover:text-emerald-400 hover:bg-emerald-400/10 transition-all"
+                aria-label="Marcar como lida"
+              >
+                <Check size={14} />
+              </button>
+            )}
+            <button
+              onClick={() => onDelete(n.id)}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--t4)] hover:text-red-400 hover:bg-red-400/10 transition-all"
+              aria-label="Remover notificação"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export const NotificationCenter = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: "1",
-      type: "warning",
-      title: "Orçamento Excedido",
-      message: "Você gastou 85% do orçamento mensal de Alimentação. Considere reduzir os gastos.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutos atrás
-      read: false,
-      actionUrl: "/personal",
-      actionText: "Ver Orçamento"
-    },
-    {
-      id: "2",
-      type: "success",
-      title: "Meta Atingida!",
-      message: "Parabéns! Você atingiu sua meta de reserva de emergência de R$ 5.000.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 horas atrás
-      read: false
-    },
-    {
-      id: "3",
-      type: "info",
-      title: "Dica da IA",
-      message: "Com base nos seus gastos, você pode economizar R$ 300/mês reduzindo delivery.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 horas atrás
-      read: true
-    },
-    {
-      id: "4",
-      type: "alert",
-      title: "Pagamento Vencendo",
-      message: "Sua conta de luz vence amanhã. Valor: R$ 180,00",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 dia atrás
-      read: true,
-      actionUrl: "/personal",
-      actionText: "Pagar Agora"
-    }
-  ]);
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    markRead,
+    markAllRead,
+    remove,
+    clearRead,
+    refresh,
+  } = useNotifications();
 
-  const [settings, setSettings] = useState<NotificationSettings>({
+  const [activeTab, setActiveTab] = useState<"notifications" | "settings">("notifications");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [briefing, setBriefing] = useState(false);
+  const [notifPrefs, setNotifPrefs] = useState({
     budgetAlerts: true,
     spendingAlerts: true,
     goalReminders: true,
     weeklyReports: true,
-    pushNotifications: false
+    pushNotifications: false,
   });
 
-  const [activeTab, setActiveTab] = useState<"notifications" | "settings">("notifications");
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "warning": return <AlertTriangle className="text-yellow-400" size={20} />;
-      case "success": return <Check className="text-green-400" size={20} />;
-      case "info": return <Info className="text-blue-400" size={20} />;
-      case "alert": return <AlertCircle className="text-red-400" size={20} />;
-      default: return <Bell className="text-gray-400" size={20} />;
+  const handleTriggerAnalysis = async () => {
+    try {
+      setAnalyzing(true);
+      await api.post("/intelligence/analyze", {});
+      setTimeout(() => { refresh(); setAnalyzing(false); }, 1500);
+    } catch {
+      setAnalyzing(false);
     }
   };
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case "warning": return "border-yellow-500/30 bg-yellow-500/5";
-      case "success": return "border-green-500/30 bg-green-500/5";
-      case "info": return "border-blue-500/30 bg-blue-500/5";
-      case "alert": return "border-red-500/30 bg-red-500/5";
-      default: return "border-gray-500/30 bg-gray-500/5";
+  const handleGenerateBriefing = async () => {
+    try {
+      setBriefing(true);
+      await api.post("/intelligence/briefing", {});
+      // Gemini takes 2-5s; wait 3s then refresh
+      setTimeout(() => { refresh(); setBriefing(false); }, 3000);
+    } catch {
+      setBriefing(false);
     }
-  };
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}min atrás`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)}h atrás`;
-    } else {
-      return `${Math.floor(diffInMinutes / 1440)}d atrás`;
-    }
-  };
-
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black flex items-center gap-3">
-            <Bell className="text-indigo-400" size={32} />
-            Centro de Notificações
+          <h2 className="text-2xl font-black flex items-center gap-3">
+            <Bell className="text-indigo-400" size={26} />
+            Centro de Alertas
           </h2>
-          <p className="text-[var(--t3)] mt-2">
-            Mantenha-se informado sobre suas finanças
-          </p>
+          <p className="text-[var(--t3)] mt-1 text-sm">Alertas inteligentes e histórico persistente</p>
         </div>
 
-        {unreadCount > 0 && (
-          <Badge className="bg-red-500/20 text-red-400 px-3 py-1">
-            {unreadCount} não lida{unreadCount > 1 ? 's' : ''}
-          </Badge>
-        )}
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex gap-2 bg-[var(--card)]/50 p-1 rounded-2xl border border-[var(--border)]/50">
-        <Button
-          variant={activeTab === "notifications" ? "default" : "ghost"}
-          onClick={() => setActiveTab("notifications")}
-          className="flex-1"
-        >
-          <Bell size={18} className="mr-2" />
-          Notificações {unreadCount > 0 && `(${unreadCount})`}
-        </Button>
-        <Button
-          variant={activeTab === "settings" ? "default" : "ghost"}
-          onClick={() => setActiveTab("settings")}
-          className="flex-1"
-        >
-          <Zap size={18} className="mr-2" />
-          Configurações
-        </Button>
-      </div>
-
-      {/* Content */}
-      {activeTab === "notifications" && (
-        <div className="space-y-4">
+        <div className="flex items-center gap-2">
           {unreadCount > 0 && (
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={markAllAsRead}>
-                Marcar todas como lidas
-              </Button>
+            <Badge className="bg-red-500/20 text-red-400 border-red-500/20 text-xs font-bold">
+              {unreadCount} não lida{unreadCount > 1 ? "s" : ""}
+            </Badge>
+          )}
+          <button
+            onClick={handleTriggerAnalysis}
+            disabled={analyzing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold hover:bg-amber-500/20 transition-all disabled:opacity-50"
+            title="Executar análise de anomalias agora"
+          >
+            {analyzing ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
+            Analisar
+          </button>
+          <button
+            onClick={handleGenerateBriefing}
+            disabled={briefing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+            title="Gerar briefing semanal com IA agora"
+          >
+            {briefing ? <Loader2 size={13} className="animate-spin" /> : <TrendingUp size={13} />}
+            Briefing IA
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
+        <button
+          onClick={() => setActiveTab("notifications")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+            activeTab === "notifications"
+              ? "bg-white/[0.08] text-white"
+              : "text-[var(--t3)] hover:text-white"
+          }`}
+        >
+          <Bell size={14} />
+          Notificações {unreadCount > 0 && `(${unreadCount})`}
+        </button>
+        <button
+          onClick={() => setActiveTab("settings")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+            activeTab === "settings"
+              ? "bg-white/[0.08] text-white"
+              : "text-[var(--t3)] hover:text-white"
+          }`}
+        >
+          <Zap size={14} />
+          Configurações
+        </button>
+      </div>
+
+      {/* Notifications tab */}
+      {activeTab === "notifications" && (
+        <div className="space-y-3">
+          {/* Toolbar */}
+          {(notifications.length > 0) && (
+            <div className="flex items-center justify-between">
+              <button
+                onClick={refresh}
+                className="flex items-center gap-1.5 text-[10px] text-[var(--t4)] hover:text-white transition-all"
+              >
+                <RefreshCw size={11} />
+                Atualizar
+              </button>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-all"
+                  >
+                    Marcar todas como lidas
+                  </button>
+                )}
+                {notifications.some(n => !!n.readAt) && (
+                  <button
+                    onClick={clearRead}
+                    className="text-[10px] font-bold text-[var(--t4)] hover:text-red-400 transition-all"
+                  >
+                    Limpar lidas
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
-          {notifications.length === 0 ? (
-            <Card className="bg-[var(--card)]/50 border-[var(--border)]/50">
-              <CardContent className="p-12 text-center">
-                <BellOff className="text-[var(--t4)] w-16 h-16 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-[var(--t3)] mb-2">Nenhuma notificação</h3>
-                <p className="text-[var(--t4)]">Você está em dia com suas finanças!</p>
-              </CardContent>
-            </Card>
+          {/* List */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-[var(--t4)]">
+              <Loader2 size={28} className="animate-spin" />
+              <span className="text-xs">Carregando alertas...</span>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <BellOff size={36} className="text-[var(--t4)]" />
+              <h3 className="font-bold text-[var(--t2)]">Tudo em ordem!</h3>
+              <p className="text-xs text-[var(--t4)] text-center max-w-xs">
+                Nenhum alerta pendente. Use o botão <strong>Analisar</strong> para verificar anomalias agora.
+              </p>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {notifications.map((notification) => (
-                <Card
-                  key={notification.id}
-                  className={`border transition-all hover:bg-[var(--card)]/70 ${getNotificationColor(notification.type)} ${!notification.read ? 'ring-1 ring-indigo-500/50' : ''}`}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 mt-1">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <h4 className="font-bold text-lg mb-1">{notification.title}</h4>
-                            <p className="text-[var(--t2)] mb-3 leading-relaxed">{notification.message}</p>
-
-                            <div className="flex items-center gap-4 text-sm text-[var(--t4)]">
-                              <span className="flex items-center gap-1">
-                                <Clock size={14} />
-                                {formatTimeAgo(notification.timestamp)}
-                              </span>
-                              {!notification.read && (
-                                <Badge className="bg-indigo-500/20 text-indigo-400 text-xs">
-                                  Novo
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {notification.actionUrl && notification.actionText && (
-                              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500">
-                                {notification.actionText}
-                              </Button>
-                            )}
-
-                            {!notification.read && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => markAsRead(notification.id)}
-                                className="text-[var(--t3)] hover:text-white"
-                              >
-                                <Check size={16} />
-                              </Button>
-                            )}
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteNotification(notification.id)}
-                              className="text-[var(--t3)] hover:text-red-400"
-                            >
-                              <X size={16} />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="space-y-2">
+              {notifications.map((n) => (
+                <NotificationCard
+                  key={n.id}
+                  n={n}
+                  onRead={markRead}
+                  onDelete={remove}
+                />
               ))}
             </div>
           )}
         </div>
       )}
 
+      {/* Settings tab */}
       {activeTab === "settings" && (
-        <div className="space-y-6">
-          <Card className="bg-[var(--card)]/50 border-[var(--border)]/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Bell size={24} className="text-indigo-400" />
-                Preferências de Notificação
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
+        <div className="space-y-4">
+          <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 space-y-5">
+            <h3 className="text-sm font-bold text-[var(--t1)]">Preferências de Alerta</h3>
+
+            {[
+              { key: "budgetAlerts", label: "Alertas de Orçamento", desc: "Quando você ultrapassa um limite de categoria" },
+              { key: "spendingAlerts", label: "Anomalias de Gasto", desc: "Picos de 50%+ acima da sua média histórica" },
+              { key: "goalReminders", label: "Metas & Conquistas", desc: "Progresso e celebrações de objetivos" },
+              { key: "weeklyReports", label: "Briefing Semanal IA", desc: "Resumo automatizado toda segunda-feira" },
+              { key: "pushNotifications", label: "Push Notifications", desc: "Alertas no dispositivo móvel" },
+            ].map(({ key, label, desc }) => (
+              <div key={key} className="flex items-center justify-between gap-4">
                 <div>
-                  <h4 className="font-bold">Alertas de Orçamento</h4>
-                  <p className="text-[var(--t3)] text-sm">Notificações quando você se aproxima do limite</p>
+                  <div className="text-sm font-semibold text-[var(--t1)]">{label}</div>
+                  <div className="text-[11px] text-[var(--t3)] mt-0.5">{desc}</div>
                 </div>
                 <Switch
-                  checked={settings.budgetAlerts}
+                  checked={notifPrefs[key as keyof typeof notifPrefs]}
                   onCheckedChange={(checked) =>
-                    setSettings(prev => ({ ...prev, budgetAlerts: checked }))
+                    setNotifPrefs(prev => ({ ...prev, [key]: checked }))
                   }
                 />
               </div>
+            ))}
+          </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold">Alertas de Gastos</h4>
-                  <p className="text-[var(--t3)] text-sm">Avisos sobre gastos incomuns ou elevados</p>
-                </div>
-                <Switch
-                  checked={settings.spendingAlerts}
-                  onCheckedChange={(checked) =>
-                    setSettings(prev => ({ ...prev, spendingAlerts: checked }))
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold">Lembretes de Metas</h4>
-                  <p className="text-[var(--t3)] text-sm">Atualizações sobre progresso das suas metas</p>
-                </div>
-                <Switch
-                  checked={settings.goalReminders}
-                  onCheckedChange={(checked) =>
-                    setSettings(prev => ({ ...prev, goalReminders: checked }))
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold">Relatórios Semanais</h4>
-                  <p className="text-[var(--t3)] text-sm">Resumo semanal das suas finanças</p>
-                </div>
-                <Switch
-                  checked={settings.weeklyReports}
-                  onCheckedChange={(checked) =>
-                    setSettings(prev => ({ ...prev, weeklyReports: checked }))
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold">Notificações Push</h4>
-                  <p className="text-[var(--t3)] text-sm">Receber alertas no dispositivo móvel</p>
-                </div>
-                <Switch
-                  checked={settings.pushNotifications}
-                  onCheckedChange={(checked) =>
-                    setSettings(prev => ({ ...prev, pushNotifications: checked }))
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/30">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-indigo-500/20 rounded-lg">
-                  <Zap className="text-indigo-400" size={20} />
-                </div>
-                <h3 className="text-lg font-bold">Dica Premium</h3>
-              </div>
-              <p className="text-[var(--t2)]">
-                Configure suas notificações para receber alertas importantes sem ser sobrecarregado.
-                O equilíbrio certo ajuda você a manter o controle sem ansiedade.
-              </p>
-            </CardContent>
-          </Card>
+          {/* Anomaly Engine Info */}
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap size={16} className="text-amber-400" />
+              <span className="text-sm font-bold text-amber-400">Motor de Anomalias Ativo</span>
+            </div>
+            <p className="text-xs text-[var(--t2)] leading-relaxed">
+              O sistema analisa automaticamente seus gastos após cada sincronização bancária. 
+              Um pico de <strong>50% acima da sua média histórica</strong> por categoria 
+              gera um alerta persistente — salvo no histórico mesmo que você não esteja online.
+            </p>
+          </div>
         </div>
       )}
     </div>

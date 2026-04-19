@@ -1,11 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../lib/db';
-import { webpush } from '../lib/webpush';
+import * as PushService from '../services/PushService.js';
 
 export async function pushRoutes(app: FastifyInstance) {
   
-  // Endpoint para o navegador PWA enviar os segredos da Subscrição
+  // POST /api/push/subscribe
   app.post(
     '/api/push/subscribe',
     {
@@ -20,48 +19,11 @@ export async function pushRoutes(app: FastifyInstance) {
             auth: z.string(),
           }),
         }),
-        response: {
-          201: z.object({ status: z.string(), id: z.string() }),
-          500: z.object({ message: z.string() }),
-        },
       },
     },
     async (request, reply) => {
-      const userId = request.user.id;
-      const { endpoint, keys } = request.body as any;
-
       try {
-        const subscription = await db.pushSubscription.upsert({
-          where: { endpoint },
-          update: {
-            p256dh: keys.p256dh,
-            auth: keys.auth,
-            userId,
-          },
-          create: {
-            endpoint,
-            p256dh: keys.p256dh,
-            auth: keys.auth,
-            userId,
-          },
-        });
-
-        // Teste Opcional: Alerta de Boa-Vindas enviado imediatamente
-        const welcomePayload = JSON.stringify({
-          title: 'Meu Contador',
-          body: 'Notificações Inteligentes ativadas com sucesso neste aparelho.',
-        });
-
-        const subObj = {
-          endpoint: subscription.endpoint,
-          keys: {
-            p256dh: subscription.p256dh,
-            auth: subscription.auth,
-          }
-        };
-
-        webpush.sendNotification(subObj, welcomePayload).catch((err: unknown) => console.error('Erro no first-push:', err));
-
+        const subscription = await PushService.subscribe(request.user.id, request.body);
         return reply.status(201).send({ status: 'success', id: subscription.id });
       } catch (error) {
         app.log.error(error);
@@ -70,7 +32,7 @@ export async function pushRoutes(app: FastifyInstance) {
     }
   );
 
-  // Rota de Teste Simples no Frontend (Botão "Testar Notificação")
+  // POST /api/push/test
   app.post(
     '/api/push/test',
     {
@@ -82,53 +44,16 @@ export async function pushRoutes(app: FastifyInstance) {
           title: z.string().optional(),
           body: z.string().optional(),
         }).optional(),
-        response: {
-          200: z.object({ status: z.string(), successCount: z.number(), failureCount: z.number() }),
-          404: z.object({ message: z.string() }),
-        },
       },
     },
     async (request, reply) => {
-      const userId = request.user.id;
-      const bodyParams = request.body as any || {};
-
-      const subscriptions = await db.pushSubscription.findMany({
-        where: { userId },
-      });
-
-      if (subscriptions.length === 0) {
-        return reply.status(404).send({ message: 'Nenhuma assinatura de Push Ativa encontrada para seu usuário.' });
+      const result = await PushService.sendUserTestNotification(request.user.id, request.body || {});
+      
+      if (result.successCount === 0 && result.failureCount === 0) {
+        return reply.status(404).send({ message: 'Nenhuma assinatura de Push ativa encontrada.' });
       }
 
-      const payload = JSON.stringify({
-        title: bodyParams.title || 'Notificação de Teste',
-        body: bodyParams.body || 'O sistema WebPush no backend disparou perfeitamente.',
-      });
-
-      let successCount = 0;
-      let failureCount = 0;
-
-      for (const subRecord of subscriptions) {
-        try {
-          await webpush.sendNotification({
-            endpoint: subRecord.endpoint,
-            keys: {
-              p256dh: subRecord.p256dh,
-              auth: subRecord.auth,
-            }
-          }, payload);
-          successCount++;
-        } catch (error: any) {
-          app.log.error(error);
-          failureCount++;
-          // Cleanup: Dispositivo Deslogado, App Desinstalado ou Permissão Removida (404/410)
-          if (error.statusCode === 410 || error.statusCode === 404) {
-             await db.pushSubscription.delete({ where: { id: subRecord.id } });
-          }
-        }
-      }
-
-      return reply.send({ status: 'sent', successCount, failureCount });
+      return reply.send({ status: 'sent', ...result });
     }
   );
 }

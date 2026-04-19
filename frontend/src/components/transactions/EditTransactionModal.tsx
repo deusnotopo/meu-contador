@@ -3,6 +3,7 @@ import { X, Save, Paperclip, Loader2, Trash2, ExternalLink } from "lucide-react"
 import type { Transaction } from "@/types";
 import { uploadReceipt, deleteReceipt } from "@/lib/firebase-storage";
 import { showSuccess, showError } from "@/lib/toast";
+import { confirmAction } from "@/lib/confirm";
 
 const CATEGORIES_INCOME = ["Salário", "Freelance", "Investimentos", "Presente", "Outros"];
 const CATEGORIES_EXPENSE = [
@@ -54,14 +55,13 @@ export const EditTransactionModal = ({ transaction, onSave, onClose }: EditTrans
 
   const handleRemoveReceipt = async () => {
     if (!form.receiptUrl) return;
-    if (window.confirm("Deseja remover o comprovante anexo?")) {
-      try {
-        await deleteReceipt(form.receiptUrl);
-        setForm(prev => ({ ...prev, receiptUrl: "" }));
-        showSuccess("Comprovante removido.");
-      } catch {
-        showError("Erro ao remover arquivo.");
-      }
+    if (!await confirmAction('Deseja remover o comprovante anexo?')) return;
+    try {
+      await deleteReceipt(form.receiptUrl);
+      setForm(prev => ({ ...prev, receiptUrl: '' }));
+      showSuccess('Comprovante removido.');
+    } catch {
+      showError('Erro ao remover arquivo.');
     }
   };
 

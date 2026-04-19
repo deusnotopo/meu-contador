@@ -1,6 +1,8 @@
 // ─── TaxAuditorWidget ─────────────────────────────────────────────────────────
 // Shows estimated monthly tax (IRPF or Simples Nacional) based on user profile.
 
+import { DataReliabilityBadge } from "@/components/ui/DataReliabilityBadge";
+
 interface TaxAuditorWidgetProps {
   estimatedTax: number;
   monthlyRevenue: number;
@@ -17,12 +19,19 @@ export const TaxAuditorWidget = ({
   fmt,
 }: TaxAuditorWidgetProps) => (
   <div className="bento-card bg-amber-400/[0.06] border-amber-400/[0.18]">
-    <div className="flex gap-3 items-center">
+    <div className="flex gap-3 items-start">
       <span className="text-2xl" aria-hidden>🧾</span>
       <div className="flex-1 min-w-0">
-        <div className="text-[11px] font-bold uppercase tracking-wider mb-0.5 text-amber-400/90">
-          Auditor de Impostos ·{" "}
-          {employmentType === "pj" ? "DAS / Simples Nacional" : "IRPF Estimado"}
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-400/90">
+            Auditor de Impostos ·{" "}
+            {employmentType === "pj" ? "DAS / Simples Nacional" : "IRPF Estimado"}
+          </div>
+          <DataReliabilityBadge
+            reliability="ESTIMATED"
+            sourceLabel={employmentType === "pj" ? "regra Simples do app" : "faixa IRPF do app"}
+            compact
+          />
         </div>
         <div className="text-[13px] font-semibold text-[var(--t1)]">
           Separe{" "}
@@ -37,6 +46,9 @@ export const TaxAuditorWidget = ({
             : `Alíquota progressiva IRPF sobre renda acima de R$ 4.664`}
           {(dependents ?? 0) > 0 &&
             ` · ${dependents} dependente${(dependents ?? 0) > 1 ? "s" : ""} podem reduzir sua base`}
+        </div>
+        <div className="text-[10px] mt-2 text-amber-100/70 leading-relaxed">
+          Valor orientativo para provisão mensal. Confirme com seu regime tributário e documento fiscal.
         </div>
       </div>
       {employmentType === "pj" && (

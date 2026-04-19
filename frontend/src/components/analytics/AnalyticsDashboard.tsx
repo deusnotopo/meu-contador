@@ -1,28 +1,25 @@
 import { TrendingUp, TrendingDown, DollarSign, PieChart, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
-import type { Transaction } from '@/types';
 import { StatCard, MiniChart } from '../ui/DashboardWidgets';
-
-interface AnalyticsDashboardProps {
-  transactions: Transaction[];
-}
+import { useTransactions } from '@/hooks/useTransactions';
 
 import { PremiumGate } from '../ui/PremiumGate';
 import { MFAGate } from '../security/MFAGate';
 import { EmptyState } from '../ui/EmptyState';
 
-export function AnalyticsDashboard({ transactions }: AnalyticsDashboardProps) {
+export function AnalyticsDashboard() {
   return (
     <PremiumGate feature="premium_analytics">
       <MFAGate>
-        <AnalyticsDashboardContent transactions={transactions} />
+        <AnalyticsDashboardContent />
       </MFAGate>
     </PremiumGate>
   );
 }
 
-function AnalyticsDashboardContent({ transactions }: AnalyticsDashboardProps) {
+function AnalyticsDashboardContent() {
+  const { transactions } = useTransactions();
   const hasTransactions = Boolean(transactions?.length);
 
   // Calculate monthly data

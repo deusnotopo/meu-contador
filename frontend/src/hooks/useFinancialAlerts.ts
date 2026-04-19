@@ -47,24 +47,25 @@ export const useFinancialAlerts = () => {
         title: "Atenção: Déficit Mensal",
         message: "Seus gastos este mês superaram sua renda. Recomendo auditar seus 'Desejos' imediatamente.",
       });
-    }
-
-    // 3. Savings Rate Logic
-    const savingsRate = totals.income > 0 ? (totals.balance / totals.income) * 100 : 0;
-    if (savingsRate >= 20) {
-      list.push({
-        id: "savings-star",
-        type: "success",
-        title: "Desempenho Estelar!",
-        message: `Sua taxa de poupança está em ${savingsRate.toFixed(0)}%. Você está no caminho da liberdade financeira.`,
-      });
-    } else if (savingsRate < 5 && totals.income > 0) {
-       list.push({
-         id: "savings-low",
-         type: "info",
-         title: "Dica do Contador",
-         message: "Sua taxa de poupança está abaixo de 5%. Tente automatizar um investimento de pelo menos 10% no início do mês.",
-       });
+    } else {
+      // 3. Savings Rate Logic (Apenas se não estiver em Déficit)
+      const monthlyNet = totals.income - totals.expense;
+      const savingsRate = totals.income > 0 ? (monthlyNet / totals.income) * 100 : 0;
+      if (savingsRate >= 20) {
+        list.push({
+          id: "savings-star",
+          type: "success",
+          title: "Desempenho Estelar!",
+          message: `Sua taxa de poupança está em ${savingsRate.toFixed(0)}%. Você está no caminho da liberdade financeira.`,
+        });
+      } else if (savingsRate < 5 && totals.income > 0) {
+         list.push({
+           id: "savings-low",
+           type: "info",
+           title: "Dica do Contador",
+           message: "Sua taxa de poupança está abaixo de 5%. Tente automatizar um investimento de pelo menos 10% no início do mês.",
+         });
+      }
     }
 
     return list;

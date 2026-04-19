@@ -1,8 +1,7 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
 import { detectPatterns } from "@/lib/recurring-detector";
 import type { Pattern } from "@/lib/recurring-detector";
-import { useInvestments } from "@/hooks/useInvestments";
 import type { UseRemindersReturn } from "@/hooks/useReminders";
 import { showSuccess } from "@/lib/toast";
 import type { SavingsGoal, Transaction } from "@/types";
@@ -11,6 +10,8 @@ import { motion } from "framer-motion";
 import { PieChart, Sparkles, TrendingUp, Zap } from "lucide-react";
 import { PrivacyValue } from "../ui/PrivacyValue";
 import { EmptyState } from "../ui/EmptyState";
+import { useIntelligence } from "@/hooks/useIntelligence";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   transactions: Transaction[];
@@ -20,11 +21,25 @@ interface Props {
   remindersCtx: UseRemindersReturn;
 }
 
-export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }: Props) => {
+export const SmartInsights = ({
+  transactions,
+  goals,
+  onNavigate,
+  remindersCtx,
+}: Props) => {
   const { reminders, addReminder } = remindersCtx;
-  const { assets } = useInvestments();
+  const { intelligence, loading } = useIntelligence();
 
   const patterns = detectPatterns(transactions, reminders);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 w-full rounded-3xl bg-white/5" />
+        <Skeleton className="h-40 w-full rounded-3xl bg-white/5" />
+      </div>
+    );
+  }
 
   if (!transactions || transactions.length === 0) {
     return (
@@ -48,48 +63,22 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
       dueDate: nextMonth.toISOString().split("T")[0] || "",
       recurring: "monthly",
       isPaid: false,
+      type: "payment",
+      priority: "medium",
+      completed: false,
     });
 
     showSuccess(`${p.description} adicionado aos lembretes!`);
   };
 
-  const totalInvested = assets.reduce(
-    (acc, a) => acc + (a.amount * (a.currentPrice || 1)),
-    0
-  );
-
-  // Basic Wealth Timeline Logic
-  const monthlyExpenses =
-    transactions
-      .filter((t) => t.type === "expense")
-      .reduce((acc, t) => acc + t.amount, 0) /
-    (transactions.length > 30 ? 3 : 1); // rough monthly avg
-
-  const monthlySurplus =
-    transactions.reduce(
-      (acc, t) => acc + (t.type === "income" ? t.amount : -t.amount),
-      0
-    ) / (transactions.length > 30 ? 3 : 1);
-
-  // FIRE Calculation (4% Rule)
-  // Required Capital = Monthly Expenses * 12 / 0.04
-  const annualExpenses = monthlyExpenses * 12;
-  const fireTarget = annualExpenses > 0 ? annualExpenses / 0.04 : 1;
-  const firePercentage = fireTarget > 0 ? Math.min((totalInvested / fireTarget) * 100, 100) : 0;
-
-  // Years to FIRE (Simplified simple interest/no growth for conservative estimate)
-  const monthlySaving = Math.max(monthlySurplus, 0);
-  const yearsToFire =
-    monthlySaving > 0
-      ? (fireTarget - totalInvested) / (monthlySaving * 12)
-      : Infinity;
-
-  // Expense Optimization logic
-  const wantTotal = transactions
-    .filter((t) => t.type === "expense" && t.classification === "want")
-    .reduce((acc, t) => acc + t.amount, 0);
-
-  const potentialSavings10yr = wantTotal * 12 * 10 * 1.5; // Roughly 50% growth total for teaser math
+  const {
+    wealthSurvivalDays = 0,
+    fireProgress = 0,
+    yearsToFire = 0,
+    monthlyAvgExpenses = 0,
+    monthlyAvgSurplus = 0,
+    opportunityCost10yr = 0,
+  } = intelligence || {};
 
   return (
     <div className="space-y-8 pb-10">
@@ -152,8 +141,8 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
           {goals.map((goal) => {
             const remaining = goal.targetAmount - goal.currentAmount;
             const monthsToGoal =
-              monthlySurplus > 0
-                ? Math.ceil(remaining / (monthlySurplus * 0.5))
+              monthlyAvgSurplus > 0
+                ? Math.ceil(remaining / (monthlyAvgSurplus * 0.5))
                 : Infinity; // Assume 50% of surplus goes to this goal
 
             return (
@@ -169,13 +158,13 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
                     Estimativa para conclusão:
                   </p>
                   <p className="text-2xl font-black text-white">
-                    {monthsToGoal === Infinity
+                    {monthsToGoal === Infinity || monthsToGoal === null
                       ? "???"
                       : monthsToGoal > 12
-                      ? `${Math.floor(monthsToGoal / 12)}a ${
-                          monthsToGoal % 12
-                        }m`
-                      : `${monthsToGoal} meses`}
+                        ? `${Math.floor(monthsToGoal / 12)}a ${
+                            monthsToGoal % 12
+                          }m`
+                        : `${monthsToGoal} meses`}
                   </p>
                 </div>
                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -195,7 +184,13 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
             );
           })}
 
-          <div className="bento-card p-5 flex flex-col justify-between" style={{ background: "rgba(0,217,145,0.05)", borderColor: "rgba(0,217,145,0.2)" }}>
+          <div
+            className="bento-card p-5 flex flex-col justify-between"
+            style={{
+              background: "rgba(0,217,145,0.05)",
+              borderColor: "rgba(0,217,145,0.2)",
+            }}
+          >
             <div>
               <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-1">
                 Poder de Liberdade
@@ -206,7 +201,8 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
             </div>
             <div className="py-4">
               <p className="text-4xl font-black text-white">
-                {monthlyExpenses > 0 ? Math.floor(totalInvested / (monthlyExpenses / 30)) : 0} <span className="text-lg text-neutral-500">dias</span>
+                {wealthSurvivalDays}{" "}
+                <span className="text-lg text-neutral-500">dias</span>
               </p>
             </div>
             <p className="text-[8px] text-neutral-700 font-bold uppercase italic">
@@ -214,7 +210,13 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
             </p>
           </div>
 
-          <div className="bento-card p-5 flex flex-col justify-between" style={{ background: "rgba(99,102,241,0.08)", borderColor: "rgba(99,102,241,0.25)" }}>
+          <div
+            className="bento-card p-5 flex flex-col justify-between"
+            style={{
+              background: "rgba(99,102,241,0.08)",
+              borderColor: "rgba(99,102,241,0.25)",
+            }}
+          >
             <div>
               <h4 className="text-xs font-black text-white uppercase tracking-widest mb-1">
                 Aposentadoria (FIRE)
@@ -225,12 +227,12 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
             </div>
             <div className="py-4 space-y-2">
               <p className="text-4xl font-black text-white">
-                {firePercentage.toFixed(1)}%
+                {fireProgress.toFixed(1)}%
               </p>
               <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${firePercentage}%` }}
+                  animate={{ width: `${fireProgress}%` }}
                   className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
                 />
               </div>
@@ -238,11 +240,11 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
             <div className="flex justify-between items-center text-[10px] font-bold text-neutral-500 uppercase">
               <span>
                 Faltam:{" "}
-                {yearsToFire === Infinity
+                {yearsToFire >= 999
                   ? "???"
                   : yearsToFire > 50
-                  ? "+50 anos"
-                  : `${yearsToFire.toFixed(1)} anos`}
+                    ? "+50 anos"
+                    : `${yearsToFire.toFixed(1)} anos`}
               </span>
             </div>
           </div>
@@ -250,7 +252,13 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
       </div>
 
       {/* Optimization Tips */}
-      <div className="bento-card p-6 overflow-hidden relative" style={{ background: "rgba(99,102,241,0.06)", borderColor: "rgba(99,102,241,0.18)" }}>
+      <div
+        className="bento-card p-6 overflow-hidden relative"
+        style={{
+          background: "rgba(99,102,241,0.06)",
+          borderColor: "rgba(99,102,241,0.18)",
+        }}
+      >
         <div className="absolute top-0 right-0 p-10 opacity-10">
           <PieChart size={120} />
         </div>
@@ -260,11 +268,11 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
               Auditoria de <span className="text-indigo-400">Desejos</span>
             </h3>
             <p className="text-sm text-neutral-500 max-w-md font-medium">
-              Você classificou{" "}
+              Você classificou uma média de{" "}
               <span className="text-white font-bold">
-                {formatCurrency(wantTotal)}
+                {formatCurrency(monthlyAvgExpenses)}
               </span>{" "}
-              como "Desejos" (não-essenciais) em seu histórico.
+              como gastos mensais, com oportunidades de otimização detectadas.
             </p>
           </div>
 
@@ -275,7 +283,7 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
                   Custo de Oportunidade (10 anos)
                 </p>
                 <p className="text-2xl font-black text-indigo-400">
-                  <PrivacyValue value={potentialSavings10yr} />
+                  <PrivacyValue value={opportunityCost10yr} />
                 </p>
               </div>
               <p className="text-[10px] text-neutral-500 leading-relaxed italic">
@@ -285,7 +293,7 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
             </div>
 
             <div className="space-y-2">
-              <Button 
+              <Button
                 onClick={() => onNavigate?.("ai")}
                 className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-black text-xs uppercase tracking-widest"
               >
@@ -305,4 +313,3 @@ export const SmartInsights = ({ transactions, goals, onNavigate, remindersCtx }:
     </div>
   );
 };
-

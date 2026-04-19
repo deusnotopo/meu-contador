@@ -35,6 +35,7 @@ import { reminderRoutes } from './routes/reminders';
 import { graphqlRoutes } from './routes/graphql';
 import { websocketRoutes } from './routes/websocket';
 import { auditRoutes } from './routes/audit.js';
+import { statementsRoutes } from './routes/statements';
 import { gamificationRoutes } from './routes/gamification';
 import { emotionalRoutes } from './routes/emotional';
 import { workspaceRoutes } from './routes/workspace';
@@ -47,6 +48,9 @@ import { provisionRoutes } from './routes/provisions';
 import { analyticsRoutes } from './routes/analytics';
 import { notificationsRoutes } from './routes/notifications';
 import { cashflowRoutes } from './routes/cashflow';
+import { intelligenceRoutes } from './routes/intelligence';
+import { reconciliationRoutes } from './routes/reconciliation';
+import { startAllScheduledJobs } from './lib/scheduler.js';
 
 const ACCESS_COOKIE_NAME = 'mc_access_token';
 const CSRF_COOKIE_NAME = 'mc_csrf_token';
@@ -54,11 +58,15 @@ const CSRF_COOKIE_NAME = 'mc_csrf_token';
 declare module 'fastify' {
   export interface FastifyInstance {
     authenticate(request: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply): Promise<void>;
+    proGuard(request: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply): Promise<void>;
     signAccessToken(payload: { id: string; email: string; name: string | null; isPro: boolean }): string;
   }
 }
 
 dotenv.config();
+
+// Bootstrap scheduled jobs (cron) — must run after dotenv
+startAllScheduledJobs();
 
 // âœ… VALIDAÃ‡ÃƒO OBRIGATÃ“RIA DE AMBIENTE NO BOOT
 // Fail Fast: Se qualquer variÃ¡vel obrigatÃ³ria faltar, o app NÃƒO INICIA
@@ -115,6 +123,14 @@ export const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>()
 
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
+
+app.addHook('onSend', (request, reply, payload, done) => {
+  const contentType = reply.getHeader('content-type');
+  if (typeof contentType === 'string' && contentType.includes('application/json') && !contentType.includes('charset')) {
+    reply.header('Content-Type', `${contentType}; charset=utf-8`);
+  }
+  done(null, payload);
+});
 
 app.register(helmet, {
   global: true,
@@ -398,6 +414,7 @@ app.register(userEducationRoutes);
 app.register(userOnboardingRoutes);
 app.register(userExportRoutes);
 app.register(transactionRoutes);
+app.register(statementsRoutes);
 app.register(investmentRoutes);
 app.register(budgetRoutes);
 app.register(goalRoutes);
@@ -421,5 +438,7 @@ app.register(assetRoutes);
 app.register(interestRoutes);
 app.register(provisionRoutes);
 app.register(analyticsRoutes);
-  app.register(notificationsRoutes);
-  app.register(cashflowRoutes);
+app.register(notificationsRoutes);
+app.register(cashflowRoutes);
+app.register(intelligenceRoutes, { prefix: '/intelligence' });
+app.register(reconciliationRoutes, { prefix: '/workspace' });

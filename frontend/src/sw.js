@@ -10,7 +10,7 @@ clientsClaim();
 
 
 const isDevHost = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
-const API_CACHE_DENYLIST = ['/auth/', '/api/ai-proxy', '/open-finance/', '/api/push/'];
+const API_CACHE_DENYLIST = ['/auth/', '/ai-proxy', '/open-finance/', '/api/push/'];
 
 if (isDevHost) {
   self.addEventListener('install', () => {

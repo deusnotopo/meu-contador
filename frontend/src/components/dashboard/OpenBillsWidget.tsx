@@ -141,10 +141,10 @@ export const OpenBillsWidget = ({ remindersCtx, onNavigate }: OpenBillsWidgetPro
       >
         <AnimatePresence mode="popLayout">
           {bills.map((bill) => {
-            const isOverdue = new Date(bill.dueDate) < new Date();
-            const isToday =
-              new Date(bill.dueDate).toISOString().split("T")[0] ===
-              new Date().toISOString().split("T")[0];
+            // "en-CA" generates strict YYYY-MM-DD from browser's local timezone
+            const localToday = new Date().toLocaleDateString("en-CA");
+            const isOverdue = bill.dueDate < localToday;
+            const isToday = bill.dueDate === localToday;
             const isProcessing = processingId === bill.id;
 
             return (

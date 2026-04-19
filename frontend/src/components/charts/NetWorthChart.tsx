@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   Area,
   AreaChart,
@@ -21,12 +21,11 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayloadItem[];
   label?: string;
+  isPrivacy?: boolean;
 }
 
-const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+const CustomTooltip = ({ active, payload, label, isPrivacy }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
-    const isPrivacy =
-      localStorage.getItem("meu_contador_privacy_mode") === "true";
 
     return (
       <div className="bg-[#020617] border border-white/10 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
@@ -48,6 +47,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 };
 
 export const NetWorthChart: React.FC<Props> = ({ data }) => {
+  const isPrivacy = localStorage.getItem("meu_contador_privacy_mode") === "true";
+
   return (
     <div className="h-[200px] w-full items-end flex">
       <ResponsiveContainer width="100%" height="80%">
@@ -65,7 +66,7 @@ export const NetWorthChart: React.FC<Props> = ({ data }) => {
           />
           <XAxis dataKey="month" hide />
           <YAxis hide domain={["auto", "auto"]} />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: "#ffffff05" }} />
+          <Tooltip content={<CustomTooltip isPrivacy={isPrivacy} />} cursor={{ fill: "#ffffff05" }} />
           <Area
             type="monotone"
             dataKey="value"

@@ -8,7 +8,7 @@ import { useWebPush } from "@/hooks/useWebPush";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { HelpButton } from "@/components/ui/HelpButton";
-import { LogOut, ArrowLeft, Download, Fingerprint, Moon, Sun, ShieldCheck, Globe, HelpCircle, Bell, BellOff, Trash2, Users, History, Edit2 } from "lucide-react";
+import { LogOut, ArrowLeft, Download, Moon, Sun, ShieldCheck, Globe, HelpCircle, Bell, BellOff, Trash2, Users, History, Edit2 } from "lucide-react";
 import { BankConnectionsView } from "@/components/banking/BankConnectionsView";
 import { HelpCenter } from "@/components/support/HelpCenter";
 import { CollaborationPanel } from "@/components/profile/CollaborationPanel";
@@ -71,8 +71,8 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
     const saved = localStorage.getItem('theme');
     return saved ? saved === 'dark' : true;
   });
-  const [bioActive, setBioActive] = useState(true);
-  // Notif toggles â€” persistidos no localStorage
+  // bioActive removido — era feature decorativa sem persistência
+  // Notif toggles — persistidos no localStorage
   const [notifTransactions, setNotifTransactions] = useState(() => localStorage.getItem('notif_transactions') !== 'false');
   const [notifBudgets, setNotifBudgets] = useState(() => localStorage.getItem('notif_budgets') !== 'false');
   const [notifGoals, setNotifGoals] = useState(() => localStorage.getItem('notif_goals') !== 'false');
@@ -91,10 +91,10 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
 
   // Toggle push notifications master switch
   const handlePushToggle = useCallback(async () => {
-    if (!pushSupported) { showError('Push notifications nÃ£o suportadas neste dispositivo.'); return; }
+    if (!pushSupported) { showError('Push notifications não suportadas neste dispositivo.'); return; }
     if (pushSubscribed) {
       await pushUnsubscribe?.();
-      showSuccess('NotificaÃ§Ãµes push desativadas.');
+      showSuccess('Notificações push desativadas.');
     } else {
       await pushSubscribe();
       showSuccess('NotificaÃ§Ãµes push ativadas! ðŸ””');
@@ -126,8 +126,8 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
   const grossIncome = globalTotals.income;
   const netIncome = grossIncome * 0.84;
   const userAge = profile?.age || 0;
-  const investorProfile = profile?.investorProfile || "NÃ£o definido";
-  const investmentHorizon = profile?.investmentHorizon || "NÃ£o definido";
+  const investorProfile = profile?.investorProfile || "Não definido";
+  const investmentHorizon = profile?.investmentHorizon || "Não definido";
   const dependents = profile?.dependents || 0;
 
   useEffect(() => {
@@ -159,7 +159,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <Button variant="outline" size="sm" onClick={() => setShowEditProfile(true)} className="rounded-xl gap-1">
           <Edit2 size={14} /> Editar
         </Button>
-        <HelpButton tooltipText="Gerencie sua conta, preferÃªncias e seguranÃ§a" />
+        <HelpButton tooltipText="Gerencie sua conta, preferências e segurança" />
       </div>
 
       {/* Profile Hero */}
@@ -167,21 +167,21 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
         <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-2xl font-bold text-white mx-auto mb-3 shadow-lg shadow-indigo-500/20 ring-4 ring-indigo-500/20">
           {user?.name?.substring(0, 2).toUpperCase() || "MC"}
         </div>
-        <div className="text-lg font-bold">{user?.name || "UsuÃ¡rio"}</div>
+        <div className="text-lg font-bold">{user?.name || "Usuário"}</div>
         <div className="text-sm text-[var(--t3)] mt-1">{user?.email || "contato@meucontador.com"}</div>
 
         <div className="flex justify-center gap-2 mt-3 flex-wrap">
           <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full text-xs font-bold flex items-center gap-1">
-            âœ¨ Ativo
+            ✨ Ativo
           </span>
           {healthScore > 0 && <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold">Score {healthScore}</span>}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mt-4">
           {[
-            ["ðŸ—“ï¸", daysInApp > 0 ? daysInApp.toString() : "-", "dias no app"],
-            ["ðŸ“Š", healthScore > 0 ? healthScore.toString() : "-", "score saÃºde"],
-            ["ðŸŽ¯", fireProgress > 0 ? `${fireProgress}%` : "-", "rumo FIRE"]
+            ["📅", daysInApp > 0 ? daysInApp.toString() : "-", "dias no app"],
+            ["📊", healthScore > 0 ? healthScore.toString() : "-", "score saúde"],
+            ["🎯", fireProgress > 0 ? `${fireProgress}%` : "-", "rumo FIRE"]
           ].map(([em, vl, lb], i) => (
             <div key={i} className="text-center">
               <div className="text-xl mb-1">{em}</div>
@@ -197,10 +197,10 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-3">
         {([
           ["Renda bruta mensal", grossIncome > 0 ? `R$ ${Math.round(grossIncome).toLocaleString('pt-BR')}` : "-", null],
-          ["Renda lÃ­quida", netIncome > 0 ? `R$ ${Math.round(netIncome).toLocaleString('pt-BR')}` : "-", null],
-          ["Faixa etÃ¡ria", userAge > 0 ? `${userAge} anos` : "-", null],
-          ["Perfil investidor", investorProfile, investorProfile !== "NÃ£o definido" ? "b" : null],
-          ["Horizonte", investmentHorizon, investmentHorizon !== "NÃ£o definido" ? "g" : null],
+          ["Renda líquida", netIncome > 0 ? `R$ ${Math.round(netIncome).toLocaleString('pt-BR')}` : "-", null],
+          ["Faixa etária", userAge > 0 ? `${userAge} anos` : "-", null],
+          ["Perfil investidor", investorProfile, investorProfile !== "Não definido" ? "b" : null],
+          ["Horizonte", investmentHorizon, investmentHorizon !== "Não definido" ? "g" : null],
           ["Dependentes", dependents > 0 ? dependents.toString() : "Nenhum", null]
         ] as [string, string, string | null][]).map(([lb, vl, badge], i) => (
           <div key={i} className="flex items-center justify-between py-2">
@@ -264,23 +264,17 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
           onToggle={() => setDarkTheme(!darkTheme)}
         />
 
-        <SettingsToggleRow
-          icon={<Fingerprint size={16} className="text-[var(--t3)]" />}
-          title="Acesso Biométrico"
-          subtitle="Face ID / Touch ID"
-          checked={bioActive}
-          onToggle={() => setBioActive(!bioActive)}
-        />
 
-        <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setLanguage(language === "pt-BR" ? "en-US" : "pt-BR")}>
+
+        <button type="button" className="flex items-center justify-between py-3 w-full text-left rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/70" onClick={() => setLanguage(language === "pt-BR" ? "en-US" : "pt-BR")}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><Globe size={16} className="text-[var(--t3)]" /></div>
             <div><div className="text-sm font-medium">Idioma</div><div className="text-xs text-[var(--t4)]">{language === "pt-BR" ? "Português (BR)" : "English (US)"}</div></div>
           </div>
           <span className="text-[var(--t4)] text-sm">›</span>
-        </div>
+        </button>
 
-        <div className="flex items-center justify-between py-3 cursor-pointer group">
+        <button type="button" className="flex items-center justify-between py-3 w-full text-left rounded-xl cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/70">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><Download size={16} className="text-[var(--t3)]" /></div>
             <div>
@@ -289,27 +283,27 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
             </div>
           </div>
           <span className="text-[var(--t4)] text-sm">›</span>
-        </div>
+        </button>
 
-        <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowHelpCenter(true)}>
+        <button type="button" className="flex items-center justify-between py-3 w-full text-left rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/70" onClick={() => setShowHelpCenter(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center"><HelpCircle size={16} className="text-[var(--t3)]" /></div>
             <div><div className="text-sm font-medium">Central de Ajuda</div><div className="text-xs text-[var(--t4)]">FAQ, tutoriais e suporte</div></div>
           </div>
           <span className="text-[var(--t4)] text-sm">›</span>
-        </div>
+        </button>
       </div>
 
       {/* Segurança */}
       <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Segurança</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
-        <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowMFA(true)}>
+        <button type="button" className="flex items-center justify-between py-3 w-full text-left rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/70" onClick={() => setShowMFA(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center"><ShieldCheck size={16} className="text-emerald-400" /></div>
             <div><div className="text-sm font-medium">Autenticação 2FA</div><div className="text-xs text-[var(--t4)]">Proteção adicional com SMS</div></div>
           </div>
           <span className="text-[var(--t4)] text-sm">›</span>
-        </div>
+        </button>
       </div>
 
       {/* Workspaces */}
@@ -321,25 +315,25 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       {/* Colaboração */}
       <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Colaboração</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
-        <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowCollaboration(true)}>
+        <button type="button" className="flex items-center justify-between py-3 w-full text-left rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/70" onClick={() => setShowCollaboration(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-pink-500/10 flex items-center justify-center"><Users size={16} className="text-pink-400" /></div>
             <div><div className="text-sm font-medium">Espaços Colaborativos</div><div className="text-xs text-[var(--t4)]">Compartilhe dados com familiares</div></div>
           </div>
           <span className="text-[var(--t4)] text-sm">›</span>
-        </div>
+        </button>
       </div>
 
       {/* Auditoria */}
       <h3 className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-3">Auditoria</h3>
       <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-4 mb-5 space-y-1">
-        <div className="flex items-center justify-between py-3 cursor-pointer" onClick={() => setShowAuditLog(true)}>
+        <button type="button" className="flex items-center justify-between py-3 w-full text-left rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/70" onClick={() => setShowAuditLog(true)}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center"><History size={16} className="text-amber-400" /></div>
             <div><div className="text-sm font-medium">Histórico de Atividades</div><div className="text-xs text-[var(--t4)]">Log de ações do workspace</div></div>
           </div>
           <span className="text-[var(--t4)] text-sm">›</span>
-        </div>
+        </button>
       </div>
 
       {/* Modals */}
@@ -393,7 +387,7 @@ export const SettingsSection = ({ onBack }: SettingsSectionProps = {}) => {
       )}
 
       <div className="text-center text-[10px] text-[var(--t4)] mt-6 mb-10 uppercase tracking-wider">
-        VersÃ£o 3.0.0 â€” Silicon Valley Standard
+        Versão 3.0.0 — Silicon Valley Standard
       </div>
     </div>
   );

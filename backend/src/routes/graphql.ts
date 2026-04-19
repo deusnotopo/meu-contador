@@ -2,6 +2,13 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../lib/db';
 import { deleteCacheByPrefix } from '../lib/cache';
+import * as TransactionService from '../services/TransactionService.js';
+import * as BudgetService from '../services/BudgetService.js';
+import * as GoalService from '../services/GoalService.js';
+import * as InvestmentService from '../services/InvestmentService.js';
+import * as InvoiceService from '../services/InvoiceService.js';
+import * as ReminderService from '../services/ReminderService.js';
+import * as UserService from '../services/UserService.js';
 
 // GraphQL Schema Definition
 const typeDefs = `
@@ -251,11 +258,7 @@ const typeDefs = `
 `;
 
 // GraphQL Resolvers
-function createResolvers(userId: string, isPro: boolean) {
-  const invalidateBudgetCache = async () => {
-    await deleteCacheByPrefix(`budgets:list:${userId}:`);
-  };
-
+function createResolvers(app: FastifyInstance, userId: string, isPro: boolean) {
   const proGuard = () => {
     if (!isPro) {
       throw new Error('👑 RECURSO PREMIUM: Esta funcionalidade exige o plano PRO. Faça o upgrade para continuar.');
@@ -265,85 +268,32 @@ function createResolvers(userId: string, isPro: boolean) {
   return {
     Query: {
       transactions: async ({ page = 1, limit = 20, scope }: { page?: number; limit?: number; scope?: string }) => {
-        const skip = (page - 1) * limit;
-        const where: any = { userId };
-        if (scope) where.scope = scope;
-
-        const [items, total] = await Promise.all([
-          db.transaction.findMany({
-            where,
-            orderBy: { date: 'desc' },
-            skip,
-            take: limit,
-          }),
-          db.transaction.count({ where }),
-        ]);
-
-        return {
-          items,
-          page,
-          limit,
-          total,
-          totalPages: Math.max(1, Math.ceil(total / limit)),
-        };
+        return (TransactionService as any).listTransactions(userId, { page, limit, scope: scope as any });
       },
 
       transaction: async ({ id }: { id: string }) => {
-        return db.transaction.findFirst({
-          where: { id, userId },
-        });
+        const tx = await TransactionService.getTransaction(id, userId);
+        if (!tx) return null;
+        return {
+          ...tx,
+          amount: (tx.amount as number) / 100
+        };
       },
 
       budgets: async ({ month }: { month?: string }) => {
-        const where: any = { userId };
-        if (month) where.month = month;
-        const budgets = await db.budget.findMany({ where, orderBy: { month: 'desc' } });
-
-        return Promise.all(
-          budgets.map(async (budget) => {
-            const start = new Date(`${budget.month}-01T00:00:00.000Z`);
-            const end = new Date(start);
-            end.setUTCMonth(end.getUTCMonth() + 1);
-
-            const aggregate = await db.transaction.aggregate({
-              where: {
-                userId,
-                type: 'expense',
-                category: {
-                  equals: budget.category,
-                  mode: 'insensitive',
-                },
-                date: {
-                  gte: start,
-                  lt: end,
-                },
-              },
-              _sum: {
-                amount: true,
-              },
-            });
-
-            return {
-              ...budget,
-              spent: Math.abs(aggregate._sum.amount ?? 0),
-            };
-          }),
-        );
+        const result = await BudgetService.listBudgets(userId, { month, page: 1, limit: 100 }) as any;
+        return result.items;
       },
 
       goals: async () => {
-        return db.savingsGoal.findMany({
-          where: { userId },
-          orderBy: { deadline: 'asc' },
-        });
+        const result = await GoalService.listGoals(userId, { page: 1, limit: 100 }) as any;
+        return result.items;
       },
 
       investments: async () => {
         proGuard();
-        return db.investment.findMany({
-          where: { userId },
-          orderBy: { lastUpdate: 'desc' },
-        });
+        const result = await (InvestmentService as any).listInvestments(userId, { page: 1, limit: 100 });
+        return (result as any).items;
       },
 
       debts: async () => {
@@ -355,28 +305,15 @@ function createResolvers(userId: string, isPro: boolean) {
 
       invoices: async () => {
         proGuard();
-        const user = await db.user.findUnique({
-          where: { id: userId },
-          select: { currentWorkspaceId: true },
-        });
-        const workspaceId = user?.currentWorkspaceId || userId;
-        return db.invoice.findMany({
-          where: { workspaceId },
-          orderBy: { dueDate: 'desc' },
-        });
+        return InvoiceService.listInvoices(userId);
       },
 
       reminders: async () => {
-        return db.billReminder.findMany({
-          where: { userId },
-          orderBy: { dueDate: 'asc' },
-        });
+        return ReminderService.listReminders(userId);
       },
 
       user: async () => {
-        const user = await db.user.findUnique({
-          where: { id: userId },
-        });
+        const user = await UserService.getUserProfile(userId);
         if (!user) throw new Error('User not found');
         return user;
       },
@@ -402,196 +339,69 @@ function createResolvers(userId: string, isPro: boolean) {
 
     Mutation: {
       createTransaction: async ({ input }: { input: any }) => {
-        const created = await db.transaction.create({
-          data: { ...input, userId },
-        });
-
-        await invalidateBudgetCache();
-        return created;
+        return (TransactionService as any).createTransaction(userId, input, app);
       },
 
       updateTransaction: async ({ id, input }: { id: string; input: any }) => {
-        const existing = await db.transaction.findFirst({
-          where: { id, userId },
-        });
-        if (!existing) throw new Error('Transaction not found');
-        const updated = await db.transaction.update({
-          where: { id },
-          data: input,
-        });
-
-        await invalidateBudgetCache();
-        return updated;
+        return TransactionService.updateTransaction(id, userId, input);
       },
 
       deleteTransaction: async ({ id }: { id: string }) => {
-        const existing = await db.transaction.findFirst({
-          where: { id, userId },
-        });
-        if (!existing) throw new Error('Transaction not found');
-        await db.transaction.delete({ where: { id } });
-        await invalidateBudgetCache();
+        await TransactionService.deleteTransaction(id, userId);
         return true;
       },
 
       createBudget: async ({ input }: { input: any }) => {
-        const created = await db.budget.create({
-          data: { ...input, userId },
-        });
-
-        await invalidateBudgetCache();
-
-        return {
-          ...created,
-          spent: 0,
-        };
+        return (BudgetService as any).createBudget(userId, input);
       },
 
       updateBudget: async ({ id, input }: { id: string; input: any }) => {
-        const existing = await db.budget.findFirst({
-          where: { id, userId },
-        });
-        if (!existing) throw new Error('Budget not found');
-
-        const updated = await db.budget.update({
-          where: { id },
-          data: {
-            ...(input.limit !== undefined ? { limit: input.limit } : {}),
-          },
-        });
-
-        const start = new Date(`${updated.month}-01T00:00:00.000Z`);
-        const end = new Date(start);
-        end.setUTCMonth(end.getUTCMonth() + 1);
-
-        const aggregate = await db.transaction.aggregate({
-          where: {
-            userId,
-            type: 'expense',
-            category: {
-              equals: updated.category,
-              mode: 'insensitive',
-            },
-            date: {
-              gte: start,
-              lt: end,
-            },
-          },
-          _sum: {
-            amount: true,
-          },
-        });
-
-        return {
-          ...updated,
-          spent: Math.abs(aggregate._sum.amount ?? 0),
-        };
+        return BudgetService.updateBudget(id, userId, input);
       },
 
       deleteBudget: async ({ id }: { id: string }) => {
-        const existing = await db.budget.findFirst({
-          where: { id, userId },
-        });
-        if (!existing) throw new Error('Budget not found');
-        await db.budget.delete({ where: { id } });
-        await invalidateBudgetCache();
+        await BudgetService.deleteBudget(id, userId);
         return true;
       },
 
       createGoal: async ({ input }: { input: any }) => {
-        return db.savingsGoal.create({
-          data: { ...input, userId },
-        });
+        return GoalService.createGoal(userId, input);
       },
 
       updateGoal: async ({ id, input }: { id: string; input: any }) => {
-        const existing = await db.savingsGoal.findFirst({
-          where: { id, userId },
-        });
-        if (!existing) throw new Error('Goal not found');
-        return db.savingsGoal.update({
-          where: { id },
-          data: input,
-        });
+        return GoalService.updateGoal(id, userId, input);
       },
 
       deleteGoal: async ({ id }: { id: string }) => {
-        const existing = await db.savingsGoal.findFirst({
-          where: { id, userId },
-        });
-        if (!existing) throw new Error('Goal not found');
-        await db.savingsGoal.delete({ where: { id } });
+        await GoalService.deleteGoal(id, userId);
         return true;
       },
 
       createInvoice: async ({ input }: { input: any }) => {
         proGuard();
-        const user = await db.user.findUnique({
-          where: { id: userId },
-          select: { currentWorkspaceId: true },
-        });
-        const workspaceId = user?.currentWorkspaceId || userId;
-        return db.invoice.create({
-          data: { ...input, workspaceId },
-        });
+        return InvoiceService.createInvoice(userId, input);
       },
 
       updateInvoice: async ({ id, input }: { id: string; input: any }) => {
         proGuard();
-        const user = await db.user.findUnique({
-          where: { id: userId },
-          select: { currentWorkspaceId: true },
-        });
-        const workspaceId = user?.currentWorkspaceId || userId;
-        const existing = await db.invoice.findFirst({
-          where: { id, workspaceId },
-        });
-        if (!existing) throw new Error('Invoice not found');
-        return db.invoice.update({
-          where: { id },
-          data: input,
-        });
+        return InvoiceService.updateInvoice(id, userId, input);
       },
 
       deleteInvoice: async ({ id }: { id: string }) => {
         proGuard();
-        const user = await db.user.findUnique({
-          where: { id: userId },
-          select: { currentWorkspaceId: true },
-        });
-        const workspaceId = user?.currentWorkspaceId || userId;
-        const existing = await db.invoice.findFirst({
-          where: { id, workspaceId },
-        });
-        if (!existing) throw new Error('Invoice not found');
-        await db.invoice.delete({ where: { id } });
-        return true;
+        return InvoiceService.deleteInvoice(id, userId);
       },
 
       createReminder: async ({ input }: { input: any }) => {
-        return db.billReminder.create({
-          data: { ...input, userId },
-        });
+        return ReminderService.createReminder(userId, input);
       },
 
       updateReminder: async ({ id, input }: { id: string; input: any }) => {
-        const existing = await db.billReminder.findFirst({
-          where: { id, userId },
-        });
-        if (!existing) throw new Error('Reminder not found');
-        return db.billReminder.update({
-          where: { id },
-          data: input,
-        });
+        return ReminderService.updateReminder(id, userId, input);
       },
 
       deleteReminder: async ({ id }: { id: string }) => {
-        const existing = await db.billReminder.findFirst({
-          where: { id, userId },
-        });
-        if (!existing) throw new Error('Reminder not found');
-        await db.billReminder.delete({ where: { id } });
-        return true;
+        return ReminderService.deleteReminder(id, userId);
       },
     },
   };
@@ -662,7 +472,7 @@ export async function graphqlRoutes(app: FastifyInstance) {
     const { query, variables = {} } = request.body as { query: string; variables?: any };
 
     try {
-      const resolvers = createResolvers(userId, isPro);
+      const resolvers = createResolvers(app, userId, isPro);
       
       // Parse the query to extract operation and field
       const { operation, fields } = parseQuery(query);

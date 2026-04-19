@@ -59,6 +59,7 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
       notes: "Saldo inicial configurado no setup",
       recurring: false,
       scope: "personal",
+      currency: "BRL",
     };
     saveTransactions([initialTransaction]);
   }
@@ -72,6 +73,8 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
       limit: b.amount,
       spent: 0,
       month: new Date().toISOString().slice(0, 7),
+      period: "monthly" as const,
+      priority: "medium" as const,
     }));
   saveBudgets(budgets);
 
@@ -85,19 +88,20 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
       currentAmount: 0,
       deadline:
         g.deadline ||
-        (new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
           .toISOString()
-          .split("T")[0] || ""),
+          .split("T")[0] ||
+        "",
       icon: g.icon ?? "🎯",
       color: [
         "from-blue-500 to-blue-600",
         "from-purple-500 to-purple-600",
         "from-green-500 to-green-600",
       ][i % 3],
+      category: "general",
+      status: "active",
     }));
   saveGoals(goals);
-
-
 
   // Save historical expenses as transactions
   if (data.historicalExpenses && data.historicalExpenses.length > 0) {
@@ -113,7 +117,8 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
         notes: "Importado durante onboarding",
         recurring: true,
         scope: "personal",
-      })
+        currency: "BRL",
+      }),
     );
     const existing = loadTransactions();
     saveTransactions([...existing, ...historicalTransactions]);
@@ -124,6 +129,8 @@ export const applyOnboardingConfig = (data: OnboardingData): void => {
     const finalInvestments: Investment[] = data.investments.map((inv) => ({
       ...inv,
       id: String(inv.id),
+      currency: "BRL",
+      lastUpdated: new Date().toISOString(),
     }));
     saveInvestments(finalInvestments);
   }

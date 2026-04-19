@@ -59,17 +59,17 @@ export async function transactionRoutes(app: FastifyInstance) {
 
   // GET /transactions — paginated list
   app.get('/transactions', {
-    preHandler: [(app as any).authenticate],
+    preHandler: [app.authenticate],
     schema: { tags: ['Transactions'], security: [{ bearerAuth: [] }], querystring: paginationQuerySchema },
   }, async (request) => {
     const { page, limit, scope } = request.query as z.infer<typeof paginationQuerySchema>;
     const { id: userId } = request.user as { id: string };
-    return TransactionService.listTransactions({ userId, page, limit, scope });
+    return TransactionService.listTransactions(userId, { page, limit, scope });
   });
 
   // GET /transactions/cursor — cursor-based pagination
   app.get('/transactions/cursor', {
-    preHandler: [(app as any).authenticate],
+    preHandler: [app.authenticate],
     schema: { tags: ['Transactions'], security: [{ bearerAuth: [] }], querystring: cursorQuerySchema },
   }, async (request) => {
     const { cursor, limit, scope } = request.query as z.infer<typeof cursorQuerySchema>;
@@ -79,7 +79,7 @@ export async function transactionRoutes(app: FastifyInstance) {
 
   // POST /transactions — create
   app.post('/transactions', {
-    preHandler: [(app as any).authenticate],
+    preHandler: [app.authenticate],
     schema: { tags: ['Transactions'], security: [{ bearerAuth: [] }], body: bodySchema },
   }, async (request) => {
     const body = request.body as z.infer<typeof bodySchema>;
@@ -89,7 +89,7 @@ export async function transactionRoutes(app: FastifyInstance) {
 
   // PUT /transactions/:id — update
   app.put('/transactions/:id', {
-    preHandler: [(app as any).authenticate],
+    preHandler: [app.authenticate],
     schema: { tags: ['Transactions'], security: [{ bearerAuth: [] }], params: paramsSchema, body: patchBodySchema },
   }, async (request, reply) => {
     const { id } = request.params as z.infer<typeof paramsSchema>;
@@ -102,7 +102,7 @@ export async function transactionRoutes(app: FastifyInstance) {
 
   // DELETE /transactions/:id — soft delete
   app.delete('/transactions/:id', {
-    preHandler: [(app as any).authenticate],
+    preHandler: [app.authenticate],
     schema: { tags: ['Transactions'], security: [{ bearerAuth: [] }], params: paramsSchema },
   }, async (request, reply) => {
     const { id } = request.params as z.infer<typeof paramsSchema>;

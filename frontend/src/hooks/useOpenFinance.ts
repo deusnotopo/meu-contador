@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { pluggyCircuitBreaker } from '@/lib/circuit-breaker';
 
 export interface BankAccount {
   id: string;
@@ -39,11 +38,8 @@ export const useOpenFinance = () => {
     setError(null);
     
     try {
-      const data = await pluggyCircuitBreaker.call(
-        async () => api.get<PaginatedConnectionsResponse>('/open-finance/connections'),
-        () => ({ items: [], total: 0, page: 1, limit: 20, totalPages: 0 })
-      );
-      if (!cancelled) { // ← Verifica se componente ainda está montado
+      const data = await api.get<PaginatedConnectionsResponse>('/open-finance/connections');
+      if (!cancelled) {
         setConnections(data.items);
       }
     } catch (err) {
@@ -64,13 +60,9 @@ export const useOpenFinance = () => {
   const getConnectToken = async (itemId?: string) => {
     try {
       const url = itemId ? `/open-finance/token?itemId=${itemId}` : '/open-finance/token';
-      const data = await pluggyCircuitBreaker.call(
-        async () => api.get<{ accessToken: string }>(url),
-        () => { throw new Error('Pluggy temporariamente indisponível'); }
-      );
+      const data = await api.get<{ accessToken: string }>(url);
       return data.accessToken;
     } catch (err) {
-      console.error('Error getting connect token:', err);
       const message = err instanceof Error ? err.message : 'Erro ao gerar token do Pluggy';
       throw new Error(message);
     }

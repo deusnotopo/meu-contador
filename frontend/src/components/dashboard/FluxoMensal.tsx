@@ -37,12 +37,21 @@ export const FluxoMensal: React.FC<FluxoMensalProps> = ({
 
   useEffect(() => {
     if (!containerRef.current) return;
+    let timeoutId: ReturnType<typeof setTimeout>;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
-      if (width && width > 0) setChartWidth(Math.floor(width));
+      if (width && width > 0) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          setChartWidth(Math.floor(width));
+        }, 150);
+      }
     });
     observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
   }, []);
 
   if (error) {

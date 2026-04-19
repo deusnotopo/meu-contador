@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useUserActions } from "@/hooks/useUserActions";
 import { X } from "lucide-react";
 import { UserProfile } from "@/types";
 
@@ -11,7 +12,8 @@ const fieldLabel = "block text-[13px] text-[var(--t2)] mb-1.5 font-medium";
 const fieldInput = "inp w-full";
 
 export const EditProfileModal = ({ onClose }: EditProfileModalProps) => {
-  const { user, updateProfile } = useAuth();
+  const { user } = useAuth();
+  const { updateProfile } = useUserActions();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

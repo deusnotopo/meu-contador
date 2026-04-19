@@ -1,0 +1,48 @@
+# 🛠️ MCP Toolbox for Databases - Manifesto de Ferramentas (Akita Mode)
+
+sources:
+  meu-contador-db:
+    type: postgres-sql
+    connection_string: "postgresql://neondb_owner:npg_2PDJ7yiaNGTU@ep-jolly-shape-anoz985i-pooler.c-6.us-east-1.aws.neon.tech/MEUCONTADORONLINE?sslmode=require&pgbouncer=true"
+
+tools:
+  - name: audit-users-by-email
+    type: postgres-sql
+    source: meu-contador-db
+    description: "Busca um usuário pelo email para auditoria de perfil e status Pro."
+    parameters:
+      - name: email
+        type: string
+        description: "O email exato do usuário."
+    statement: |
+      SELECT id, email, name, isPro, onboardingCompleted, createdAt 
+      FROM "User" 
+      WHERE email = $1;
+
+  - name: list-recent-transactions
+    type: postgres-sql
+    source: meu-contador-db
+    description: "Lista as transações mais recentes de um usuário para verificação de integridade."
+    parameters:
+      - name: userId
+        type: string
+        description: "O ID do usuário (UUID)."
+      - name: limit
+        type: integer
+        description: "Número máximo de registros (padrão 10)."
+    statement: |
+      SELECT id, type, description, amount, category, date, scope 
+      FROM "Transaction" 
+      WHERE "userId" = $1 
+      ORDER BY date DESC 
+      LIMIT COALESCE($2, 10);
+
+  - name: check-database-health
+    type: postgres-sql
+    source: meu-contador-db
+    description: "Verifica a saúde básica do banco de dados (contagem de usuários e transações)."
+    statement: |
+      SELECT 
+        (SELECT COUNT(*) FROM "User") as total_users,
+        (SELECT COUNT(*) FROM "Transaction") as total_transactions,
+        NOW() as server_time;

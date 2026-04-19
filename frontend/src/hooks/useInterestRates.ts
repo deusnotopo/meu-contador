@@ -26,7 +26,7 @@ export type CreditModality =
   | "CARTAO DE CREDITO - ROTATIVO TOTAL"
   | "ANTECIPACAO DE SAQUE ANIVERSARIO FGTS";
 
-export function useInterestRates(autoFetchModality: CreditModality | null = "CREDITO PESSOAL NAO CONSIGNADO") {
+export function useInterestRates(autoFetchModality: CreditModality | null = null) {
   const [rates, setRates] = useState<InterestRateRecord[]>([]);
   const [modalities, setModalities] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,8 +38,8 @@ export function useInterestRates(autoFetchModality: CreditModality | null = "CRE
       setError(null);
       const data = await api.get<{ records: InterestRateRecord[] }>(`/market/interest-rates?modality=${encodeURIComponent(modality)}&$top=20`);
       setRates(data.records || []);
-    } catch (err: any) {
-      setError(err.message || 'Falha ao buscar ranking de juros.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Falha ao buscar ranking de juros.');
       setRates([]);
     } finally {
       setLoading(false);

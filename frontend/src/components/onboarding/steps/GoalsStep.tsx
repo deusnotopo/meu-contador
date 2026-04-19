@@ -1,9 +1,22 @@
-import { useOnboarding } from "../OnboardingContext";
-import { Check } from "lucide-react";
+import { memo, useCallback } from 'react';
+import { useOnboarding } from '../OnboardingContext';
+import { Check } from 'lucide-react';
+import type { OnboardingGoal } from '@/types';
 
-
-export function GoalsStep() {
+export const GoalsStep = memo(function GoalsStep() {
   const { goals, setGoals, validationErrors } = useOnboarding();
+
+  const handleToggleGoal = useCallback((index: number) => {
+    setGoals(prev => prev.map((goal, i) =>
+      i === index ? { ...goal, enabled: !goal.enabled } : goal
+    ));
+  }, [setGoals]);
+
+  const handleGoalFieldChange = useCallback((index: number, field: keyof OnboardingGoal, value: string | number) => {
+    setGoals(prev => prev.map((goal, i) =>
+      i === index ? { ...goal, [field]: value } : goal
+    ));
+  }, [setGoals]);
 
   return (
     <div className="space-y-8 pt-6">
@@ -21,20 +34,8 @@ export function GoalsStep() {
               tabIndex={0}
               aria-pressed={g.enabled}
               aria-label={`Meta: ${g.name}`}
-              onKeyDown={e => e.key === 'Enter' && (() => {
-                const newGoals = [...goals];
-                if (newGoals[i]) {
-                  newGoals[i].enabled = !newGoals[i].enabled;
-                  setGoals(newGoals);
-                }
-              })()}
-              onClick={() => {
-                const newGoals = [...goals];
-                if (newGoals[i]) {
-                  newGoals[i].enabled = !newGoals[i].enabled;
-                  setGoals(newGoals);
-                }
-              }}
+              onKeyDown={e => e.key === 'Enter' && handleToggleGoal(i)}
+              onClick={() => handleToggleGoal(i)}
               className="cursor-pointer"
             >
               <span className="text-2xl block mb-2">{g.icon}</span>
@@ -51,9 +52,8 @@ export function GoalsStep() {
                     value={g.targetAmount || ''}
                     placeholder="0"
                     onChange={(e) => {
-                      const newGoals = [...goals];
-                      if (newGoals[i]) newGoals[i].targetAmount = Number(e.target.value);
-                      setGoals(newGoals);
+                      const value = parseFloat(e.target.value) || 0;
+                      if (value >= 0) handleGoalFieldChange(i, 'targetAmount', value);
                     }}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-medium"
                   />
@@ -63,11 +63,7 @@ export function GoalsStep() {
                   <input
                     type="date"
                     value={g.deadline || ''}
-                    onChange={(e) => {
-                      const newGoals = [...goals];
-                      if (newGoals[i]) newGoals[i].deadline = e.target.value;
-                      setGoals(newGoals);
-                    }}
+                    onChange={(e) => handleGoalFieldChange(i, 'deadline', e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/60 font-medium"
                   />
                 </div>
@@ -84,4 +80,4 @@ export function GoalsStep() {
       <p className="text-xs text-white/35 text-center">Ative apenas as metas que quer acompanhar já no primeiro dia.</p>
     </div>
   );
-}
+});

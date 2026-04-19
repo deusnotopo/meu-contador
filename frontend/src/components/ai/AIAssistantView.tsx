@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useEducation } from '@/hooks/useEducation';
+import { getTutorContext } from '@/hooks/educationEngine';
+import type { EducationState } from '@/hooks/educationEngine';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useReminders } from '@/hooks/useReminders';
 import { Bot, Sparkles, ArrowLeft, ChevronDown, ChevronUp, Zap } from 'lucide-react';
@@ -22,7 +24,14 @@ interface AIAssistantViewProps {
 
 export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
   const { user } = useAuth();
-  const { getTutorContext } = useEducation(user || undefined);
+  const edu = useEducation();
+  const eduState: EducationState = {
+    completedModules: edu.state.completedModules,
+    xp: edu.state.xp,
+    streak: edu.state.streak,
+    lastActiveDate: edu.state.lastActiveDate,
+    lessonReviewDueAt: {},
+  };
   const { startTour } = useTour();
   const [expanded, setExpanded] = useState(false);
   const remindersCtx = useReminders();
@@ -32,7 +41,15 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
   const isBusiness = user?.currentWorkspaceId && user.currentWorkspaceId !== 'personal';
   const scope = isBusiness ? 'business' : 'personal';
   const { transactions } = useTransactions(scope);
-  const tutorContext = getTutorContext();
+  const tutorContext = getTutorContext(eduState, {
+    hasDebts: user?.hasDebts,
+    hasEmergencyFund: user?.hasEmergencyFund,
+    financialGoal: user?.financialGoal,
+    employmentType: user?.employmentType,
+    currentWorkspaceId: user?.currentWorkspaceId,
+    hasInvestments: false,
+    riskProfile: user?.riskProfile,
+  });
 
   return (
     <div className="py-2.5 h-full flex flex-col animate-[fsu_0.26s_ease]">

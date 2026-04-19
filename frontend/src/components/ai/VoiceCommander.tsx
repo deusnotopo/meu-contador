@@ -63,15 +63,19 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
       const t = parsedResult.data as VoiceTransactionData;
       const newTransaction: Transaction = {
         id: Date.now().toString(),
-        type: t.type || 'expense',
-        amount: typeof t.amount === 'string' ? parseFloat(t.amount) : (t.amount || 0),
-        description: t.description || 'Comando de voz',
-        category: t.category || 'Outros',
-        date: t.date || (new Date().toISOString().split("T")[0] ?? new Date().toISOString()),
-        paymentMethod: t.paymentMethod || 'other',
+        type: t.type || "expense",
+        amount:
+          typeof t.amount === "string" ? parseFloat(t.amount) : t.amount || 0,
+        description: t.description || "Comando de voz",
+        category: t.category || "Outros",
+        date:
+          t.date ||
+          (new Date().toISOString().split("T")[0] ?? new Date().toISOString()),
+        paymentMethod: t.paymentMethod || "other",
         notes: "Via Comando de Voz",
         recurring: false,
         scope: "personal",
+        currency: "BRL",
       };
 
       const current = loadTransactions();
@@ -83,11 +87,26 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
       addAsset({
         name: inv.ticker || "Ativo",
         ticker: inv.ticker || "ATIVO",
-        type: (inv.type || "stock") as "stock" | "fii" | "crypto" | "fixed_income" | "etf",
-        amount: typeof inv.amount === 'string' ? parseFloat(inv.amount) : (inv.amount || 0),
-        averagePrice: typeof inv.price === 'string' ? parseFloat(inv.price) : (inv.price || 0),
-        currentPrice: typeof inv.price === 'string' ? parseFloat(inv.price) : (inv.price || 0),
+        type: (inv.type || "stock") as
+          | "stock"
+          | "fii"
+          | "crypto"
+          | "fixed_income"
+          | "etf",
+        amount:
+          typeof inv.amount === "string"
+            ? parseFloat(inv.amount)
+            : inv.amount || 0,
+        averagePrice:
+          typeof inv.price === "string"
+            ? parseFloat(inv.price)
+            : inv.price || 0,
+        currentPrice:
+          typeof inv.price === "string"
+            ? parseFloat(inv.price)
+            : inv.price || 0,
         sector: "Voz",
+        currency: "BRL",
       });
       showSuccess(`Investimento em ${inv.ticker || "Ativo"} registrado!`);
     }
@@ -156,14 +175,16 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
                                 : "text-red-400"
                             }`}
                           >
-                            R$ {(typeof t.amount === 'number' ? t.amount : parseFloat(String(t.amount || 0))).toFixed(2) || '0.00'}
+                            R${" "}
+                            {(typeof t.amount === "number"
+                              ? t.amount
+                              : parseFloat(String(t.amount || 0))
+                            ).toFixed(2) || "0.00"}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-neutral-500">Categoria:</span>
-                          <span className="text-white">
-                            {t.category}
-                          </span>
+                          <span className="text-white">{t.category}</span>
                         </div>
                       </div>
                     );
@@ -181,15 +202,17 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-neutral-500">Quantidade:</span>
-                          <span className="text-white">
-                            {inv.amount}
-                          </span>
+                          <span className="text-white">{inv.amount}</span>
                         </div>
                         {inv.price && (
                           <div className="flex justify-between">
                             <span className="text-neutral-500">Preço:</span>
                             <span className="text-emerald-400 font-bold">
-                              R$ {(typeof inv.price === 'number' ? inv.price : parseFloat(String(inv.price || 0))).toFixed(2) || '0.00'}
+                              R${" "}
+                              {(typeof inv.price === "number"
+                                ? inv.price
+                                : parseFloat(String(inv.price || 0))
+                              ).toFixed(2) || "0.00"}
                             </span>
                           </div>
                         )}
@@ -229,7 +252,7 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
 
       <div className="relative group">
         {onClose && (
-          <button 
+          <button
             onClick={onClose}
             className="absolute -top-10 right-0 w-8 h-8 rounded-full bg-neutral-900/80 text-neutral-400 flex items-center justify-center backdrop-blur shadow-lg border border-white/10 hover:bg-neutral-800 transition-colors"
           >

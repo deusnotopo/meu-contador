@@ -1,17 +1,21 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../lib/db';
+import * as InvestmentService from '../services/InvestmentService.js';
 
 const investmentTypeSchema = z.enum(['stock', 'fii', 'crypto', 'fixed_income', 'etf']);
+
 const investmentsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
+
 const isoDateOrDateTimeSchema = z.string().refine((value) => {
   const parsed = new Date(value);
   return !Number.isNaN(parsed.getTime()) && value.trim().length >= 10;
 }, 'Data inválida');
+
 const investmentParamsSchema = z.object({ id: z.string().min(1).max(191) });
+
 const investmentBodySchema = z.object({
   name: z.string().trim().min(1).max(120),
   ticker: z.string().trim().min(1).max(20),
@@ -22,19 +26,23 @@ const investmentBodySchema = z.object({
   currency: z.string().trim().min(1).max(10).default('BRL'),
   sector: z.string().trim().max(80).optional(),
 });
+
 const investmentUpdateBodySchema = investmentBodySchema.partial().refine((body) => Object.keys(body).length > 0, {
   message: 'Informe ao menos um campo para atualização',
 });
+
 const dividendBodySchema = z.object({
   amount: z.number().nonnegative().max(1_000_000_000),
   date: isoDateOrDateTimeSchema,
   type: z.enum(['dividend', 'jcp']),
 });
+
 const saleBodySchema = z.object({
   amount: z.number().positive().max(1_000_000_000),
   price: z.number().nonnegative().max(1_000_000_000),
   date: isoDateOrDateTimeSchema,
 });
+
 const investmentResponseSchema = z.object({
   id: z.string(),
   userId: z.string(),
@@ -47,6 +55,7 @@ const investmentResponseSchema = z.object({
   currency: z.string(),
   sector: z.string().nullable().optional(),
 }).passthrough();
+
 const paginatedInvestmentsResponseSchema = z.object({
   items: z.array(investmentResponseSchema),
   page: z.number().int(),
@@ -54,6 +63,7 @@ const paginatedInvestmentsResponseSchema = z.object({
   total: z.number().int(),
   totalPages: z.number().int(),
 });
+
 const dividendResponseSchema = z.object({
   id: z.string(),
   investmentId: z.string(),
@@ -61,6 +71,7 @@ const dividendResponseSchema = z.object({
   date: z.union([z.date(), z.string()]),
   type: z.string(),
 }).passthrough();
+
 const saleResponseSchema = z.object({
   id: z.string(),
   investmentId: z.string(),
@@ -72,71 +83,40 @@ const saleResponseSchema = z.object({
   currency: z.string(),
   ticker: z.string(),
 }).passthrough();
+
 const investmentErrorSchema = z.object({ message: z.string() });
 
 export async function investmentRoutes(app: FastifyInstance) {
-  // GET all investments for authenticated user
+  app.addHook('preHandler', app.authenticate);
+
+  // List investments
   app.get('/investments', {
-    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
       querystring: investmentsQuerySchema,
-      response: {
-        200: paginatedInvestmentsResponseSchema,
-        401: investmentErrorSchema,
-      },
+      response: { 200: paginatedInvestmentsResponseSchema },
     },
-  }, async (request, reply) => {
-    const userId = (request.user as any).id;
-    if (!userId) return reply.status(401).send({ message: 'Unauthorized' });
-
-    const { page, limit } = request.query as z.infer<typeof investmentsQuerySchema>;
-    const skip = (page - 1) * limit;
-
-    const where = { userId };
-    const [items, total] = await Promise.all([
-      db.investment.findMany({
-        where,
-        include: { dividends: true, sales: true },
-        skip,
-        take: limit,
-      }),
-      db.investment.count({ where }),
-    ]);
-    return { items, page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
+  }, async (request) => {
+    const query = request.query as z.infer<typeof investmentsQuerySchema>;
+    return InvestmentService.listInvestments(request.user.id, query);
   });
 
-  // POST create new investment
+  // Create investment
   app.post('/investments', {
-    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
       body: investmentBodySchema,
-      response: {
-        200: investmentResponseSchema,
-        401: investmentErrorSchema,
-      },
+      response: { 200: investmentResponseSchema },
     },
-  }, async (request, reply) => {
+  }, async (request) => {
     const body = request.body as z.infer<typeof investmentBodySchema>;
-    const userId = (request.user as any).id;
-    if (!userId) return reply.status(401).send({ message: 'Unauthorized' });
-
-    const investment = await db.investment.create({
-      data: {
-        ...body,
-        userId,
-      },
-    });
-
-    return investment;
+    return InvestmentService.createInvestment(request.user.id, body);
   });
 
-  // PUT update investment
+  // Update investment
   app.put('/investments/:id', {
-    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -144,28 +124,22 @@ export async function investmentRoutes(app: FastifyInstance) {
       body: investmentUpdateBodySchema,
       response: {
         200: investmentResponseSchema,
-        401: investmentErrorSchema,
         404: investmentErrorSchema,
       },
     },
   }, async (request, reply) => {
     const { id } = request.params as z.infer<typeof investmentParamsSchema>;
     const body = request.body as z.infer<typeof investmentUpdateBodySchema>;
-    const userId = (request.user as any).id;
-    const existing = await db.investment.findFirst({ where: { id, userId } });
-    if (!existing) return reply.status(404).send({ message: 'Investment not found' });
 
-    const investment = await db.investment.update({
-      where: { id },
-      data: body,
-    });
-
+    const investment = await InvestmentService.updateInvestment(id, request.user.id, body);
+    if (!investment) {
+      return reply.status(404).send({ message: 'Investment not found' });
+    }
     return investment;
   });
 
-  // DELETE investment
+  // Delete investment
   app.delete('/investments/:id', {
-    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -177,15 +151,15 @@ export async function investmentRoutes(app: FastifyInstance) {
     },
   }, async (request, reply) => {
     const { id } = request.params as z.infer<typeof investmentParamsSchema>;
-    const userId = (request.user as any).id;
-    const deleted = await db.investment.deleteMany({ where: { id, userId } });
-    if (deleted.count === 0) return reply.status(404).send({ message: 'Investment not found' });
+    const success = await InvestmentService.deleteInvestment(id, request.user.id);
+    if (!success) {
+      return reply.status(404).send({ message: 'Investment not found' });
+    }
     return reply.status(204).send();
   });
 
-  // POST add dividend
+  // Log Dividend
   app.post('/investments/:id/dividends', {
-    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -199,24 +173,16 @@ export async function investmentRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as z.infer<typeof investmentParamsSchema>;
     const body = request.body as z.infer<typeof dividendBodySchema>;
-    const userId = (request.user as any).id;
-    const investment = await db.investment.findFirst({ where: { id, userId } });
-    if (!investment) return reply.status(404).send({ message: 'Investment not found' });
 
-    const dividend = await db.dividend.create({
-      data: {
-        ...body,
-        date: new Date(body.date),
-        investmentId: id,
-      },
-    });
-
+    const dividend = await InvestmentService.addDividend(id, request.user.id, body);
+    if (!dividend) {
+      return reply.status(404).send({ message: 'Investment not found' });
+    }
     return dividend;
   });
 
-  // DELETE dividend
+  // Delete Dividend
   app.delete('/investments/:id/dividends/:dividendId', {
-    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -231,17 +197,15 @@ export async function investmentRoutes(app: FastifyInstance) {
     },
   }, async (request, reply) => {
     const { id, dividendId } = request.params as { id: string; dividendId: string };
-    const userId = (request.user as any).id;
-    const investment = await db.investment.findFirst({ where: { id, userId } });
-    if (!investment) return reply.status(404).send({ message: 'Investment not found' });
-    const deleted = await db.dividend.deleteMany({ where: { id: dividendId, investmentId: id } });
-    if (deleted.count === 0) return reply.status(404).send({ message: 'Dividend not found' });
+    const success = await InvestmentService.removeDividend(id, request.user.id, dividendId);
+    if (!success) {
+      return reply.status(404).send({ message: 'Investment or Dividend not found' });
+    }
     return reply.status(204).send();
   });
 
-  // POST add sale
+  // Record Sale
   app.post('/investments/:id/sales', {
-    preHandler: [app.authenticate],
     schema: {
       tags: ['Investments'],
       security: [{ bearerAuth: [] }],
@@ -256,38 +220,16 @@ export async function investmentRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as z.infer<typeof investmentParamsSchema>;
     const body = request.body as z.infer<typeof saleBodySchema>;
-    const userId = (request.user as any).id;
-    
-    // Get the investment to update its amount
-    const investment = await db.investment.findFirst({ where: { id, userId } });
-    if (!investment) return reply.status(404).send({ message: 'Investment not found' });
 
-    if (investment.amount < body.amount) {
+    const result = await InvestmentService.recordSale(id, request.user.id, body);
+    
+    if (result.error === 'NOT_FOUND') {
+      return reply.status(404).send({ message: 'Investment not found' });
+    }
+    if (result.error === 'INSUFFICIENT_QUANTITY') {
       return reply.status(400).send({ message: 'Insufficient quantity' });
     }
 
-    // Create sale record and update investment in a transaction
-    const [sale] = await db.$transaction([
-      db.investmentSale.create({
-        data: {
-          investmentId: id,
-          ticker: investment.ticker,
-          amount: body.amount,
-          price: body.price,
-          totalValue: body.amount * body.price,
-          date: new Date(body.date),
-          userId: investment.userId,
-          currency: investment.currency,
-        },
-      }),
-      db.investment.update({
-        where: { id },
-        data: {
-          amount: investment.amount - body.amount,
-        },
-      }),
-    ]);
-
-    return sale;
+    return result.sale;
   });
 }

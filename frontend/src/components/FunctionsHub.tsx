@@ -357,7 +357,7 @@ export const FunctionsHub: React.FC<FunctionsHubProps> = ({ onNavigate }) => {
             Converse em linguagem natural sobre suas finanças. Peça para lançar gastos, criar envelopes, analisar padrões ou simular cenários de investimento.
           </p>
           <div className="flex gap-1.5 flex-wrap">
-            <span className="chip chip-purple">GPT-4</span>
+            <span className="chip chip-purple">Gemini</span>
             <span className="chip chip-blue">Ações reais</span>
             <span className="chip chip-green">Contexto financeiro</span>
           </div>

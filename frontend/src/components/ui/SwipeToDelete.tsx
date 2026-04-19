@@ -30,7 +30,7 @@ export function SwipeToDelete({ children, onDelete, className = '' }: SwipeToDel
     rubberband: true
   });
 
-  const bindProps = bind() as any;
+  const bindProps = bind() as Record<string, unknown>;
 
   return (
     <div className={`relative overflow-hidden ${className}`}>

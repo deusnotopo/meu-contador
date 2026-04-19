@@ -11,11 +11,11 @@ import {
 } from "@/components/ui/select";
 import { personalCategories } from "@/lib/constants";
 import {
-  type ExtractedReceiptData,
-  isValidImageFile,
-  processReceiptImage,
-} from "@/lib/ocr/tesseract-service";
+  parseStatementFile
+} from "@/lib/statements/parser";
+import type { StatementTransaction } from "../../../../shared/types-statement";
 import { showError, showSuccess } from "@/lib/toast";
+import { ErrorService } from "@/services/ErrorService";
 import type { TransactionFormData } from "@/types";
 import { useTransactions } from "@/hooks/useTransactions";
 import { AnimatePresence, motion } from "framer-motion";
@@ -42,7 +42,7 @@ export const ReceiptScanner = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedData, setExtractedData] =
-    useState<ExtractedReceiptData | null>(null);
+    useState<StatementTransaction | null>(null);
   const [formData, setFormData] = useState({
     amount: "",
     description: "",
@@ -53,7 +53,7 @@ export const ReceiptScanner = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (file: File) => {
-    if (!isValidImageFile(file)) {
+    if (!file.type.startsWith('image/')) {
       showError("Por favor, selecione uma imagem válida (JPG, PNG, WEBP)");
       return;
     }
@@ -67,23 +67,27 @@ export const ReceiptScanner = ({
     };
     reader.readAsDataURL(file);
 
-    // Process with OCR
+    // Process with AI (Gemini)
     setIsProcessing(true);
     try {
-      const data = await processReceiptImage(file);
-      setExtractedData(data);
-      setFormData({
-        amount: data.amount?.toString() || "",
-        description: data.merchant || "",
-        category: data.category || "Outros",
-        date: data.date ?? new Date().toISOString().split("T")[0],
-      });
-      showSuccess(
-        `Recibo processado! Confiança: ${Math.round(data.confidence)}%`
-      );
+      const dataArray = await parseStatementFile(file, 'image');
+      if (dataArray && dataArray.length > 0) {
+        const data = dataArray[0];
+        if (!data) throw new Error('Dados não encontrados');
+        setExtractedData(data);
+        setFormData({
+          amount: data.amount?.toString() || "",
+          description: data.description || "",
+          category: "Outros", // Let user select
+          date: data.date ?? new Date().toISOString().split("T")[0],
+        });
+        showSuccess(`Recibo processado pela IA! Revise os dados.`);
+      } else {
+        showError("A IA não conseguiu encontrar transações claras.");
+      }
     } catch (error) {
       showError("Erro ao processar recibo. Tente novamente.");
-      console.error(error);
+      ErrorService.log(error, "ReceiptScanner:processImage");
     } finally {
       setIsProcessing(false);
     }
@@ -116,8 +120,9 @@ export const ReceiptScanner = ({
       showSuccess("Transação criada a partir do recibo!");
       onTransactionCreated?.();
       onClose();
-    } catch (_e) {
+    } catch (error) {
       showError("Erro ao processar criação da transação");
+      ErrorService.log(error, "ReceiptScanner:saveTransaction");
     }
   };
 
@@ -228,8 +233,7 @@ export const ReceiptScanner = ({
                       {extractedData && !isProcessing && (
                         <div className="absolute top-2 right-2 bg-green-500/90 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                           <CheckCircle size={14} />
-                          {Math.round(extractedData.confidence * 100)}%
-                          Confiança
+                          IA Gemini
                         </div>
                       )}
                     </div>
