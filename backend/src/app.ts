@@ -43,7 +43,6 @@ import { marketRoutes } from './routes/market';
 import { bankRoutes } from './routes/banks';
 import { businessRoutes } from './routes/business';
 import { assetRoutes } from './routes/assets';
-import { interestRoutes } from './routes/interest';
 import { provisionRoutes } from './routes/provisions';
 import { analyticsRoutes } from './routes/analytics';
 import { notificationsRoutes } from './routes/notifications';
@@ -51,6 +50,7 @@ import { cashflowRoutes } from './routes/cashflow';
 import { intelligenceRoutes } from './routes/intelligence';
 import { reconciliationRoutes } from './routes/reconciliation';
 import { startAllScheduledJobs } from './lib/scheduler.js';
+import { logger } from './lib/logger.js';
 
 const ACCESS_COOKIE_NAME = 'mc_access_token';
 const CSRF_COOKIE_NAME = 'mc_csrf_token';
@@ -80,18 +80,21 @@ const requiredEnvVars = [
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  console.error(`âŒ ERRO CRÃTICO: VariÃ¡veis de ambiente obrigatÃ³rias faltando: ${missingEnvVars.join(', ')}`);
-  console.error('âœ… Regra do jogo: Falhar rÃ¡pido, falhar cedo. NÃ£o execute cÃ³digo com configuraÃ§Ã£o incompleta.');
+  logger.error(`ERRO CRÍTICO: Variáveis de ambiente obrigatórias faltando: ${missingEnvVars.join(', ')}`);
+  logger.error('Regra do jogo: Falhar rápido, falhar cedo. Não execute código com configuração incompleta.');
   process.exit(1);
 }
 
-console.log('âœ… ValidaÃ§Ã£o de ambiente concluÃ­da');
+logger.info('Validação de ambiente concluída');
 
 const PRODUCTION_FALLBACK_ORIGINS = [
   'https://meucontador-367cf.web.app',
   'https://meucontador-367cf.firebaseapp.com',
   'https://meucontador.com.br',
   'https://www.meucontador.com.br',
+  // Vercel deployments
+  'https://meu-contador-mu.vercel.app',
+  'https://meu-contador-onlines-projects.vercel.app',
 ];
 
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
@@ -266,22 +269,22 @@ app.decorate('authenticate', async (request, reply) => {
       return reply.status(401).send({ message: 'Unauthorized' });
     }
 
-    const userId = (request.user as any).id;
+    const userId = (request.user as { id: string }).id;
     const user = await db.user.findFirst({ where: { id: String(userId), deletedAt: null } });
 
     if (!user) {
       return reply.status(401).send({ message: 'SessÃ£o expirada' });
     }
 
-    (request as any).user = { ...request.user, isPro: !!user.isPro };
+    (request as unknown as { user: { id: string; email: string; name: string | null; isPro: boolean } }).user = { ...request.user as { id: string; email: string; name: string | null; isPro: boolean }, isPro: !!user.isPro };
   } catch (err) {
     app.log.warn({ event: 'authenticate error', errorName: (err as Error | undefined)?.name });
     return reply.status(401).send({ message: 'SessÃ£o expirada' });
   }
 });
 
-app.decorate('proGuard', async (request: any, reply: any) => {
-  if (!request.user || !(request.user as any).isPro) {
+app.decorate('proGuard', async (request: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply) => {
+  if (!request.user || !(request.user as { isPro?: boolean }).isPro) {
     return reply.status(403).send({ 
       message: 'ðŸ‘‘ RECURSO PREMIUM: Esta funcionalidade exige o plano PRO. FaÃ§a o upgrade para continuar.',
       error: 'PRO subscription required',
@@ -394,14 +397,14 @@ app.get('/health', {
         cache: 'operational',
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     request.log.error(error);
     return reply.status(503).send({
       status: 'error',
       timestamp: new Date().toISOString(),
       database: {
         status: 'disconnected',
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
     });
   }
@@ -435,7 +438,6 @@ app.register(marketRoutes);
 app.register(bankRoutes);
 app.register(businessRoutes);
 app.register(assetRoutes);
-app.register(interestRoutes);
 app.register(provisionRoutes);
 app.register(analyticsRoutes);
 app.register(notificationsRoutes);
