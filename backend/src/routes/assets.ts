@@ -16,7 +16,7 @@ export async function assetRoutes(app: FastifyInstance) {
       }),
     },
   }, async (req) => {
-    const { type } = req.params as { type: any };
+    const { type } = req.params as { type: 'carros' | 'motos' | 'caminhoes' };
     const records = await AssetService.getFipeBrands(type);
     return { records };
   });
@@ -33,7 +33,7 @@ export async function assetRoutes(app: FastifyInstance) {
       }),
     },
   }, async (req) => {
-    const { type, brandId } = req.params as { type: any, brandId: string };
+    const { type, brandId } = req.params as { type: 'carros' | 'motos' | 'caminhoes', brandId: string };
     const models = await AssetService.getFipeModels(type, brandId);
     return { records: { modelos: models } };
   });
@@ -51,7 +51,7 @@ export async function assetRoutes(app: FastifyInstance) {
       }),
     },
   }, async (req) => {
-    const { type, brandId, modelId } = req.params as { type: any, brandId: string, modelId: string };
+    const { type, brandId, modelId } = req.params as { type: 'carros' | 'motos' | 'caminhoes', brandId: string, modelId: string };
     const records = await AssetService.getFipeYears(type, brandId, modelId);
     return { records };
   });
@@ -70,7 +70,7 @@ export async function assetRoutes(app: FastifyInstance) {
       }),
     },
   }, async (req) => {
-    const { type, brandId, modelId, yearId } = req.params as { type: any, brandId: string, modelId: string, yearId: string };
+    const { type, brandId, modelId, yearId } = req.params as { type: 'carros' | 'motos' | 'caminhoes', brandId: string, modelId: string, yearId: string };
     const records = await AssetService.getVehicleValuation(type, brandId, modelId, yearId);
     return { records };
   });

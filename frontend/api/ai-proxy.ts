@@ -1,65 +1,37 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+/**
+ * ai-proxy.ts — Vercel/Edge function
+ * ───────────────────────────────────
+ * Repassa requisições de IA diretamente ao backend Fastify (Gemini 1.5).
+ * NÃO use mais o Mistral aqui. A chave de IA fica 100% no backend.
+ */
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-interface MistralChatRequestBody {
-  model: string;
-  messages: unknown;
-  temperature: number;
-  response_format?: unknown;
-}
-
-export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse
-) {
-  // Only allow POST requests
-  if (request.method !== "POST") {
-    return response.status(405).json({ error: "Method not allowed" });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages, temperature, response_format } = request.body;
-
-  const MISTRAL_API_KEY =
-    process.env.MISTRAL_API_KEY || process.env.VITE_MISTRAL_API_KEY;
-  const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
-
-  if (!MISTRAL_API_KEY) {
-    return response
-      .status(500)
-      .json({ error: "API Key not configured on server" });
-  }
+  const backendUrl = process.env.BACKEND_URL || process.env.VITE_API_URL || 'http://localhost:3001';
+  const authHeader = req.headers['authorization'] ?? '';
 
   try {
-    const body: MistralChatRequestBody = {
-      model: "mistral-small",
-      messages,
-      temperature: temperature || 0.3,
-    };
-
-    if (response_format) {
-      body.response_format = response_format;
-    }
-
-    const mistralResponse = await fetch(MISTRAL_API_URL, {
-      method: "POST",
+    const upstream = await fetch(`${backendUrl}/ai-proxy`, {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${MISTRAL_API_KEY}`,
+        'Content-Type': 'application/json',
+        Authorization: String(authHeader),
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(req.body),
     });
 
-    if (!mistralResponse.ok) {
-      const errorText = await mistralResponse.text();
-      console.error("Mistral API Error:", errorText);
-      return response
-        .status(mistralResponse.status)
-        .json({ error: "AI API error" });
-    }
+    const data: unknown = await upstream.json();
 
-    const data = await mistralResponse.json();
-    return response.status(200).json(data);
-  } catch (error) {
-    console.error("Proxy Error:", error);
-    return response.status(500).json({ error: "Internal server error" });
+    return res.status(upstream.status).json(data);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return res.status(502).json({
+      error: 'Gateway error — backend indisponível',
+      detail: message,
+    });
   }
 }

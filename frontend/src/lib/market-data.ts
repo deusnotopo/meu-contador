@@ -54,11 +54,15 @@ export interface StockQuoteResult {
   logo?:         string | null;
 }
 
-// ─── Fallback para quando o backend estiver offline ────────────────────────
-const FALLBACK: MarketData = {
-  btc: 520000, eth: 17000, usd: 5.75, eur: 6.25, gbp: 7.45,
-  btc_change: 0.5, eth_change: -1.2, usd_change: 0.0, eur_change: 0.0, gbp_change: 0.0,
-  selic: 13.75, cdi: 13.65, ipca: 5.06, poupanca: 7.0,
+// ─── Estado vazio — exibido quando backend está offline ─────────────────────
+// NÃO usar valores hardcoded aqui. Zeros sinalizam indisponibilidade.
+const OFFLINE_STATE: MarketData = {
+  btc: 0, eth: 0, usd: 0, eur: 0, gbp: 0,
+  btc_change: 0, eth_change: 0, usd_change: 0, eur_change: 0, gbp_change: 0,
+  selic: null as unknown as number, // null propagado com type workaround
+  cdi: null as unknown as number,
+  ipca: null as unknown as number,
+  poupanca: null as unknown as number,
   isLive: false,
 };
 
@@ -77,8 +81,8 @@ export const fetchMarketData = async (): Promise<MarketData> => {
     toCache('market:data', result);
     return result;
   } catch (err) {
-    logger.warn('[market-data] backend offline, usando fallback', err);
-    return FALLBACK;
+    logger.warn('[market-data] backend offline — dados indisponíveis', err);
+    return OFFLINE_STATE;
   }
 };
 

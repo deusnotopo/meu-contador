@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * useDebounceSync - Gancho para sincronização debounced com o backend.
@@ -37,9 +38,8 @@ export function useDebounceSync<T>(syncFn: (data: T) => Promise<void>, delay = 2
           await syncFn(dataRef.current);
           dataRef.current = null; // Limpa após sucesso
         } catch (error) {
-          console.error('[useDebounceSync] Failed to sync data:', error);
-          // Em caso de erro, o dado permanece no ref para uma possível tentativa futura
-          // ou podemos implementar uma lógica de retry aqui.
+          logger.error('[useDebounceSync] Failed to sync data', error);
+          // Dado permanece no ref para possível retry
         }
       }
       timeoutRef.current = null;

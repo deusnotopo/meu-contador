@@ -115,8 +115,9 @@ export async function getProjection(userId: string, days: number, scope: string)
     const dayOfMonth = date.getDate();
     const isoDate = date.toISOString().split('T')[0]!;
 
-    const inflows: any[] = [];
-    const outflows: any[] = [];
+    interface CashFlowItem { description: string; amount: number; category: string }
+    const inflows: CashFlowItem[] = [];
+    const outflows: CashFlowItem[] = [];
 
     // Recurring
     for (const r of recurring) {

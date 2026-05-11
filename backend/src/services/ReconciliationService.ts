@@ -45,7 +45,7 @@ export async function getReconciliationReport(userId: string, workspaceId: strin
         calculatedBalance: Math.round(calculatedBalance * 100) / 100,
         discrepancy: Math.round(discrepancy * 100) / 100,
         status: isDiscrepancy ? 'discrepancy' : 'matched',
-        lastSyncAt: (account as any).connection?.lastSyncAt?.toISOString() || null,
+        lastSyncAt: account.connection?.lastSyncAt?.toISOString() || null,
         transactionCount: transactions.length
       };
     })

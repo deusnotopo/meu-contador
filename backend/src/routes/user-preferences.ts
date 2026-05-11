@@ -56,7 +56,7 @@ export async function userPreferencesRoutes(app: FastifyInstance) {
     
     if (user.preferences) {
       if (typeof user.preferences === 'object') {
-        prefs = { ...prefs, ...(user.preferences as any) };
+        prefs = { ...prefs, ...(user.preferences as Record<string, unknown>) };
       } else if (typeof user.preferences === 'string') {
         try {
           prefs = { ...prefs, ...JSON.parse(user.preferences) };
@@ -103,7 +103,7 @@ export async function userPreferencesRoutes(app: FastifyInstance) {
     let current: UserPreferencesDto = { ...defaultUserPreferences };
     if (user.preferences) {
       if (typeof user.preferences === 'object') {
-        current = { ...current, ...(user.preferences as any) };
+        current = { ...current, ...(user.preferences as Record<string, unknown>) };
       } else if (typeof user.preferences === 'string') {
         try {
           current = { ...current, ...JSON.parse(user.preferences) };

@@ -15,7 +15,8 @@ export async function getHealthScoreHistory(userId: string) {
 export async function saveHealthScore(userId: string, score: number, date?: string) {
   const entryDate = date ?? new Date().toISOString().slice(0, 10);
   const blob = await UserService.getGamificationData(userId) ?? {};
-  const history: any[] = blob.healthScoreHistory ?? [];
+  interface HealthScoreEntry { date: string; score: number }
+  const history: HealthScoreEntry[] = (blob.healthScoreHistory as HealthScoreEntry[] | undefined) ?? [];
 
   // Upsert entry for the day
   const idx = history.findIndex(h => h.date === entryDate);

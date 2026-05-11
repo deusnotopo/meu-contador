@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, X, FileCode, ArrowRight } from "lucide-react";
+import { logger } from "@/lib/logger";
 import { parseOFX, type OFXTransaction } from "@/utils/ofxParser";
 import { useTransactions } from "@/hooks/useTransactions";
 
@@ -64,7 +65,7 @@ export const OFXImporterModal: React.FC<OFXImporterModalProps> = ({ isOpen, onCl
       onClose();
       setParsedItems([]);
     } catch (e) {
-      console.error(e);
+      logger.error('[OFXImporterModal] Batch import failed', e);
     } finally {
       setIsProcessing(false);
     }

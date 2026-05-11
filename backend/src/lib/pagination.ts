@@ -37,8 +37,8 @@ export function createPaginatedResponse<T extends { id: string }>(
 // Função helper para criar where clause com cursor
 export function createCursorWhere(
   cursor: string | undefined,
-  baseWhere: Record<string, any> = {}
-): Record<string, any> {
+  baseWhere: Record<string, unknown> = {}
+): Record<string, unknown> {
   if (!cursor) {
     return baseWhere;
   }

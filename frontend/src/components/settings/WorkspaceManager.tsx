@@ -63,7 +63,7 @@ export const WorkspaceManager = () => {
     }
   }, [selectedWorkspace]);
 
-  useEffect(() => { loadWorkspaces(); }, []);
+  useEffect(() => { loadWorkspaces(); }, [loadWorkspaces]);
 
   // ── Create workspace ──────────────────────────────────────────────────────
   const handleCreateWorkspace = async () => {

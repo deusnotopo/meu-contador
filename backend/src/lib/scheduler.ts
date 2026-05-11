@@ -13,11 +13,12 @@
 import cron from 'node-cron';
 import { db } from './db.js';
 import { generateWeeklyBriefing } from '../services/BriefingService.js';
+import { logger } from './logger.js';
 
 // ── Weekly Briefing — Sunday 20:00 BRT (23:00 UTC) ───────────────────────────
 export function startWeeklyBriefingJob() {
   cron.schedule('0 23 * * 0', async () => {
-    console.log('[Scheduler] ▶ Weekly Briefing job started at', new Date().toISOString());
+    logger.info(`[Scheduler] Weekly Briefing job started at ${new Date().toISOString()}`);
 
     try {
       // Get all active users (logged in within last 30 days)
@@ -33,7 +34,7 @@ export function startWeeklyBriefingJob() {
         select: { id: true, name: true },
       });
 
-      console.log(`[Scheduler] Generating briefings for ${activeUsers.length} active users...`);
+      logger.info(`[Scheduler] Generating briefings for ${activeUsers.length} active users...`);
 
       // Generate briefings with controlled concurrency (max 5 in parallel)
       const chunkSize = 5;
@@ -42,27 +43,27 @@ export function startWeeklyBriefingJob() {
         await Promise.allSettled(
           chunk.map(user =>
             generateWeeklyBriefing(user.id)
-              .then(() => console.log(`[Scheduler] ✓ Briefing for user ${user.id}`))
-              .catch(err => console.error(`[Scheduler] ✗ Failed for user ${user.id}:`, err))
+              .then(() => logger.debug(`[Scheduler] Briefing for user ${user.id} done`))
+              .catch(err => logger.error(`[Scheduler] Failed for user ${user.id}`, err))
           )
         );
       }
 
-      console.log('[Scheduler] ✅ Weekly Briefing job completed.');
+      logger.info('[Scheduler] Weekly Briefing job completed.');
     } catch (err) {
-      console.error('[Scheduler] ✗ Weekly Briefing job failed:', err);
+      logger.error('[Scheduler] Weekly Briefing job failed', err);
     }
   }, {
     timezone: 'America/Sao_Paulo',
   });
 
-  console.log('[Scheduler] Weekly Briefing job registered (Sunday 20:00 BRT)');
+  logger.info('[Scheduler] Weekly Briefing job registered (Sunday 20:00 BRT)');
 }
 
 // ── Due Reminder Alerts — Daily 08:00 BRT ────────────────────────────────────
 export function startReminderAlertsJob() {
   cron.schedule('0 8 * * *', async () => {
-    console.log('[Scheduler] ▶ Reminder Alerts job started at', new Date().toISOString());
+    logger.info(`[Scheduler] Reminder Alerts job started at ${new Date().toISOString()}`);
 
     try {
       const { notifyUser } = await import('../services/NotificationService.js');
@@ -103,20 +104,20 @@ export function startReminderAlertsJob() {
         }
       }
 
-      console.log(`[Scheduler] ✅ Sent ${dueReminders.length} reminder alerts.`);
+      logger.info(`[Scheduler] Sent ${dueReminders.length} reminder alerts.`);
     } catch (err) {
-      console.error('[Scheduler] ✗ Reminder Alerts job failed:', err);
+      logger.error('[Scheduler] Reminder Alerts job failed', err);
     }
   }, {
     timezone: 'America/Sao_Paulo',
   });
 
-  console.log('[Scheduler] Reminder Alerts job registered (Daily 08:00 BRT)');
+  logger.info('[Scheduler] Reminder Alerts job registered (Daily 08:00 BRT)');
 }
 
 // ── Bootstrap all jobs ────────────────────────────────────────────────────────
 export function startAllScheduledJobs() {
   startWeeklyBriefingJob();
   startReminderAlertsJob();
-  console.log('[Scheduler] All scheduled jobs active.');
+  logger.info('[Scheduler] All scheduled jobs active.');
 }

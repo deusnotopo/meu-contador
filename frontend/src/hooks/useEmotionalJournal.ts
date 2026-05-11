@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { showSuccess } from "@/lib/toast";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import type {
   EmotionalEntry,
   EmotionalPattern,
@@ -17,7 +18,7 @@ const fetchEmotionalData = async (): Promise<EmotionalEntry[]> => {
     );
     return data.emotionalData || [];
   } catch (error) {
-    console.error("Error fetching emotional data:", error);
+    logger.error('[useEmotionalJournal] Error fetching emotional data', error);
     return [];
   }
 };
@@ -29,7 +30,7 @@ const saveEmotionalData = async (
     await api.put("/users/emotional", { emotionalData: entries });
     return true;
   } catch (error) {
-    console.error("Error saving emotional data:", error);
+    logger.error('[useEmotionalJournal] Error saving emotional data', error);
     return false;
   }
 };

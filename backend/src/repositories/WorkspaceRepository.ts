@@ -10,6 +10,7 @@ export interface WorkspaceCreateData {
  */
 
 import { db } from '../lib/db.js';
+import type { Prisma } from '@prisma/client';
 
 export async function findOne(id: string) {
   return db.workspace.findUnique({
@@ -34,7 +35,7 @@ export async function findManyByMember(userId: string) {
   });
 }
 
-export async function create(data: { name: string; ownerId: string }, tx?: any) {
+export async function create(data: { name: string; ownerId: string }, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   return client.workspace.create({
     data: {
@@ -45,7 +46,7 @@ export async function create(data: { name: string; ownerId: string }, tx?: any) 
   });
 }
 
-export async function updateCurrentWorkspace(userId: string, workspaceId: string, tx?: any) {
+export async function updateCurrentWorkspace(userId: string, workspaceId: string, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   return client.user.update({
     where: { id: userId },

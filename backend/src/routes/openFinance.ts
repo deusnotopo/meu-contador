@@ -17,6 +17,8 @@ const openFinanceWebhookEventSchema = z.object({
 }).passthrough();
 
 export async function openFinanceRoutes(app: FastifyInstance) {
+  const allowInsecureWebhook = process.env.NODE_ENV !== 'production'
+    && process.env.OPEN_FINANCE_ALLOW_INSECURE_WEBHOOKS === 'true';
   
   // GET /open-finance/token
   app.get('/open-finance/token', {
@@ -59,8 +61,8 @@ export async function openFinanceRoutes(app: FastifyInstance) {
     const { itemId } = request.params as z.infer<typeof syncParamsSchema>;
     try {
       return await OpenFinanceService.syncConnection(request.user.id, itemId);
-    } catch (error: any) {
-      if (error.message === 'FORBIDDEN_WORKSPACE_CONNECTION') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === 'FORBIDDEN_WORKSPACE_CONNECTION') {
         return reply.code(403).send({ error: 'Access denied to this connection' });
       }
       throw error;
@@ -81,7 +83,7 @@ export async function openFinanceRoutes(app: FastifyInstance) {
     }, {
       sharedSecret: process.env.OPEN_FINANCE_WEBHOOK_SECRET,
       signingSecret: process.env.OPEN_FINANCE_WEBHOOK_SIGNING_SECRET,
-      allowInsecure: process.env.OPEN_FINANCE_ALLOW_INSECURE_WEBHOOKS === 'true'
+      allowInsecure: allowInsecureWebhook,
     });
 
     if (!authResult.ok) {

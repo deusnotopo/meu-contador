@@ -1,14 +1,24 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useIntelligence, type Achievement } from "./useIntelligence";
 import { showSuccess } from "@/lib/toast";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 export function useGamification() {
   const { gamification, loading, refresh } = useIntelligence();
+  const lastAwardTimeRef = useRef<number>(0);
 
   const awardXp = useCallback(
     async (amount: number) => {
       if (!gamification) return;
+
+      const now = Date.now();
+      if (now - lastAwardTimeRef.current < 5000) {
+        logger.debug("[useGamification] awardXp suprimido por throttle (5s)");
+        return;
+      }
+      lastAwardTimeRef.current = now;
+
       try {
         await api.post("/gamification/award-xp", { amount });
       } catch {
@@ -26,7 +36,7 @@ export function useGamification() {
         showSuccess(`🏆 Conquista em processamento!`);
         refresh();
       } catch (error) {
-        console.error("Erro ao desbloquear conquista:", error);
+        logger.error('[useGamification] Erro ao desbloquear conquista', error);
       }
     },
     [refresh],
@@ -69,15 +79,31 @@ export function useGamification() {
     unlockAchievement,
     claimDailyLogin,
 
-    // Compatibility shim for event-based achievements
-    checkTransactionAchievement: () => {},
-    checkBudgetAchievement: () => {}, 
-    checkInvestmentAchievement: () => {},
-    checkGoalAchievement: () => {},
-    checkEducationAchievement: () => {},
-    checkSavingsAchievement: () => {},
-    checkPortfolioDiversification: () => {},
-    checkNetWorthAchievement: () => {},
+    // Real Event Triggers connected to Backend AI Gamification Engine
+    checkTransactionAchievement: useCallback(() => {
+      api.post('/gamification/events/transaction').then(refresh).catch(() => {});
+    }, [refresh]),
+    checkBudgetAchievement: useCallback(() => {
+      api.post('/gamification/events/budget').then(refresh).catch(() => {});
+    }, [refresh]),
+    checkInvestmentAchievement: useCallback(() => {
+      api.post('/gamification/events/investment').then(refresh).catch(() => {});
+    }, [refresh]),
+    checkGoalAchievement: useCallback(() => {
+      api.post('/gamification/events/goal').then(refresh).catch(() => {});
+    }, [refresh]),
+    checkEducationAchievement: useCallback(() => {
+      api.post('/gamification/events/education').then(refresh).catch(() => {});
+    }, [refresh]),
+    checkSavingsAchievement: useCallback(() => {
+      api.post('/gamification/events/savings').then(refresh).catch(() => {});
+    }, [refresh]),
+    checkPortfolioDiversification: useCallback(() => {
+      api.post('/gamification/events/diversification').then(refresh).catch(() => {});
+    }, [refresh]),
+    checkNetWorthAchievement: useCallback(() => {
+      api.post('/gamification/events/net-worth').then(refresh).catch(() => {});
+    }, [refresh]),
     refresh
   };
 }

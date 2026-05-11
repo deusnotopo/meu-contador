@@ -49,8 +49,9 @@ export async function authRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const clientInfo = { ip: request.ip, userAgent: request.headers['user-agent'] };
-      const result = await AuthService.register(request.body, clientInfo);
+      const result = await AuthService.register(request.body as { email: string; password: string; name?: string }, clientInfo);
       
+      if (!result.user) throw new Error('Registration failed');
       const accessToken = app.signAccessToken({
         id: result.user.id,
         email: result.user.email,
@@ -61,12 +62,13 @@ export async function authRoutes(app: FastifyInstance) {
       reply.header('Set-Cookie', [
         buildCookie(ACCESS_COOKIE_NAME, accessToken, { maxAge: ACCESS_TOKEN_TTL_SECONDS }),
         buildCookie(REFRESH_COOKIE_NAME, result.refreshToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 }),
-        buildCookie(CSRF_COOKIE_NAME, result.csrfToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 }),
+        // CSRF cookie MUST be readable by JS (httpOnly: false) for double-submit pattern
+        buildCookie(CSRF_COOKIE_NAME, result.csrfToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60, httpOnly: false }),
       ]);
 
       return { user: result.user, csrfToken: result.csrfToken };
-    } catch (err: any) {
-      if (err.message === 'USER_ALREADY_EXISTS') {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'USER_ALREADY_EXISTS') {
         return reply.status(409).send({ message: 'Usuário já existe' });
       }
       throw err;
@@ -86,8 +88,9 @@ export async function authRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const clientInfo = { ip: request.ip, userAgent: request.headers['user-agent'] };
-      const result = await AuthService.googleAuth(request.body, clientInfo);
+      const result = await AuthService.googleAuth(request.body as { token: string }, clientInfo);
 
+      if (!result.user) throw new Error('Google auth failed');
       const accessToken = app.signAccessToken({
         id: result.user.id,
         email: result.user.email,
@@ -98,14 +101,13 @@ export async function authRoutes(app: FastifyInstance) {
       reply.header('Set-Cookie', [
         buildCookie(ACCESS_COOKIE_NAME, accessToken, { maxAge: ACCESS_TOKEN_TTL_SECONDS }),
         buildCookie(REFRESH_COOKIE_NAME, result.refreshToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 }),
-        buildCookie(CSRF_COOKIE_NAME, result.csrfToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 }),
+        buildCookie(CSRF_COOKIE_NAME, result.csrfToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60, httpOnly: false }),
       ]);
 
       return { user: result.user, csrfToken: result.csrfToken };
-    } catch (err: any) {
-      if (err.message === 'INVALID_GOOGLE_TOKEN') {
-        const error = new Error('Token do Google inválido');
-        (error as any).statusCode = 401;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'INVALID_GOOGLE_TOKEN') {
+        const error = Object.assign(new Error('Token do Google inválido'), { statusCode: 401 });
         throw error;
       }
       throw err;
@@ -129,8 +131,9 @@ export async function authRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const clientInfo = { ip: request.ip, userAgent: request.headers['user-agent'] };
-      const result = await AuthService.login(request.body, clientInfo);
+      const result = await AuthService.login(request.body as { email: string; password: string }, clientInfo);
 
+      if (!result.user) throw new Error('Login failed');
       const accessToken = app.signAccessToken({
         id: result.user.id,
         email: result.user.email,
@@ -141,12 +144,12 @@ export async function authRoutes(app: FastifyInstance) {
       reply.header('Set-Cookie', [
         buildCookie(ACCESS_COOKIE_NAME, accessToken, { maxAge: ACCESS_TOKEN_TTL_SECONDS }),
         buildCookie(REFRESH_COOKIE_NAME, result.refreshToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 }),
-        buildCookie(CSRF_COOKIE_NAME, result.csrfToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 }),
+        buildCookie(CSRF_COOKIE_NAME, result.csrfToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60, httpOnly: false }),
       ]);
 
       return { user: result.user, csrfToken: result.csrfToken };
-    } catch (err: any) {
-      if (err.message === 'INVALID_CREDENTIALS') {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'INVALID_CREDENTIALS') {
         return reply.status(401).send({ message: 'Credenciais inválidas' });
       }
       throw err;
@@ -180,11 +183,11 @@ export async function authRoutes(app: FastifyInstance) {
       reply.header('Set-Cookie', [
         buildCookie(ACCESS_COOKIE_NAME, accessToken, { maxAge: ACCESS_TOKEN_TTL_SECONDS }),
         buildCookie(REFRESH_COOKIE_NAME, result.refreshToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 }),
-        buildCookie(CSRF_COOKIE_NAME, result.csrfToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 }),
+        buildCookie(CSRF_COOKIE_NAME, result.csrfToken, { maxAge: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60, httpOnly: false }),
       ]);
 
       return { success: true, csrfToken: result.csrfToken };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return reply.status(401).send({ message: 'Sessão inválida' });
     }
   });

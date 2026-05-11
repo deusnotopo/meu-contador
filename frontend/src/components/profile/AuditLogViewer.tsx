@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { logger } from "@/lib/logger";
 import { History, Clock, Info } from "lucide-react";
 import type { AuditLogEntry } from "@/lib/audit-service";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,7 +27,7 @@ export const AuditLogViewer = ({ workspaceId }: { workspaceId: string }) => {
         setLogs(docs);
       });
     } catch (error) {
-      console.error("Error setting up audit log listener:", error);
+      logger.error('[AuditLogViewer] Failed to setup Firestore listener', error);
     }
   }, [workspaceId]);
 

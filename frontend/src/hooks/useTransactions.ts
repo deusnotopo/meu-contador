@@ -3,7 +3,9 @@ import { showError, showSuccess } from "@/lib/toast";
 import { confirmAction } from "@/lib/confirm";
 import { logAction } from "@/lib/audit-service";
 import { useAuth } from "@/context/AuthContext";
+import { useGamification } from "@/hooks/useGamification";
 import { TransactionSchema } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 import { z } from "zod";
 import type {
   CategoryChartData,
@@ -12,13 +14,17 @@ import type {
   Transaction,
   TransactionFormData,
 } from "@/types";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { analyticsDB } from "@/services/DuckDBService";
+
+const inflightPromises = new Map<string, Promise<Transaction[]>>();
 
 export const useTransactions = (
   scope: "personal" | "business" = "personal",
 ) => {
   const { user } = useAuth();
   const currentWorkspaceId = user?.currentWorkspaceId || user?.uid || "";
+  const userUid = user?.uid ?? null; // primitivo estável para dep array
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
@@ -26,79 +32,103 @@ export const useTransactions = (
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTransactions = useCallback(async () => {
-    if (!user) return;
+  // Akita Hook: Integração com a Gamificação Real do Backend
+  const { checkTransactionAchievement } = useGamification();
 
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+  const isMounted = useRef(true);
+  const lastIngestedRef = useRef<string>("");
+  useEffect(() => () => { isMounted.current = false; }, []);
+
+  const fetchTransactions = useCallback(async (force = false) => {
+    if (!userUid) {
+      if (isMounted.current) setIsLoading(false);
+      return;
+    }
+
+    if (isMounted.current) {
+      setIsLoading(true);
+      setError(null);
+    }
+
+    const cacheKey = `${scope}_${userUid}`;
 
     try {
-      const response = await api
-        .get<Transaction[] | { items: Transaction[] }>(
-          `/transactions?scope=${scope}`,
-          {
-            schema: z.union([
-              z.array(TransactionSchema),
-              z.object({ items: z.array(TransactionSchema) }),
-            ]),
-          },
-        )
-        .then((data) => (Array.isArray(data) ? data : data.items));
-      if (!cancelled) {
-        setTransactions(response);
+      let promise = inflightPromises.get(cacheKey);
 
-        // Fase 4: Detector de Recorrências (Algoritmo Heurístico Local)
-        const expenses = response.filter((i) => i.type === "expense");
-        const counts: Record<string, number> = {};
-        expenses.forEach((item) => {
-          if (!item.recurring) {
-            const nom = item.description.trim().toUpperCase();
-            if (nom.length > 2) counts[nom] = (counts[nom] || 0) + 1;
+      if (!promise || force) {
+        promise = api
+          .get<Transaction[] | { items: Transaction[] }>(
+            `/transactions?scope=${scope}`,
+            {
+              schema: z.union([
+                z.array(TransactionSchema),
+                z.object({ items: z.array(TransactionSchema) }),
+              ]),
+            },
+          )
+          .then((data) => {
+            const items = Array.isArray(data) ? data : data.items;
+            
+            // Deduplicação DuckDB: Evita reconstruir a tabela se os dados não mudaram
+            const dataHash = `${items.length}_${items[0]?.id || ''}`;
+            if (dataHash !== lastIngestedRef.current || force) {
+              analyticsDB.insertTransactions(items as Record<string, unknown>[]).catch(err => {
+                logger.warn('[useTransactions] Falha na ingestão do DuckDB WASM', err);
+              });
+              lastIngestedRef.current = dataHash;
+            } else {
+              logger.debug(`[useTransactions] Ingestão DuckDB ignorada para ${scope} (sem mudanças).`);
+            }
+            
+            return items;
+          });
+
+        inflightPromises.set(cacheKey, promise);
+
+        promise.finally(() => {
+          if (inflightPromises.get(cacheKey) === promise) {
+            // Remove the promise from inflight after 2s to act as a micro-cache
+            setTimeout(() => {
+              if (inflightPromises.get(cacheKey) === promise) {
+                inflightPromises.delete(cacheKey);
+              }
+            }, 2000);
           }
         });
-        const detected = Object.entries(counts)
-          .filter(([_, c]) => c >= 3)
-          .map(([n]) => n);
-        if (detected.length > 0) {
-          window.dispatchEvent(
-            new CustomEvent("recurring-detected", { detail: detected }),
-          );
-        }
+      }
+
+      const response = await promise;
+
+      if (isMounted.current) {
+        setTransactions(response);
       }
     } catch (err) {
-      if (!cancelled) {
-        console.error("Transactions API Error:", err);
+      if (isMounted.current) {
+        logger.error('[useTransactions] Transactions API Error', err);
         setError(
           "Não foi possível conectar ao servidor. Verifique sua conexão.",
         );
       }
     } finally {
-      if (!cancelled) {
+      if (isMounted.current) {
         setIsLoading(false);
       }
     }
 
-    return () => {
-      cancelled = true;
-    }; // ← Cleanup function
-  }, [scope, user]);
+    // Não retornamos a função de cleanup do fetch, a gestão agora é com isMounted
+  }, [scope, userUid]);
 
   useEffect(() => {
-    let cancelFn = () => {};
-    fetchTransactions().then((fn) => {
-      if (fn) cancelFn = fn;
-    });
+    fetchTransactions();
 
     const handleRefresh = () => {
-      fetchTransactions();
+      fetchTransactions(true);
     };
     window.addEventListener("transaction-updated", handleRefresh);
 
     return () => {
-      cancelFn();
       window.removeEventListener("transaction-updated", handleRefresh);
-    }; // ← Cleanup!
+    };
   }, [fetchTransactions]);
 
   const addTransaction = async (formData: TransactionFormData) => {
@@ -125,6 +155,9 @@ export const useTransactions = (
           `${payload.type === "income" ? "Receita" : "Despesa"}: ${payload.description} (R$ ${payload.amount})`,
         );
       }
+
+      // Dispara motor de gamificação real após o loop crítico estar seguro
+      checkTransactionAchievement();
 
       showSuccess("Transação adicionada com sucesso!");
 
@@ -225,6 +258,16 @@ export const useTransactions = (
     );
   }, [transactions, filter, dateFilter, searchTerm]);
 
+  const allTimeTotals = useMemo(() => {
+    const income = transactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expense = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+    return { income, expense, balance: income - expense };
+  }, [transactions]);
+
   const totals = useMemo(() => {
     const income = filteredTransactions
       .filter((t) => t.type === "income")
@@ -317,6 +360,7 @@ export const useTransactions = (
     getPieChartData,
     monthlyTrend,
     error,
+    allTimeTotals, // Novo: Totais sem filtros para cálculos globais
     refresh: fetchTransactions,
   };
 };

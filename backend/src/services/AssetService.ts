@@ -5,6 +5,7 @@
  */
 
 import * as FipeGateway from "../lib/gateways/FipeGateway.js";
+import type { FipeYear } from "../lib/gateways/FipeGateway.js";
 import * as BrasilApiGateway from "../lib/gateways/BrasilApiGateway.js";
 import { getCacheValue, setCacheValue } from "../lib/cache.js";
 
@@ -13,7 +14,7 @@ const SHORT_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function getFipeBrands(type: FipeGateway.VehicleType) {
   const cacheKey = `fipe:brands:${type}`;
-  const cached = await getCacheValue<any>(cacheKey);
+  const cached = await getCacheValue<FipeGateway.FipeBrand[]>(cacheKey);
   if (cached) return cached;
 
   const data = await FipeGateway.fetchBrands(type);
@@ -23,7 +24,7 @@ export async function getFipeBrands(type: FipeGateway.VehicleType) {
 
 export async function getFipeModels(type: FipeGateway.VehicleType, brandId: string) {
   const cacheKey = `fipe:models:${type}:${brandId}`;
-  const cached = await getCacheValue<any>(cacheKey);
+  const cached = await getCacheValue<FipeGateway.FipeModel[]>(cacheKey);
   if (cached) return cached;
 
   const data = await FipeGateway.fetchModels(type, brandId);
@@ -33,7 +34,7 @@ export async function getFipeModels(type: FipeGateway.VehicleType, brandId: stri
 
 export async function getFipeYears(type: FipeGateway.VehicleType, brandId: string, modelId: string) {
   const cacheKey = `fipe:years:${type}:${brandId}:${modelId}`;
-  const cached = await getCacheValue<any>(cacheKey);
+  const cached = await getCacheValue<FipeYear[]>(cacheKey);
   if (cached) return cached;
 
   const data = await FipeGateway.fetchYears(type, brandId, modelId);
@@ -43,7 +44,7 @@ export async function getFipeYears(type: FipeGateway.VehicleType, brandId: strin
 
 export async function getVehicleValuation(type: FipeGateway.VehicleType, brandId: string, modelId: string, yearId: string) {
   const cacheKey = `fipe:val:${type}:${brandId}:${modelId}:${yearId}`;
-  const cached = await getCacheValue<any>(cacheKey);
+  const cached = await getCacheValue<FipeGateway.FipeValuation>(cacheKey);
   if (cached) return cached;
 
   const data = await FipeGateway.fetchValuation(type, brandId, modelId, yearId);

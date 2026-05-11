@@ -17,16 +17,16 @@ const NAV_GROUPS = [
   {
     label: "Principal",
     items: [
-      { id: "inicio",   label: "Início",        icon: Home,          tab: "inicio"   as TabType },
-      { id: "personal", label: "Transações",    icon: Wallet,        tab: "personal" as TabType },
-      { id: "investir", label: "Investimentos", icon: TrendingUp,    tab: "investir" as TabType },
+      { id: "inicio",   label: "In\u00edcio",      icon: Home,          tab: "inicio"   as TabType },
+      { id: "budget",   label: "Finan\u00e7as",    icon: Wallet,        tab: "budget"   as TabType },
+      { id: "investir", label: "Patrim\u00f4nio",  icon: TrendingUp,    tab: "investir" as TabType },
+      { id: "academia", label: "Wealth Academy", icon: GraduationCap, tab: "academia" as TabType },
     ],
   },
   {
     label: "Avançado",
     items: [
-      { id: "business", label: "Empresarial", icon: Building2,     tab: "business" as TabType },
-      { id: "academia", label: "Aprender",    icon: GraduationCap, tab: "academia" as TabType },
+      { id: "business", label: "Empresarial", icon: Building2, tab: "business" as TabType },
     ],
   },
 ];

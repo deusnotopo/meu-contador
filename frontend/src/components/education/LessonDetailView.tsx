@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { EDUCATION_MODULES, getLessonActivationContext, getLessonAssociatedFeature, getLessonBehaviorGoal, getLessonObjective, getLessonOutcomeType, getLessonReferences, type Lesson } from "@/data/educationData";
+import { getLessonActivationContext, getLessonAssociatedFeature, getLessonBehaviorGoal, getLessonObjective, getLessonOutcomeType, getLessonReferences, type Lesson } from "@/data/educationData";
 import { showSuccess } from "@/lib/toast";
 import DOMPurify from "dompurify";
 import { TAB_TO_PILLAR, type TabType } from "@/types/navigation";
@@ -12,6 +12,8 @@ interface LessonDetailViewProps {
   lesson: Lesson;
   initialCompletedSteps?: number;
   checkpointLabel?: string;
+  previousLessonTitle?: string | null;
+  nextLessonTitle?: string | null;
   focusMode?: boolean;
   expandGuideByDefault?: boolean;
   onSettingsChange?: (settings: { focusMode?: boolean; expandGuideByDefault?: boolean }) => void;
@@ -21,18 +23,15 @@ interface LessonDetailViewProps {
   onNavigate?: (targetTab: TabType) => void;
 }
 
-export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, initialCompletedSteps = 0, checkpointLabel, focusMode = true, expandGuideByDefault = false, onSettingsChange, onBack, onProgress, onComplete, onNavigate }) => {
+export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, initialCompletedSteps = 0, checkpointLabel, previousLessonTitle, nextLessonTitle, focusMode = true, expandGuideByDefault = false, onSettingsChange, onBack, onProgress, onComplete, onNavigate }) => {
   const [passoAtual, setPassoAtual] = useState(() => Math.min(initialCompletedSteps, Math.max(lesson.passos.length - 1, 0)));
   const [quizIdx, setQuizIdx] = useState<number | null>(null);
   const [quizOk, setQuizOk] = useState(false);
   const [quizAcertou, setQuizAcertou] = useState(false);
   const [showLessonGuide, setShowLessonGuide] = useState(expandGuideByDefault);
 
-  const lessonIndex = EDUCATION_MODULES.findIndex((module) => module.id === lesson.id);
-  const previousLesson = lessonIndex > 0 ? EDUCATION_MODULES[lessonIndex - 1] : null;
-  const nextLesson = lessonIndex >= 0 && lessonIndex < EDUCATION_MODULES.length - 1
-    ? EDUCATION_MODULES[lessonIndex + 1]
-    : null;
+  const [earnedBonusXp, setEarnedBonusXp] = useState(0);
+  const [quizScores, setQuizScores] = useState<Record<number, boolean>>({});
 
   React.useEffect(() => {
     trackEvent(analyticsEvents.EDUCATION_LESSON_START, {
@@ -82,7 +81,9 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, init
     setQuizIdx(idx);
     const acertou = idx === passo.correta;
     setQuizAcertou(acertou);
-    if (acertou) {
+    if (acertou && !quizScores[passoAtual]) {
+      setQuizScores(prev => ({ ...prev, [passoAtual]: true }));
+      setEarnedBonusXp(prev => prev + 10);
       showSuccess('🎯 Correto! +10 XP bônus');
     }
   };
@@ -334,8 +335,8 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, init
                   <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
                     <div className="text-[9px] text-indigo-400 uppercase tracking-widest font-black mb-2">Rotas</div>
                     <div className="text-xs text-[var(--t2)] leading-relaxed">
-                      {previousLesson ? <>Após <strong className="text-white">{previousLesson.title}</strong>, você chegou aqui.</> : <>Aula primária do seu perfil.</>}
-                      {nextLesson && <>{" "}Avançando, seu próximo passo na trilha será <strong className="text-white">{nextLesson.title}</strong>.</>}
+                      {previousLessonTitle ? <>Após <strong className="text-white">{previousLessonTitle}</strong>, você chegou aqui.</> : <>Aula primária do seu perfil.</>}
+                      {nextLessonTitle && <>{" "}Avançando, seu próximo passo na trilha será <strong className="text-white">{nextLessonTitle}</strong>.</>}
                     </div>
                   </div>
                   
@@ -370,12 +371,15 @@ export const LessonDetailView: React.FC<LessonDetailViewProps> = ({ lesson, init
             onClick={isLast ? () => {
               const targetTab = extractNavigationTarget(passo.ctaFn);
               onProgress?.(total);
+              
+              const totalXpEarned = lesson.xp + earnedBonusXp;
+              
               trackEvent(analyticsEvents.EDUCATION_LESSON_COMPLETE, {
                 lesson_id: lesson.id,
                 trail: lesson.trilha,
-                xp: lesson.xp,
+                xp: totalXpEarned,
               });
-              onComplete(lesson.xp);
+              onComplete(totalXpEarned);
               if (targetTab) {
                 onNavigate?.(targetTab);
               }

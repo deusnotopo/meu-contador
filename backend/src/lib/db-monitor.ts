@@ -1,4 +1,5 @@
 import { db } from './db';
+import { logger } from './logger.js';
 
 interface PoolMetrics {
   totalConnections: number;
@@ -22,7 +23,7 @@ export async function getPoolMetrics(): Promise<PoolMetrics> {
         count(*) FILTER (WHERE state = 'idle') as idle
       FROM pg_stat_activity 
       WHERE datname = current_database()
-    ` as any[];
+    ` as { total: string; active: string; idle: string }[];
 
     return {
       totalConnections: parseInt(result[0]?.total || '0'),
@@ -31,7 +32,7 @@ export async function getPoolMetrics(): Promise<PoolMetrics> {
       waitingClients: 0,
     };
   } catch (error) {
-    console.error('Failed to get pool metrics:', error);
+    logger.error('[DB Monitor] Failed to get pool metrics', error);
     return {
       totalConnections: 0,
       activeConnections: 0,

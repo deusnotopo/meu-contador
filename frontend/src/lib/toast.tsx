@@ -138,7 +138,7 @@ export const showError = (message: unknown) => {
   if (callback) {
     callback({ message: String(message), type: 'error' });
   } else {
-    console.error("❌ [Toast Error]:", message);
+    logger.error("❌ [Toast Error]:", message);
   }
 };
 

@@ -7,11 +7,12 @@
 
 import { db } from "../lib/db.js";
 import { firebaseAdmin } from "../lib/firebase.js";
+import { logger } from "../lib/logger.js";
 
 const getGamificationDoc = (userId: string) => 
   firebaseAdmin.firestore().collection('gamification').doc(userId);
 
-export async function findStateByUserId(userId: string): Promise<any | null> {
+export async function findStateByUserId(userId: string): Promise<Record<string, unknown> | null> {
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { gamificationData: true },
@@ -26,7 +27,7 @@ export async function findStateByUserId(userId: string): Promise<any | null> {
   }
 }
 
-export async function saveState(userId: string, state: any, tx?: any) {
+export async function saveState(userId: string, state: Record<string, unknown>, tx?: { user: { update: typeof db.user.update } }) {
   const client = tx || db;
   const data = JSON.stringify(state);
 
@@ -40,16 +41,16 @@ export async function saveState(userId: string, state: any, tx?: any) {
     const docRef = getGamificationDoc(userId);
     await docRef.set(state);
   } catch (e) {
-    console.error(`[GamificationRepo] Cloud sync failure for ${userId}:`, e);
+    logger.error(`[GamificationRepo] Cloud sync failure for ${userId}`, e);
   }
 }
 
-export async function fetchFromCloud(userId: string): Promise<any | null> {
+export async function fetchFromCloud(userId: string): Promise<Record<string, unknown> | null> {
   try {
     const doc = await getGamificationDoc(userId).get();
-    return doc.exists ? doc.data() : null;
+    return doc.exists ? (doc.data() as Record<string, unknown>) ?? null : null;
   } catch (e) {
-    console.error(`[GamificationRepo] Cloud fetch failure for ${userId}:`, e);
+    logger.error(`[GamificationRepo] Cloud fetch failure for ${userId}`, e);
     return null;
   }
 }

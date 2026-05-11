@@ -166,8 +166,6 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("ONBOARDING_DRAFT");
   }, []);
 
-  if (!isLoaded) return null; // Avoid rendering until draft is loaded
-
   const contextValue = useMemo(() => ({
     profile, setProfile, handleProfileChange,
     budgets, setBudgets,
@@ -202,6 +200,8 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
     loadedStep
   ]);
 
+  if (!isLoaded) return null; // Avoid rendering until draft is loaded
+
   return (
     <OnboardingContext.Provider value={contextValue}>
       {children}
@@ -209,6 +209,7 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useOnboarding = () => {
   const context = useContext(OnboardingContext);
   if (context === undefined) {

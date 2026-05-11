@@ -1,11 +1,12 @@
 import { db } from '../lib/db';
 import { syncBankConnection } from '../services/pluggy';
+import { logger } from '../lib/logger.js';
 
 /**
  * Job de Sincronização Open Finance (Pluggy)
  */
 export async function runOpenFinanceSync() {
-  console.log('⏳ Executando Job: Sincronização Open Finance (Pluggy)...');
+  logger.info('[OpenFinance] Executando Job: Sincronização Open Finance (Pluggy)...');
   
   try {
     const activeConnections = await db.bankConnection.findMany({
@@ -20,7 +21,7 @@ export async function runOpenFinanceSync() {
       }
     });
 
-    console.log(`📊 Encontradas ${activeConnections.length} conexões ativas para sincronizar.`);
+    logger.info(`[OpenFinance] ${activeConnections.length} conexões ativas para sincronizar.`);
 
     let successCount = 0;
     let errorCount = 0;
@@ -30,11 +31,12 @@ export async function runOpenFinanceSync() {
       try {
         await syncBankConnection(connection.pluggyItemId, connection.userId);
         successCount++;
-      } catch (error: any) {
+      } catch (error: unknown) {
         errorCount++;
-        console.error(`❌ Erro ao sincronizar conexão ${connection.pluggyItemId}:`, error.message);
+        const errMsg = error instanceof Error ? error.message : String(error);
+        logger.error(`[OpenFinance] Erro ao sincronizar conexão ${connection.pluggyItemId}: ${errMsg}`);
 
-        const errorMessage = error.message?.toLowerCase() || '';
+        const errorMessage = errMsg.toLowerCase();
         
         if (
           errorMessage.includes('login') || 
@@ -49,16 +51,16 @@ export async function runOpenFinanceSync() {
             data: { status: 'LOGIN_ERROR' }
           });
           reauthCount++;
-          console.log(`🔐 Conexão ${connection.pluggyItemId} marcada para re-autenticação.`);
+          logger.warn(`[OpenFinance] Conexão ${connection.pluggyItemId} marcada para re-autenticação.`);
         }
       }
     }
 
-    console.log(`✅ Sync Open Finance concluído: ${successCount} sincronizados, ${errorCount} erros, ${reauthCount} marcados para re-autenticação.`);
+    logger.info(`[OpenFinance] Sync concluído: ${successCount} ok, ${errorCount} erros, ${reauthCount} re-auth.`);
     return { successCount, errorCount, reauthCount };
 
   } catch (error) {
-    console.error('❌ Erro crítico no Job de Sync Open Finance:', error);
+    logger.error('[OpenFinance] Erro crítico no Job de Sync', error);
     throw error;
   }
 }

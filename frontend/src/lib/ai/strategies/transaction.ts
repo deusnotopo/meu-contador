@@ -1,4 +1,5 @@
 import type { Transaction } from "@/types";
+import { logger } from "@/lib/logger";
 import type { ParsedIntent } from "../intent-parser";
 import type { ActionResult } from "../types";
 
@@ -45,7 +46,7 @@ export const executeTransactionAction = async (
       data: transaction,
     };
   } catch (error) {
-    console.error("AI Save Error:", error);
+    logger.error('[TransactionStrategy] API save failed', error);
     return {
       success: false,
       message: "Consegui entender o comando, mas houve um erro ao salvar no servidor. Tente novamente em instantes.",

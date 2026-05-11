@@ -8,6 +8,7 @@ import { getCacheValue, setCacheValue } from '../lib/cache.js';
 import * as GoalRepository from '../repositories/GoalRepository.js';
 import { toCents } from '../../../shared/currency.js';
 import { withJitter } from '../../../shared/cache-utils.js';
+import type { Prisma } from '@prisma/client';
 
 const BASE_CACHE_TTL = 300_000;
 
@@ -46,7 +47,7 @@ export async function getGoal(id: string, userId: string) {
   return GoalRepository.findOne(id, userId);
 }
 
-export async function createGoal(userId: string, input: CreateGoalInput, tx?: any) {
+export async function createGoal(userId: string, input: CreateGoalInput, tx?: Prisma.TransactionClient) {
   const data: GoalRepository.GoalCreateData = {
     userId,
     name: input.name,
@@ -62,13 +63,13 @@ export async function createGoal(userId: string, input: CreateGoalInput, tx?: an
   return goal;
 }
 
-export async function createManyGoals(userId: string, data: any[], tx?: any) {
+export async function createManyGoals(userId: string, data: GoalRepository.GoalCreateData[], tx?: Prisma.TransactionClient) {
   const result = await GoalRepository.createMany(data, tx);
   if (!tx) await GoalRepository.invalidateGoalCache(userId);
   return result;
 }
 
-export async function updateGoal(id: string, userId: string, input: UpdateGoalInput, tx?: any) {
+export async function updateGoal(id: string, userId: string, input: UpdateGoalInput, tx?: Prisma.TransactionClient) {
   const existing = await GoalRepository.findOne(id, userId);
   if (!existing) return null;
 
@@ -86,7 +87,7 @@ export async function updateGoal(id: string, userId: string, input: UpdateGoalIn
   return goal;
 }
 
-export async function deleteGoal(id: string, userId: string, tx?: any) {
+export async function deleteGoal(id: string, userId: string, tx?: Prisma.TransactionClient) {
   const success = await GoalRepository.softDeleteOne(id, userId, tx);
   if (success && !tx) {
     await GoalRepository.invalidateGoalCache(userId);

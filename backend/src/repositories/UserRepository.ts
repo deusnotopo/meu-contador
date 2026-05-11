@@ -5,10 +5,11 @@
  */
 
 import { db } from '../lib/db.js';
+import type { Prisma, User } from '@prisma/client';
 
 // ── Mapping Helper ────────────────────────────────────────────────────────────
 
-export function formatUserProfile(user: any) {
+export function formatUserProfile(user: User | null) {
   if (!user) return user;
   const { passwordHash, ...profile } = user;
   
@@ -37,7 +38,7 @@ export async function findByEmail(email: string) {
   return user;
 }
 
-export async function create(data: any, tx?: any) {
+export async function create(data: Prisma.UserCreateInput, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const user = await client.user.create({ data });
   return formatUserProfile(user);
@@ -78,7 +79,7 @@ export async function createWithWorkspace(data: {
   });
 }
 
-export async function update(id: string, data: any, tx?: any) {
+export async function update(id: string, data: Prisma.UserUpdateInput, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const user = await client.user.update({
     where: { id },

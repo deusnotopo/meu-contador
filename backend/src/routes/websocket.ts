@@ -1,21 +1,26 @@
 import { FastifyInstance } from 'fastify';
-import { WebSocket } from 'ws';
 import { z } from 'zod';
-import { wsManager, NotificationType } from '../lib/ws-manager.js';
+import { wsManager, NotificationType, WsSocket } from '../lib/ws-manager.js';
 import * as NotificationService from '../services/NotificationService.js';
+import { extractCookie } from '../lib/auth-utils.js';
+
+const ACCESS_COOKIE_NAME = 'mc_access_token';
 
 export async function websocketRoutes(app: FastifyInstance) {
   // WebSocket upgrade endpoint
-  app.get('/ws', { websocket: true } as any, (connection: any, request: any) => {
-    const ws = connection.socket as WebSocket;
+  // @ts-expect-error Fastify websocket plugin type mismatch
+  app.get('/ws', { websocket: true }, (connection: { socket: WsSocket }, request: { url?: string; headers: Record<string, string | undefined>; log: { error: (err: unknown) => void } }) => {
+    const ws = connection.socket;
     const connectionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Extract user ID from query parameter or token
+    // Extract user ID from query parameter or HttpOnly Cookie (McAuth Pattern)
     const url = new URL(request.url!, `http://${request.headers.host}`);
-    const token = url.searchParams.get('token');
+    const queryToken = url.searchParams.get('token');
+    const cookieToken = extractCookie(request.headers.cookie, ACCESS_COOKIE_NAME);
+    const token = queryToken || cookieToken;
     
     if (!token) {
-      ws.close(1008, 'Authentication required');
+      ws.close(1008, 'Authentication required - No token found in query or cookies');
       return;
     }
 
@@ -34,7 +39,7 @@ export async function websocketRoutes(app: FastifyInstance) {
       }));
 
       // Handle incoming messages
-      (ws as any).on('message', (message: Buffer) => {
+      ws.on('message', (message: Buffer) => {
         try {
           const data = JSON.parse(message.toString());
           
@@ -68,10 +73,10 @@ export async function websocketRoutes(app: FastifyInstance) {
       });
 
       // Handle connection close
-      (ws as any).on('close', () => wsManager.removeConnection(connectionId, userId));
+      ws.on('close', () => wsManager.removeConnection(connectionId, userId));
 
       // Handle errors
-      (ws as any).on('error', (error: any) => {
+      ws.on('error', (error: unknown) => {
         request.log.error(error);
         wsManager.removeConnection(connectionId, userId);
       });
@@ -96,7 +101,7 @@ export async function websocketRoutes(app: FastifyInstance) {
     },
     preHandler: [app.authenticate],
   }, async (request) => {
-    const userId = (request.user as any).id;
+    const userId = request.user.id;
     return {
       connections: wsManager.getConnectionCount(),
       userConnections: wsManager.getUserConnectionCount(userId),
@@ -114,7 +119,7 @@ export async function websocketRoutes(app: FastifyInstance) {
     },
     preHandler: [app.authenticate],
   }, async (request) => {
-    const userId = (request.user as any).id;
+    const userId = request.user.id;
     const { message } = request.body as { message: string };
     
     NotificationService.sendNotification(userId, {

@@ -7,7 +7,12 @@
 import { db } from "../lib/db.js";
 import { webpush } from "../lib/webpush.js";
 
-export async function subscribe(userId: string, subscription: any) {
+export interface PushSubscriptionInput {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+export async function subscribe(userId: string, subscription: PushSubscriptionInput) {
   const { endpoint, keys } = subscription;
   
   const pushSub = await db.pushSubscription.upsert({
@@ -62,10 +67,11 @@ export async function sendUserTestNotification(userId: string, options: { title?
         keys: { p256dh: subRecord.p256dh, auth: subRecord.auth }
       }, payload);
       successCount++;
-    } catch (error: any) {
+    } catch (error: unknown) {
       failureCount++;
       // Cleanup for 410 (Gone) or 404 (Not Found)
-      if (error.statusCode === 410 || error.statusCode === 404) {
+      const statusCode = error instanceof Object && 'statusCode' in error ? (error as { statusCode: number }).statusCode : 0;
+      if (statusCode === 410 || statusCode === 404) {
         await db.pushSubscription.delete({ where: { id: subRecord.id } });
       }
     }

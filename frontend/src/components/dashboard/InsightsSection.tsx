@@ -3,22 +3,51 @@ import { PieChart } from "lucide-react";
 import { DashboardErrorBoundary } from "@/components/ui/DashboardErrorBoundary";
 import { TermometroDoMes } from "./TermometroDoMes";
 import { DailySpendingWidget } from "./DailySpendingWidget";
-import { TaxAuditorWidget } from "./TaxAuditorWidget";
 import { CategorySpendingWidget } from "./CategorySpendingWidget";
 import { RecentTransactions } from "./RecentTransactions";
 import { FinancialFormatter } from "@/services/FinancialFormatter";
 import { useInsightsStats } from "@/hooks/dashboard/useInsightsStats";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DecisionFeedWidget } from "./DecisionFeedWidget";
+import type { DashboardIntelligence } from "@/hooks/useIntelligence";
+import type { Transaction } from "@/types";
 import type { TabType } from "@/types/navigation";
 
-export const InsightsSection: React.FC<{ onNavigate: (tab: TabType) => void }> = ({
-  onNavigate,
-}) => {
-  const { stats, health, activity, monthlyRevenue, isLoading, error } = useInsightsStats();
+export interface DashboardStats {
+  income: number;
+  expense: number;
+  balance: number;
+  netWorth: number;
+  assets: number;
+  liabilities: number;
+}
 
-  if (isLoading) {
-    return <Skeleton className="h-[400px] w-full rounded-[24px]" />;
-  }
+export interface DashboardHealth {
+  score: number;
+  tooltip: string;
+  sustainableDaily: number;
+  estimatedTax: number;
+  dailyBurnRate?: number;
+}
+
+interface InsightsSectionProps {
+  onNavigate: (tab: TabType) => void;
+  stats: DashboardStats;
+  health: DashboardHealth;
+  allTransactions: Transaction[];
+  isLoading: boolean;
+  intelligence?: DashboardIntelligence | null;
+}
+
+export const InsightsSection: React.FC<InsightsSectionProps> = ({
+  onNavigate,
+  stats,
+  health,
+  allTransactions,
+  isLoading,
+  intelligence,
+}) => {
+  const { activity } = useInsightsStats(allTransactions);
+  const error = null; // Error handling is now at orchestrator level
 
   return (
     <section className="space-y-4">
@@ -32,45 +61,77 @@ export const InsightsSection: React.FC<{ onNavigate: (tab: TabType) => void }> =
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         {/* Termometro e Gastos Diários */}
         <div className="md:col-span-7 space-y-3">
-          <DashboardErrorBoundary componentName="TermometroDoMes">
-            <TermometroDoMes
-              income={stats.income}
-              expense={stats.expense}
-              balance={stats.balance}
-              onNavigate={onNavigate}
-            />
+          <DashboardErrorBoundary title="Termômetro do Mês">
+            {isLoading ? (
+              <div className="h-32 w-full skeleton-pulse animate-pulse-akita rounded-3xl" />
+            ) : (
+              <TermometroDoMes
+                income={stats.income}
+                expense={stats.expense}
+                balance={stats.balance}
+                onNavigate={onNavigate}
+              />
+            )}
           </DashboardErrorBoundary>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <DailySpendingWidget 
-              sustainableDaily={health.sustainableDaily} 
-              fmt={FinancialFormatter.formatCurrency.bind(FinancialFormatter)} 
-            />
-            <TaxAuditorWidget
-              estimatedTax={health.estimatedTax}
-              monthlyRevenue={monthlyRevenue}
-              fmt={FinancialFormatter.formatCurrency.bind(FinancialFormatter)}
-            />
+            <DashboardErrorBoundary title="Gastos Diários">
+              {isLoading ? (
+                <div className="h-24 w-full skeleton-pulse animate-pulse-akita rounded-3xl" />
+              ) : (
+                <DailySpendingWidget 
+                  sustainableDaily={health.sustainableDaily} 
+                  fmt={FinancialFormatter.formatCurrency.bind(FinancialFormatter)} 
+                />
+              )}
+            </DashboardErrorBoundary>
+
+            <DashboardErrorBoundary title="Decisões da IA">
+              <DecisionFeedWidget 
+                decisions={intelligence?.decisions || []} 
+                isLoading={isLoading} 
+              />
+            </DashboardErrorBoundary>
           </div>
         </div>
 
         {/* Lista de Gastos e Categorias */}
-        <div className="md:col-span-5 bento-card p-6">
-          <CategorySpendingWidget
-            categories={activity.categorySpending}
-            hasError={!!error}
-            onNavigate={onNavigate}
-          />
+        <div className="md:col-span-5 bento-card p-6 min-h-[300px]">
+          <DashboardErrorBoundary title="Gastos por Categoria">
+            {isLoading ? (
+               <div className="space-y-4">
+                 <div className="h-4 w-1/2 skeleton-pulse animate-pulse-akita" />
+                 <div className="h-24 w-full skeleton-pulse animate-pulse-akita" />
+               </div>
+            ) : (
+              <CategorySpendingWidget
+                categories={activity.categorySpending}
+                hasError={!!error}
+                onNavigate={onNavigate}
+              />
+            )}
+          </DashboardErrorBoundary>
         </div>
-      </div>
 
-      <div className="bento-card p-6 md:col-span-12">
-        <RecentTransactions
-          transactions={activity.recentPurchases}
-          onNavigate={onNavigate}
-          fmt={FinancialFormatter.formatCurrency.bind(FinancialFormatter)}
-          error={error}
-        />
+        {/* Transações recentes — full width dentro do grid */}
+        <div className="md:col-span-12 bento-card p-6 min-h-[220px]">
+          <DashboardErrorBoundary title="Transações Recentes">
+            {isLoading ? (
+               <div className="space-y-3">
+                 <div className="h-4 w-1/4 skeleton-pulse animate-pulse-akita" />
+                 <div className="h-12 w-full skeleton-pulse animate-pulse-akita" />
+                 <div className="h-12 w-full skeleton-pulse animate-pulse-akita" />
+               </div>
+            ) : (
+              <RecentTransactions
+                transactions={activity.recentPurchases}
+                onNavigate={onNavigate}
+                fmt={FinancialFormatter.formatCurrency.bind(FinancialFormatter)}
+                error={!!error}
+              />
+            )}
+          </DashboardErrorBoundary>
+        </div>
       </div>
     </section>
   );

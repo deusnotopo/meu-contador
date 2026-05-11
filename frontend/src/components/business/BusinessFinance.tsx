@@ -10,6 +10,7 @@ import {
   Receipt,
   Sparkles,
   TrendingUp,
+  Wifi,
 } from "lucide-react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,6 +18,7 @@ import { QuickSetupWizard } from "@/components/ui/QuickSetupWizard";
 import { saveBudgets } from "@/lib/storage";
 import { showSuccess } from "@/lib/toast";
 import { normalizeBudgetCategory } from "@/features/budgets/budget-utils";
+import { OpenFinanceSandbox } from "@/components/business/OpenFinanceSandbox";
 
 import { CashFlowSection } from "@/components/business/CashFlowSection";
 import { DRESection } from "@/components/business/DRESection";
@@ -45,6 +47,7 @@ export const BusinessFinance = () => {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const [showWizard, setShowWizard] = useState(false);
+  const [showOpenFinance, setShowOpenFinance] = useState(false);
 
   const {
     transactions,
@@ -181,14 +184,23 @@ export const BusinessFinance = () => {
             Novo Lançamento
           </Button>
 
-            <Button
-              onClick={() => setShowWizard(true)}
-              variant="outline"
-              className="h-14 px-6 rounded-2xl border-white/10 text-neutral-500 hover:text-white hover:bg-white/5 uppercase tracking-widest text-[10px] font-bold"
-            >
-              <Sparkles size={16} className="mr-2" />
-              Configurar
-            </Button>
+          <Button
+            onClick={() => setShowOpenFinance(true)}
+            variant="outline"
+            className="h-14 px-6 rounded-2xl border-blue-500/30 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 uppercase tracking-widest text-[10px] font-bold"
+          >
+            <Wifi size={16} className="mr-2" />
+            Open Finance
+          </Button>
+
+          <Button
+            onClick={() => setShowWizard(true)}
+            variant="outline"
+            className="h-14 px-6 rounded-2xl border-white/10 text-neutral-500 hover:text-white hover:bg-white/5 uppercase tracking-widest text-[10px] font-bold"
+          >
+            <Sparkles size={16} className="mr-2" />
+            Configurar
+          </Button>
           </div>
         </div>
 
@@ -282,6 +294,13 @@ export const BusinessFinance = () => {
       )}
 
       {activeTab === "invoices" && <InvoicesSection />}
+
+      {/* Open Finance Sandbox Modal */}
+      <AnimatePresence>
+        {showOpenFinance && (
+          <OpenFinanceSandbox onClose={() => setShowOpenFinance(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

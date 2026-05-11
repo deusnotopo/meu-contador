@@ -112,6 +112,7 @@ export const AdviserOverlay = ({ isOpen, onClose }: AdviserOverlayProps) => {
 };
 
 // ─── Combined Hook + Components export ───────────────────────
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAdviser = () => {
   const [isOpen, setIsOpen] = useState(false);
   const open = useCallback(() => setIsOpen(true), []);

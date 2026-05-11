@@ -233,7 +233,7 @@ export const SyncDashboard = () => {
     health?.summary ?? {};
 
   return (
-    <div className="space-y-5">
+    <div className="bento-card bento-full p-5 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

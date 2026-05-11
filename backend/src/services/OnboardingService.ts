@@ -14,7 +14,26 @@ import * as DebtService from "./DebtService.js";
 import * as TransactionRepository from "../repositories/TransactionRepository.js";
 import { toCents } from "../../../shared/currency.js";
 
-export async function processOnboarding(userId: string, payload: any) {
+export interface OnboardingBudget { category: string; amount: number }
+export interface OnboardingGoal { name: string; targetAmount: number; deadline?: string; icon?: string; color?: string }
+export interface OnboardingReminder { name: string; amount: number; dueDay?: number; category?: string; recurring?: string }
+export interface OnboardingInvestment { name?: string; ticker?: string; type: string; quantity?: number; price?: number }
+export interface OnboardingDebt { name: string; balance: number; interestRate: number; minPayment: number; category: string }
+export interface OnboardingHistoricalExpense { description?: string; amount?: number; category?: string; date?: string; month?: string }
+
+export interface OnboardingPayload {
+  profile?: Record<string, unknown>;
+  budgets?: OnboardingBudget[];
+  goals?: OnboardingGoal[];
+  reminders?: OnboardingReminder[];
+  investments?: OnboardingInvestment[];
+  debts?: OnboardingDebt[];
+  historicalExpenses?: OnboardingHistoricalExpense[];
+  preferences?: Record<string, unknown>;
+  completed?: boolean;
+}
+
+export async function processOnboarding(userId: string, payload: OnboardingPayload) {
   return db.$transaction(async (tx) => {
     // 1. Update Profile & Initial Balance
     if (payload.profile) {
@@ -26,7 +45,7 @@ export async function processOnboarding(userId: string, payload: any) {
 
     // 2. Setup Budgets
     if (payload.budgets && payload.budgets.length > 0) {
-      const budgetData = payload.budgets.map((b: any) => ({
+      const budgetData = payload.budgets.map((b: OnboardingBudget) => ({
         userId,
         category: b.category,
         limit: toCents(b.amount),
@@ -37,7 +56,7 @@ export async function processOnboarding(userId: string, payload: any) {
 
     // 3. Setup Goals
     if (payload.goals && payload.goals.length > 0) {
-      const goalData = payload.goals.map((g: any) => ({
+      const goalData = payload.goals.map((g: OnboardingGoal) => ({
         userId,
         name: g.name,
         targetAmount: toCents(g.targetAmount),
@@ -51,7 +70,7 @@ export async function processOnboarding(userId: string, payload: any) {
 
     // 4. Setup Reminders (Bills)
     if (payload.reminders && payload.reminders.length > 0) {
-      const reminderData = payload.reminders.map((r: any) => ({
+      const reminderData = payload.reminders.map((r: OnboardingReminder) => ({
         userId,
         name: r.name,
         amount: toCents(r.amount),
@@ -64,7 +83,7 @@ export async function processOnboarding(userId: string, payload: any) {
 
     // 5. Setup Investments
     if (payload.investments && payload.investments.length > 0) {
-      const investmentData = payload.investments.map((i: any) => ({
+      const investmentData = payload.investments.map((i: OnboardingInvestment) => ({
         userId,
         name: i.name || i.ticker || "Investimento",
         ticker: i.ticker || "N/A",
@@ -78,7 +97,7 @@ export async function processOnboarding(userId: string, payload: any) {
 
     // 6. Setup Debts
     if (payload.debts && payload.debts.length > 0) {
-      const debtData = payload.debts.map((d: any) => ({
+      const debtData = payload.debts.map((d: OnboardingDebt) => ({
         userId,
         name: d.name,
         balance: toCents(d.balance),
@@ -91,7 +110,7 @@ export async function processOnboarding(userId: string, payload: any) {
 
     // 7. Process Historical Expenses (Transactions)
     if (payload.historicalExpenses && payload.historicalExpenses.length > 0) {
-      const historicalData = payload.historicalExpenses.map((h: any) => ({
+      const historicalData = payload.historicalExpenses.map((h: OnboardingHistoricalExpense) => ({
         userId,
         description: h.description || "Gasto Histórico",
         amount: toCents(h.amount || 0),

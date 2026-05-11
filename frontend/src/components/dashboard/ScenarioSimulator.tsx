@@ -1,41 +1,21 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { AreaChart } from "@/components/ui/Charts";
+import React, { useState, useEffect, useRef } from "react";
+import { ProbabilisticAreaChart } from "@/components/ui/ProbabilisticAreaChart";
 import { Slider } from "@/components/ui/slider";
-import { Rocket, Timer } from "lucide-react";
+import { Rocket, Timer, Loader2 } from "lucide-react";
 import { useInvestments } from "@/hooks/useInvestments";
-
-interface TimelinePoint {
-  month: number;
-  balance: number;
-}
-
-// Pure local compound interest simulation — no API, no CSRF
-function simulateLocally(
-  initialBalance: number,
-  monthlyDeposit: number,
-  annualYield: number,
-  horizonYears: number
-): { timeline: TimelinePoint[]; finalBalance: number } {
-  const monthlyRate = Math.pow(1 + annualYield / 100, 1 / 12) - 1;
-  const totalMonths = horizonYears * 12;
-  const timeline: TimelinePoint[] = [];
-  let balance = initialBalance;
-
-  for (let m = 1; m <= totalMonths; m++) {
-    balance = balance * (1 + monthlyRate) + monthlyDeposit;
-    if (m % 6 === 0 || m === totalMonths) {
-      timeline.push({ month: m, balance: Math.round(balance) });
-    }
-  }
-
-  return { timeline, finalBalance: balance };
-}
+import { useIntelligence, SimulationResult } from "@/hooks/useIntelligence";
+import { logger } from "@/lib/logger";
 
 export const ScenarioSimulator: React.FC = () => {
   const { totals: investTotals } = useInvestments();
+  const { simulate } = useIntelligence();
+  
   const [deposit, setDeposit] = useState(500);
   const [yieldRate, setYieldRate] = useState(8);
   const [years, setYears] = useState(10);
+  
+  const [simulationData, setSimulationData] = useState<SimulationResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = useState(300);
@@ -50,15 +30,32 @@ export const ScenarioSimulator: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Pure local calculation — instant, no network
-  const { timeline, finalBalance } = useMemo(() => {
-    return simulateLocally(
-      investTotals.currentValue,
-      deposit,
-      yieldRate,
-      years
-    );
-  }, [investTotals.currentValue, deposit, yieldRate, years]);
+  // API Call with debounce
+  useEffect(() => {
+    let active = true;
+    const timeout = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const result = await simulate({
+          additionalMonthlyDeposit: deposit,
+          expectedAnnualYield: yieldRate,
+          horizonYears: years
+        });
+        if (active) {
+          setSimulationData(result);
+        }
+      } catch (err) {
+        logger.error('[ScenarioSimulator] Simulation failed', err);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [deposit, yieldRate, years, simulate]);
 
   const fmt = (n: number) => "R$\u00a0" + Math.round(n).toLocaleString("pt-BR");
 
@@ -69,8 +66,15 @@ export const ScenarioSimulator: React.FC = () => {
           <Rocket size={18} className="text-indigo-400" />
           <h3 className="text-sm font-black uppercase tracking-widest text-white/90">Laboratório de Futuro</h3>
         </div>
-        <div className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[9px] font-black text-indigo-400 uppercase tracking-tighter">
-          Simulação Local
+        <div className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[9px] font-black text-indigo-400 uppercase tracking-tighter flex items-center gap-2">
+          {isLoading ? (
+            <>
+              <Loader2 size={10} className="animate-spin" />
+              Processando Monte Carlo...
+            </>
+          ) : (
+            "Motor Institucional"
+          )}
         </div>
       </div>
 
@@ -119,29 +123,45 @@ export const ScenarioSimulator: React.FC = () => {
         </div>
 
         {/* Result */}
-        <div className="flex flex-col justify-between bg-white/[0.02] border border-white/[0.05] rounded-3xl p-5 relative overflow-hidden">
+        <div className={`flex flex-col justify-between bg-white/[0.02] border border-white/[0.05] rounded-3xl p-5 relative overflow-hidden transition-opacity duration-300 ${isLoading ? 'opacity-60' : 'opacity-100'}`}>
           <div className="relative z-10">
-            <div className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Patrimônio Estimado</div>
+            <div className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1">Patrimônio Esperado</div>
             <div className="text-2xl font-black text-white tracking-tight mb-4">
-              {fmt(finalBalance)}
+              {simulationData ? fmt(simulationData.finalBalance) : "---"}
             </div>
 
-            <div ref={containerRef} className="w-full h-24 mb-2">
-              <AreaChart
-                data={timeline.map(d => d.balance)}
-                w={chartWidth}
-                h={96}
-                color="#4A8BFF"
-              />
+            <div ref={containerRef} className="w-full h-28 mb-2">
+              {simulationData ? (
+                <ProbabilisticAreaChart
+                  data={simulationData.monteCarlo}
+                  w={chartWidth}
+                  h={112}
+                  color="#4A8BFF"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                   <Loader2 size={24} className="animate-spin text-white/10" />
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pt-4 border-t border-white/[0.05] relative z-10">
-            <div className="flex items-center gap-1.5">
-              <Timer size={14} className="text-amber-500/50" />
-              <span className="text-[10px] text-white/40 font-medium italic">
-                Juros compostos · patrimônio atual: {fmt(investTotals.currentValue)}
-              </span>
+          <div className="flex flex-col gap-2 pt-4 border-t border-white/[0.05] relative z-10">
+            <div className="flex justify-between items-center">
+               <div className="flex items-center gap-1.5">
+                <Timer size={14} className="text-amber-500/50" />
+                <span className="text-[10px] text-white/40 font-medium italic">
+                  Base: {fmt(investTotals.currentValue)} investidos
+                </span>
+              </div>
+              {simulationData && (
+                <div className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                  1.000 iterações Monte Carlo
+                </div>
+              )}
+            </div>
+            <div className="text-[9px] text-white/20 mt-1 uppercase tracking-widest leading-relaxed">
+              A banda sombreada representa 90% de confiança estatística (p5-p95).
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { LogOut, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { logger } from "@/lib/logger";
 
 export const DangerousActions: React.FC = () => {
   const { logout, deleteAccount } = useAuth();
@@ -50,7 +51,7 @@ export const DangerousActions: React.FC = () => {
                     setIsDeleting(true);
                     await deleteAccount();
                   } catch (e) {
-                    console.error("Falha na deleção da conta", e);
+                    logger.error('[DangerousActions] Account deletion failed', e);
                   } finally {
                     setShowDeleteConfirm(false);
                     setIsDeleting(false);

@@ -437,3 +437,15 @@ model Notification {
   @@index([userId, readAt])
 }
 
+model MarketInterestRate {
+  id                    String   @id @default(uuid())
+  modality              String
+  institution           String
+  cnpj8                 String?
+  monthlyRate           Float
+  annualRate            Float
+  updatedAt             DateTime @default(now())
+
+  @@index([modality, monthlyRate])
+  @@unique([modality, institution])
+}

@@ -6,8 +6,9 @@ export { type FireConfig };
 export const useFireCalculation = (config: FireConfig) => {
   const results = useMemo(() => {
     return FinanceService.calculateFire(config);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    config,
+    // Depend on individual primitive fields to avoid re-running on unrelated object reference changes
     config.currentNetWorth,
     config.monthlyExpenses,
     config.monthlyDeposit,

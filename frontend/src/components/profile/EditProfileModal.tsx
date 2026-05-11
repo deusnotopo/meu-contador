@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useUserActions } from "@/hooks/useUserActions";
+import { logger } from "@/lib/logger";
 import { X } from "lucide-react";
 import { UserProfile } from "@/types";
 
@@ -35,7 +36,7 @@ export const EditProfileModal = ({ onClose }: EditProfileModalProps) => {
       await updateProfile(formData);
       onClose();
     } catch (err: unknown) {
-      console.error(err);
+      logger.error('[EditProfileModal] Profile update failed', err);
       setError("Falha ao atualizar o perfil. Tente novamente.");
     } finally {
       setLoading(false);

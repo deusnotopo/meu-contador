@@ -5,6 +5,7 @@ import { useGoals } from "./useGoals";
 import { useProvisions } from "./useProvisions";
 import { useReminders } from "./useReminders";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import {
   CashFlowItemSchema,
   CashFlowSummarySchema,
@@ -86,10 +87,10 @@ export function useCashFlow() {
       })
       .catch((err) => {
         if (err instanceof z.ZodError) {
-          console.error("[CashFlow] Zod Validation Error:", err.errors);
+          logger.error('[useCashFlow] Zod Validation Error', err.errors);
         } else {
-          console.warn(
-            "[CashFlow] Server projection failed, using client-side fallback:",
+          logger.warn(
+            '[useCashFlow] Server projection failed, using client-side fallback',
             err,
           );
         }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { ProvisionSchema } from '@/lib/schemas';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
 export type Provision = z.infer<typeof ProvisionSchema>;
@@ -24,10 +25,10 @@ export function useProvisions() {
       setProvisions(response);
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
-        console.error('Zod Validation Error (Provisions):', err.errors);
+        logger.error('[useProvisions] Zod Validation Error', err.errors);
         setError('Dados de provisões incompatíveis.');
       } else {
-        console.error('Failed to fetch provisions:', err);
+        logger.error('[useProvisions] Failed to fetch provisions', err);
         setError((err as Error)?.message || 'Erro ao carregar provisões');
       }
     } finally {
@@ -45,7 +46,7 @@ export function useProvisions() {
       setProvisions((prev) => [...prev, response]);
       return response;
     } catch (err) {
-      console.error('Add provision failed:', err);
+      logger.error('[useProvisions] Add provision failed', err);
       throw err;
     }
   };
@@ -58,7 +59,7 @@ export function useProvisions() {
       );
       return response;
     } catch (err) {
-      console.error('Update provision failed:', err);
+      logger.error('[useProvisions] Update provision failed', err);
       throw err;
     }
   };
@@ -68,7 +69,7 @@ export function useProvisions() {
       await api.delete(`/provisions/${id}`);
       setProvisions((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
-      console.error('Delete provision failed:', err);
+      logger.error('[useProvisions] Delete provision failed', err);
       throw err;
     }
   };

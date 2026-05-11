@@ -116,7 +116,15 @@ export async function getPatternsAndInsights(userId: string) {
 }
 
 function calculatePatterns(entries: EmotionalEntry[]) {
-  const patternMap: Record<string, any> = {};
+  interface PatternAccumulator {
+    count: number;
+    totalSpend: number;
+    categories: Record<string, number>;
+    triggers: Record<string, number>;
+    regretCount: number;
+  }
+
+  const patternMap: Record<string, PatternAccumulator> = {};
 
   entries.forEach((entry) => {
     const key = entry.emotion;
@@ -145,13 +153,22 @@ function calculatePatterns(entries: EmotionalEntry[]) {
     emotion,
     frequency: data.count,
     averageSpend: data.count > 0 ? data.totalSpend / data.count : 0,
-    topCategories: Object.entries(data.categories).sort(([, a]: any, [, b]: any) => b - a).slice(0, 3).map(([c]) => c),
-    topTriggers: Object.entries(data.triggers).sort(([, a]: any, [, b]: any) => b - a).slice(0, 3).map(([t]) => t),
+    topCategories: Object.entries(data.categories).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 3).map(([c]) => c),
+    topTriggers: Object.entries(data.triggers).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 3).map(([t]) => t),
     regretRate: data.count > 0 ? (data.regretCount / data.count) * 100 : 0,
   }));
 }
 
-function generateInsights(entries: EmotionalEntry[], patterns: any[]) {
+interface EmotionPattern {
+  emotion: string;
+  frequency: number;
+  averageSpend: number;
+  topCategories: string[];
+  topTriggers: string[];
+  regretRate: number;
+}
+
+function generateInsights(entries: EmotionalEntry[], patterns: EmotionPattern[]) {
   const insights = [];
   if (entries.length < 3) {
     insights.push({ type: 'tip', title: 'Diário Emocional', description: 'Registre 3+ compras para ver padrões.' });
@@ -171,7 +188,7 @@ function generateInsights(entries: EmotionalEntry[], patterns: any[]) {
   return insights;
 }
 
-function calculateStats(entries: EmotionalEntry[], patterns: any[]) {
+function calculateStats(entries: EmotionalEntry[], patterns: EmotionPattern[]) {
   const dominant = patterns.length > 0 ? patterns.reduce((a, b) => a.frequency > b.frequency ? a : b) : null;
   return {
     totalEntries: entries.length,

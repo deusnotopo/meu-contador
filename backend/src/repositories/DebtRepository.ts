@@ -6,6 +6,7 @@
 
 import { db } from '../lib/db.js';
 import { deleteCacheByPrefix, getCacheValue, setCacheValue } from '../lib/cache.js';
+import type { Prisma } from '@prisma/client';
 
 export interface DebtFindManyOptions {
   userId: string;
@@ -78,18 +79,18 @@ export async function findOne(id: string, userId: string) {
   return debt ? formatDebt(debt) : null;
 }
 
-export async function createOne(data: DebtCreateData, tx?: any) {
+export async function createOne(data: DebtCreateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const debt = await client.debt.create({ data });
   return formatDebt(debt);
 }
 
-export async function createMany(data: DebtCreateData[], tx?: any) {
+export async function createMany(data: DebtCreateData[], tx?: Prisma.TransactionClient) {
   const client = tx || db;
   return client.debt.createMany({ data });
 }
 
-export async function updateOne(id: string, userId: string, data: DebtUpdateData, tx?: any) {
+export async function updateOne(id: string, userId: string, data: DebtUpdateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const debt = await client.debt.update({
     where: { id, userId },
@@ -98,7 +99,7 @@ export async function updateOne(id: string, userId: string, data: DebtUpdateData
   return formatDebt(debt);
 }
 
-export async function softDeleteOne(id: string, userId: string, tx?: any): Promise<boolean> {
+export async function softDeleteOne(id: string, userId: string, tx?: Prisma.TransactionClient): Promise<boolean> {
   const client = tx || db;
   const result = await client.debt.updateMany({
     where: { id, userId, deletedAt: null },

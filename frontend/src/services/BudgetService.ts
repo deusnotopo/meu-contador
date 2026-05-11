@@ -10,8 +10,14 @@
  */
 
 import { Budget } from "@/types";
-import { toCents, fromCents } from "../../../shared/currency";
+// Local helpers para manipulação segura de moeda (evita erros de ponto flutuante)
+export function toCents(value: number): number {
+  return Math.round(value * 100);
+}
 
+export function fromCents(cents: number): number {
+  return cents / 100;
+}
 export interface BudgetMetrics {
   spent: number;
   limit: number;
@@ -25,7 +31,10 @@ export interface BudgetMetrics {
 }
 
 export class BudgetService {
-  // toCents e fromCents removidos daqui, importados diretamente do shared!
+  // toCents e fromCents foram extraídos para shared/currency.
+  // Mantidos aqui como delegadores para compatibilidade com testes e código legado.
+  static toCents(value: number): number { return toCents(value); }
+  static fromCents(cents: number): number { return fromCents(cents); }
 
   /**
    * Calcula as métricas de um orçamento individual

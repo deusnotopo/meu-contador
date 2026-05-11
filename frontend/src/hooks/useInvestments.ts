@@ -3,6 +3,7 @@ import { getStockQuote } from "@/lib/api/brapi";
 import { showError, showSuccess } from "@/lib/toast";
 import { logAction } from "@/lib/audit-service";
 import { InvestmentSchema } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 import { z } from "zod";
 import type {
   Dividend,
@@ -15,10 +16,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 import { ErrorService } from "@/services/ErrorService";
 
-const InvestmentsResponseSchema = z.object({
-  items: z.array(InvestmentSchema).optional(),
-  totalPages: z.number().optional(),
-});
 
 export const useInvestments = () => {
   const { user } = useAuth();
@@ -67,8 +64,8 @@ export const useInvestments = () => {
       setAssets(items || []);
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
-        console.error("Zod Validation Error (Investments):", err.errors);
-        setError("Dados de investimentos incompatíveis.");
+        logger.error('[useInvestments] Zod Validation Error', err.errors);
+        setError('Dados de investimentos incompatíveis.');
       } else {
         ErrorService.log(err, "Investments:fetch");
         const msg = err instanceof Error ? err.message : "Investimentos indisponíveis no momento. Tente novamente mais tarde.";

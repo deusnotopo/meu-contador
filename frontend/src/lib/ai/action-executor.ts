@@ -1,5 +1,6 @@
 import type { ParsedIntent } from "./intent-parser";
 import type { ActionResult } from "./types";
+import { logger } from "@/lib/logger";
 
 // Import all strategies natively 
 import { executeTransactionAction } from "./strategies/transaction";
@@ -32,7 +33,7 @@ export const executeAction = async (
       message: "Não consegui entender o comando. Tente reformular.",
     };
   } catch (error) {
-    console.error("Action execution error:", error);
+    logger.error('[ActionExecutor] Strategy execution failed', { type: intent.type, error });
     return {
       success: false,
       message: "Ocorreu um erro ao executar a ação.",

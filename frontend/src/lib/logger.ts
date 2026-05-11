@@ -1,7 +1,15 @@
 /**
- * Professional logging utility with environment-aware behavior and Audit Trail.
- * Akita Mode: Logging is not just 'printing', it's documentation of state changes.
+ * Logger — Akita Mode
+ * ───────────────────
+ * Observabilidade estruturada com roteamento automático para Sentry em produção.
+ *
+ * Regras:
+ *  - DEV:  logs visíveis no console com prefixo de nível e timestamp
+ *  - PROD: apenas `error` e `warn` chegam ao console; todos os `error` vão ao Sentry
+ *  - Audit trail persiste os últimos 50 eventos no localStorage (DEV + PROD)
  */
+
+import { captureException, captureMessage, addBreadcrumb } from './sentry';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
@@ -13,70 +21,74 @@ interface LogEntry {
 }
 
 class Logger {
-  private isDevelopment = import.meta.env.DEV;
+  private readonly isDev = import.meta.env.DEV;
   private readonly AUDIT_LIMIT = 50;
 
-  private sendToRemoteMonitor(entry: LogEntry): void {
-    // Simulated remote monitor (Sentry/LogRocket/etc)
-    console.debug(`[REMOTE-MONITOR] [${entry.level.toUpperCase()}] ${entry.message}`, entry.data);
-  }
-
+  // ── Audit Trail (local) ──────────────────────────────────────
   private persistAuditLog(entry: LogEntry): void {
-    if (!this.isDevelopment) return;
-
     try {
-      const logsRaw = localStorage.getItem('mc_audit_trail');
-      const logs: LogEntry[] = logsRaw ? JSON.parse(logsRaw) : [];
+      const raw = localStorage.getItem('mc_audit_trail');
+      const logs: LogEntry[] = raw ? (JSON.parse(raw) as LogEntry[]) : [];
       logs.unshift(entry);
-      
-      // Manter apenas os últimos X logs para não estourar storage
       localStorage.setItem('mc_audit_trail', JSON.stringify(logs.slice(0, this.AUDIT_LIMIT)));
-    } catch (e) {
-      // Falha silenciosa no audit para não quebrar a aplicação principal
+    } catch {
+      // Falha silenciosa — não quebrar a aplicação
     }
   }
 
-  private formatMessage(level: LogLevel, message: string, data?: unknown): LogEntry {
-    return {
+  // ── Sentry routing ───────────────────────────────────────────
+  private sendToSentry(level: LogLevel, message: string, data?: unknown): void {
+    if (this.isDev) return; // Sentry só em produção
+
+    if (level === 'error') {
+      const err = data instanceof Error ? data : new Error(message);
+      captureException(err, {
+        extra_message: message,
+        data: data instanceof Error ? undefined : data,
+      });
+    } else if (level === 'warn') {
+      captureMessage(message, 'warning');
+      addBreadcrumb(message, 'warning', { data });
+    } else {
+      addBreadcrumb(message, level, { data });
+    }
+  }
+
+  // ── Core log ─────────────────────────────────────────────────
+  private log(level: LogLevel, message: string, data?: unknown): void {
+    const entry: LogEntry = {
       level,
       message,
       data,
       timestamp: new Date().toISOString(),
     };
-  }
 
-  private log(level: LogLevel, message: string, data?: unknown): void {
-    const entry = this.formatMessage(level, message, data);
-
-    // Persiste localmente para auditoria (Akita Mode)
     this.persistAuditLog(entry);
+    this.sendToSentry(level, message, data);
 
-    // Em produção, ignoramos logs verbosos
-    if (!this.isDevelopment && (level === 'info' || level === 'debug')) {
-      return;
-    }
+    // Console output — erro e warn sempre; info/debug só em DEV
+    if (!this.isDev && (level === 'info' || level === 'debug')) return;
 
     const prefix = `[${level.toUpperCase()}]`;
-    const timestamp = new Date().toLocaleTimeString();
+    const time = new Date().toLocaleTimeString('pt-BR', { hour12: false });
 
     switch (level) {
       case 'error':
-        console.error(`${prefix} ${timestamp} ${message}`, data ?? '');
-        if (!this.isDevelopment) {
-          this.sendToRemoteMonitor(entry);
-        }
+        console.error(`${prefix} ${time} ${message}`, data ?? '');
         break;
       case 'warn':
-        console.warn(`${prefix} ${timestamp} ${message}`, data ?? '');
+        console.warn(`${prefix} ${time} ${message}`, data ?? '');
         break;
       case 'info':
-        console.log(`${prefix} ${timestamp} ${message}`, data ?? '');
+        console.log(`${prefix} ${time} ${message}`, data ?? '');
         break;
       case 'debug':
-        console.debug(`${prefix} ${timestamp} ${message}`, data ?? '');
+        console.debug(`${prefix} ${time} ${message}`, data ?? '');
         break;
     }
   }
+
+  // ── Public API ───────────────────────────────────────────────
 
   info(message: string, data?: unknown): void {
     this.log('info', message, data);
@@ -94,24 +106,20 @@ class Logger {
     this.log('debug', message, data);
   }
 
-  /**
-   * Log de sincronização e estado de rede
-   */
+  /** Log de sincronização offline */
   sync(message: string, data?: unknown): void {
     this.log('debug', `[Sync] ${message}`, data);
   }
 
-  /**
-   * Log de notificações e feedback visual
-   */
+  /** Log de feedback visual (toast) */
   toast(type: 'success' | 'error' | 'loading' | 'promise', message: string): void {
-    const emoji = {
+    const emoji: Record<typeof type, string> = {
       success: '✅',
       error: '❌',
       loading: '⏳',
       promise: '🤞',
     };
-    this.log('debug', `${emoji[type] ?? ''} [Toast ${type}]: ${message}`);
+    this.log('debug', `${emoji[type]} [Toast ${type}]: ${message}`);
   }
 }
 

@@ -34,7 +34,7 @@ export const hydrateCacheFromLocalStorage = async () => {
         try {
           MEMORY_CACHE[key] = JSON.parse(encryptedData);
           return;
-        } catch (e) { /* ignore */ }
+        } catch (_e) { /* ignore legacy parse errors */ }
       }
 
       // Decrypt for memory cache
@@ -42,8 +42,8 @@ export const hydrateCacheFromLocalStorage = async () => {
       if (decrypted) {
         try {
           MEMORY_CACHE[key] = JSON.parse(decrypted);
-        } catch (e) {
-          logger.error(`Failed to parse decrypted data for key ${key}`, e);
+        } catch (_e) {
+          logger.error(`Failed to parse decrypted data for key ${key}`, _e);
         }
       }
     })
@@ -123,9 +123,11 @@ export const syncAllData = async (userId: string) => {
         "users"
       );
       if (cloudProfile) {
+        MEMORY_CACHE[STORAGE_KEYS.PROFILE] = cloudProfile;
+        const encryptedProfile = await encrypt(JSON.stringify(cloudProfile));
         localStorage.setItem(
           STORAGE_KEYS.PROFILE,
-          JSON.stringify(cloudProfile)
+          encryptedProfile
         );
         window.dispatchEvent(
           new CustomEvent(STORAGE_EVENT, {
@@ -193,77 +195,22 @@ const persistData = <T>(key: string, data: T) => {
     localStorage.setItem(key, encrypted);
   }).catch(e => {
     logger.error("Failed to encrypt data for disk persistence", e);
-    // Fallback: simple string if it fails (not recommended, but better than lost data)
-    localStorage.setItem(key, JSON.stringify(data));
   });
 
   window.dispatchEvent(
     new CustomEvent(STORAGE_EVENT, { detail: { key, data } })
   );
   pushToCloud(key, data);
-
-  // Update Education Progress dynamically
-  updateEducationOnAction(key, data);
-};
-
-const updateEducationOnAction = (key: string, data: unknown) => {
-  const currentProgress = loadEducationProgress() || {
-    completedLessons: [],
-    unlockedAchievements: [],
-    points: 0,
-    streak: 0,
-  };
-
-  let updated = false;
-
-  // Achievement: First Transaction
-  if (
-    key === STORAGE_KEYS.TRANSACTIONS &&
-    Array.isArray(data) &&
-    data.length > 0 &&
-    !currentProgress.unlockedAchievements.includes("first-transaction")
-  ) {
-    currentProgress.unlockedAchievements.push("first-transaction");
-    currentProgress.points += 50;
-    updated = true;
-  }
-
-  // Achievement: Budget Master (if they have at least 1 budget)
-  if (
-    key === STORAGE_KEYS.BUDGETS &&
-    Array.isArray(data) && data.length > 0 &&
-    !currentProgress.unlockedAchievements.includes("budget-master")
-  ) {
-    currentProgress.unlockedAchievements.push("budget-master");
-    currentProgress.points += 100;
-    updated = true;
-  }
-
-  // General points for activity
-  if (key === STORAGE_KEYS.TRANSACTIONS || key === STORAGE_KEYS.GOALS) {
-    currentProgress.points += 2;
-    updated = true;
-  }
-
-  if (updated) {
-    localStorage.setItem(
-      STORAGE_KEYS.EDUCATION_PROGRESS,
-      JSON.stringify(currentProgress)
-    );
-    window.dispatchEvent(
-      new CustomEvent(STORAGE_EVENT, {
-        detail: { key: STORAGE_KEYS.EDUCATION_PROGRESS, data: currentProgress },
-      })
-    );
-    pushToCloud(STORAGE_KEYS.EDUCATION_PROGRESS, currentProgress);
-  }
 };
 
 export const saveFromCloud = <T>(key: string, data: T) => {
-  localStorage.setItem(key, JSON.stringify(data));
-  window.dispatchEvent(
-    new CustomEvent(STORAGE_EVENT, { detail: { key, data } })
-  );
+  MEMORY_CACHE[key] = data;
+  encrypt(JSON.stringify(data)).then((encrypted) => {
+    localStorage.setItem(key, encrypted);
+  }).catch((error) => {
+    logger.error("Failed to encrypt cloud data for disk persistence", error);
+  });
+  window.dispatchEvent(new CustomEvent(STORAGE_EVENT, { detail: { key, data } }));
 };
 
 // ============= Transactions =============

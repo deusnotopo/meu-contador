@@ -30,7 +30,8 @@ const cardVariant = {
 export const BentoCockpit: React.FC<Props> = ({ totalValue, totalInvested, profitPercentage, onNavigateToLedger }) => {
   const { assets, loading } = useInvestments();
   const currencyCtx = useCurrency();
-  const convert = currencyCtx?.convert || ((v: number) => v);
+  const convertFn = currencyCtx?.convert;
+  const convert = useMemo(() => convertFn || ((v: number) => v), [convertFn]);
 
   const profit = totalValue - totalInvested;
   const isPositive = profitPercentage >= 0;

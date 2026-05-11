@@ -1,4 +1,5 @@
 import { captureException as sentryCaptureException } from './sentry';
+import { logger } from './logger';
 import { onCLS, onFCP, onLCP, onTTFB } from 'web-vitals';
 
 /**
@@ -12,7 +13,7 @@ export const MonitoringService = {
    */
   init: () => {
     if (import.meta.env.DEV) {
-      console.log('[Monitoring] Dev mode — monitoramento ativo mas sem envio ao Sentry.');
+      logger.info('[Monitoring] Dev mode — monitoramento ativo mas sem envio ao Sentry.');
     }
     MonitoringService.setupWebVitals();
   },
@@ -23,10 +24,7 @@ export const MonitoringService = {
   captureError: (error: Error, context?: Record<string, unknown>) => {
     sentryCaptureException(error, context);
     if (import.meta.env.DEV) {
-      console.group(`[Monitoring] Erro capturado: ${error.message}`);
-      console.error(error);
-      if (context) console.log('Context:', context);
-      console.groupEnd();
+      logger.error(`[Monitoring] Erro capturado: ${error.message}`, { error, context });
     }
   },
 
@@ -35,7 +33,7 @@ export const MonitoringService = {
    */
   logMetric: (metric: { name: string; value: number; id: string }) => {
     if (import.meta.env.DEV) {
-      console.log(`[Web Vital] ${metric.name}:`, Math.round(metric.value * 100) / 100);
+      logger.debug(`[WebVital] ${metric.name}: ${Math.round(metric.value * 100) / 100}`);
     }
   },
 
@@ -54,4 +52,3 @@ export const MonitoringService = {
     }
   },
 };
-

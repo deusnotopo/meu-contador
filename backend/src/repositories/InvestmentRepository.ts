@@ -6,6 +6,7 @@
 
 import { db } from '../lib/db.js';
 import { deleteCacheByPrefix } from '../lib/cache.js';
+import type { Prisma } from '@prisma/client';
 
 export interface InvestmentFindManyOptions {
   userId: string;
@@ -66,29 +67,29 @@ export async function invalidateInvestmentCache(userId: string) {
 
 // ── Mapping Helpers ───────────────────────────────────────────────────────────
 
-function formatDividend(dividend: any) {
+function formatDividend<T extends { amount: number }>(dividend: T): T {
   return {
     ...dividend,
     amount: dividend.amount / 100,
-  };
+  } as T;
 }
 
-function formatSale(sale: any) {
+function formatSale<T extends { price: number; totalValue: number }>(sale: T): T {
   return {
     ...sale,
     price: sale.price / 100,
     totalValue: sale.totalValue / 100,
-  };
+  } as T;
 }
 
-function formatInvestment(investment: any) {
+function formatInvestment<T extends { averagePrice: number; currentPrice: number; dividends?: { amount: number }[]; sales?: { price: number; totalValue: number }[] }>(investment: T): T {
   return {
     ...investment,
     averagePrice: investment.averagePrice / 100,
     currentPrice: investment.currentPrice / 100,
     ...(investment.dividends ? { dividends: investment.dividends.map(formatDividend) } : {}),
     ...(investment.sales ? { sales: investment.sales.map(formatSale) } : {}),
-  };
+  } as T;
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -126,18 +127,18 @@ export async function findOne(id: string, userId: string) {
   return investment ? formatInvestment(investment) : null;
 }
 
-export async function createOne(data: InvestmentCreateData, tx?: any) {
+export async function createOne(data: InvestmentCreateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const investment = await client.investment.create({ data });
   return formatInvestment(investment);
 }
 
-export async function createMany(data: InvestmentCreateData[], tx?: any) {
+export async function createMany(data: InvestmentCreateData[], tx?: Prisma.TransactionClient) {
   const client = tx || db;
   return client.investment.createMany({ data });
 }
 
-export async function updateOne(id: string, userId: string, data: InvestmentUpdateData, tx?: any) {
+export async function updateOne(id: string, userId: string, data: InvestmentUpdateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const investment = await client.investment.update({
     where: { id, userId },
@@ -146,7 +147,7 @@ export async function updateOne(id: string, userId: string, data: InvestmentUpda
   return formatInvestment(investment);
 }
 
-export async function softDeleteOne(id: string, userId: string, tx?: any): Promise<boolean> {
+export async function softDeleteOne(id: string, userId: string, tx?: Prisma.TransactionClient): Promise<boolean> {
   const client = tx || db;
   const result = await client.investment.updateMany({
     where: { id, userId, deletedAt: null },
@@ -157,13 +158,13 @@ export async function softDeleteOne(id: string, userId: string, tx?: any): Promi
 
 // ── Dividend Queries ──────────────────────────────────────────────────────────
 
-export async function createDividend(data: DividendCreateData, tx?: any) {
+export async function createDividend(data: DividendCreateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const dividend = await client.dividend.create({ data });
   return formatDividend(dividend);
 }
 
-export async function deleteDividend(id: string, investmentId: string, tx?: any): Promise<boolean> {
+export async function deleteDividend(id: string, investmentId: string, tx?: Prisma.TransactionClient): Promise<boolean> {
   const client = tx || db;
   const result = await client.dividend.deleteMany({
     where: { id, investmentId },
@@ -176,7 +177,7 @@ export async function deleteDividend(id: string, investmentId: string, tx?: any)
 /**
  * Atomic transaction to record an investment sale and update the investment quantity.
  */
-export async function createSaleAndUpdateInvestment(saleData: SaleCreateData, newQuantity: number, tx?: any) {
+export async function createSaleAndUpdateInvestment(saleData: SaleCreateData, newQuantity: number, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   
   // If we already have a transaction context, use it directly without $transaction wrapper

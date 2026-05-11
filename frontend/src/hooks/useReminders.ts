@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { ReminderSchema } from '@/lib/schemas';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import type { BillReminder } from '@/types';
 
@@ -25,7 +26,7 @@ export function useReminders() {
       setReminders(response);
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
-        console.error('Zod Validation Error (Reminders):', err.errors);
+        logger.error('[useReminders] Zod Validation Error', err.errors);
         setError('Dados de lembretes incompatíveis.');
         return;
       }
@@ -34,7 +35,7 @@ export function useReminders() {
         ?? (err as { statusCode?: number })?.statusCode;
       if (status === 401) return;
       
-      console.error('Failed to fetch reminders:', err);
+      logger.warn('[useReminders] Failed to fetch reminders', err);
       setError((err as Error)?.message || 'Erro ao carregar lembretes');
     } finally {
       setIsLoading(false);
@@ -42,13 +43,12 @@ export function useReminders() {
   }, []);
 
   useEffect(() => {
-    // Check local storage or global variable. Presuming the auth provider puts a flag
-    // so we don't wait forever if session is already ready implicitly.
-    const isReady = localStorage.getItem("meu_contador_auth_token") !== null;
-    if (isReady) {
-      fetchReminders();
-    }
-    const handleSessionReady = () => { fetchReminders(); };
+    void fetchReminders();
+
+    const handleSessionReady = () => { 
+      void fetchReminders(); 
+    };
+
     window.addEventListener('auth:session-ready', handleSessionReady);
     return () => window.removeEventListener('auth:session-ready', handleSessionReady);
   }, [fetchReminders]);
@@ -60,7 +60,7 @@ export function useReminders() {
       setReminders((prev) => [...prev, response]);
       return response;
     } catch (err) {
-      console.error('Add reminder failed:', err);
+      logger.error('[useReminders] Add reminder failed', err);
       throw err;
     }
   };
@@ -73,7 +73,7 @@ export function useReminders() {
       );
       return response;
     } catch (err) {
-      console.error('Update reminder failed:', err);
+      logger.error('[useReminders] Update reminder failed', err);
       throw err;
     }
   };
@@ -83,7 +83,7 @@ export function useReminders() {
       await api.delete(`/reminders/${id}`);
       setReminders((prev) => prev.filter((r) => r.id !== id));
     } catch (err) {
-      console.error('Delete reminder failed:', err);
+      logger.error('[useReminders] Delete reminder failed', err);
       throw err;
     }
   };

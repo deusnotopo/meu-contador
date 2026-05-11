@@ -11,6 +11,7 @@ import {
   WifiOff,
   Globe,
 } from "lucide-react";
+import { logger } from "@/lib/logger";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
@@ -199,10 +200,7 @@ export const LaunchScreen = ({ onBack, onSuccess }: LaunchScreenProps) => {
       }).safeParse(validationPayload);
 
       if (!validationResult.success) {
-        console.error(
-          "Validation Error (Launch):",
-          validationResult.error.format(),
-        );
+        logger.warn('[LaunchScreen] Zod contract violation', { errors: validationResult.error.format() });
         const firstError =
           validationResult.error.errors[0]?.message || "Dados inválidos";
         throw new Error(`Erro de contrato: ${firstError}`);

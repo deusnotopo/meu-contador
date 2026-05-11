@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -29,7 +30,7 @@ export function useWebPush() {
       const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
     } catch (e) {
-      console.error('Erro ao pesquisar service worker:', e);
+      logger.warn('[useWebPush] Error checking subscription', e);
     }
   };
 
@@ -74,7 +75,7 @@ export function useWebPush() {
       return true;
 
     } catch (error) {
-      console.error('Falha de Registro WebPush:', error);
+      logger.error('[useWebPush] Registration failed', error);
       throw error;
     } finally {
       setLoading(false);
@@ -101,7 +102,7 @@ export function useWebPush() {
       }
       setIsSubscribed(false);
     } catch (error) {
-      console.error('Falha ao cancelar WebPush:', error);
+      logger.error('[useWebPush] Unsubscribe failed', error);
       throw error;
     } finally {
       setLoading(false);

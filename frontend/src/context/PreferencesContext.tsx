@@ -114,7 +114,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       await api.patch("/users/preferences", { privacyMode: newState });
     } catch (error) {
-      console.error("Failed to sync privacy mode:", error);
+      logger.warn('[Preferences] Failed to sync privacyMode', error);
     }
   }, [privacyMode]);
 
@@ -123,7 +123,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       await api.patch("/users/preferences", { language: lang });
     } catch (error) {
-      console.error("Failed to sync language:", error);
+      logger.warn('[Preferences] Failed to sync language', error);
     }
   }, []);
 
@@ -132,7 +132,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       await api.patch("/users/preferences", { theme: newTheme });
     } catch (error) {
-      console.error("Failed to sync theme:", error);
+      logger.warn('[Preferences] Failed to sync theme', error);
     }
   }, [applyTheme]);
 
@@ -155,7 +155,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       await api.patch("/users/preferences", { showScore: value });
     } catch (error) {
-      console.error("Failed to sync showScore:", error);
+      logger.warn('[Preferences] Failed to sync showScore', error);
     }
   }, []);
 
@@ -164,7 +164,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       await api.patch("/users/preferences", { showPredictions: value });
     } catch (error) {
-      console.error("Failed to sync showPredictions:", error);
+      logger.warn('[Preferences] Failed to sync showPredictions', error);
     }
   }, []);
 
@@ -173,7 +173,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       await api.patch("/users/preferences", { weeklyReport: value });
     } catch (error) {
-      console.error("Failed to sync weeklyReport:", error);
+      logger.warn('[Preferences] Failed to sync weeklyReport', error);
     }
   }, []);
 
@@ -182,7 +182,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       await api.patch("/users/preferences", { alerts: value });
     } catch (error) {
-      console.error("Failed to sync alerts:", error);
+      logger.warn('[Preferences] Failed to sync alerts', error);
     }
   }, []);
 
@@ -215,6 +215,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePreferences = () => {
   const context = useContext(PreferencesContext);
   if (context === undefined) {

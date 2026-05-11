@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { getCacheValue, setCacheValue } from '../lib/cache';
+import { logger } from '../lib/logger.js';
 
 const BCB_INTEREST_URL = 'https://olinda.bcb.gov.br/olinda/servico/taxaJuros/versao/v2/odata/TaxasJurosDiariaPorInicioPeriodo';
 
@@ -18,7 +19,7 @@ export async function interestRoutes(app: FastifyInstance) {
     const modalidade = type || 'Pessoa Física - Empréstimo pessoal não consignado';
     
     const cacheKey = `interest:rates:${modalidade}`;
-    const cached = await getCacheValue<any>(cacheKey);
+    const cached = await getCacheValue<unknown[]>(cacheKey);
     if (cached) return reply.send(cached);
 
     try {
@@ -33,8 +34,8 @@ export async function interestRoutes(app: FastifyInstance) {
 
       if (!res.ok) throw new Error('BCB Olinda Interest API Down');
 
-      const data = await res.json() as { value: any[] };
-      const rates = (data.value || []).map(r => ({
+      const data = await res.json() as { value: Record<string, unknown>[] };
+      const rates = (data.value || []).map((r: Record<string, unknown>) => ({
         institution: r.InstituicaoFinanceira,
         monthly_rate: r.TaxaJurosAoMes,
         annual_rate: r.TaxaJurosAoAno,
@@ -46,7 +47,7 @@ export async function interestRoutes(app: FastifyInstance) {
       await setCacheValue(cacheKey, rates, 12 * 60 * 60 * 1000);
       return reply.send(rates);
     } catch (err) {
-      console.error('[Interest] Error fetching rates:', err);
+      logger.error('[Interest] Error fetching rates', err);
       return reply.status(502).send({ message: 'Erro ao buscar taxas de juros no Banco Central' });
     }
   });

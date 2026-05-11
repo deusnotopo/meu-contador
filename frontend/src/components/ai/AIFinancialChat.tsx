@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { executeAction } from "@/lib/ai/action-executor";
 import { parseIntent } from "@/lib/ai/intent-parser";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { useAuth } from "@/context/AuthContext";
 import { useEducation } from "@/hooks/useEducation";
 import { getTutorContext } from "@/hooks/educationEngine";
@@ -13,8 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { VoiceInput } from "./VoiceInput";
 import { AIThinkingIndicator } from "./AIThinkingIndicator";
-
-
+import { analyticsDB } from "@/services/DuckDBService";
 
 const TUTOR_RESPONSE_RULES = [
   "responder em camadas: básico, prático, avançado quando fizer sentido",
@@ -89,7 +89,7 @@ export const AIFinancialChat = ({
     lastActiveDate: edu.state.lastActiveDate,
     lessonReviewDueAt: {},
   };
-  const tutorContext = getTutorContext(eduState, {
+  const tutorContext = getTutorContext(edu.modules, eduState, {
     hasDebts: user?.hasDebts,
     hasEmergencyFund: user?.hasEmergencyFund,
     financialGoal: user?.financialGoal,
@@ -174,7 +174,6 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    console.log("[AI ENGINE] v2.1 Activated - Security: Centralized CSRF");
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -226,12 +225,19 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
       }
 
       // STEP 2: AI Q&A with full financial context
+      let duckDBContext = "Não disponível";
+      try {
+        duckDBContext = await analyticsDB.getAIContextualSnapshot();
+      } catch (err) {
+        logger.warn("Falha ao recuperar contexto RAG profundo do DuckDB:", err);
+      }
+
       const requestBody = {
         conversation: messages.map((m) => ({
           role: m.role,
           content: m.content,
         })),
-        systemContext: `${aiContextString}\n\n${pedagogicalContext}`,
+        systemContext: `${aiContextString}\n\n${pedagogicalContext}\n\n[CONTEXTO ANALÍTICO LOCAL (RAG DUCKDB)]:\n${duckDBContext}`,
         userMessage: input,
         financialSnapshot: buildFinancialSnapshot({
           balance: context.balance,
@@ -249,34 +255,54 @@ Como posso ajudar você a melhorar suas finanças hoje?`,
         }, { expensesByCategory: Object.fromEntries(context.topCategories.map(c => [c.category, c.amount])) }),
       };
 
-      let data: { response?: string };
-      try {
-        data = await api.post<{ response: string }>('/ai-proxy', requestBody);
-      } catch {
-        data = { response: "Processando com análise local. Aguarde enquanto reconecto com o núcleo de IA." };
-      }
-      const aiResponse = data.response ?? "Não foi possível obter resposta da IA";
-
-      let messageType: Message["type"] = "text";
-      if (aiResponse.includes("recomendo") || aiResponse.includes("sugiro")) {
-        messageType = "recommendation";
-      } else if (aiResponse.includes("⚠") || aiResponse.includes("atenção")) {
-        messageType = "alert";
-      } else if (aiResponse.includes("📊") || aiResponse.includes("análise") || aiResponse.includes("Processando")) {
-        messageType = "insight";
-      }
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      const assistantId = (Date.now() + 1).toString();
+      setMessages((prev) => [...prev, {
+        id: assistantId,
         role: "assistant",
-        content: aiResponse,
+        content: "",
         timestamp: new Date(),
-        type: messageType,
-      };
+        type: "text",
+      }]);
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      try {
+        const stream = api.stream('/ai-proxy', requestBody);
+        let fullResponse = "";
+        
+        for await (const chunk of stream) {
+          let textChunk = chunk;
+          // Fallback caso o backend retorne o JSON antigo antes da refatoração
+          try {
+            const parsed = JSON.parse(chunk) as { response?: string };
+            if (parsed.response) textChunk = parsed.response;
+          } catch {
+            // É um chunk bruto do provedor (esperado no modo streaming)
+          }
+          
+          fullResponse += textChunk;
+          
+          let messageType: Message["type"] = "text";
+          if (fullResponse.includes("recomendo") || fullResponse.includes("sugiro")) {
+            messageType = "recommendation";
+          } else if (fullResponse.includes("⚠") || fullResponse.includes("atenção")) {
+            messageType = "alert";
+          } else if (fullResponse.includes("📊") || fullResponse.includes("análise") || fullResponse.includes("Processando")) {
+            messageType = "insight";
+          }
+
+          setMessages((prev) => prev.map(m => 
+            m.id === assistantId ? { ...m, content: fullResponse, type: messageType } : m
+          ));
+        }
+      } catch (error) {
+        logger.warn("Stream de RAG interrompido/falhou.", error);
+        setMessages((prev) => prev.map(m => 
+          m.id === assistantId && m.content === "" 
+            ? { ...m, content: "Processando com análise local profunda. Aguarde estabilização do núcleo." } 
+            : m
+        ));
+      }
     } catch (error) {
-      console.error("Erro no chat:", error);
+      logger.error("Erro no chat (AIFinancialChat)", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",

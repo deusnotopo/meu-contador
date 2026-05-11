@@ -7,6 +7,17 @@ import { VitePWA } from 'vite-plugin-pwa';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    {
+      name: 'wasm-cache-plugin',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url && req.url.includes('.wasm')) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+          next();
+        });
+      }
+    },
     react(),
     visualizer({
       filename: './dist/stats.html',
@@ -108,32 +119,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true,
     headers: {
-      'Cross-Origin-Opener-Policy': 'unsafe-none',
-      'Cross-Origin-Embedder-Policy': 'unsafe-none',
-      // Dev-only CSP — allows Google Auth, Firebase Analytics, and Vite HMR
-      'Content-Security-Policy': [
-        "default-src 'self'",
-        // React HMR + Google Identity Services + GTM Analytics
-        "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.googletagmanager.com https://www.gstatic.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com data:",
-        "img-src 'self' data: blob: https:",
-        // API + WS + all Firebase/Google domains
-        "connect-src 'self' http://localhost:3000 ws://localhost:5173 wss://localhost:5173 " +
-          "https://firebase.googleapis.com " +
-          "https://firebaseinstallations.googleapis.com " +
-          "https://identitytoolkit.googleapis.com " +
-          "https://securetoken.googleapis.com " +
-          "https://firebaseapp.com " +
-          "https://*.firebaseio.com " +
-          "https://www.googletagmanager.com " +
-          "https://www.google-analytics.com " +
-          "https://region1.google-analytics.com",
-        // Google Auth popup + Firebase Auth iframe
-        "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com",
-        "worker-src 'self' blob:",
-      ].join('; '),
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },
     proxy: {
       '/api': {

@@ -8,6 +8,7 @@ import { getCacheValue, setCacheValue } from '../lib/cache.js';
 import * as DebtRepository from '../repositories/DebtRepository.js';
 import { toCents } from '../../../shared/currency.js';
 import { withJitter } from '../../../shared/cache-utils.js';
+import type { Prisma } from '@prisma/client';
 
 const BASE_CACHE_TTL = 300_000;
 
@@ -46,7 +47,7 @@ export async function getDebt(id: string, userId: string) {
   return DebtRepository.findOne(id, userId);
 }
 
-export async function createDebt(userId: string, input: CreateDebtInput, tx?: any) {
+export async function createDebt(userId: string, input: CreateDebtInput, tx?: Prisma.TransactionClient) {
   const data: DebtRepository.DebtCreateData = {
     userId,
     name: input.name,
@@ -62,13 +63,13 @@ export async function createDebt(userId: string, input: CreateDebtInput, tx?: an
   return debt;
 }
 
-export async function createManyDebts(userId: string, data: any[], tx?: any) {
+export async function createManyDebts(userId: string, data: DebtRepository.DebtCreateData[], tx?: Prisma.TransactionClient) {
   const result = await DebtRepository.createMany(data, tx);
   if (!tx) await DebtRepository.invalidateDebtCache(userId);
   return result;
 }
 
-export async function updateDebt(id: string, userId: string, input: UpdateDebtInput, tx?: any) {
+export async function updateDebt(id: string, userId: string, input: UpdateDebtInput, tx?: Prisma.TransactionClient) {
   const existing = await DebtRepository.findOne(id, userId);
   if (!existing) return null;
 
@@ -86,7 +87,7 @@ export async function updateDebt(id: string, userId: string, input: UpdateDebtIn
   return debt;
 }
 
-export async function deleteDebt(id: string, userId: string, tx?: any) {
+export async function deleteDebt(id: string, userId: string, tx?: Prisma.TransactionClient) {
   const success = await DebtRepository.softDeleteOne(id, userId, tx);
   if (success && !tx) {
     await DebtRepository.invalidateDebtCache(userId);

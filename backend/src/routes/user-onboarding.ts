@@ -112,14 +112,15 @@ export async function userOnboardingRoutes(app: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const result = await OnboardingService.processOnboarding(request.user.id, request.body);
+      const result = await OnboardingService.processOnboarding(request.user.id, request.body as Parameters<typeof OnboardingService.processOnboarding>[1]);
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       request.log.error(error);
+      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
       return reply.code(500).send({ 
         success: false, 
         message: 'Falha crítica ao processar onboarding atômico',
-        details: error.message 
+        details: msg 
       });
     }
   });

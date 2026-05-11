@@ -5,6 +5,7 @@
  */
 
 import firebaseAdmin from 'firebase-admin';
+import { logger } from './logger.js';
 
 try {
   if (!firebaseAdmin.apps.length) {
@@ -21,17 +22,17 @@ try {
         }),
         databaseURL: `https://${projectId}-default-rtdb.firebaseio.com`,
       });
-      console.log('[Firebase Admin] Initialized with service account credentials ✅');
+      logger.info('[Firebase Admin] Initialized with service account credentials');
     } else {
       firebaseAdmin.initializeApp({ projectId });
-      console.warn(
-        '[Firebase Admin] ⚠️  Running without service account. ' +
+      logger.warn(
+        '[Firebase Admin] Running without service account. ' +
         'Google auth will remain unavailable until FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL are configured.'
       );
     }
   }
 } catch (e) {
-  console.warn('[Firebase Admin] Init error:', e);
+  logger.warn('[Firebase Admin] Init error', e);
 }
 
 export { firebaseAdmin };

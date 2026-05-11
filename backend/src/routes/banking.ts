@@ -44,12 +44,13 @@ export async function bankingRoutes(app: FastifyInstance) {
         importedCount: result.count,
         message: result.message
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       request.log.error(error);
-      const statusCode = error.message.includes("No valid transactions") ? 400 : 500;
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      const statusCode = msg.includes("No valid transactions") ? 400 : 500;
       return reply.code(statusCode).send({ 
         message: "Failed to parse or import OFX file", 
-        details: error.message 
+        details: msg 
       });
     }
   });

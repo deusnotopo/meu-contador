@@ -1,6 +1,7 @@
 import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
 import { GoalSchema } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 import { z } from "zod";
 import type { SavingsGoal } from "@/types";
 import { useEffect, useState, useCallback } from "react";
@@ -24,11 +25,11 @@ export const useGoals = () => {
       setGoals(response);
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
-        console.error('Zod Validation Error (Goals):', err.errors);
+        logger.error('[useGoals] Zod Validation Error', err.errors);
         setError('Dados de metas incompatíveis.');
       } else {
-        console.error('Failed to fetch goals:', err);
-        setError("Metas de economia indisponíveis. Verifique sua conexão.");
+        logger.error('[useGoals] Failed to fetch goals', err);
+        setError('Metas de economia indisponíveis. Verifique sua conexão.');
       }
     } finally {
       setLoading(false);

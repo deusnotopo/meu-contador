@@ -13,7 +13,7 @@ export async function getCompanyByCnpj(cnpj: string) {
   const cleanCnpj = cnpj.replace(/\D/g, '');
   const cacheKey = `business:cnpj:${cleanCnpj}`;
   
-  const cached = await getCacheValue<any>(cacheKey);
+  const cached = await getCacheValue<Record<string, unknown>>(cacheKey);
   if (cached) return cached;
 
   const data = await BrasilApiGateway.fetchCnpj(cleanCnpj);

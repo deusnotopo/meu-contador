@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Transaction } from "@/types";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { showSuccess, showError } from "@/lib/toast";
 import { Link2, FileUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,7 +40,7 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
       api.get<OpenFinanceTokenResponse>("/open-finance/token")
         .then((res) => setConnectToken(res.accessToken))
         .catch((err) => {
-          console.error("Open Finance Token Error:", err);
+          logger.error('[BankConnection] Failed to fetch Open Finance token', err);
           showError("Falhas na malha bancária segura. Tente mais tarde.");
         });
     } else {
@@ -130,7 +131,7 @@ export const BankConnectionModal = ({ isOpen, onClose, onSuccess }: BankConnecti
           includeSandbox={true}
           onSuccess={handlePluggySuccess}
           onError={(error: PluggyErrorLike) => {
-             console.error("Pluggy Connect Error:", error);
+             logger.warn('[BankConnection] Pluggy Connect error', { message: error.message });
              showError("Autorização bancária cancelada ou negada.");
              setMode("select");
           }}

@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import type { BillReminder } from "@/types";
 import type { ParsedIntent } from "../intent-parser";
 import type { ActionResult } from "../types";
@@ -40,7 +41,7 @@ export const executeReminderAction = async (
       data: response,
     };
   } catch (err) {
-    console.error("[ReminderStrategy] Falha ao criar lembrete via API:", err);
+    logger.error('[ReminderStrategy] API create failed', err);
     return {
       success: false,
       message: "Ocorreu um erro ao tentar salvar o lembrete via API.",

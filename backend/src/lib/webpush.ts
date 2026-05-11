@@ -1,6 +1,7 @@
 // @ts-ignore - web-push has no official @types package bundled
 import webpush from 'web-push';
 import dotenv from 'dotenv';
+import { logger } from './logger.js';
 dotenv.config();
 
 const publicKey = process.env.PUBLIC_VAPID_KEY;
@@ -13,7 +14,7 @@ if (publicKey && privateKey) {
     privateKey
   );
 } else {
-  console.warn('[WebPush] VAPID keys not set — push notifications disabled.');
+  logger.warn('[WebPush] VAPID keys not set — push notifications disabled.');
 }
 
 export { webpush };

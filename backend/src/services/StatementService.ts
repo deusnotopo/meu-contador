@@ -5,6 +5,7 @@
  */
 
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { logger } from '../lib/logger.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -69,7 +70,8 @@ export async function parseStatement(buffer: Buffer, mimeType: string, abortSign
   try {
     const result = await model.generateContent(
       contentPayload, 
-      { requestOptions: { signal: abortSignal, timeout: 45000 } } as any
+      // @ts-expect-error — requestOptions not fully typed in SDK
+      { requestOptions: { signal: abortSignal, timeout: 45000 } }
     );
 
     const textResponse = result.response.text();
@@ -80,11 +82,11 @@ export async function parseStatement(buffer: Buffer, mimeType: string, abortSign
     }
 
     // Validação e Limpeza (Cinto de Segurança Akita)
-    return parsed.transactions.map((tx: any) => {
+    return parsed.transactions.map((tx: Record<string, unknown>) => {
       let date = String(tx.date);
       // Fallback para datas mal formadas (YYYY-MM-DD)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        console.warn(`[StatementService] Data inválida retornada pela IA: ${date}. Usando data atual.`);
+        logger.warn(`[StatementService] Data inválida retornada pela IA: ${date}. Usando data atual.`);
         date = now.toISOString().split('T')[0]!;
       }
 
@@ -96,7 +98,7 @@ export async function parseStatement(buffer: Buffer, mimeType: string, abortSign
       };
     });
   } catch (err) {
-    console.error('[StatementService] Erro crítico no processamento de extrato:', err);
+    logger.error('[StatementService] Erro crítico no processamento de extrato', err);
     throw new Error('Falha ao processar extrato bancário. Verifique se o arquivo é legível.');
   }
 }

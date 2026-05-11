@@ -3,6 +3,8 @@ import {
   calculateFinancialHealth,
   getClassification,
 } from "./financial-health";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
 // Chamada sempre via backend/proxy para evitar exposição de chave no cliente.
 const AI_PROXY_URL = "/api/ai-proxy";
@@ -97,7 +99,7 @@ export const getFinancialInsights = async (
 
     return content as AIInsights;
   } catch (error) {
-    console.error("Cloud Function Error:", error);
+    logger.error('[AI] Cloud Function call failed', error);
     return {
       score: Math.round(healthMetrics.score),
       tips: ["Erro ao conectar com inteligência.", "Verifique sua conexão.", "Tente novamente."],
@@ -127,6 +129,36 @@ interface InvestmentData {
   price?: number;
   type: "stock" | "fii" | "crypto";
 }
+
+const VoiceIntentSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("transaction"),
+    data: z.object({
+      type: z.enum(["income", "expense"]),
+      amount: z.number().positive(),
+      description: z.string(),
+      category: z.string(),
+      date: z.string(),
+      paymentMethod: z.string().optional(),
+    }),
+    message: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal("investment"),
+    data: z.object({
+      ticker: z.string(),
+      amount: z.number().positive(),
+      price: z.number().optional(),
+      type: z.enum(["stock", "fii", "crypto"]),
+    }),
+    message: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal("unknown"),
+    data: z.null().optional(),
+    message: z.string(),
+  }),
+]);
 
 export const parseVoiceCommand = async (
   text: string
@@ -171,6 +203,8 @@ export const parseVoiceCommand = async (
 
     User: "Olá tudo bem"
     JSON: { "type": "unknown", "message": "Comando não reconhecido como financeiro." }
+
+    Return ONLY a minified JSON object. Do not include markdown blocks, explanations or any text outside the JSON.
   `;
 
   try {
@@ -193,17 +227,31 @@ export const parseVoiceCommand = async (
 
     const data = await response.json();
     const rawContent = typeof data.response === "string" ? data.response : "{}";
-    const normalized = rawContent.replace(/```json|```/g, "").trim();
-    const content = JSON.parse(normalized);
+    const normalized = rawContent.replace(/```json/gi, "").replace(/```/g, "").trim();
+    
+    // Strict Schema Validation
+    const parsedObj = JSON.parse(normalized);
+    const validated = VoiceIntentSchema.safeParse(parsedObj);
+    
+    if (!validated.success) {
+      logger.warn('[AI] Voice Parser schema mismatch', validated.error);
+      return {
+        type: "unknown",
+        confidence: 0,
+        message: "Não entendi os dados retornados pela inteligência.",
+      };
+    }
+
+    const content = validated.data;
 
     return {
       type: content.type,
-      data: content.data,
+      data: content.data as any,
       confidence: 0.9,
       message: content.message,
     };
   } catch (error) {
-    console.error("AI Parse Error:", error);
+    logger.error('[AI] Voice command parse failed', error);
     return {
       type: "unknown",
       confidence: 0,

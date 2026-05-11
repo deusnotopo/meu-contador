@@ -1,11 +1,11 @@
-﻿import React from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import {
-  Briefcase,
-  Building2,
-  LayoutDashboard,
+  GraduationCap,
+  Home,
   Settings,
-  User as LucideUser,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 
@@ -19,10 +19,10 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onTabChange,
 }) => {
   const navItems = [
-    { id: "overview", icon: LayoutDashboard, label: "Início" },
-    { id: "personal", icon: LucideUser, label: "Pessoal" },
-    { id: "business", icon: Building2, label: "Empresa" },
-    { id: "investments", icon: Briefcase, label: "Invest." },
+    { id: "inicio", icon: Home, label: "Início" },
+    { id: "budget", icon: Wallet, label: "Finanças" },
+    { id: "investir", icon: TrendingUp, label: "Patrimônio" },
+    { id: "academia", icon: GraduationCap, label: "Academia" },
     { id: "settings", icon: Settings, label: "Ajustes" },
   ];
 

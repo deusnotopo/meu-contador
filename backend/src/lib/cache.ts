@@ -8,6 +8,7 @@
  */
 
 import { Redis } from '@upstash/redis';
+import { logger } from './logger.js';
 
 // --- Tipos ---
 
@@ -25,9 +26,9 @@ const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
 
 if (UPSTASH_URL && UPSTASH_TOKEN) {
   redis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
-  console.log('[Cache] Redis (Upstash) configured ✅');
+  logger.info('[Cache] Redis (Upstash) configured');
 } else {
-  console.warn('[Cache] ⚠️  UPSTASH_REDIS_REST_URL/TOKEN not set — using in-memory fallback.');
+  logger.warn('[Cache] UPSTASH_REDIS_REST_URL/TOKEN not set — using in-memory fallback.');
 }
 
 // --- In-memory fallback ---
@@ -78,7 +79,7 @@ export async function getCacheValue<T>(key: string): Promise<T | null> {
       const value = await redis.get<T>(key);
       return value ?? null;
     } catch (err) {
-      console.warn('[Cache] Redis get error, falling back to memory:', err);
+      logger.warn('[Cache] Redis get error, falling back to memory', err);
       return memGet<T>(key);
     }
   }
@@ -95,7 +96,7 @@ export async function setCacheValue<T>(key: string, value: T, ttlMs: number): Pr
       await redis.set(key, value, { ex: ttlSeconds });
       return;
     } catch (err) {
-      console.warn('[Cache] Redis set error, falling back to memory:', err);
+      logger.warn('[Cache] Redis set error, falling back to memory', err);
     }
   }
   memSet(key, value, ttlMs);
@@ -110,7 +111,7 @@ export async function deleteCacheValue(key: string): Promise<void> {
       await redis.del(key);
       return;
     } catch (err) {
-      console.warn('[Cache] Redis del error, falling back to memory:', err);
+      logger.warn('[Cache] Redis del error, falling back to memory', err);
     }
   }
   memDelete(key);
@@ -119,12 +120,20 @@ export async function deleteCacheValue(key: string): Promise<void> {
 export async function deleteCacheByPrefix(prefix: string): Promise<void> {
   if (redis) {
     try {
-      const keys = await (redis as unknown as { keys: (pattern: string) => Promise<string[]> }).keys(`${prefix}*`);
+      // Use SCAN to avoid blocking the server and eliminate the 'as unknown as' cast
+      const keys: string[] = [];
+      let cursor = 0;
+      do {
+        const [nextCursor, batch] = await redis.scan(cursor, { match: `${prefix}*`, count: 100 });
+        cursor = Number(nextCursor);
+        keys.push(...batch);
+      } while (cursor !== 0);
+
       if (keys.length > 0) {
         await Promise.all(keys.map((key) => redis!.del(key)));
       }
     } catch (err) {
-      console.warn('[Cache] Redis delete by prefix error, falling back to memory:', err);
+      logger.warn('[Cache] Redis delete by prefix error, falling back to memory', err);
     }
   }
 

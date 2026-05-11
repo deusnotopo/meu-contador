@@ -1,96 +1,157 @@
 /**
  * IntelligenceService
  * ───────────────────
- * Centralizes financial engineering and logic.
- * Calculates FIRE progress, survivability, and optimization tips.
+ * Orquestrador central de inteligência financeira.
+ * Integra: Monte Carlo, Rules Engine, Regime Detection, Isolation Forest.
+ *
+ * Princípio de design:
+ * - Zero LLM no motor de decisão
+ * - Toda decisão tem trace auditável (LGPD-proof)
+ * - Regimes financeiros alimentam regras contextuais
  */
 
 import { db } from "../lib/db.js";
 import * as TransactionRepository from "../repositories/TransactionRepository.js";
 import * as InvestmentRepository from "../repositories/InvestmentRepository.js";
 import * as DebtRepository from "../repositories/DebtRepository.js";
+import { MonteCarloService } from "./MonteCarloService.js";
+import { evaluate as evaluateRules, buildFactsFromIntelligence, RuleDecision } from "./RulesEngineService.js";
+import { detectRegime, MonthlyObservation, RegimeResult } from "./RegimeDetectionService.js";
+import { IsolationForestService, TransactionFeature, AnomalyScore } from "./IsolationForestService.js";
 
 export interface DashboardIntelligence {
   wealthSurvivalDays: number;
-  fireProgress: number; // percentage 0-100
+  fireProgress: number;            // 0–100
   yearsToFire: number;
-  monthlyAvgExpenses: number;
-  monthlyAvgSurplus: number;
-  opportunityCost10yr: number;
+  monthlyAvgExpenses: number;      // R$
+  monthlyAvgSurplus: number;       // R$
+  opportunityCost10yr: number;     // R$
+  // Financial State (Orquestrado)
+  netWorth: number;                // R$
+  assets: number;                 // R$
+  liabilities: number;           // R$
+  // Legacy (mantido para compatibilidade)
   optimizationTips: string[];
+  // Camada Cognitiva
+  decisions: RuleDecision[];       // decisões auditáveis com trace
+  regime: RegimeResult | null;     // regime financeiro atual
 }
 
 const FIRE_WITHDRAWAL_RATE = 0.04; // 4% Rule
 
 export async function getDashboardSummary(userId: string): Promise<DashboardIntelligence> {
-  // 1. Gather raw data via standardized Repositories (already formatted cents → R$)
+  // 1. Gather raw data via standardized Repositories
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-  const [user, txPage, investments, debts] = await Promise.all([
+  const [user, recentTx, investments, debts, incomeSum, expenseSum] = await Promise.all([
     db.user.findUnique({ where: { id: userId } }),
-    // Use raw query for date-filtered lookup (Repository doesn't expose date filter yet)
     db.transaction.findMany({
       where: { userId, deletedAt: null, date: { gte: ninetyDaysAgo } },
-      select: { type: true, amount: true, classification: true },
+      select: { type: true, amount: true, classification: true, date: true },
     }),
     db.investment.findMany({ where: { userId, deletedAt: null }, select: { amount: true, currentPrice: true } }),
     db.debt.findMany({ where: { userId, deletedAt: null }, select: { balance: true } }),
+    // Cash balance: income vs expense aggregates (all-time)
+    db.transaction.aggregate({ where: { userId, deletedAt: null, type: 'income' }, _sum: { amount: true } }),
+    db.transaction.aggregate({ where: { userId, deletedAt: null, type: 'expense' }, _sum: { amount: true } }),
   ]);
 
   if (!user) throw new Error("User not found");
 
-  // 2. Calculate Monthly Average Expenses (Last 3 months)
-  // NOTE: amounts from db are in CENTS, convert to R$ for output
-  const expenses = txPage.filter(tx => tx.type === 'expense');
+  // Real cash balance based on full transaction history
+  const cashBalanceCents = (incomeSum._sum.amount || 0) - (expenseSum._sum.amount || 0);
+
+  // 2. Metricas Mensais (Last 90 days)
+  const expenses = recentTx.filter(tx => tx.type === 'expense');
   const totalExpensesCents = expenses.reduce((acc, tx) => acc + tx.amount, 0);
-  const monthlyAvgExpensesCents = totalExpensesCents / 3;
+  
+  // Real moving average (handles less than 90 days of data, min 30 days to avoid spikes)
+  const oldestExpenseDate = expenses.length > 0 
+    ? expenses.reduce((min, tx) => tx.date < min ? tx.date : min, new Date()) 
+    : new Date();
+  const daysActive = Math.max(30, Math.min(90, (Date.now() - oldestExpenseDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const monthlyAvgExpensesCents = (totalExpensesCents / daysActive) * 30;
 
-  // 3. Calculate Monthly Average Income
-  const income = txPage.filter(tx => tx.type === 'income');
+  const income = recentTx.filter(tx => tx.type === 'income');
   const totalIncomeCents = income.reduce((acc, tx) => acc + tx.amount, 0);
-  const monthlyAvgIncomeCents = totalIncomeCents / 3;
-
+  const monthlyAvgIncomeCents = (totalIncomeCents / daysActive) * 30;
   const monthlyAvgSurplusCents = Math.max(0, monthlyAvgIncomeCents - monthlyAvgExpensesCents);
 
-  // 4. Calculate Liquid Assets (prices stored in cents per unit)
+  // 3. Liquidez e Patrimônio
+  const bankAssetsCents = cashBalanceCents > 0 ? cashBalanceCents : 0;
+  const bankLiabilitiesCents = cashBalanceCents < 0 ? Math.abs(cashBalanceCents) : 0;
+
   const totalInvestedCents = investments.reduce((acc, inv) => acc + (inv.amount * inv.currentPrice), 0);
   const totalDebtCents = debts.reduce((acc, d) => acc + d.balance, 0);
 
-  // 5. Survivability (Days of survival using liquid assets vs daily burn rate)
-  const dailyBurnRateCents = monthlyAvgExpensesCents / 30;
-  const wealthSurvivalDays = dailyBurnRateCents > 0 ? Math.floor(totalInvestedCents / dailyBurnRateCents) : 0;
+  const assetsCents = bankAssetsCents + totalInvestedCents;
+  const liabilitiesCents = totalDebtCents + bankLiabilitiesCents;
+  const netWorthCents = assetsCents - liabilitiesCents;
 
-  // 6. FIRE Calculation (4% Rule)
+  // 4. Survivability (Days of survival using liquid assets vs daily burn rate)
+  const dailyBurnRateCents = monthlyAvgExpensesCents / 30;
+  const wealthSurvivalDays = dailyBurnRateCents > 0 ? Math.floor(netWorthCents / dailyBurnRateCents) : 0;
+
+  // 5. FIRE Calculation (4% Rule)
   const annualExpensesCents = monthlyAvgExpensesCents * 12;
   const fireTargetCents = annualExpensesCents > 0 ? annualExpensesCents / FIRE_WITHDRAWAL_RATE : 1;
-  const fireProgress = Math.min(100, (totalInvestedCents / fireTargetCents) * 100);
+  const fireProgress = Math.min(100, Math.max(0, (netWorthCents / fireTargetCents) * 100));
 
-  // Years to FIRE = (Target - Current) / Annual Saving
   const annualSavingsCents = monthlyAvgSurplusCents * 12;
-  const yearsToFire = annualSavingsCents > 0 ? (fireTargetCents - totalInvestedCents) / annualSavingsCents : Infinity;
+  const yearsToFire = annualSavingsCents > 0 ? Math.max(0, (fireTargetCents - netWorthCents) / annualSavingsCents) : Infinity;
 
-  // 7. Opportunity Cost (Want classification spending)
+  // 6. Opportunity Cost (Want classification spending)
   const wantSpendingCents = expenses
     .filter(tx => tx.classification === 'want')
     .reduce((acc, tx) => acc + tx.amount, 0) / 3;
-
-  // Future Value at ~5% real return over 10 years (simplified multiplier 1.5x)
   const opportunityCost10yrCents = wantSpendingCents * 12 * 10 * 1.5;
 
-  // 8. Dynamic Tips
-  const tips: string[] = [];
-  if (totalDebtCents > totalInvestedCents) tips.push("⚠️ Suas dívidas superam seus investimentos. Priorize a quitação de juros altos.");
-  if (fireProgress > 50) tips.push("🔥 Você já percorreu mais da metade do caminho para a Liberdade Financeira!");
-  if (wealthSurvivalDays < 180) tips.push("🛡️ Seu Fator de Sobrevivência está abaixo de 6 meses. Considere fortalecer sua reserva.");
+  // 7. Regime Detection
+  const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+  const historicalTx = await db.transaction.findMany({
+    where: { userId, deletedAt: null, date: { gte: twelveMonthsAgo } },
+    select: { type: true, amount: true, date: true },
+  });
+
+  const monthlyMap: Record<string, MonthlyObservation> = {};
+  for (const tx of historicalTx) {
+    const monthKey = tx.date.toISOString().slice(0, 7);
+    if (!monthlyMap[monthKey]) {
+      monthlyMap[monthKey] = { month: monthKey, totalIncomeCents: 0, totalExpenseCents: 0 };
+    }
+    if (tx.type === 'income') monthlyMap[monthKey].totalIncomeCents += tx.amount;
+    if (tx.type === 'expense') monthlyMap[monthKey].totalExpenseCents += tx.amount;
+  }
+  const monthlyObs = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
+  const regime = monthlyObs.length >= 3 ? detectRegime(monthlyObs) : null;
+
+  // 8. Rules Engine
+  const facts = buildFactsFromIntelligence({
+    totalDebtCents: liabilitiesCents,
+    totalInvestedCents: assetsCents,
+    wealthSurvivalDays,
+    fireProgress,
+    monthlyAvgExpensesCents,
+    monthlyAvgIncomeCents,
+    monthlyAvgSurplusCents,
+    wantSpendingCents,
+    regime: regime ? { current: regime.currentRegime, daysInRegime: regime.daysInRegime } : undefined,
+  });
+  const decisions = await evaluateRules(facts);
 
   return {
     wealthSurvivalDays,
     fireProgress: parseFloat(fireProgress.toFixed(2)),
     yearsToFire: yearsToFire === Infinity ? 999 : parseFloat(yearsToFire.toFixed(1)),
-    monthlyAvgExpenses: monthlyAvgExpensesCents / 100, // Return in R$ for FE
+    monthlyAvgExpenses: monthlyAvgExpensesCents / 100,
     monthlyAvgSurplus: monthlyAvgSurplusCents / 100,
     opportunityCost10yr: opportunityCost10yrCents / 100,
-    optimizationTips: tips,
+    netWorth: netWorthCents / 100,
+    assets: assetsCents / 100,
+    liabilities: liabilitiesCents / 100,
+    optimizationTips: decisions.filter(d => d.priority === 'critical' || d.priority === 'high').map(d => d.message),
+    decisions,
+    regime,
   };
 }
 
@@ -103,6 +164,7 @@ export interface SimulationParams {
 
 export interface SimulationResult {
   timeline: { month: number; balance: number; fireProgress: number }[];
+  monteCarlo: { month: number; p5: number; p50: number; p95: number }[];
   finalBalance: number;
   yearsToFireDelta: number;
 }
@@ -122,6 +184,7 @@ export async function calculateProjection(userId: string, params: SimulationPara
   const monthlyRate = Math.pow(1 + params.expectedAnnualYield / 100, 1 / 12) - 1;
   const totalMonths = params.horizonYears * 12;
 
+  // 1. Projeção Linear (Base)
   const timeline: { month: number; balance: number; fireProgress: number }[] = [];
   let currentBalance = currentPrincipal;
 
@@ -135,83 +198,80 @@ export async function calculateProjection(userId: string, params: SimulationPara
     currentBalance = currentBalance * (1 + monthlyRate) + monthlyDeposit;
   }
 
-  // Calculate years to FIRE delta (simple estimate)
+  // 2. Projeção Probabilística (Monte Carlo)
+  const mcService = new MonteCarloService();
+  const mcResultsCents = mcService.simulate({
+    initialCapital: currentPrincipal,
+    monthlyContribution: monthlyDeposit,
+    years: params.horizonYears,
+    expectedAnnualReturn: params.expectedAnnualYield / 100,
+    annualVolatility: 0.12, // Exemplo: 12% de volatilidade padrão
+    iterations: 1000
+  });
+
+  // Converter centavos para R$ para o frontend
+  const monteCarlo = mcResultsCents.map(r => ({
+    month: r.month,
+    p5: Math.round(r.p5 / 100),
+    p50: Math.round(r.p50 / 100),
+    p95: Math.round(r.p95 / 100)
+  }));
+
   return {
     timeline,
+    monteCarlo,
     finalBalance: Math.round(currentBalance / 100),
-    yearsToFireDelta: 0, // Logic for delta can be more complex, keeping it 0 for now
+    yearsToFireDelta: 0,
   };
 }
 
-// ── Anomaly Detection Engine ─────────────────────────────────────────────────
-// Uses a 1.5x spike threshold: if current-month spending in any category
-// exceeds the 90-day average by 50% or more, it's flagged as an anomaly.
-// This gives early warning without triggering on normal daily variance.
+// ── Anomaly Detection Engine (Isolation Forest) ────────────────────────────────
 
-const ANOMALY_SPIKE_MULTIPLIER = 1.5;
 const NOTIFICATION_COOLDOWN_HOURS = 24; // Prevent duplicate alerts
-
-export interface AnomalyResult {
-  category: string;
-  currentMonthAmount: number;    // In cents
-  historicalAverage: number;     // In cents (monthly avg)
-  spikeMultiplier: number;       // e.g. 2.1 = 210% of average
-  detected: boolean;
-}
 
 export async function detectAnomalies(
   userId: string
-): Promise<AnomalyResult[]> {
+): Promise<AnomalyScore[]> {
   const now = new Date();
   const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
   // Fetch current month + historical transactions in one query
-  const allTransactions = await db.transaction.findMany({
+  const allTx = await db.transaction.findMany({
     where: {
       userId,
       type: 'expense',
       deletedAt: null,
       date: { gte: ninetyDaysAgo },
     },
-    select: { category: true, amount: true, date: true },
+    select: { id: true, category: true, amount: true, date: true, recurring: true },
   });
 
-  // Split current month vs. historical (prior months)
-  const currentMonthTx = allTransactions.filter(tx => tx.date >= startOfCurrentMonth);
-  const historicalTx = allTransactions.filter(tx => tx.date < startOfCurrentMonth);
+  const features: TransactionFeature[] = allTx.map(tx => {
+    const d = new Date(tx.date);
+    return {
+      id: tx.id,
+      category: tx.category || 'Outros',
+      amountCents: tx.amount,
+      dayOfMonth: d.getDate(),
+      dayOfWeek: d.getDay(),
+      monthOfYear: d.getMonth() + 1,
+      isRecurring: tx.recurring ?? false,
+    };
+  });
 
-  // Group by category
-  const categories = [...new Set(allTransactions.map(tx => tx.category))];
-  const results: AnomalyResult[] = [];
+  const historical = features.filter(f => {
+    const tx = allTx.find(t => t.id === f.id);
+    return tx!.date < startOfCurrentMonth;
+  });
 
-  for (const category of categories) {
-    const currentTotal = currentMonthTx
-      .filter(tx => tx.category === category)
-      .reduce((acc, tx) => acc + tx.amount, 0);
+  const current = features.filter(f => {
+    const tx = allTx.find(t => t.id === f.id);
+    return tx!.date >= startOfCurrentMonth;
+  });
 
-    const historicalTotal = historicalTx
-      .filter(tx => tx.category === category)
-      .reduce((acc, tx) => acc + tx.amount, 0);
-
-    // Average over 2 months (historical window is up to 2 months before current month)
-    const historicalMonths = 2;
-    const historicalAvg = historicalTotal / historicalMonths;
-
-    if (historicalAvg === 0) continue; // Not enough data to compare
-
-    const spike = currentTotal / historicalAvg;
-
-    results.push({
-      category,
-      currentMonthAmount: currentTotal,
-      historicalAverage: historicalAvg,
-      spikeMultiplier: parseFloat(spike.toFixed(2)),
-      detected: spike >= ANOMALY_SPIKE_MULTIPLIER,
-    });
-  }
-
-  return results.filter(r => r.detected);
+  const forest = new IsolationForestService();
+  return forest.detectAnomalies(historical, current);
 }
 
 export async function runProactiveAnalysis(userId: string): Promise<void> {
@@ -233,15 +293,23 @@ export async function runProactiveAnalysis(userId: string): Promise<void> {
 
     if (recentAlert) continue; // Cooldown active
 
-    const pct = Math.round((anomaly.spikeMultiplier - 1) * 100);
-    const currentFmt = (anomaly.currentMonthAmount / 100).toFixed(2);
-    const avgFmt = (anomaly.historicalAverage / 100).toFixed(2);
+    const currentFmt = (anomaly.amountCents / 100).toFixed(2);
 
     await notifyUser(userId, {
       type: NotificationType.SPENDING_ANOMALY,
-      title: `⚡ Pico de Gastos: ${anomaly.category}`,
-      message: `Você gastou R$\u00a0${currentFmt} em ${anomaly.category} este mês — ${pct}% acima da média (R$\u00a0${avgFmt}/mês).`,
-      data: { category: anomaly.category, spike: anomaly.spikeMultiplier, current: anomaly.currentMonthAmount, avg: anomaly.historicalAverage },
+      title: `⚡ Anomalia Detectada: ${anomaly.category}`,
+      message: `${anomaly.reason} (Transação de R$\u00a0${currentFmt})`,
+      data: { category: anomaly.category, score: anomaly.anomalyScore, current: anomaly.amountCents },
     });
   }
+}
+
+export async function queueProactiveAnalysis(userId: string): Promise<{ jobId: string }> {
+  const jobId = `analysis:${userId}:${Date.now()}`;
+
+  void runProactiveAnalysis(userId).catch((err) => {
+    console.error('[Intelligence] Proactive analysis failed', { jobId, userId, error: err });
+  });
+
+  return { jobId };
 }

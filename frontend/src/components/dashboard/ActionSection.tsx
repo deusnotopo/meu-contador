@@ -3,17 +3,18 @@ import { Activity } from "lucide-react";
 import { DashboardErrorBoundary } from "@/components/ui/DashboardErrorBoundary";
 import { SmartAnomalyDetector } from "@/components/dashboard/SmartAnomalyDetector";
 import { OpenBillsWidget } from "@/components/dashboard/OpenBillsWidget";
-import { useReminders } from "@/hooks/useReminders";
+import type { UseRemindersReturn } from "@/hooks/useReminders";
 import type { TabType } from "@/types/navigation";
 
 interface ActionSectionProps {
   onNavigate: (tab: TabType) => void;
+  remindersCtx: UseRemindersReturn;
 }
 
 export const ActionSection: React.FC<ActionSectionProps> = ({
   onNavigate,
+  remindersCtx,
 }) => {
-  const remindersCtx = useReminders();
 
   return (
     <section className="space-y-3">

@@ -1,17 +1,13 @@
 import { ErrorService } from "@/services/ErrorService";
 import { useAuth } from "@/context/AuthContext";
 import { showError, showSuccess } from "@/lib/toast";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import React, { useState, useEffect, useRef } from "react";
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV
-    ? "http://localhost:3000"
-    : "https://meu-contador-iyut.onrender.com");
 
 export const LoginForm = () => {
   const { login, register, loginWithGoogle } = useAuth();
@@ -28,8 +24,9 @@ export const LoginForm = () => {
   useEffect(() => {
     const warmup = async () => {
       try {
-        await fetch(`${API_URL}/health`, { method: "GET", signal: AbortSignal.timeout(15000) });
-      } catch { /* silent */ }
+        // Usa proxy Vite — mantém cookies de sesssão na mesma origem
+        await fetch('/api/health', { method: 'GET', signal: AbortSignal.timeout(15000) });
+      } catch { /* silent — cold start do servidor */ }
     };
     warmup();
   }, []);
@@ -53,7 +50,7 @@ export const LoginForm = () => {
         showSuccess("Bem-vindo de volta!");
       }
     } catch (err: unknown) {
-      console.error("Auth Error:", err);
+      logger.warn('[LoginForm] Auth Error', err);
       const appError = ErrorService.normalize(err);
       
       // Caso especial para despertar o servidor (503/Timeout)
@@ -74,7 +71,7 @@ export const LoginForm = () => {
       await loginWithGoogle();
       showSuccess("Conectado com Google!");
     } catch (err: unknown) {
-      console.error("Google Login Error:", err);
+      logger.warn('[LoginForm] Google Login Error', err);
       const appError = ErrorService.normalize(err);
       
       if (appError.code === "auth/unauthorized-domain") {

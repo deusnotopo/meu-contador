@@ -32,13 +32,19 @@ export function useInterestRates(autoFetchModality: CreditModality | null = null
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRates = useCallback(async (modality: string) => {
+  const fetchRates = useCallback(async (modality: string, signal?: AbortSignal) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.get<{ records: InterestRateRecord[] }>(`/market/interest-rates?modality=${encodeURIComponent(modality)}&$top=20`);
+      const data = await api.get<{ records: InterestRateRecord[] }>(
+        `/market/interest-rates?modality=${encodeURIComponent(modality)}&$top=20`,
+        { signal }
+      );
       setRates(data.records || []);
     } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return; // Ignora erros de cancelamento
+      }
       setError(err instanceof Error ? err.message : 'Falha ao buscar ranking de juros.');
       setRates([]);
     } finally {
@@ -58,16 +64,22 @@ export function useInterestRates(autoFetchModality: CreditModality | null = null
         "CARTAO DE CREDITO - ROTATIVO TOTAL",
         "CREDITO PESSOAL CONSIGNADO INSS"
       ]);
-    } catch (e) {
-      // fallback
+    } catch (_e) {
+      // fallback — modalities stay empty, UI handles gracefully
     }
   }, []);
 
   useEffect(() => {
     fetchModalities();
+    
+    const abortController = new AbortController();
     if (autoFetchModality) {
-      fetchRates(autoFetchModality);
+      fetchRates(autoFetchModality, abortController.signal);
     }
+    
+    return () => {
+      abortController.abort();
+    };
   }, [autoFetchModality, fetchRates, fetchModalities]);
 
   return {

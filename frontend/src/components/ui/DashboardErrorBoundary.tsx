@@ -12,6 +12,7 @@
 import React from "react";
 import { motion, type Variants } from "framer-motion";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Props {
   children: React.ReactNode;
@@ -36,14 +37,10 @@ export class DashboardErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Silent in production — only log in dev
-    if (import.meta.env.DEV) {
-      console.warn(
-        `[DashboardErrorBoundary] ${this.props.componentName ?? "Widget"} crashed:`,
-        error.message,
-        info.componentStack?.slice(0, 200)
-      );
-    }
+    logger.error(
+      `[DashboardErrorBoundary] ${this.props.componentName ?? "Widget"} crashed`,
+      { message: error.message, componentStack: info.componentStack?.slice(0, 300) }
+    );
   }
 
   handleRetry = () => {

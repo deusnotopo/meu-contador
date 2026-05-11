@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useFipe, VehicleType, FipePrice } from "@/hooks/useFipe";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from "@/lib/logger";
 import {
   Car,
   Loader2,
@@ -153,7 +154,7 @@ export const FipeVehicleManager = ({ onSaved }: { onSaved?: () => void }) => {
     return () => {
       mounted = false;
     };
-  }, [type, step, showWizard]);
+  }, [type, step, showWizard, fipe]);
 
   const handleTypeSelect = (t: VehicleType) => {
     setType(t);
@@ -227,7 +228,7 @@ export const FipeVehicleManager = ({ onSaved }: { onSaved?: () => void }) => {
         onSaved?.();
       }, 1800);
     } catch (e) {
-      console.error(e);
+      logger.error('[FipeVehicleManager] Asset save failed', e);
     } finally {
       setIsSaving(false);
     }

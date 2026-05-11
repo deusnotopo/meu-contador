@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthService } from "@/services/AuthService";
+import { logger } from "@/lib/logger";
 import type { UserProfile } from "@/types";
 
 /**
@@ -16,7 +17,7 @@ export function useUserActions() {
       await AuthService.updateProfile(data);
       await refreshUser();
     } catch (error) {
-      console.error("Failed to update profile:", error);
+      logger.error('[useUserActions] Failed to update profile', error);
       throw error;
     }
   }, [refreshUser]);
@@ -29,7 +30,7 @@ export function useUserActions() {
       }
       return success;
     } catch (error) {
-      console.error("Failed to upgrade to pro:", error);
+      logger.error('[useUserActions] Failed to upgrade to pro', error);
       throw error;
     }
   }, [refreshUser]);

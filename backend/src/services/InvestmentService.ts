@@ -8,6 +8,7 @@ import { getCacheValue, setCacheValue } from '../lib/cache.js';
 import * as InvestmentRepository from '../repositories/InvestmentRepository.js';
 import { toCents } from '../../../shared/currency.js';
 import { withJitter } from '../../../shared/cache-utils.js';
+import type { Prisma } from '@prisma/client';
 
 const BASE_CACHE_TTL = 300_000;
 
@@ -62,7 +63,7 @@ export async function getInvestment(id: string, userId: string) {
   return InvestmentRepository.findOne(id, userId);
 }
 
-export async function createInvestment(userId: string, input: CreateInvestmentInput, tx?: any) {
+export async function createInvestment(userId: string, input: CreateInvestmentInput, tx?: Prisma.TransactionClient) {
   const data: InvestmentRepository.InvestmentCreateData = {
     userId,
     name: input.name,
@@ -80,13 +81,13 @@ export async function createInvestment(userId: string, input: CreateInvestmentIn
   return investment;
 }
 
-export async function createManyInvestments(userId: string, data: any[], tx?: any) {
+export async function createManyInvestments(userId: string, data: InvestmentRepository.InvestmentCreateData[], tx?: Prisma.TransactionClient) {
   const result = await InvestmentRepository.createMany(data, tx);
   if (!tx) await InvestmentRepository.invalidateInvestmentCache(userId);
   return result;
 }
 
-export async function updateInvestment(id: string, userId: string, input: UpdateInvestmentInput, tx?: any) {
+export async function updateInvestment(id: string, userId: string, input: UpdateInvestmentInput, tx?: Prisma.TransactionClient) {
   const existing = await InvestmentRepository.findOne(id, userId);
   if (!existing) return null;
 
@@ -106,7 +107,7 @@ export async function updateInvestment(id: string, userId: string, input: Update
   return investment;
 }
 
-export async function deleteInvestment(id: string, userId: string, tx?: any) {
+export async function deleteInvestment(id: string, userId: string, tx?: Prisma.TransactionClient) {
   const success = await InvestmentRepository.softDeleteOne(id, userId, tx);
   if (success && !tx) {
     await InvestmentRepository.invalidateInvestmentCache(userId);
@@ -116,7 +117,7 @@ export async function deleteInvestment(id: string, userId: string, tx?: any) {
 
 // ── Dividend Operations ───────────────────────────────────────────────────────
 
-export async function addDividend(investmentId: string, userId: string, input: DividendInput, tx?: any) {
+export async function addDividend(investmentId: string, userId: string, input: DividendInput, tx?: Prisma.TransactionClient) {
   const investment = await InvestmentRepository.findOne(investmentId, userId);
   if (!investment) return null;
 
@@ -132,7 +133,7 @@ export async function addDividend(investmentId: string, userId: string, input: D
   return dividend;
 }
 
-export async function removeDividend(investmentId: string, userId: string, dividendId: string, tx?: any) {
+export async function removeDividend(investmentId: string, userId: string, dividendId: string, tx?: Prisma.TransactionClient) {
   const investment = await InvestmentRepository.findOne(investmentId, userId);
   if (!investment) return false;
 
@@ -145,7 +146,7 @@ export async function removeDividend(investmentId: string, userId: string, divid
 
 // ── Sale Operations ───────────────────────────────────────────────────────────
 
-export async function recordSale(investmentId: string, userId: string, input: SaleInput, tx?: any) {
+export async function recordSale(investmentId: string, userId: string, input: SaleInput, tx?: Prisma.TransactionClient) {
   const investment = await InvestmentRepository.findOne(investmentId, userId);
   if (!investment) return { error: 'NOT_FOUND' };
 

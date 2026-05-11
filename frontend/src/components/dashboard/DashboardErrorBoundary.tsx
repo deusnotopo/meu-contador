@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from "react";
+import { logger } from "@/lib/logger";
 
 interface Props {
   children: ReactNode;
@@ -24,7 +25,10 @@ export class DashboardErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Dashboard Widget Error:", error, errorInfo);
+    logger.error('[DashboardErrorBoundary] Widget error', {
+      error: error.message,
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   public render() {

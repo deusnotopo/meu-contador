@@ -52,11 +52,11 @@ const PlusIcon = () => (
 );
 
 const NAV_ITEMS = [
-  { id: "inicio"   as PrimaryTab, tab: "inicio"   as TabType,   label: "Início",   Icon: HomeIcon },
-  { id: "budget"   as PrimaryTab, tab: "budget"   as TabType,   label: "Budget",   Icon: BudgetIcon },
-  { id: "launch"   as PrimaryTab, tab: "launch"   as TabType,   label: null,       Icon: null }, // FAB
-  { id: "futuro"   as PrimaryTab, tab: "investir" as TabType,   label: "Investir", Icon: FuturoIcon },
-  { id: "academia" as PrimaryTab, tab: "academia" as TabType,   label: "Aprender", Icon: AcademiaIcon },
+  { id: "inicio"   as PrimaryTab, tab: "inicio"   as TabType,   label: "Início",    Icon: HomeIcon },
+  { id: "budget"   as PrimaryTab, tab: "budget"   as TabType,   label: "Finanças",  Icon: BudgetIcon },
+  { id: "launch"   as PrimaryTab, tab: "launch"   as TabType,   label: null,        Icon: null }, // FAB
+  { id: "futuro"   as PrimaryTab, tab: "investir" as TabType,   label: "Patrimônio", Icon: FuturoIcon },
+  { id: "academia" as PrimaryTab, tab: "academia" as TabType,   label: "Academia",   Icon: AcademiaIcon },
 ];
 
 export const BottomNav = ({ currentTab }: BottomNavProps) => {

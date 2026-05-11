@@ -15,12 +15,33 @@ export interface GamificationLevel {
   perks: string[];
 }
 
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  unlockedAt?: string;
+}
+
+export interface WeeklyChallenge {
+  id: string;
+  name: string;
+  progress: number;
+  target: number;
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  name: string;
+  xp: number;
+  level: number;
+}
+
 export interface GamificationState {
   level: GamificationLevel;
-  achievements: any[]; // Todo: Detail Achievements in future
+  achievements: Achievement[];
   streaks: Record<string, number>;
-  weeklyChallenge: any | null;
-  leaderboard: any[];
+  weeklyChallenge: WeeklyChallenge | null;
+  leaderboard: LeaderboardEntry[];
 }
 
 const DEFAULT_STATE: GamificationState = {
@@ -52,11 +73,11 @@ export async function getState(userId: string) {
 }
 
 export async function saveState(userId: string, state: GamificationState) {
-  return GamificationRepository.saveState(userId, state);
+  return GamificationRepository.saveState(userId, state as unknown as Record<string, unknown>);
 }
 
 export async function awardXp(userId: string, amount: number) {
-  const currentState = await getState(userId);
+  const currentState = await getState(userId) as GamificationState;
   
   const newTotalXp = currentState.level.totalXp + amount;
   const newLevelInfo = calculateLevel(newTotalXp);

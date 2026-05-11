@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDebts } from "@/hooks/useDebts";
 import { useInvestments } from "@/hooks/useInvestments";
+import { api } from "@/lib/api";
 import { ArrowLeft, Brain, CheckCircle } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 
@@ -93,20 +94,12 @@ export const FinancialCheckin = ({ onBack }: FinancialCheckinProps) => {
 
     // Persist to backend
     try {
-      const token = localStorage.getItem("auth_token");
-      await fetch("/api/emotional", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          emotion: MOOD_TO_EMOTION[newCheckin.mood],
-          regretLevel: newCheckin.stressLevel,
-          satisfactionLevel: newCheckin.financialConfidence,
-          notes: newCheckin.notes || undefined,
-          triggers: newCheckin.stressLevel >= 4 ? ["financial_stress"] : undefined,
-        }),
+      await api.post("/emotional", {
+        emotion: MOOD_TO_EMOTION[newCheckin.mood],
+        regretLevel: newCheckin.stressLevel,
+        satisfactionLevel: newCheckin.financialConfidence,
+        notes: newCheckin.notes || undefined,
+        triggers: newCheckin.stressLevel >= 4 ? ["financial_stress"] : undefined,
       });
     } catch {
       // Silently fail — checkin already saved to local state

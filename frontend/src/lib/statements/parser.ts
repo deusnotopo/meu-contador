@@ -1,6 +1,8 @@
 import type { StatementTransaction, StatementFormat } from '../../../../shared/types-statement';
 import type { StatementProvenance } from '../../../../shared/types-statement-provenance';
 import type { DataReliability } from '../../../../shared/contracts';
+import { z } from 'zod';
+import { logger } from '../logger';
 import { api } from '../api';
 
 const MAX_STATEMENT_FILE_BYTES = 8 * 1024 * 1024;
@@ -127,15 +129,22 @@ async function parseWithGeminiAPI(file: File): Promise<StatementTransaction[]> {
   const formData = new FormData();
   formData.append('file', file);
 
-  interface GeminiTransaction {
-    date?: string;
-    description?: string;
-    amount?: number;
-    type?: string;
-  }
+  // Akita Mode: Zod Schema Boundary para outputs do LLM
+  const GeminiUploadSchema = z.object({
+    transactions: z.array(
+      z.object({
+        date: z.string().optional(),
+        description: z.string().optional(),
+        amount: z.number().optional(),
+        type: z.string().optional(),
+      })
+    ).optional(),
+  });
 
   try {
-    const data = await api.post<{ transactions?: GeminiTransaction[] }>('/statements/upload', formData);
+    const data = await api.post('/statements/upload', formData, {
+      schema: GeminiUploadSchema
+    });
     const rawTransactions = data.transactions || [];
 
     return rawTransactions.map((tx, i: number): StatementTransaction => ({
@@ -157,7 +166,7 @@ async function parseWithGeminiAPI(file: File): Promise<StatementTransaction[]> {
       status: 'pending',
     }));
   } catch (err: unknown) {
-    console.error('[parser] Gemini API failed:', err);
+    logger.error('[Parser] Gemini API failed for statement upload', err);
     throw new Error('Falha ao processar extrato com IA. Tente novamente.');
   }
 }

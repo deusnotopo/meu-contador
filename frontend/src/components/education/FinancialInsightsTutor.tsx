@@ -273,7 +273,8 @@ export const FinancialInsightsTutor = ({
   const { goals } = useGoals();
   const { budgets } = useBudgets();
   const currencyCtx = useCurrency();
-  const convert = currencyCtx?.convert || ((v: number) => v);
+  const convertFn = currencyCtx?.convert;
+  const convert = useMemo(() => convertFn || ((v: number) => v), [convertFn]);
 
   const [expanded, setExpanded] = useState(true);
 

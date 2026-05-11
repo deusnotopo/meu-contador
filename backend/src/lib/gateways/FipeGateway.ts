@@ -47,7 +47,12 @@ export async function fetchModels(type: VehicleType, brandId: string): Promise<F
   return data.modelos || data;
 }
 
-export async function fetchYears(type: VehicleType, brandId: string, modelId: string): Promise<any[]> {
+export interface FipeYear {
+  codigo: string;
+  nome: string;
+}
+
+export async function fetchYears(type: VehicleType, brandId: string, modelId: string): Promise<FipeYear[]> {
   const res = await fetch(`${FIPE_API}/${type}/marcas/${brandId}/modelos/${modelId}/anos`, {
     signal: AbortSignal.timeout(10000)
   });

@@ -12,6 +12,7 @@
 import * as IntelligenceService from "./IntelligenceService.js";
 import * as EducationService from "./EducationService.js";
 import * as GamificationService from "./GamificationService.js";
+import { logger } from "../lib/logger.js";
 
 export async function getUnifiedDashboardState(userId: string) {
   const [financialResult, educationResult, gamificationResult] =
@@ -23,13 +24,13 @@ export async function getUnifiedDashboardState(userId: string) {
 
   // Log any partial failures without surfacing a 500
   if (financialResult.status === "rejected") {
-    console.error("[WealthIntelligence] financial summary failed:", financialResult.reason);
+    logger.error("[WealthIntelligence] financial summary failed", financialResult.reason);
   }
   if (educationResult.status === "rejected") {
-    console.error("[WealthIntelligence] education data failed:", educationResult.reason);
+    logger.error("[WealthIntelligence] education data failed", educationResult.reason);
   }
   if (gamificationResult.status === "rejected") {
-    console.error("[WealthIntelligence] gamification state failed:", gamificationResult.reason);
+    logger.error("[WealthIntelligence] gamification state failed", gamificationResult.reason);
   }
 
   return {

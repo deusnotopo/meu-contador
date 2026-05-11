@@ -1,11 +1,11 @@
-/// <reference lib="webworker" />
+/// <reference no-default-lib="true"/>
+/// <reference lib="es2020" />
+/// <reference lib="WebWorker" />
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const sw = self as any;
+const sw = self as unknown as ServiceWorkerGlobalScope;
 
 const CACHE_NAME = "meu-contador-v1";
 const OFFLINE_URL = "/offline.html";
-
 const RUNTIME_CACHE = "meu-contador-runtime-v1";
 
 interface QueueItem {
@@ -15,6 +15,11 @@ interface QueueItem {
   payload: unknown;
   timestamp: number;
   retries: number;
+}
+
+interface PushData {
+  title: string;
+  body: string;
 }
 
 const DB_NAME = "meu-contador-offline";
@@ -35,7 +40,7 @@ async function getPendingItems(): Promise<QueueItem[]> {
       const tx = db.transaction(STORE_NAME, "readonly");
       const store = tx.objectStore(STORE_NAME);
       const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => resolve(request.result as QueueItem[]);
       request.onerror = () => reject(request.error);
     });
   } catch {
@@ -60,23 +65,16 @@ async function removeFromQueue(id: string): Promise<void> {
 
 async function processOfflineQueue(): Promise<void> {
   if (!navigator.onLine) return;
-
   const items = await getPendingItems();
-
   for (const item of items) {
     try {
       const method =
-        item.type === "create"
-          ? "POST"
-          : item.type === "update"
-            ? "PUT"
-            : "DELETE";
+        item.type === "create" ? "POST" : item.type === "update" ? "PUT" : "DELETE";
       const response = await fetch(item.endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
         body: item.type !== "delete" ? JSON.stringify(item.payload) : undefined,
       });
-
       if (response.ok || response.status === 404) {
         await removeFromQueue(item.id);
       }
@@ -86,46 +84,38 @@ async function processOfflineQueue(): Promise<void> {
   }
 }
 
-sw.addEventListener("install", (event: any) => {
+sw.addEventListener("install", (event: ExtendableEvent) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(["/", "/offline.html"]).catch(() => {
-        // Ignore if files don't exist
-      });
-    }),
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(["/", OFFLINE_URL]).catch(() => undefined)
+    )
   );
-  sw.skipWaiting();
+  void sw.skipWaiting();
 });
 
-sw.addEventListener("activate", (event: any) => {
+sw.addEventListener("activate", (event: ExtendableEvent) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => {
-        return Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME && key !== RUNTIME_CACHE)
-            .map((key) => caches.delete(key)),
-        );
-      })
-      .then(() => sw.clients.claim()),
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME && key !== RUNTIME_CACHE)
+          .map((key) => caches.delete(key))
+      )
+    ).then(() => sw.clients.claim())
   );
 });
 
-sw.addEventListener("fetch", (event: any) => {
+sw.addEventListener("fetch", (event: FetchEvent) => {
   if (event.request.method !== "GET") {
     const url = new URL(event.request.url);
     if (url.pathname.startsWith("/api/")) {
       event.respondWith(
-        fetch(event.request).catch(() => {
-          return new Response(
-            JSON.stringify({ error: "offline", queued: true }),
-            {
-              status: 503,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }),
+        fetch(event.request).catch(() =>
+          new Response(JSON.stringify({ error: "offline", queued: true }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          })
+        )
       );
       return;
     }
@@ -137,55 +127,47 @@ sw.addEventListener("fetch", (event: any) => {
         .then((response) => {
           if (response.ok) {
             const clone = response.clone();
-            caches
-              .open(RUNTIME_CACHE)
-              .then((cache) => cache.put(event.request, clone));
+            caches.open(RUNTIME_CACHE).then((cache) => cache.put(event.request, clone));
           }
           return response;
         })
         .catch(() => cached);
-
-      return cached || networked;
-    }),
+      return (cached ?? networked) as Promise<Response>;
+    })
   );
 });
 
-sw.addEventListener("sync", (event: any) => {
+sw.addEventListener("sync", (event: SyncEvent) => {
   if (event.tag === "sync-transactions") {
     event.waitUntil(processOfflineQueue());
   }
 });
 
-sw.addEventListener("message", (event: any) => {
-  if (event.data?.type === "PROCESS_QUEUE") {
+sw.addEventListener("message", (event: ExtendableMessageEvent) => {
+  const data = event.data as { type?: string } | null;
+  if (data?.type === "PROCESS_QUEUE") {
     event.waitUntil(processOfflineQueue());
   }
 });
 
-// Push Notification Event Handler
-sw.addEventListener("push", (event: any) => {
-  if (!(sw.Notification && sw.Notification.permission === "granted")) {
-    return;
-  }
+sw.addEventListener("push", (event: PushEvent) => {
+  if (!(sw.Notification && sw.Notification.permission === "granted")) return;
 
-  let data = { title: "Meu Contador", body: "Nova atualização disponível!" };
+  let data: PushData = { title: "Meu Contador", body: "Nova atualização disponível!" };
   if (event.data) {
     try {
-      data = event.data.json();
+      data = event.data.json() as PushData;
     } catch {
       data = { title: "Meu Contador", body: event.data.text() };
     }
   }
 
-  const options = {
+  const options: NotificationOptions = {
     body: data.body,
     icon: "/pwa-192x192.png",
     badge: "/pwa-192x192.png",
     vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1,
-    },
+    data: { dateOfArrival: Date.now(), primaryKey: 1 },
     actions: [
       { action: "explore", title: "Ver Detalhes", icon: "/pwa-192x192.png" },
       { action: "close", title: "Fechar", icon: "/pwa-192x192.png" },
@@ -195,24 +177,16 @@ sw.addEventListener("push", (event: any) => {
   event.waitUntil(sw.registration.showNotification(data.title, options));
 });
 
-// Notification Click Handler
-sw.addEventListener("notificationclick", (event: any) => {
+sw.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
-
   event.waitUntil(
     sw.clients
       .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList: any[]) => {
-        if (clientList.length > 0) {
-          let client = clientList[0];
-          for (let i = 0; i < clientList.length; i++) {
-            if (clientList[i].focused) {
-              client = clientList[i];
-            }
-          }
-          return client.focus();
-        }
+      .then((clientList) => {
+        const focused = clientList.find((c) => c.focused);
+        const client = focused ?? clientList[0];
+        if (client) return client.focus();
         return sw.clients.openWindow("/");
-      }),
+      })
   );
 });

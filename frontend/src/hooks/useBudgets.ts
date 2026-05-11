@@ -1,6 +1,7 @@
 import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
 import { BudgetSchema } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 import { z } from "zod";
 import type { Budget } from "@/types";
 import { useEffect, useState, useCallback } from "react";
@@ -26,8 +27,8 @@ export const useBudgets = () => {
       return items;
     } catch (err) {
       if (err instanceof z.ZodError) {
-        console.error("Zod Validation Error (Budgets):", err.errors);
-        setError("Erro de integridade nos dados de orçamentos.");
+        logger.error('[useBudgets] Zod Validation Error', err.errors);
+        setError('Erro de integridade nos dados de orçamentos.');
       } else {
         setError("Orçamentos indisponíveis. Verifique sua conexão.");
       }

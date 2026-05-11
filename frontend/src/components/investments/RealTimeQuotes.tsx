@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { fetchMultipleQuotes } from "@/lib/market-data";
 import { TrendingUp, TrendingDown, Wifi } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface RealTimeQuotesProps {
   tickers?: string[];
@@ -46,7 +47,7 @@ export const RealTimeQuotes = ({ tickers = DEFAULT_TICKERS }: RealTimeQuotesProp
         setIsLive(results.some(q => q.price > 0));
         setLastUpdate(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
       } catch (err) {
-        console.error("Error loading quotes:", err);
+        logger.error('[RealTimeQuotes] Failed to load quotes', err);
       } finally {
         setLoading(false);
       }
@@ -78,7 +79,9 @@ export const RealTimeQuotes = ({ tickers = DEFAULT_TICKERS }: RealTimeQuotesProp
   if (!quotes.length) return null;
 
   return (
-    <div className="card p-4">
+    <div className="premium-card relative overflow-hidden p-5 rounded-3xl border border-white/5 bg-[#030712]/60 backdrop-blur-2xl">
+      {/* Glow effect green */}
+      <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none" />
       {/* Header */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-1.5">
@@ -103,23 +106,23 @@ export const RealTimeQuotes = ({ tickers = DEFAULT_TICKERS }: RealTimeQuotesProp
           return (
             <div
               key={quote.symbol}
-              className="bg-[var(--surface)] rounded-[10px] p-3 transition-all duration-200"
-              style={{ border: `1px solid ${isUp ? "rgba(0,217,145,0.10)" : "rgba(255,79,110,0.10)"}` }}
+              className={`bg-white/[0.02] hover:bg-white/[0.04] rounded-xl p-3 transition-all duration-300 transform hover:-translate-y-0.5 border ${isUp ? "border-emerald-500/20" : "border-rose-500/20"}`}
+              style={{ boxShadow: isUp ? '0 4px 20px -10px rgba(16,185,129,0.1)' : '0 4px 20px -10px rgba(244,63,94,0.1)' }}
             >
               {/* Symbol row */}
               <div className="flex items-center gap-1.5 mb-1.5">
                 {quote.logo ? (
-                  <img src={quote.logo} alt={quote.symbol} className="w-[18px] h-[18px] rounded-[4px] object-cover" />
+                  <img src={quote.logo} alt={quote.symbol} className="w-[18px] h-[18px] rounded-full object-cover ring-1 ring-white/10" />
                 ) : (
-                  <div className="w-[18px] h-[18px] rounded-[4px] bg-[var(--glass2)] flex items-center justify-center text-[9px] font-extrabold text-[var(--blue)]">
+                  <div className="w-[18px] h-[18px] rounded-full bg-white/5 flex items-center justify-center text-[9px] font-extrabold text-blue-400 border border-white/10">
                     {quote.symbol.substring(0, 2)}
                   </div>
                 )}
-                <span className="text-[11px] font-bold text-[var(--t1)]">{quote.symbol}</span>
+                <span className="text-[11px] font-black text-white tracking-tight">{quote.symbol}</span>
               </div>
 
               {/* Price */}
-              <div className="text-[14px] font-bold text-[var(--t1)] font-mono mb-1">
+              <div className="text-[15px] font-black text-white font-mono mb-1">
                 {quote.price > 0 ? fmt(quote.price) : "—"}
               </div>
 
@@ -127,11 +130,10 @@ export const RealTimeQuotes = ({ tickers = DEFAULT_TICKERS }: RealTimeQuotesProp
               {quote.price > 0 && (
                 <div className="flex items-center gap-1">
                   {isUp
-                    ? <TrendingUp size={10} className="text-[var(--green)] shrink-0" />
-                    : <TrendingDown size={10} className="text-[var(--red)] shrink-0" />}
+                    ? <TrendingUp size={10} className="text-emerald-400 shrink-0" />
+                    : <TrendingDown size={10} className="text-rose-400 shrink-0" />}
                   <span
-                    className="text-[10px] font-bold font-mono"
-                    style={{ color: isUp ? "var(--green)" : "var(--red)" }}
+                    className={`text-[10px] font-bold font-mono drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}
                   >
                     {fmtPct(quote.changePercent)}
                   </span>

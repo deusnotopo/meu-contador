@@ -7,12 +7,12 @@ interface UserDataExport {
     name: string | null;
     createdAt: Date;
   };
-  transactions: any[];
-  budgets: any[];
-  goals: any[];
-  investments: any[];
-  debts: any[];
-  reminders: any[];
+  transactions: Array<{ id: string; type: string; description: string; amount: number; category: string; date: Date; paymentMethod: string | null; scope: string; createdAt: Date }>;
+  budgets: Array<{ id: string; category: string; limit: number; spent: number; month: string; createdAt: Date }>;
+  goals: Array<{ id: string; name: string; targetAmount: number; currentAmount: number; deadline: Date | null; createdAt: Date }>;
+  investments: Array<{ id: string; name: string; ticker: string; type: string; amount: number; averagePrice: number; currentPrice: number; createdAt: Date }>;
+  debts: Array<{ id: string; name: string; balance: number; interestRate: number; minPayment: number; dueDate: Date | null; category: string; createdAt: Date }>;
+  reminders: Array<{ id: string; name: string; amount: number; dueDate: Date | null; category: string; isPaid: boolean; createdAt: Date }>;
 }
 
 export async function exportUserData(userId: string): Promise<UserDataExport> {
@@ -125,12 +125,12 @@ export function sanitizeExportData(data: UserDataExport): UserDataExport {
   delete sanitized.user.passwordHash;
   
   // Round monetary values to 2 decimal places
-  sanitized.transactions = sanitized.transactions.map((t: any) => ({
+  sanitized.transactions = sanitized.transactions.map((t: { amount: number; [key: string]: unknown }) => ({
     ...t,
     amount: Math.round(t.amount * 100) / 100,
   }));
   
-  sanitized.budgets = sanitized.budgets.map((b: any) => ({
+  sanitized.budgets = sanitized.budgets.map((b: { limit: number; spent: number; [key: string]: unknown }) => ({
     ...b,
     limit: Math.round(b.limit * 100) / 100,
     spent: Math.round(b.spent * 100) / 100,

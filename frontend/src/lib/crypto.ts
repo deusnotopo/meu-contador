@@ -2,6 +2,7 @@
  * Privacy Fortress: Web Crypto API AES-GCM Implementation
  * Provides industry-standard encryption for local data residency.
  */
+import { logger } from "@/lib/logger";
 
 const ALGORITHM = "AES-GCM";
 const IV_LENGTH = 12; // Standard for GCM
@@ -63,7 +64,7 @@ export async function encrypt(plainText: string): Promise<string> {
 
     return btoa(String.fromCharCode(...combined));
   } catch (error) {
-    console.error("Encryption failed:", error);
+    logger.warn('[Crypto] Encryption failed — falling back to plain text', error);
     return plainText; // Fallback to plain text if crypto fails (availability over secrecy)
   }
 }
@@ -93,7 +94,7 @@ export async function decrypt(combinedBase64: string): Promise<string | null> {
 
     const dec = new TextDecoder();
     return dec.decode(decryptedBuffer);
-  } catch (error) {
+  } catch (_error) {
     // Decryption failure usually means the data is corrupt or key is wrong.
     // We return null to allow the loader to handle it (e.g. clearing invalid data).
     return null;

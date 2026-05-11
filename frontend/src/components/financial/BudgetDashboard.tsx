@@ -108,28 +108,43 @@ export const BudgetDashboard = ({ onNavigate }: BudgetDashboardProps) => {
 
       {/* ── HEADER & NAVIGATION ────────────────────────────────────────────────── */}
       <motion.div variants={cardVariant} className="space-y-4">
-        <div className="card-obsidian relative overflow-hidden p-6 border-white/5 bg-white/[0.01]">
-          <div className="absolute top-[-50px] left-[-50px] w-40 h-40 bg-blue-600/10 blur-[60px] rounded-full pointer-events-none" />
-          <div className="relative z-20 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
-                  <Wallet size={12} className="text-blue-400" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Orçamento</span>
+        <div className="card-obsidian relative overflow-hidden px-6 pt-6 pb-5 border-white/5 bg-white/[0.01]">
+          <div className="absolute top-[-60px] left-[-40px] w-56 h-56 bg-blue-600/8 blur-[70px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-[-40px] right-[-20px] w-40 h-40 bg-indigo-600/6 blur-[50px] rounded-full pointer-events-none" />
+          <div className="relative z-20 flex flex-col gap-5">
+            {/* Title row */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+                    <Wallet size={11} className="text-blue-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Finanças</span>
+                  </div>
+                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border ${
+                    rta === 0
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      : rta > 0
+                        ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                        : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                  }`}>
+                    <Activity size={11} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      {rta === 0
+                        ? "Balanço Zero"
+                        : rta > 0
+                          ? `${FinancialFormatter.formatCurrency(rta)} p/ Alocar`
+                          : `${FinancialFormatter.formatCurrency(Math.abs(rta))} em Déficit`}
+                    </span>
+                  </div>
                 </div>
-                {/* AKITA MODE: Ready to Assign Badge */}
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${rta === 0 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-amber-500/10 border-amber-500/20 text-amber-400"}`}>
-                  <Activity size={12} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">
-                    {rta === 0 ? "Balanço Zero" : rta > 0 ? `${FinancialFormatter.formatCurrency(rta)} p/ Alocar` : `${FinancialFormatter.formatCurrency(Math.abs(rta))} em Déficit`}
-                  </span>
-                </div>
+                <h1 className="text-3xl font-black text-white tracking-tight leading-none">
+                  Minhas <span className="text-blue-400">Finanças</span>
+                </h1>
+                <p className="text-xs text-white/35 mt-1.5 font-medium">Orçamento · Caixa · Recorrentes · Provisões</p>
               </div>
-              <h1 className="text-2xl font-black text-white tracking-tight">
-                Meu <span className="text-blue-400">Orçamento</span>
-              </h1>
             </div>
-            <div className="w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-none snap-x">
+            {/* Dock */}
+            <div className="w-full">
               {renderDock(activeView, setActiveView, navItems)}
             </div>
           </div>

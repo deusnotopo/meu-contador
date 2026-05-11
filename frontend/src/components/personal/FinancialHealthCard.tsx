@@ -1,8 +1,9 @@
-﻿import type { AIInsights } from "@/lib/ai";
+import type { AIInsights } from "@/lib/ai";
 import { getFinancialInsights } from "@/lib/ai";
 import { calculateFinancialHealth } from "@/lib/financial-health";
 import type { Transaction } from "@/types";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import { Activity, Loader2, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -29,7 +30,7 @@ export const FinancialHealthCard = ({
         const data = await getFinancialInsights(transactions);
         setInsights(data);
       } catch (err) {
-        console.error("AI fetch error:", err);
+        logger.error('[FinancialHealthCard] AI insights fetch failed', err);
       } finally {
         setLoading(false);
       }

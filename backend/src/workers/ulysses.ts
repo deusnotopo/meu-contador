@@ -2,6 +2,7 @@
 
 import { db } from '../lib/db';
 import { writeAuditLog } from '../lib/audit';
+import { logger } from '../lib/logger.js';
 
 /**
  * Ulysses Engine (O Contrato de Ulisses)
@@ -18,7 +19,7 @@ export class UlyssesEngine {
    * atua de forma preditiva.
    */
   public static async evaluateRules() {
-    console.log('[Neural AI] Iniciando varredura do Ulysses Contract...');
+    logger.info('[Ulysses] Iniciando varredura do Ulysses Contract...');
     
     // Busca os usuários PRO elegíveis para o monitoramento inteligente
     const users = await db.user.findMany({ 
@@ -63,7 +64,7 @@ export class UlyssesEngine {
           triggeredCount++;
         }
       } catch (err) {
-        console.error(`[Neural AI] Falha ao processar Ulysses para o usuário ${user.id}`, err);
+        logger.error(`[Ulysses] Falha ao processar Ulysses para o usuário ${user.id}`, err);
       }
     }
     

@@ -1,8 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '../lib/db';
-import { deleteCacheByPrefix } from '../lib/cache';
+import {
+  buildSchema,
+  graphql,
+  GraphQLError,
+} from 'graphql';
+import { db } from '../lib/db.js';
 import * as TransactionService from '../services/TransactionService.js';
+import type { CreateTransactionInput, UpdateTransactionInput } from '../services/TransactionService.js';
 import * as BudgetService from '../services/BudgetService.js';
 import * as GoalService from '../services/GoalService.js';
 import * as InvestmentService from '../services/InvestmentService.js';
@@ -10,7 +15,16 @@ import * as InvoiceService from '../services/InvoiceService.js';
 import * as ReminderService from '../services/ReminderService.js';
 import * as UserService from '../services/UserService.js';
 
-// GraphQL Schema Definition
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface GraphQLContext {
+  userId: string;
+  isPro: boolean;
+  app: FastifyInstance;
+}
+
+// ── Schema ─────────────────────────────────────────────────────────────────
+
 const typeDefs = `
   type Query {
     transactions(page: Int, limit: Int, scope: String): TransactionList!
@@ -257,278 +271,211 @@ const typeDefs = `
   }
 `;
 
-// GraphQL Resolvers
-function createResolvers(app: FastifyInstance, userId: string, isPro: boolean) {
-  const proGuard = () => {
-    if (!isPro) {
-      throw new Error('👑 RECURSO PREMIUM: Esta funcionalidade exige o plano PRO. Faça o upgrade para continuar.');
-    }
-  };
+const schema = buildSchema(typeDefs);
+
+// ── Resolvers ──────────────────────────────────────────────────────────────
+
+function proGuard(isPro: boolean): void {
+  if (!isPro) {
+    throw new GraphQLError(
+      '👑 RECURSO PREMIUM: Esta funcionalidade exige o plano PRO. Faça o upgrade para continuar.',
+      { extensions: { code: 'FORBIDDEN' } }
+    );
+  }
+}
+
+function createRootValue(ctx: GraphQLContext) {
+  const { userId, isPro, app } = ctx;
 
   return {
-    Query: {
-      transactions: async ({ page = 1, limit = 20, scope }: { page?: number; limit?: number; scope?: string }) => {
-        return (TransactionService as any).listTransactions(userId, { page, limit, scope: scope as any });
-      },
-
-      transaction: async ({ id }: { id: string }) => {
-        const tx = await TransactionService.getTransaction(id, userId);
-        if (!tx) return null;
-        return {
-          ...tx,
-          amount: (tx.amount as number) / 100
-        };
-      },
-
-      budgets: async ({ month }: { month?: string }) => {
-        const result = await BudgetService.listBudgets(userId, { month, page: 1, limit: 100 }) as any;
-        return result.items;
-      },
-
-      goals: async () => {
-        const result = await GoalService.listGoals(userId, { page: 1, limit: 100 }) as any;
-        return result.items;
-      },
-
-      investments: async () => {
-        proGuard();
-        const result = await (InvestmentService as any).listInvestments(userId, { page: 1, limit: 100 });
-        return (result as any).items;
-      },
-
-      debts: async () => {
-        return db.debt.findMany({
-          where: { userId },
-          orderBy: { dueDate: 'asc' },
-        });
-      },
-
-      invoices: async () => {
-        proGuard();
-        return InvoiceService.listInvoices(userId);
-      },
-
-      reminders: async () => {
-        return ReminderService.listReminders(userId);
-      },
-
-      user: async () => {
-        const user = await UserService.getUserProfile(userId);
-        if (!user) throw new Error('User not found');
-        return user;
-      },
-
-      health: async () => {
-        const startTime = Date.now();
-        await db.$queryRaw`SELECT 1`;
-        const dbResponseTime = Date.now() - startTime;
-        const memoryUsage = process.memoryUsage();
-
-        return {
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          version: '1.0.0-enterprise',
-          uptime: process.uptime(),
-          database: {
-            status: 'connected',
-            responseTimeMs: dbResponseTime,
-          },
-        };
-      },
+    // ── Queries ──
+    transactions: async ({ page = 1, limit = 20, scope }: { page?: number; limit?: number; scope?: string }) => {
+      return TransactionService.listTransactions(userId, { page, limit, scope: scope as 'personal' | 'business' | undefined });
     },
 
-    Mutation: {
-      createTransaction: async ({ input }: { input: any }) => {
-        return (TransactionService as any).createTransaction(userId, input, app);
-      },
+    transaction: async ({ id }: { id: string }) => {
+      const tx = await TransactionService.getTransaction(id, userId);
+      if (!tx) return null;
+      return { ...tx, amount: (tx.amount as number) / 100 };
+    },
 
-      updateTransaction: async ({ id, input }: { id: string; input: any }) => {
-        return TransactionService.updateTransaction(id, userId, input);
-      },
+    budgets: async ({ month }: { month?: string }) => {
+      const result = await BudgetService.listBudgets(userId, { month, page: 1, limit: 100 });
+      return (result as { items: unknown[] }).items || result;
+    },
 
-      deleteTransaction: async ({ id }: { id: string }) => {
-        await TransactionService.deleteTransaction(id, userId);
-        return true;
-      },
+    goals: async () => {
+      const result = await GoalService.listGoals(userId, { page: 1, limit: 100 });
+      return (result as { items: unknown[] }).items || result;
+    },
 
-      createBudget: async ({ input }: { input: any }) => {
-        return (BudgetService as any).createBudget(userId, input);
-      },
+    investments: async () => {
+      proGuard(isPro);
+      const result = await InvestmentService.listInvestments(userId, { page: 1, limit: 100 });
+      return (result as { items: unknown[] }).items || result;
+    },
 
-      updateBudget: async ({ id, input }: { id: string; input: any }) => {
-        return BudgetService.updateBudget(id, userId, input);
-      },
+    debts: async () => {
+      return db.debt.findMany({ where: { userId }, orderBy: { dueDate: 'asc' } });
+    },
 
-      deleteBudget: async ({ id }: { id: string }) => {
-        await BudgetService.deleteBudget(id, userId);
-        return true;
-      },
+    invoices: async () => {
+      proGuard(isPro);
+      return InvoiceService.listInvoices(userId);
+    },
 
-      createGoal: async ({ input }: { input: any }) => {
-        return GoalService.createGoal(userId, input);
-      },
+    reminders: async () => {
+      return ReminderService.listReminders(userId);
+    },
 
-      updateGoal: async ({ id, input }: { id: string; input: any }) => {
-        return GoalService.updateGoal(id, userId, input);
-      },
+    user: async () => {
+      const user = await UserService.getUserProfile(userId);
+      if (!user) throw new GraphQLError('User not found', { extensions: { code: 'NOT_FOUND' } });
+      return user;
+    },
 
-      deleteGoal: async ({ id }: { id: string }) => {
-        await GoalService.deleteGoal(id, userId);
-        return true;
-      },
+    health: async () => {
+      const startTime = Date.now();
+      await db.$queryRaw`SELECT 1`;
+      return {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0-enterprise',
+        uptime: process.uptime(),
+        database: { status: 'connected', responseTimeMs: Date.now() - startTime },
+      };
+    },
 
-      createInvoice: async ({ input }: { input: any }) => {
-        proGuard();
-        return InvoiceService.createInvoice(userId, input);
-      },
+    // ── Mutations ──
+    createTransaction: async ({ input }: { input: CreateTransactionInput }) => {
+      return TransactionService.createTransaction(userId, input, app);
+    },
 
-      updateInvoice: async ({ id, input }: { id: string; input: any }) => {
-        proGuard();
-        return InvoiceService.updateInvoice(id, userId, input);
-      },
+    updateTransaction: async ({ id, input }: { id: string; input: UpdateTransactionInput }) => {
+      return TransactionService.updateTransaction(id, userId, input);
+    },
 
-      deleteInvoice: async ({ id }: { id: string }) => {
-        proGuard();
-        return InvoiceService.deleteInvoice(id, userId);
-      },
+    deleteTransaction: async ({ id }: { id: string }) => {
+      await TransactionService.deleteTransaction(id, userId);
+      return true;
+    },
 
-      createReminder: async ({ input }: { input: any }) => {
-        return ReminderService.createReminder(userId, input);
-      },
+    createBudget: async ({ input }: { input: Parameters<typeof BudgetService.createBudget>[1] }) => {
+      return BudgetService.createBudget(userId, input);
+    },
 
-      updateReminder: async ({ id, input }: { id: string; input: any }) => {
-        return ReminderService.updateReminder(id, userId, input);
-      },
+    updateBudget: async ({ id, input }: { id: string; input: Parameters<typeof BudgetService.updateBudget>[2] }) => {
+      return BudgetService.updateBudget(id, userId, input);
+    },
 
-      deleteReminder: async ({ id }: { id: string }) => {
-        return ReminderService.deleteReminder(id, userId);
-      },
+    deleteBudget: async ({ id }: { id: string }) => {
+      await BudgetService.deleteBudget(id, userId);
+      return true;
+    },
+
+    createGoal: async ({ input }: { input: Parameters<typeof GoalService.createGoal>[1] }) => {
+      return GoalService.createGoal(userId, input);
+    },
+
+    updateGoal: async ({ id, input }: { id: string; input: Record<string, unknown> }) => {
+      return GoalService.updateGoal(id, userId, input);
+    },
+
+    deleteGoal: async ({ id }: { id: string }) => {
+      await GoalService.deleteGoal(id, userId);
+      return true;
+    },
+
+    createInvoice: async ({ input }: { input: Parameters<typeof InvoiceService.createInvoice>[1] }) => {
+      proGuard(isPro);
+      return InvoiceService.createInvoice(userId, input);
+    },
+
+    updateInvoice: async ({ id, input }: { id: string; input: Record<string, unknown> }) => {
+      proGuard(isPro);
+      return InvoiceService.updateInvoice(id, userId, input);
+    },
+
+    deleteInvoice: async ({ id }: { id: string }) => {
+      proGuard(isPro);
+      return InvoiceService.deleteInvoice(id, userId);
+    },
+
+    createReminder: async ({ input }: { input: Parameters<typeof ReminderService.createReminder>[1] }) => {
+      return ReminderService.createReminder(userId, input);
+    },
+
+    updateReminder: async ({ id, input }: { id: string; input: Record<string, unknown> }) => {
+      return ReminderService.updateReminder(id, userId, input);
+    },
+
+    deleteReminder: async ({ id }: { id: string }) => {
+      return ReminderService.deleteReminder(id, userId);
     },
   };
 }
 
-// Simple GraphQL query parser and executor
-function parseQuery(query: string) {
-  // Remove extra whitespace and newlines
-  const cleaned = query.replace(/\s+/g, ' ').trim();
-  
-  // Extract operation type
-  const operationMatch = cleaned.match(/^(query|mutation)\s*/i);
-  const operation = operationMatch ? operationMatch[1].toLowerCase() : 'query';
-  
-  // Extract fields
-  const fieldMatch = cleaned.match(/{\s*(.+)\s*}/s);
-  const fields = fieldMatch ? fieldMatch[1] : cleaned;
-  
-  return { operation, fields };
-}
+// ── Route Registration ─────────────────────────────────────────────────────
 
-function executeResolver(resolvers: any, operation: string, fieldName: string, args: any = {}) {
-  const resolverGroup = resolvers[operation === 'mutation' ? 'Mutation' : 'Query'];
-  if (!resolverGroup || !resolverGroup[fieldName]) {
-    throw new Error(`Resolver not found for ${operation}.${fieldName}`);
-  }
-  return resolverGroup[fieldName](args);
-}
-
-function normalizeMutationInput(args: Record<string, unknown>) {
-  if ('input' in args) return args;
-  return { input: args };
-}
-
-// Register GraphQL routes
 export async function graphqlRoutes(app: FastifyInstance) {
-  app.addHook('preHandler', async (request, reply) => {
-    await (app as any).authenticate(request, reply);
-  });
+  app.addHook('preHandler', app.authenticate);
 
-  // GraphQL endpoint
+  // Main GraphQL endpoint — uses graphql-js engine (safe, spec-compliant)
   app.post('/graphql', {
     schema: {
       tags: ['GraphQL'],
       security: [{ bearerAuth: [] }],
       body: z.object({
         query: z.string(),
-        variables: z.record(z.any()).optional(),
+        variables: z.record(z.unknown()).optional(),
         operationName: z.string().optional(),
       }),
       response: {
         200: z.object({
-          data: z.any().optional(),
+          data: z.unknown().optional(),
           errors: z.array(z.object({
             message: z.string(),
-            locations: z.array(z.object({
-              line: z.number(),
-              column: z.number(),
-            })).optional(),
-            path: z.array(z.string()).optional(),
+            locations: z.array(z.object({ line: z.number(), column: z.number() })).optional(),
+            path: z.array(z.union([z.string(), z.number()])).optional(),
+            extensions: z.record(z.unknown()).optional(),
           })).optional(),
         }),
       },
     },
   }, async (request, reply) => {
-    const userId = (request.user as any).id;
-    const isPro = !!(request.user as any).isPro;
-    const { query, variables = {} } = request.body as { query: string; variables?: any };
+    const userId = request.user.id;
+    const isPro = !!request.user.isPro;
+    const { query, variables = {}, operationName } = request.body as {
+      query: string;
+      variables?: Record<string, unknown>;
+      operationName?: string;
+    };
 
-    try {
-      const resolvers = createResolvers(app, userId, isPro);
-      
-      // Parse the query to extract operation and field
-      const { operation, fields } = parseQuery(query);
-      
-      // Extract field name and arguments from the query
-      const fieldMatch = fields.match(/(\w+)(?:\(([^)]*)\))?/);
-      if (!fieldMatch) {
-        throw new Error('Invalid GraphQL query format');
-      }
-      
-      const fieldName = fieldMatch[1];
-      const argsString = fieldMatch[2];
-      
-      // Parse arguments
-      let args: any = {};
-      if (argsString) {
-        // Simple argument parsing - handles basic cases
-        const argMatches = argsString.matchAll(/(\w+):\s*(?:"([^"]*)"|(\d+(?:\.\d+)?)|(\w+))/g);
-        for (const match of argMatches) {
-          const key = match[1];
-          const value = match[2] || match[3] || match[4];
-          args[key] = isNaN(Number(value)) ? value : Number(value);
-        }
-      }
-      
-      // Merge with variables
-      args = { ...args, ...variables };
-      
-      // Execute the resolver
-      const normalizedArgs = operation === 'mutation' ? normalizeMutationInput(args) : args;
-      const result = await executeResolver(resolvers, operation, fieldName, normalizedArgs);
-      
-      return { data: { [fieldName]: result } };
-    } catch (error: any) {
-      request.log.error(error);
-      return {
-        errors: [{
-          message: error.message || 'GraphQL execution error',
-          path: ['query'],
-        }],
-      };
-    }
+    const ctx: GraphQLContext = { userId, isPro, app };
+    const rootValue = createRootValue(ctx);
+
+    const result = await graphql({
+      schema,
+      source: query,
+      rootValue,
+      contextValue: ctx,
+      variableValues: variables,
+      operationName,
+    });
+
+    return reply.send(result);
   });
 
-  // GraphQL schema introspection endpoint
+  // Schema introspection endpoint
   app.get('/graphql/schema', {
     schema: {
       tags: ['GraphQL'],
       security: [{ bearerAuth: [] }],
       response: {
-        200: z.object({
-          schema: z.string(),
-        }),
+        200: z.object({ schema: z.string() }),
       },
     },
-  }, async (request, reply) => {
+  }, async () => {
     return { schema: typeDefs };
   });
 }

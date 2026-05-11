@@ -34,12 +34,12 @@ export async function invalidateProvisionCache(userId: string) {
 
 // ── Mapping Helper ────────────────────────────────────────────────────────────
 
-function formatProvision(provision: any) {
+function formatProvision<T extends { yearlyAmount: number; accumulated: number }>(provision: T): T {
   return {
     ...provision,
     yearlyAmount: provision.yearlyAmount / 100,
     accumulated: provision.accumulated / 100,
-  };
+  } as T;
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────

@@ -22,7 +22,7 @@ export function useFinancialContext() {
   // Combine personal and business transactions
   const allTransactions = useMemo(() => {
     return [...personal.allTransactions, ...business.allTransactions];
-  }, [personal.allTransactions, business.allTransactions]);
+  }, [personal.allTransactions.length, business.allTransactions.length, personal.allTransactions[0]?.id, business.allTransactions[0]?.id]);
 
   // Build comprehensive financial context
   const context: FinancialContext = useMemo(() => {
@@ -65,9 +65,9 @@ export function useFinancialContext() {
     // Predictions
     endOfMonthBalance: insights.predictions.endOfMonthBalance,
     yearEndProjection: insights.predictions.yearEndProjection,
-  }), [context, insights]);
+  }), [context.totalIncome, context.totalExpense, context.balance, insights.score, insights.alerts.length]);
 
-  // Generate AI context string for chat
+  // Generate AI context string for chat (Memoizada para estabilidade do Claude/Gemini)
   const aiContextString = useMemo(() => {
     return `
 CONTEXTO FINANCEIRO DO USUÁRIO:
@@ -111,9 +111,9 @@ PREVISÕES:
 - Saldo Final do Mês: R$ ${insights.predictions.endOfMonthBalance.toLocaleString('pt-BR')}
 - Projeção Fim do Ano: R$ ${insights.predictions.yearEndProjection.toLocaleString('pt-BR')}
 `;
-  }, [context, insights]);
+  }, [context.balance, context.totalIncome, context.totalExpense, insights.score, context.goalsProgress.length]);
 
-  return {
+  return useMemo(() => ({
     // Full context
     context,
     insights,
@@ -134,5 +134,5 @@ PREVISÕES:
     // Loading states
     isLoading: personal.isLoading || business.isLoading,
     error: personal.error || business.error,
-  };
+  }), [context, insights, metrics, aiContextString, allTransactions.length]);
 }

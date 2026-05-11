@@ -7,6 +7,7 @@
 
 import { db } from "../lib/db.js";
 import { firebaseAdmin } from "../lib/firebase.js";
+import { logger } from "../lib/logger.js";
 
 export interface EmotionalEntry {
   id: string;
@@ -39,7 +40,7 @@ export async function findEntriesByUserId(userId: string): Promise<EmotionalEntr
   }
 }
 
-export async function saveEntries(userId: string, entries: EmotionalEntry[], tx?: any) {
+export async function saveEntries(userId: string, entries: EmotionalEntry[], tx?: { user: { update: typeof db.user.update } }) {
   const client = tx || db;
   return client.user.update({
     where: { id: userId },
@@ -55,7 +56,7 @@ export async function syncEntryToCloud(userId: string, entry: EmotionalEntry) {
   try {
     await getEntriesCollection(userId).doc(entry.id).set(entry);
   } catch (e) {
-    console.error(`[EmotionalRepo] Cloud sync failure for ${userId}:`, e);
+    logger.error(`[EmotionalRepo] Cloud sync failure for ${userId}`, e);
   }
 }
 
@@ -63,7 +64,7 @@ export async function deleteEntryFromCloud(userId: string, entryId: string) {
   try {
     await getEntriesCollection(userId).doc(entryId).delete();
   } catch (e) {
-    console.error(`[EmotionalRepo] Cloud delete failure for ${userId}:`, e);
+    logger.error(`[EmotionalRepo] Cloud delete failure for ${userId}`, e);
   }
 }
 
@@ -76,7 +77,7 @@ export async function fetchEntriesFromCloud(userId: string, limit: number = 50):
     
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EmotionalEntry));
   } catch (e) {
-    console.error(`[EmotionalRepo] Cloud fetch failure for ${userId}:`, e);
+    logger.error(`[EmotionalRepo] Cloud fetch failure for ${userId}`, e);
     return [];
   }
 }

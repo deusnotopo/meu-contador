@@ -6,6 +6,7 @@
 
 import { db } from '../lib/db.js';
 import { deleteCacheByPrefix, getCacheValue, setCacheValue } from '../lib/cache.js';
+import type { Prisma } from '@prisma/client';
 
 export interface GoalFindManyOptions {
   userId: string;
@@ -78,18 +79,18 @@ export async function findOne(id: string, userId: string) {
   return goal ? formatGoal(goal) : null;
 }
 
-export async function createOne(data: GoalCreateData, tx?: any) {
+export async function createOne(data: GoalCreateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const goal = await client.savingsGoal.create({ data });
   return formatGoal(goal);
 }
 
-export async function createMany(data: GoalCreateData[], tx?: any) {
+export async function createMany(data: GoalCreateData[], tx?: Prisma.TransactionClient) {
   const client = tx || db;
   return client.savingsGoal.createMany({ data });
 }
 
-export async function updateOne(id: string, userId: string, data: GoalUpdateData, tx?: any) {
+export async function updateOne(id: string, userId: string, data: GoalUpdateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const goal = await client.savingsGoal.update({
     where: { id, userId },
@@ -98,7 +99,7 @@ export async function updateOne(id: string, userId: string, data: GoalUpdateData
   return formatGoal(goal);
 }
 
-export async function softDeleteOne(id: string, userId: string, tx?: any): Promise<boolean> {
+export async function softDeleteOne(id: string, userId: string, tx?: Prisma.TransactionClient): Promise<boolean> {
   const client = tx || db;
   const result = await client.savingsGoal.updateMany({
     where: { id, userId, deletedAt: null },

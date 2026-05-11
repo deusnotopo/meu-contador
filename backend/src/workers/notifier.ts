@@ -1,12 +1,20 @@
 import { db } from '../lib/db';
 import { purgeExpiredSensitiveData, writeAuditLog } from '../lib/audit';
 import { webpush } from '../lib/webpush';
+import { logger } from '../lib/logger.js';
+
+interface PushSubscriptionRecord {
+  id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
 
 /**
  * Job Diário: Checagem de Orçamentos e Metas
  */
 export async function checkBudgetsAndGoals() {
-  console.log('⏳ Executando Job: Checagem de Orçamentos e Metas...');
+  logger.info('[Notifier] Executando Job: Checagem de Orçamentos e Metas...');
   
   try {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -49,7 +57,7 @@ export async function checkBudgetsAndGoals() {
     }
 
   } catch (error) {
-    console.error('❌ Erro durante Job de Notificações:', error);
+    logger.error('[Notifier] Erro durante Job de Notificações', error);
     throw error;
   }
 }
@@ -67,22 +75,23 @@ export async function runSensitiveDataPurge() {
       retentionDays: 30,
     });
   } catch (error) {
-    console.error('❌ Erro durante job de retenção/expurgo:', error);
+    logger.error('[Notifier] Erro durante job de retenção/expurgo', error);
     throw error;
   }
 }
 
-// Helper interno para interar sobre múltiplas assinaturas do mesmo User
-export async function dispatchPushs(subscriptions: any[], payload: string) {
+// Helper interno para iterar sobre múltiplas assinaturas do mesmo User
+export async function dispatchPushs(subscriptions: PushSubscriptionRecord[], payload: string) {
   for (const sub of subscriptions) {
     try {
       await webpush.sendNotification({
         endpoint: sub.endpoint,
         keys: { p256dh: sub.p256dh, auth: sub.auth }
       }, payload);
-    } catch (e: any) {
-      console.error('Falha ao enviar Push, possivelmente expirado:', sub.endpoint);
-      if (e.statusCode === 410 || e.statusCode === 404) {
+    } catch (e: unknown) {
+      const statusCode = (e as { statusCode?: number })?.statusCode;
+      logger.warn('[Notifier] Falha ao enviar Push, possivelmente expirado:', sub.endpoint);
+      if (statusCode === 410 || statusCode === 404) {
         // Exclui a inscrição inválida/expirada de forma limpa
         await db.pushSubscription.delete({ where: { id: sub.id } });
       }

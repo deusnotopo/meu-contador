@@ -41,10 +41,11 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
       try {
         const invite = await WorkspaceService.sendInvite(request.user.id, workspaceId, email, role);
         return { invite };
-      } catch (error: any) {
-        if (error.message === 'FORBIDDEN') return reply.code(403).send({ error: 'Permission denied' });
-        if (error.message === 'WORKSPACE_NOT_FOUND') return reply.code(404).send({ error: 'Workspace not found' });
-        return reply.code(400).send({ error: error.message });
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        if (msg === 'FORBIDDEN') return reply.code(403).send({ error: 'Permission denied' });
+        if (msg === 'WORKSPACE_NOT_FOUND') return reply.code(404).send({ error: 'Workspace not found' });
+        return reply.code(400).send({ error: msg });
       }
     }
   );
@@ -55,7 +56,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         return await WorkspaceService.listInvites(request.user.id, request.params.workspaceId);
-      } catch (error: any) {
+      } catch (error: unknown) {
         return reply.code(403).send({ error: 'Forbidden' });
       }
     }
@@ -68,7 +69,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
       try {
         await WorkspaceService.revokeInvite(request.user.id, request.params.workspaceId, request.params.inviteId);
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         return reply.code(403).send({ error: 'Forbidden' });
       }
     }
@@ -82,8 +83,9 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
       try {
         await WorkspaceService.updateMemberRole(request.user.id, request.params.workspaceId, request.params.memberId, body.role);
         return { success: true };
-      } catch (error: any) {
-        return reply.code(400).send({ error: error.message });
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        return reply.code(400).send({ error: msg });
       }
     }
   );
@@ -95,8 +97,9 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
       try {
         await WorkspaceService.removeMember(request.user.id, request.params.workspaceId, request.params.memberId);
         return { success: true };
-      } catch (error: any) {
-        return reply.code(400).send({ error: error.message });
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        return reply.code(400).send({ error: msg });
       }
     }
   );

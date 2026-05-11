@@ -13,6 +13,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { db } from '../lib/db.js';
+import { logger } from '../lib/logger.js';
 
 // ── Data gathering ────────────────────────────────────────────────────────────
 
@@ -177,7 +178,7 @@ export async function generateWeeklyBriefing(userId: string): Promise<string | n
 
     return text;
   } catch (err) {
-    console.error('[BriefingService] Gemini generation failed:', err);
+    logger.error('[BriefingService] Gemini generation failed', err);
     return null;
   }
 }

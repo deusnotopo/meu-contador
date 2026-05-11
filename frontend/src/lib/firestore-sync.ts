@@ -47,7 +47,7 @@ export const syncToCloud = async (
       { merge: true }
     );
   } catch (error) {
-    console.error(`Sync error for ${key}:`, error);
+    logger.warn(`[FirestoreSync] Sync error for ${key}`, error);
   }
 };
 
@@ -83,7 +83,7 @@ export const loadFromCloud = async (
     }
     return null;
   } catch (error) {
-    console.error(`Load error for ${key}:`, error);
+    logger.warn(`[FirestoreSync] Load error for ${key}`, error);
     return null;
   }
 };

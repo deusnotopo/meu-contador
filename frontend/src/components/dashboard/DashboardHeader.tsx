@@ -4,9 +4,10 @@ import { FileDown, Trophy, Flame } from "lucide-react";
 import { UserNav } from "../layout/UserNav";
 import { useAuth } from "@/context/AuthContext";
 import { useGamification } from "@/hooks/useGamification";
-import { showSuccess } from "@/lib/toast";
+import { showSuccess, showError } from "@/lib/toast";
 import { generateWealthSnapshot } from "@/lib/pdf-export";
 import { useWealthStats } from "@/hooks/dashboard/useWealthStats";
+import { logger } from "@/lib/logger";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TabType } from "@/types/navigation";
 
@@ -28,7 +29,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 }) => {
   const { user } = useAuth();
   const { level, streaks, isLoading: gamLoading } = useGamification();
-  const { stats, health: _health, isLoading: statsLoading } = useWealthStats();
+  const { stats, health, isLoading: statsLoading } = useWealthStats();
 
   const firstName = user?.displayName?.split(" ")[0] || "Usuário";
   const capitalizedDate = new Date()
@@ -46,24 +47,28 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const handleWealthSnapshot = async () => {
     if (!user || statsLoading) return;
     try {
+      const surplus = stats.income - stats.expense;
       await generateWealthSnapshot({
         userName: firstName,
         netWorth: stats.netWorth,
         totalInvested: stats.assets,
         totalDebt: stats.liabilities,
-        monthlyIncome: 0,
-        monthlyExpenses: 0,
-        monthlySurplus: 0,
-        fireProgress: 0,
-        yearsToFire: 0,
-        wealthSurvivalDays: 0,
+        monthlyIncome: stats.income,
+        monthlyExpenses: stats.expense,
+        monthlySurplus: surplus,
+        fireProgress: 0, // TODO: wire up FIRE module
+        yearsToFire: 0,  // TODO: wire up FIRE module
+        wealthSurvivalDays: health.sustainableDaily > 0
+          ? Math.round(stats.netWorth / health.sustainableDaily)
+          : 0,
         topCategories: [],
         goals: [],
         optimizationTips: [],
       });
       showSuccess("Snapshot gerado com sucesso!");
     } catch (e) {
-      console.error(e);
+      logger.error("DashboardHeader.handleWealthSnapshot", e);
+      showError("Não foi possível gerar o snapshot.");
     }
   };
 

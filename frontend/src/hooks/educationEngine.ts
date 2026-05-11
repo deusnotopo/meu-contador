@@ -1,5 +1,4 @@
 import { 
-  EDUCATION_MODULES, 
   ACADEMY_MOMENTS, 
   ACADEMY_RITUALS, 
   ACADEMY_CONTEXT_SIGNALS, 
@@ -62,10 +61,10 @@ function normalizeDate(date: Date): Date {
   return d;
 }
 
-export function getReviewRecommendation(state: EducationState): ReviewRecommendation {
+export function getReviewRecommendation(modules: Lesson[], state: EducationState): ReviewRecommendation {
   const today = normalizeDate(new Date());
 
-  const dueLesson = EDUCATION_MODULES
+  const dueLesson = modules
     .filter((lesson) => state.completedModules.includes(lesson.id))
     .map((lesson) => ({ lesson, dueAt: state.lessonReviewDueAt[lesson.id] }))
     .filter((item) => !!item.dueAt)
@@ -87,7 +86,7 @@ export function getReviewRecommendation(state: EducationState): ReviewRecommenda
   };
 }
 
-export function getContextualRecommendation(state: EducationState, profile: EducationUserProfile): ContextualRecommendation {
+export function getContextualRecommendation(modules: Lesson[], state: EducationState, profile: EducationUserProfile): ContextualRecommendation {
   const activeTriggers: string[] = [];
 
   if (profile?.hasDebts) activeTriggers.push('fatura_alta', 'divida_cara');
@@ -111,7 +110,7 @@ export function getContextualRecommendation(state: EducationState, profile: Educ
     activeTriggers.push('sem_reserva', 'primeiro_aporte');
   }
 
-  const incompleteLessons = EDUCATION_MODULES.filter((module) => !state.completedModules.includes(module.id));
+  const incompleteLessons = modules.filter((module) => !state.completedModules.includes(module.id));
 
   const scoredLessons = incompleteLessons.map((lesson) => {
     const triggerScore = getLessonTriggerEvents(lesson).filter((trigger) => activeTriggers.includes(trigger)).length;
@@ -162,8 +161,8 @@ export function getContextualRecommendation(state: EducationState, profile: Educ
   };
 }
 
-export function getCurrentMoment(state: EducationState, profile: EducationUserProfile) {
-  const contextual = getContextualRecommendation(state, profile);
+export function getCurrentMoment(modules: Lesson[], state: EducationState, profile: EducationUserProfile) {
+  const contextual = getContextualRecommendation(modules, state, profile);
   const recommendedLesson = contextual.lesson;
 
   if (recommendedLesson) {
@@ -177,8 +176,8 @@ export function getCurrentMoment(state: EducationState, profile: EducationUserPr
   return ACADEMY_MOMENTS[0];
 }
 
-export function getCurrentRituals(state: EducationState, profile: EducationUserProfile) {
-  const contextual = getContextualRecommendation(state, profile);
+export function getCurrentRituals(modules: Lesson[], state: EducationState, profile: EducationUserProfile) {
+  const contextual = getContextualRecommendation(modules, state, profile);
   const rituals = [...ACADEMY_RITUALS];
 
   if (contextual.lesson && ['contabilidade', 'tributario'].includes(getLessonOutcomeType(contextual.lesson))) {
@@ -188,7 +187,7 @@ export function getCurrentRituals(state: EducationState, profile: EducationUserP
   return rituals;
 }
 
-export function getContextSignalRecommendation(_state: EducationState, profile: EducationUserProfile): ContextSignalRecommendation {
+export function getContextSignalRecommendation(modules: Lesson[], _state: EducationState, profile: EducationUserProfile): ContextSignalRecommendation {
   const activeTriggers: string[] = [];
 
   if (profile?.hasDebts) activeTriggers.push('fatura_alta', 'divida_cara');
@@ -204,7 +203,7 @@ export function getContextSignalRecommendation(_state: EducationState, profile: 
   }
 
   const signal = ACADEMY_CONTEXT_SIGNALS.find((item) => item.eventKeys.some((key) => activeTriggers.includes(key))) || null;
-  const lesson = signal ? EDUCATION_MODULES.find((item) => item.id === signal.primaryLessonId) || null : null;
+  const lesson = signal ? modules.find((item) => item.id === signal.primaryLessonId) || null : null;
 
   return {
     signal,
@@ -213,8 +212,8 @@ export function getContextSignalRecommendation(_state: EducationState, profile: 
   };
 }
 
-export function getJourneyStage(state: EducationState) {
-  const completedStages = EDUCATION_MODULES
+export function getJourneyStage(modules: Lesson[], state: EducationState) {
+  const completedStages = modules
     .filter((lesson) => state.completedModules.includes(lesson.id))
     .map((lesson) => getLessonMaturityStage(lesson));
 
@@ -249,9 +248,9 @@ export function getJourneyStage(state: EducationState) {
   };
 }
 
-export function getMaturityRoadmap(state: EducationState) {
+export function getMaturityRoadmap(modules: Lesson[], state: EducationState) {
   return ACADEMY_MATURITY_STAGES.map((stage) => {
-    const lessons = EDUCATION_MODULES.filter((lesson) => getLessonMaturityStage(lesson) === stage.id);
+    const lessons = modules.filter((lesson) => getLessonMaturityStage(lesson) === stage.id);
     const completed = lessons.filter((lesson) => state.completedModules.includes(lesson.id)).length;
     const progressPct = lessons.length ? Math.round((completed / lessons.length) * 100) : 0;
 
@@ -265,11 +264,11 @@ export function getMaturityRoadmap(state: EducationState) {
   });
 }
 
-export function getTutorContext(state: EducationState, profile: EducationUserProfile) {
-  const recommendation = getContextualRecommendation(state, profile);
-  const signal = getContextSignalRecommendation(state, profile);
-  const currentMoment = getCurrentMoment(state, profile);
-  const journeyStage = getJourneyStage(state);
+export function getTutorContext(modules: Lesson[], state: EducationState, profile: EducationUserProfile) {
+  const recommendation = getContextualRecommendation(modules, state, profile);
+  const signal = getContextSignalRecommendation(modules, state, profile);
+  const currentMoment = getCurrentMoment(modules, state, profile);
+  const journeyStage = getJourneyStage(modules, state);
 
   return {
     currentMoment,

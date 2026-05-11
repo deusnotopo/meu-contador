@@ -33,8 +33,9 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     // Auth Guard
     try {
       await WorkspaceService.getWorkspace(workspaceId, request.user.id);
-    } catch (err: any) {
-      return reply.code(403).send({ error: err.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Forbidden';
+      return reply.code(403).send({ error: msg });
     }
 
     return ReconciliationService.getReconciliationReport(request.user.id, workspaceId, bankAccountId);
@@ -52,7 +53,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     // Authorization Check
     try {
       await WorkspaceService.getWorkspace(workspaceId, request.user.id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       return reply.code(403).send({ error: 'Only owner can acknowledge discrepancies' });
     }
 

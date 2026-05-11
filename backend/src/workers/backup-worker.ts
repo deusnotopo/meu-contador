@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '../lib/logger.js';
 
 const execAsync = promisify(exec);
 
@@ -78,7 +79,7 @@ export async function createBackup(config: BackupConfig = defaultConfig) {
 
     return { success: true, filename: finalFilename, filepath: finalFilepath };
   } catch (error) {
-    console.error('Backup failed:', error);
+    logger.error('[Backup] Backup failed', error);
     
     // Log failure
     await db.auditLog.create({
@@ -138,7 +139,7 @@ export async function cleanupOldBackups(config: BackupConfig = defaultConfig) {
     
     return { success: true, deletedCount };
   } catch (error) {
-    console.error('Backup cleanup failed:', error);
+    logger.error('[Backup] Backup cleanup failed', error);
     throw error;
   }
 }
@@ -147,13 +148,13 @@ export async function cleanupOldBackups(config: BackupConfig = defaultConfig) {
  * Função de backup manual para execução imediata
  */
 export async function runManualBackup() {
-  console.log('Starting manual backup...');
+  logger.info('[Backup] Starting manual backup...');
   try {
     const result = await createBackup();
-    console.log('Manual backup completed:', result.filename);
+    logger.info(`[Backup] Manual backup completed: ${result.filename}`);
     return result;
   } catch (error) {
-    console.error('Manual backup failed:', error);
+    logger.error('[Backup] Manual backup failed', error);
     throw error;
   }
 }

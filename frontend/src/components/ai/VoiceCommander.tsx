@@ -2,8 +2,8 @@ import { VoiceInput } from "@/components/ai/VoiceInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useInvestments } from "@/hooks/useInvestments";
+import { useTransactions } from "@/hooks/useTransactions";
 import { parseVoiceCommand, type ParsedCommand } from "@/lib/ai";
-import { loadTransactions, saveTransactions } from "@/lib/storage";
 import { showError, showSuccess } from "@/lib/toast";
 import { Transaction } from "@/types";
 import { useRole } from "@/context/AuthContext";
@@ -50,8 +50,9 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
   };
 
   const { addAsset } = useInvestments();
+  const { addTransaction } = useTransactions();
 
-  const confirmAction = () => {
+  const confirmAction = async () => {
     if (!parsedResult || !parsedResult.data) return;
     if (isViewer) {
       showError("Acesso negado: você é apenas visualizador");
@@ -61,27 +62,24 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
 
     if (parsedResult.type === "transaction" && parsedResult.data) {
       const t = parsedResult.data as VoiceTransactionData;
-      const newTransaction: Transaction = {
-        id: Date.now().toString(),
+      
+      const txData = {
         type: t.type || "expense",
-        amount:
-          typeof t.amount === "string" ? parseFloat(t.amount) : t.amount || 0,
+        amount: typeof t.amount === "string" ? t.amount : String(t.amount || 0),
         description: t.description || "Comando de voz",
         category: t.category || "Outros",
-        date:
-          t.date ||
-          (new Date().toISOString().split("T")[0] ?? new Date().toISOString()),
+        date: t.date || (new Date().toISOString().split("T")[0] ?? new Date().toISOString()),
         paymentMethod: t.paymentMethod || "other",
         notes: "Via Comando de Voz",
-        recurring: false,
-        scope: "personal",
-        currency: "BRL",
+        scope: "personal" as const,
       };
 
-      const current = loadTransactions();
-      saveTransactions([...current, newTransaction]);
-      showSuccess("Transação registrada!");
-      window.dispatchEvent(new Event("storage-local"));
+      try {
+        await addTransaction(txData as any);
+        showSuccess("Transação enviada para análise!");
+      } catch (err) {
+        showError("Falha de rede. A transação não pôde ser salva.");
+      }
     } else if (parsedResult.type === "investment" && parsedResult.data) {
       const inv = parsedResult.data as VoiceInvestmentData;
       addAsset({
@@ -112,6 +110,7 @@ export const VoiceCommander = ({ onClose }: VoiceCommanderProps = {}) => {
     }
 
     setParsedResult(null);
+    onClose?.();
   };
 
   return (

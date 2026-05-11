@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -26,13 +26,142 @@ import {
   FileText,
   Plus,
   Trash2,
+  Send,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import { EmptyState } from "../ui/EmptyState";
 import { PrivacyValue } from "../ui/PrivacyValue";
 import { FadeIn } from "../ui/skeleton";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+
+// ── SEFAZ Sandbox Modal ───────────────────────────────────────────────────────
+interface SefazStep { label: string; detail: string; done: boolean; active: boolean; }
+
+const SEFAZ_STEPS = [
+  { label: "Validação do XML", detail: "Verificando schema NF-e 4.0..." },
+  { label: "Envio ao SEFAZ", detail: "POST /NFeAutorizacao4..." },
+  { label: "Processamento", detail: "Aguardando retorno cStat..." },
+  { label: "Autorização", detail: "cStat 100 — Uso Autorizado" },
+];
+
+const SefazTransmissionModal = ({ inv, onClose }: { inv: Invoice; onClose: () => void }) => {
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [protocol, setProtocol] = useState("");
+  const [done, setDone] = useState(false);
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    let p = 0;
+    let st = 0;
+    const iv = setInterval(() => {
+      p += Math.random() * 6 + 2;
+      setProgress(Math.min(p, 100));
+      const nextStep = Math.floor((p / 100) * SEFAZ_STEPS.length);
+      if (nextStep > st && nextStep < SEFAZ_STEPS.length) { st = nextStep; setCurrentStep(st); }
+      if (p >= 100) {
+        clearInterval(iv);
+        setCurrentStep(SEFAZ_STEPS.length);
+        const proto = `135240420${Math.floor(100000000 + Math.random() * 899999999)}`;
+        setProtocol(proto);
+        setDone(true);
+      }
+    }, 180);
+    return () => clearInterval(iv);
+  }, []);
+
+  const stepList: SefazStep[] = SEFAZ_STEPS.map((s, i) => ({
+    ...s,
+    done: i < currentStep,
+    active: i === currentStep && !done,
+  }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-[#080e1f] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+      >
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-gradient-to-r from-emerald-500/10 to-teal-500/5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+              <ShieldCheck size={18} className="text-emerald-400" />
+            </div>
+            <div>
+              <div className="text-[10px] text-emerald-400 uppercase tracking-widest font-bold">SEFAZ Nacional</div>
+              <div className="text-[15px] font-black text-white">Transmissão NF-e Sandbox</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-1 rounded-full">DEMO</span>
+            {done && <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"><X size={14} /></button>}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-white/50">NF-e: <span className="text-white font-bold">{inv.number}</span></span>
+            <span className="text-white/50">Tomador: <span className="text-white font-bold">{inv.client ?? inv.customerName}</span></span>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+              style={{ width: `${progress}%` }}
+              transition={{ duration: 0.2 }}
+            />
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-2">
+            {stepList.map((s, i) => (
+              <div key={i} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                s.done ? 'bg-emerald-500/8 border border-emerald-500/20' :
+                s.active ? 'bg-blue-500/8 border border-blue-500/20' :
+                'bg-white/[0.02] border border-white/5 opacity-40'
+              }`}>
+                {s.done
+                  ? <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  : s.active
+                  ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full shrink-0" />
+                  : <div className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] font-bold text-white">{s.label}</div>
+                  <div className="text-[10px] text-white/40 font-mono truncate">{s.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Protocol */}
+          {done && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+                <div className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold mb-1">Protocolo de Autorização</div>
+                <div className="text-[13px] font-mono font-black text-white">{protocol}</div>
+                <div className="text-[10px] text-emerald-400/70 mt-1">NF-e Autorizada · cStat 100</div>
+              </div>
+              <div className="text-[10px] text-white/30 text-center">Dados sandbox — sem validade fiscal real</div>
+              <Button onClick={onClose} className="w-full bg-emerald-600 hover:bg-emerald-500 font-black rounded-2xl h-11">
+                Fechar
+              </Button>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
 
 type InvoiceStatus = Invoice["status"];
 
@@ -46,6 +175,7 @@ export const InvoicesSection = () => {
   const { invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
   const [isOpen, setIsOpen] = useState(false);
   const [editingInv, setEditingInv] = useState<Invoice | null>(null);
+  const [sefazInv, setSefazInv] = useState<Invoice | null>(null);
 
   const [formData, setFormData] = useState({
     number: "",
@@ -419,6 +549,17 @@ export const InvoicesSection = () => {
                       </div>
 
                       <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        {/* SEFAZ Transmit */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-10 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-widest gap-1.5"
+                          onClick={() => setSefazInv(inv)}
+                          title="Transmitir ao SEFAZ (Sandbox)"
+                        >
+                          <Send size={12} />
+                          SEFAZ
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -453,6 +594,13 @@ export const InvoicesSection = () => {
           )}
         </div>
       </div>
+
+      {/* SEFAZ Transmission Modal */}
+      <AnimatePresence>
+        {sefazInv && (
+          <SefazTransmissionModal inv={sefazInv} onClose={() => setSefazInv(null)} />
+        )}
+      </AnimatePresence>
     </FadeIn>
   );
 };

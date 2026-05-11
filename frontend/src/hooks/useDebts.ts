@@ -2,6 +2,7 @@ import { api } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
 import { confirmAction } from "@/lib/confirm";
 import { DebtSchema } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { Debt } from "@/types";
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -32,11 +33,11 @@ export const useDebts = () => {
     } catch (err) {
       if (!cancelled) {
         if (err instanceof z.ZodError) {
-          console.error("Zod Validation Error (Debts):", err.errors);
-          setError("Dados de dívidas incompatíveis.");
+          logger.error('[useDebts] Zod Validation Error', err.errors);
+          setError('Dados de dívidas incompatíveis.');
         } else {
-          console.error("Debts API Error:", err);
-          setError("Dívidas indisponíveis no momento. Verifique sua conexão.");
+          logger.error('[useDebts] API Error', err);
+          setError('Dívidas indisponíveis no momento. Verifique sua conexão.');
         }
       }
     } finally {

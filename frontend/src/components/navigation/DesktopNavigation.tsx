@@ -1,14 +1,12 @@
 import React from "react";
-import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { WorkspaceSwitcher } from "@/components/ui/WorkspaceSwitcher";
 import {
-  BookOpen,
-  Briefcase,
-  Building2,
-  PieChart,
+  GraduationCap,
+  Home,
   Settings,
-  User as LucideUser,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import type { TabType } from "@/types/navigation";
 
@@ -21,14 +19,12 @@ export const DesktopNavigation: React.FC<DesktopNavigationProps> = ({
   currentTab,
   onTabChange,
 }) => {
-  const { t } = useLanguage();
 
   const navItems = [
-    { id: "overview", label: t("nav.overview"), icon: PieChart },
-    { id: "personal", label: t("nav.personal"), icon: LucideUser },
-    { id: "business", label: t("nav.business"), icon: Building2 },
-    { id: "investments", label: t("nav.investments"), icon: Briefcase },
-    { id: "education", label: t("nav.education"), icon: BookOpen },
+    { id: "inicio", label: "Início", icon: Home },
+    { id: "budget", label: "Finanças", icon: Wallet },
+    { id: "investir", label: "Patrimônio", icon: TrendingUp },
+    { id: "academia", label: "Wealth Academy", icon: GraduationCap },
   ];
 
   return (

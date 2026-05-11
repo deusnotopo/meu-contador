@@ -17,7 +17,7 @@ export async function getWorkspace(workspaceId: string, userId?: string) {
   if (!workspace) throw new Error('WORKSPACE_NOT_FOUND');
   
   if (userId) {
-    const isMember = workspace.members.some((m: any) => m.id === userId);
+    const isMember = workspace.members.some((m: { id: string }) => m.id === userId);
     if (workspace.ownerId !== userId && !isMember) {
       throw new Error('FORBIDDEN');
     }
@@ -51,7 +51,7 @@ export async function sendInvite(ownerId: string, workspaceId: string, email: st
   if (!workspace) throw new Error('WORKSPACE_NOT_FOUND');
   if (workspace.ownerId !== ownerId) throw new Error('FORBIDDEN');
   
-  const isMember = workspace.members.some((m: any) => m.email === email);
+  const isMember = workspace.members.some((m: { email?: string | null }) => m.email === email);
   if (isMember) throw new Error('ALREADY_MEMBER');
 
   const existingInvite = await db.workspaceInvite.findFirst({
@@ -63,7 +63,7 @@ export async function sendInvite(ownerId: string, workspaceId: string, email: st
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   return db.workspaceInvite.create({
-    data: { email, role: role as any, token, workspaceId, expiresAt }
+    data: { email, role, token, workspaceId, expiresAt }
   });
 }
 

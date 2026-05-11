@@ -1,6 +1,7 @@
 import { api, ApiRequestError } from "@/lib/api";
 import { showError, showSuccess } from "@/lib/toast";
 import { InvoiceSchema } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 import { z } from "zod";
 import type { Invoice } from "@/types";
 import { useEffect, useState, useCallback } from "react";
@@ -35,8 +36,8 @@ export const useInvoices = () => {
       if (err instanceof ApiRequestError && err.status === 403) {
         setInvoices([]);
       } else if (err instanceof z.ZodError) {
-        setError("Dados do servidor incompatíveis.");
-        console.error("Zod Validation Error (Invoices):", err.errors);
+        setError('Dados do servidor incompatíveis.');
+        logger.error('[useInvoices] Zod Validation Error', err.errors);
       } else {
         setError("Falha ao carregar as notas fiscais.");
         showError("Falha ao carregar as notas fiscais.");

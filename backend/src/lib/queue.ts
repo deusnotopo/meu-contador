@@ -1,6 +1,7 @@
 import { Queue, Worker, Job, QueueOptions, WorkerOptions, Processor } from 'bullmq';
 import IORedis from 'ioredis';
 import dotenv from 'dotenv';
+import { logger } from './logger.js';
 
 dotenv.config();
 
@@ -16,13 +17,13 @@ if (redisUrl) {
       tls: redisUrl.startsWith('rediss://') ? {} : undefined,
       lazyConnect: true,
     });
-    console.log('✅ Redis connection configured for BullMQ jobs');
+    logger.info('[Queue] Redis connection configured for BullMQ jobs');
   } catch (err) {
-    console.warn('⚠️ Failed to create Redis connection:', err);
+    logger.warn('[Queue] Failed to create Redis connection', err);
     connection = null;
   }
 } else {
-  console.warn('⚠️ REDIS_URL not set — background jobs (BullMQ) are DISABLED. App runs fine without them.');
+  logger.warn('[Queue] REDIS_URL not set — background jobs (BullMQ) are DISABLED. App runs fine without them.');
 }
 
 export { connection };
@@ -44,7 +45,7 @@ export const defaultQueueOptions: QueueOptions = {
 
 export function createQueue(name: string, options?: QueueOptions) {
   if (!connection) {
-    console.warn(`⚠️ Skipping queue "${name}" — no Redis connection`);
+    logger.warn(`[Queue] Skipping queue "${name}" — no Redis connection`);
     return null;
   }
   return new Queue(name, {
@@ -55,7 +56,7 @@ export function createQueue(name: string, options?: QueueOptions) {
 
 export function createWorker(name: string, processor: Processor, options?: WorkerOptions) {
   if (!connection) {
-    console.warn(`⚠️ Skipping worker "${name}" — no Redis connection`);
+    logger.warn(`[Queue] Skipping worker "${name}" — no Redis connection`);
     return null;
   }
   return new Worker(name, processor, {

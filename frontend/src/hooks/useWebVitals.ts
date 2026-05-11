@@ -45,8 +45,8 @@ function sendToAnalytics(metric: WebVitalsMetric) {
   }
 
   if (!import.meta.env.DEV) {
-    // Simulated Google Analytics / Mixpanel event
-    console.debug(`[Analytics] Web Vital: ${metric.name}`, metric.value);
+    // Analytics event — routed through structured logger
+    logger.debug(`[Analytics] Web Vital: ${metric.name}`, { value: metric.value, rating: metric.rating });
   }
   // gtag('event', metric.name, {
   //   value: Math.round(metric.value),

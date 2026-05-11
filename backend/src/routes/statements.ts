@@ -32,9 +32,10 @@ export async function statementsRoutes(app: FastifyInstance) {
       );
 
       return { transactions };
-    } catch (err: any) {
-      app.log.error('Error processing statement upload:', err);
-      return reply.code(500).send({ message: 'Falha interna ao processar documento', error: err.message });
+    } catch (err: unknown) {
+      app.log.error({ err }, 'Error processing statement upload');
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      return reply.code(500).send({ message: 'Falha interna ao processar documento', error: msg });
     }
   });
 }

@@ -4,7 +4,14 @@
  * Infrastructure component for real-time signal management.
  */
 
-import { WebSocket } from 'ws';
+export interface WsSocket {
+  send(data: string): void;
+  close(code?: number, reason?: string): void;
+  on(event: 'message', cb: (data: Buffer) => void): void;
+  on(event: 'close', cb: () => void): void;
+  on(event: 'error', cb: (err: unknown) => void): void;
+  readyState: number;
+}
 
 export enum NotificationType {
   TRANSACTION_CREATED = 'transaction_created',
@@ -20,10 +27,10 @@ export enum NotificationType {
 }
 
 class WebSocketManager {
-  private connections: Map<string, WebSocket> = new Map();
+  private connections: Map<string, WsSocket> = new Map();
   private userConnections: Map<string, Set<string>> = new Map();
 
-  addConnection(connectionId: string, userId: string, ws: WebSocket) {
+  addConnection(connectionId: string, userId: string, ws: WsSocket) {
     this.connections.set(connectionId, ws);
     
     if (!this.userConnections.has(userId)) {
@@ -44,7 +51,7 @@ class WebSocketManager {
     }
   }
 
-  sendToUser(userId: string, message: any) {
+  sendToUser(userId: string, message: Record<string, unknown>) {
     const connectionIds = this.userConnections.get(userId);
     if (!connectionIds) return;
 
@@ -58,7 +65,7 @@ class WebSocketManager {
     });
   }
 
-  broadcast(message: any) {
+  broadcast(message: Record<string, unknown>) {
     const messageStr = JSON.stringify(message);
     
     this.connections.forEach((ws) => {

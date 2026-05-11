@@ -7,12 +7,13 @@
 
 import { db } from "../lib/db.js";
 import { wsManager, NotificationType } from "../lib/ws-manager.js";
+import { logger } from "../lib/logger.js";
 
 export interface NotificationPayload {
   type: NotificationType;
   title: string;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -23,7 +24,7 @@ export async function notifyUser(userId: string, payload: {
   type: NotificationType;
   title: string;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }) {
   try {
     // 1. Persist to DB
@@ -53,7 +54,7 @@ export async function notifyUser(userId: string, payload: {
 
     return notification;
   } catch (err) {
-    console.error(`[NotificationService] Failed to notify user ${userId}:`, err);
+    logger.error(`[NotificationService] Failed to notify user ${userId}`, err);
     // Fallback: attempted WS-only if DB fails (degraded mode)
     wsManager.sendToUser(userId, {
       type: 'notification:new',
@@ -73,7 +74,7 @@ export function sendNotification(userId: string, payload: Omit<NotificationPaylo
   notifyUser(userId, payload);
 }
 
-export function broadcastSystemAlert(message: string, data?: any) {
+export function broadcastSystemAlert(message: string, data?: Record<string, unknown>) {
   wsManager.broadcast({
     type: 'system_alert',
     payload: {
@@ -149,7 +150,7 @@ export async function checkInvoiceDueAlerts(userId: string, workspaceId: string)
   }
 }
 
-export function sendTransactionAlert(userId: string, transaction: any) {
+export function sendTransactionAlert(userId: string, transaction: { id: string; type: string; description: string; amount: number }) {
   const isExpense = transaction.type === 'expense';
   notifyUser(userId, {
     type: NotificationType.TRANSACTION_CREATED,

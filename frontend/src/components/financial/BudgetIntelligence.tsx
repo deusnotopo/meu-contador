@@ -163,7 +163,7 @@ export const BudgetIntelligence = ({ onNavigate }: { onNavigate?: (tab: TabType)
         const order = { over: 0, critical: 1, warning: 2, safe: 3 };
         return order[a.metrics.status] - order[b.metrics.status];
       });
-  }, [budgets]);
+  }, [budgets, DOM, DAYS]);
 
   const stats = useMemo(() => {
     const totalLimit = budgets.reduce((s, b) => s + b.limit, 0);

@@ -18,24 +18,23 @@ interface NotificationsState {
   loading: boolean;
 }
 
+import { useAuth } from '@/context/AuthContext';
+
 // ── WebSocket singleton ───────────────────────────────────────────────────────
 let wsInstance: WebSocket | null = null;
 let wsListeners: Array<(n: AppNotification) => void> = [];
 
 function getWSUrl(): string {
-  const token = localStorage.getItem('auth_token');
   const base = import.meta.env.VITE_WS_URL ||
     (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/ws';
-  return `${base}?token=${token ?? ''}`;
+  return base;
 }
 
 function connectWS() {
   if (wsInstance && wsInstance.readyState <= WebSocket.OPEN) return;
 
-  const token = localStorage.getItem('auth_token');
-  if (!token) return;
-
   try {
+    // Akita Fix: O navegador enviará os cookies HttpOnly automaticamente se for same-origin
     wsInstance = new WebSocket(getWSUrl());
 
     wsInstance.onmessage = (e) => {
@@ -57,6 +56,9 @@ function connectWS() {
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useNotifications() {
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+
   const [state, setState] = useState<NotificationsState>({
     notifications: [],
     unreadCount: 0,
@@ -67,6 +69,7 @@ export function useNotifications() {
 
   // Load from API
   const load = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       const data = await api.get<{ notifications: AppNotification[]; unreadCount: number }>(
         '/notifications?limit=30'
@@ -75,9 +78,14 @@ export function useNotifications() {
     } catch {
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      if (state.loading) setState(prev => ({ ...prev, loading: false }));
+      return;
+    }
+
     load();
 
     // Connect WebSocket and listen for real-time notifications
@@ -98,7 +106,7 @@ export function useNotifications() {
     const pingInterval = setInterval(() => {
       if (wsInstance?.readyState === WebSocket.OPEN) {
         wsInstance.send(JSON.stringify({ type: 'ping' }));
-      } else {
+      } else if (isAuthenticated) {
         connectWS(); // reconnect if dropped
       }
     }, 25000);
@@ -107,7 +115,7 @@ export function useNotifications() {
       wsListeners = wsListeners.filter(fn => fn !== listenerRef.current);
       clearInterval(pingInterval);
     };
-  }, [load]);
+  }, [load, isAuthenticated]);
 
   const markRead = useCallback(async (id: string) => {
     try {

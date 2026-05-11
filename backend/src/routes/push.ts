@@ -23,7 +23,7 @@ export async function pushRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const subscription = await PushService.subscribe(request.user.id, request.body);
+        const subscription = await PushService.subscribe(request.user.id, request.body as PushService.PushSubscriptionInput);
         return reply.status(201).send({ status: 'success', id: subscription.id });
       } catch (error) {
         app.log.error(error);

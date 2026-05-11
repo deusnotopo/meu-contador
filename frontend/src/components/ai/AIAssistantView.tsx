@@ -41,7 +41,7 @@ export const AIAssistantView = ({ onBack }: AIAssistantViewProps) => {
   const isBusiness = user?.currentWorkspaceId && user.currentWorkspaceId !== 'personal';
   const scope = isBusiness ? 'business' : 'personal';
   const { transactions } = useTransactions(scope);
-  const tutorContext = getTutorContext(eduState, {
+  const tutorContext = getTutorContext(edu.modules, eduState, {
     hasDebts: user?.hasDebts,
     hasEmergencyFund: user?.hasEmergencyFund,
     financialGoal: user?.financialGoal,

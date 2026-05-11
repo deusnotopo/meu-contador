@@ -125,8 +125,8 @@ export function useOfflineSync(): OfflineSyncState {
       if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
         try {
           const reg = await navigator.serviceWorker.ready;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (reg as any).sync?.register('sync-transactions');
+          // Background Sync API (Chrome/Edge) — tipado via src/types/background-sync.d.ts
+          await reg.sync?.register('sync-transactions');
         } catch {
           // API de Background Sync não suportada — sync acontecerá no próximo 'online'
         }

@@ -5,6 +5,7 @@
  */
 
 import * as UserRepository from '../repositories/UserRepository.js';
+import type { Prisma } from '@prisma/client';
 
 export async function getUserProfile(userId: string) {
   return UserRepository.findById(userId);
@@ -29,9 +30,9 @@ export interface UserProfileUpdate {
   fireTargetIncome?: number;
 }
 
-export async function updateProfile(userId: string, input: UserProfileUpdate, tx?: any) {
+export async function updateProfile(userId: string, input: UserProfileUpdate, tx?: Prisma.TransactionClient) {
   // Scaling math (×100)
-  const data: any = { ...input };
+  const data: Prisma.UserUpdateInput = { ...input };
   if (input.monthlyIncome !== undefined) data.monthlyIncome = Math.round(input.monthlyIncome * 100);
   if (input.initialBalance !== undefined) data.initialBalance = Math.round(input.initialBalance * 100);
   if (input.fireTargetIncome !== undefined) data.fireTargetIncome = Math.round(input.fireTargetIncome * 100);
@@ -52,7 +53,7 @@ export async function getGamificationData(userId: string) {
   }
 }
 
-export async function updateGamificationData(userId: string, data: any, tx?: any) {
+export async function updateGamificationData(userId: string, data: Record<string, unknown>, tx?: Prisma.TransactionClient) {
   const dataToStore = typeof data === 'string' ? data : JSON.stringify(data);
   await UserRepository.update(userId, { gamificationData: dataToStore }, tx);
   return data;
@@ -71,7 +72,7 @@ export async function getEmotionalData(userId: string) {
   }
 }
 
-export async function updateEmotionalData(userId: string, data: any, tx?: any) {
+export async function updateEmotionalData(userId: string, data: Record<string, unknown>, tx?: Prisma.TransactionClient) {
   const dataToStore = typeof data === 'string' ? data : JSON.stringify(data);
   await UserRepository.update(userId, { emotionalData: dataToStore }, tx);
   return data;

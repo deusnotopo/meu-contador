@@ -1,12 +1,13 @@
 import { db } from "../lib/db";
 import { writeAuditLog } from "../lib/audit";
 import { webpush } from "../lib/webpush";
+import { logger } from "../lib/logger.js";
 
 /**
  * Job de Reconciliação de Saldo
  */
 export async function runReconciliation() {
-  console.log("⏳ Executando Job: Reconciliação de Saldo...");
+  logger.info('[Reconciliation] Executando Job: Reconciliação de Saldo...');
 
   try {
     // Buscar todas as contas bancárias com conexão ativa
@@ -31,17 +32,13 @@ export async function runReconciliation() {
       },
     });
 
-    console.log(
-      `🔍 Encontradas ${bankAccounts.length} contas bancárias para reconciliação`,
-    );
+    logger.info(`[Reconciliation] ${bankAccounts.length} contas bancárias para reconciliação`);
 
     for (const account of bankAccounts) {
       try {
         // Pular se não tiver saldo do banco (Open Finance)
         if (account.balance === null) {
-          console.log(
-            `⚠️  Conta ${account.id} sem saldo do banco, pulando reconciliação`,
-          );
+          logger.debug(`[Reconciliation] Conta ${account.id} sem saldo do banco, pulando`);
           continue;
         }
 
@@ -106,7 +103,7 @@ export async function runReconciliation() {
                 if (statusCode === 410 || statusCode === 404) {
                   await db.pushSubscription.delete({ where: { id: sub.id } });
                 } else {
-                  console.error("Falha ao enviar Push de reconciliação:", pushError);
+                  logger.error('[Reconciliation] Falha ao enviar Push', pushError);
                 }
               }
             }));
@@ -126,14 +123,9 @@ export async function runReconciliation() {
           },
         });
 
-        console.log(
-          `✅ Conta ${account.id} reconciliada: banco=R$ ${(bankBalance / 100).toFixed(2)}, calculado=R$ ${(calculatedBalance / 100).toFixed(2)}, diferença=R$ ${(discrepancyAmount / 100).toFixed(2)} (${discrepancyPercent.toFixed(1)}%)`,
-        );
+        logger.info(`[Reconciliation] Conta ${account.id} reconciliada: banco=R$${(bankBalance / 100).toFixed(2)}, diff=R$${(discrepancyAmount / 100).toFixed(2)} (${discrepancyPercent.toFixed(1)}%)`);
       } catch (accountError) {
-        console.error(
-          `❌ Erro ao reconciliar conta ${account.id}:`,
-          accountError,
-        );
+        logger.error(`[Reconciliation] Erro ao reconciliar conta ${account.id}`, accountError);
 
         // Marcar como erro
         try {
@@ -145,7 +137,7 @@ export async function runReconciliation() {
             },
           });
         } catch (updateError) {
-          console.error("Erro ao atualizar status de erro:", updateError);
+          logger.error('[Reconciliation] Erro ao atualizar status de erro', updateError);
         }
       }
     }
@@ -160,9 +152,9 @@ export async function runReconciliation() {
       },
     });
 
-    console.log("✅ Job de Reconciliação de Saldo concluído");
+    logger.info('[Reconciliation] Job de Reconciliação de Saldo concluído');
   } catch (error: unknown) {
-    console.error("❌ Erro durante o Job de Reconciliação de Saldo:", error);
+    logger.error('[Reconciliation] Erro durante o Job de Reconciliação de Saldo', error);
 
     // Tentar logar o erro
     try {
@@ -174,8 +166,8 @@ export async function runReconciliation() {
           timestamp: new Date().toISOString(),
         },
       });
-    } catch (logError: any) {
-      console.error("Falha ao logar erro de reconciliação:", logError);
+    } catch (logError: unknown) {
+      logger.error('[Reconciliation] Falha ao logar erro', logError);
     }
     throw error;
   }

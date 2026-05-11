@@ -4,17 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/pwa-192x192.png" />
 
-    <!-- ── Dev: limpa SW e cache em localhost ── -->
+    <!-- ── Limpa SW e cache em todas as origens (Cache-Busting for CSP) ── -->
     <script>
       (function () {
-        var isLocalDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        if (!isLocalDev) return;
         try {
           var manifestLink = document.querySelector('link[rel="manifest"]');
           if (manifestLink) manifestLink.remove();
         } catch (_) {}
         if (!('serviceWorker' in navigator)) return;
-        var cleanupFlag = 'mc-dev-sw-cleanup-v2';
+        var cleanupFlag = 'mc-sw-cleanup-v3';
         if (sessionStorage.getItem(cleanupFlag) === 'done') return;
         sessionStorage.setItem(cleanupFlag, 'pending');
         Promise.all([

@@ -1,10 +1,11 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect } from "react";
 import type { WorkspaceRole } from "@/types";
 import { AuthService, mapBackendUserToAuthUser, type AuthUser } from "@/services/AuthService";
 import { ErrorService } from "@/services/ErrorService";
 import { useAuthInit } from "@/hooks/useAuthInit";
 import { useSessionGuard } from "@/hooks/useSessionGuard";
 import { syncAllData } from "@/lib/storage";
+import { setUser as setSentryUser } from "@/lib/sentry";
 
 export type { AuthUser };
 
@@ -37,10 +38,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
    */
   useAuthInit({ setUser, setIsPro, setLoading, setIsSyncing });
 
-  useSessionGuard(user, () => {
+  useSessionGuard(user, loading, () => {
     setUser(null);
     setIsPro(false);
   });
+
+  // Cross-tab Synchronization
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'auth_event' && e.newValue === 'logout') {
+        setUser(null);
+        setIsPro(false);
+        setSentryUser(null);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -56,6 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const handlePostAuth = useCallback((authUser: AuthUser) => {
     setUser(authUser);
     setIsPro(authUser.isPro || false);
+    // Identifica o usuário no Sentry para correlacionar erros em produção
+    setSentryUser({ id: authUser.id, email: authUser.email ?? undefined });
     window.dispatchEvent(new CustomEvent('auth:session-ready'));
     syncAllData(authUser.id).catch((err: unknown) => {
       ErrorService.log(err, "AuthContext:syncData");
@@ -107,9 +123,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = useCallback(async () => {
     try {
       await AuthService.logout();
+      localStorage.setItem('auth_event', 'logout');
+      setTimeout(() => localStorage.removeItem('auth_event'), 100);
     } catch (error) {
       ErrorService.log(error, "AuthContext:logout");
     } finally {
+      setSentryUser(null); // Limpa identidade do Sentry
       setUser(null);
       setIsPro(false);
     }
@@ -122,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       ErrorService.log(error, "AuthContext:deleteAccount");
       throw error;
     } finally {
+      setSentryUser(null); // Limpa identidade do Sentry
       setUser(null);
       setIsPro(false);
     }

@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { getCacheValue, setCacheValue } from '../lib/cache';
+import { logger } from '../lib/logger.js';
 
 const BCB_CCR_URL = 'https://olinda.bcb.gov.br/olinda/servico/CCR/versao/v1/odata/InstituicoesFinanceirasAutorizadas';
 
@@ -32,7 +33,7 @@ export async function bankRoutes(app: FastifyInstance) {
     const cacheKey = 'market:banks';
     
     // Cache de longa duração (24 horas)
-    const cached = await getCacheValue<any[]>(cacheKey);
+    const cached = await getCacheValue<unknown[]>(cacheKey);
     if (cached) return reply.send(cached);
 
     try {
@@ -59,7 +60,7 @@ export async function bankRoutes(app: FastifyInstance) {
       }
       throw new Error('BCB returned no data or errored');
     } catch (err) {
-      console.warn('[Banks] BCB failed, trying BrasilAPI fallback...', (err as Error).message);
+      logger.warn(`[Banks] BCB failed, trying BrasilAPI fallback: ${(err as Error).message}`);
       
       try {
         // 2. Fallback BrasilAPI
@@ -69,7 +70,7 @@ export async function bankRoutes(app: FastifyInstance) {
         
         if (!bRes.ok) throw new Error('BrasilAPI also failed');
         
-        const bData = await bRes.json() as any[];
+        const bData = await bRes.json() as { code: number | null; name: string }[];
         const banks = bData
           .filter(b => b.code !== null)
           .map(b => ({
@@ -82,7 +83,7 @@ export async function bankRoutes(app: FastifyInstance) {
         await setCacheValue(cacheKey, banks, 24 * 60 * 60 * 1000);
         return reply.send(banks);
       } catch (fbErr) {
-        console.error('[Banks] Total failure:', (fbErr as Error).message);
+        logger.error(`[Banks] Total failure: ${(fbErr as Error).message}`);
         return reply.status(502).send({ message: 'Erro ao buscar dados das instituições financeiras' });
       }
     }

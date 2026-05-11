@@ -1,10 +1,11 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileText, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // import { Input } from '@/components/ui/input';
 // import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { logger } from '@/lib/logger';
 import { parseStatementFile, detectFormat } from '@/lib/statements/parser';
 import { categorizeTransaction, detectDuplicates, getCategorySuggestions } from '@/lib/statements/categorizer';
 import type { StatementTransaction, StatementFormat } from '../../../../shared/types-statement';
@@ -67,7 +68,7 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
       showSuccess(`${prepared.length} transações encontradas`);
     } catch (err) {
       showError('Erro ao processar arquivo');
-      console.error(err);
+      logger.error('[StatementImport] File parse failed', err);
     } finally {
       setIsProcessing(false);
     }
@@ -97,7 +98,7 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
         imported++;
       } catch (err) {
         errors.push(tx.description);
-        console.error('Erro ao importar transação:', err);
+        logger.error('[StatementImport] Transaction import failed', { description: tx.description, err });
       }
     }
     setImportErrors(errors);

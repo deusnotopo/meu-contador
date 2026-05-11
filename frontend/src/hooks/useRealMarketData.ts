@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchMarketData, fetchStockQuote } from "@/lib/market-data";
+import { logger } from "@/lib/logger";
 
 interface MarketData {
   btc: number;
@@ -42,8 +43,8 @@ export function useRealMarketData(refreshInterval = 5 * 60 * 1000) {
         isLive: true,
       });
     } catch (err) {
-      console.error("Error loading market data:", err);
-      setError("Erro ao carregar dados de mercado");
+      logger.error('[useRealMarketData] Error loading market data', err);
+      setError('Erro ao carregar dados de mercado');
       setMarketData((prev) => ({ ...prev, isLive: false }));
     } finally {
       setLoading(false);
@@ -60,7 +61,7 @@ export function useRealMarketData(refreshInterval = 5 * 60 * 1000) {
     try {
       return (await fetchStockQuote(ticker)) as StockQuote | null;
     } catch (err) {
-      console.error(`Error fetching ${ticker}:`, err);
+      logger.warn(`[useRealMarketData] Error fetching ${ticker}`, err);
       return null;
     }
   }, []);

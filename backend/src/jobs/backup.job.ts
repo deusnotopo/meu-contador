@@ -1,12 +1,13 @@
 import { createQueue, createWorker } from '../lib/queue';
 import { createBackup, cleanupOldBackups } from '../workers/backup-worker';
+import { logger } from '../lib/logger.js';
 
 const QUEUE_NAME = 'backup';
 
 export const backupQueue = createQueue(QUEUE_NAME);
 
 export const backupWorker = createWorker(QUEUE_NAME, async (job) => {
-  console.log(`[Job] Processing ${job.name}...`);
+  logger.info(`[Job] Processing ${job.name}...`);
   
   if (job.name === 'run-backup') {
     await createBackup();
@@ -29,5 +30,5 @@ export async function startBackupJob() {
     }
   );
 
-  console.log('💾 Backup job scheduled (daily at 2 AM)');
+  logger.info('[Job] Backup job scheduled (daily at 2 AM)');
 }

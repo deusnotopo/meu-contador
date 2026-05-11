@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Waves } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
 
 interface SpeechRecognitionEventLike {
   results?: ArrayLike<ArrayLike<{ transcript?: string }>>;
@@ -70,7 +71,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       };
 
       recognitionInstance.onerror = (event: SpeechRecognitionErrorEventLike) => {
-        console.error("Speech recognition error", event.error);
+        logger.warn('[VoiceInput] Speech recognition error', { code: event.error });
         setIsListening(false);
         if (event.error === "not-allowed") {
           setError("Permissão de microfone negada.");

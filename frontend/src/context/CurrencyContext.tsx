@@ -45,7 +45,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({
         
         setRates(newRates);
         currencyService.updateRates(newRates);
-      } catch (error) {
+      } catch (_error) {
         // Fallback already handled within fetchMarketData
         logger.warn("[Currency] Failed to sync with market backend, using existing defaults.");
       } finally {

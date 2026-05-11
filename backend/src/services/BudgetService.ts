@@ -8,6 +8,7 @@ import { getCacheValue, setCacheValue } from '../lib/cache.js';
 import * as BudgetRepository from '../repositories/BudgetRepository.js';
 import { toCents, fromCents } from '../../../shared/currency.js';
 import { withJitter } from '../../../shared/cache-utils.js';
+import type { Prisma } from '@prisma/client';
 
 const BASE_CACHE_TTL = 300_000; // 5 minutes base
 
@@ -25,7 +26,7 @@ export interface UpdateBudgetInput {
  * Hydrates a list of budgets with their 'spent' amount from transactions.
  * Note: 'spent' is returned in dollars/float for the API response.
  */
-async function hydrateBudgetsSpent(userId: string, budgets: any[]) {
+async function hydrateBudgetsSpent(userId: string, budgets: Array<{ category: string; month: string; limit: number; [key: string]: unknown }>) {
   return Promise.all(
     budgets.map(async (budget) => {
       const spentCents = await BudgetRepository.getBudgetSpent(userId, budget.category, budget.month);
@@ -67,7 +68,7 @@ export async function getBudget(id: string, userId: string) {
   };
 }
 
-export async function createBudget(userId: string, input: CreateBudgetInput, tx?: any) {
+export async function createBudget(userId: string, input: CreateBudgetInput, tx?: Prisma.TransactionClient) {
   const data = {
     userId,
     category: input.category,
@@ -91,13 +92,13 @@ export async function createBudget(userId: string, input: CreateBudgetInput, tx?
   return budget;
 }
 
-export async function createManyBudgets(userId: string, data: any[], tx?: any) {
+export async function createManyBudgets(userId: string, data: BudgetRepository.BudgetCreateData[], tx?: Prisma.TransactionClient) {
   const result = await BudgetRepository.createMany(data, tx);
   if (!tx) await BudgetRepository.invalidateBudgetCache(userId);
   return result;
 }
 
-export async function updateBudget(id: string, userId: string, input: UpdateBudgetInput, tx?: any) {
+export async function updateBudget(id: string, userId: string, input: UpdateBudgetInput, tx?: Prisma.TransactionClient) {
   const data = {
     limit: Math.round(input.limit * 100), // Scale to cents
   };
@@ -118,7 +119,7 @@ export async function updateBudget(id: string, userId: string, input: UpdateBudg
   return budget;
 }
 
-export async function deleteBudget(id: string, userId: string, tx?: any) {
+export async function deleteBudget(id: string, userId: string, tx?: Prisma.TransactionClient) {
   const deleted = await BudgetRepository.softDeleteOne(id, userId, tx);
   if (deleted && !tx) {
     await BudgetRepository.invalidateBudgetCache(userId);

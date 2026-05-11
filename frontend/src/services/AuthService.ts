@@ -4,6 +4,7 @@ import { trackEvent, analyticsEvents } from "@/lib/analytics";
 import { auth, googleProvider } from "@/lib/firebase";
 import { signInWithPopup } from "firebase/auth";
 import { clearAllStorage } from "@/lib/storage";
+import { logger } from "@/lib/logger";
 
 /**
  * Zod Schemas para validação rigorosa de contratos do backend.
@@ -182,7 +183,7 @@ export const AuthService = {
       await api.delete<{ success: boolean }>("/users/me");
       trackEvent("account_deleted");
     } catch (error) {
-      console.error("Falha ao deletar conta", error);
+      logger.error('[AuthService] Falha ao deletar conta', error);
       throw error;
     }
     clearAuthSession();

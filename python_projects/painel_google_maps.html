@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Engine Pro | Dashboard v5.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <style>
+        :root {
+            --bg: #030712;
+            --surface: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-primary: #38bdf8;
+            --accent-secondary: #10b981;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --danger: #ef4444;
+            --glass: rgba(255, 255, 255, 0.03);
+            --crm-novo: #94a3b8;
+            --crm-abordado: #3b82f6;
+            --crm-negociando: #f59e0b;
+            --crm-fechado: #10b981;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        header {
+            padding: 2rem 4rem;
+            display: flex; justify-content: space-between; align-items: center;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky; top: 0; z-index: 1000;
+        }
+
+        .logo-wrap { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+        .logo-text { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.025em; }
+
+        .status-pill {
+            padding: 6px 12px; border-radius: 20px;
+            background: var(--glass); border: 1px solid var(--card-border);
+            font-size: 0.75rem; font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent-secondary);
+            box-shadow: 0 0 10px var(--accent-secondary);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        main { padding: 2rem 4rem; max-width: 1600px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; flex: 1; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--card-border);
+            border-radius: 1.5rem; padding: 1.5rem; position: relative; overflow: hidden;
+        }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); opacity: 0.3; }
+        .stat-label { font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 2.25rem; font-weight: 700; color: var(--text-primary); }
+        .stat-sub { font-size: 0.75rem; margin-top: 0.5rem; color: var(--accent-primary); }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; }
+        .search-container { position: relative; flex: 1; }
+        #searchInput {
+            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--card-border);
+            border-radius: 0.75rem; padding: 0.875rem 1rem 0.875rem 2.75rem;
+            color: var(--text-primary); outline: none; transition: all 0.2s;
+        }
+        #searchInput:focus { border-color: var(--accent-primary); box-shadow: 0 0 15px rgba(56, 189, 248, 0.1); }
+        .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 1rem; }
+
+        .btn-panel { display: flex; gap: 0.5rem; }
+        .btn-outline {
+            background: var(--glass); border: 1px solid var(--card-border); color: var(--text-primary);
+            padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); }
+
+        /* Split View Layout */
+        .split-view {
+            display: flex; gap: 1.5rem; height: 600px;
+        }
+        
+        .table-section { flex: 2; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--card-border); border-radius: 1.5rem; overflow: hidden; }
+        .map-section { flex: 1; display: none; background: var(--surface); border: 1px solid var(--card-border); border-radius: 1.5rem; overflow: hidden; position: relative; }
+        .map-section.active { display: block; }
+
+        .table-container { flex: 1; overflow: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: rgba(30, 41, 59, 0.8); padding: 1rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); position: sticky; top: 0; z-index: 10; backdrop-filter: blur(5px); }
+        td { padding: 1rem; font-size: 0.875rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        .badge-hot { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .badge-warm { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
+        .badge-cold { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
+        .badge-contact { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+        /* CRM Select */
+        .crm-select {
+            background: rgba(0,0,0,0.5);
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            appearance: none;
+        }
+        .crm-select:focus { border-color: var(--accent-primary); }
+        .s-novo { color: var(--crm-novo); }
+        .s-abordado { color: var(--crm-abordado); }
+        .s-negociacao { color: var(--crm-negociando); }
+        .s-fechado { color: var(--crm-fechado); }
+
+        .btn-action { display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-size: 0.75rem; font-weight: 600; }
+        .btn-whatsapp { background: #10b981; color: white; }
+        .btn-whatsapp:hover { transform: scale(1.05); }
+
+        /* Map Container */
+        #mapId { width: 100%; height: 100%; background: #0f172a; }
+        
+        /* Modifying Leaflet popups for Dark Theme */
+        .leaflet-popup-content-wrapper { background: #1e293b; color: #f8fafc; border: 1px solid #334155; }
+        .leaflet-popup-tip { background: #1e293b; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-wrap">
+            <div class="logo-icon"></div>
+            <div class="logo-text">LEAD ENGINE PRO <span style="font-weight: 300; opacity: 0.5;">v5.0 CRM</span></div>
+        </div>
+        <div class="status-pill">
+            <div class="status-dot"></div>
+            <span id="engineStatus">ENGINE ACTIVE</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Leads Base</div>
+                <div class="stat-value" id="countTotal">0</div>
+                <div class="stat-sub">Across East Zone</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Verified Phones</div>
+                <div class="stat-value" id="countHot" style="color: var(--accent-secondary);">0</div>
+                <div class="stat-sub">Enriched by Engine</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Emails Capturados</div>
+                <div class="stat-value" id="countEmail" style="color: #f59e0b;">0</div>
+                <div class="stat-sub">Contato direto</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Deals Ativos</div>
+                <div class="stat-value" id="countActive" style="color: var(--accent-primary);">0</div>
+                <div class="stat-sub">Em Negociação / Abordados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Backend</div>
+                <div class="stat-value" id="backendStatus" style="font-size: 1.5rem;">ONLINE</div>
+                <div class="stat-sub">Persistent Server</div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-container" style="display: flex; gap: 1rem;">
+                <div style="position: relative; flex: 1;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search by name, neighborhood, niche...">
+                </div>
+                <select id="crmFilter" class="crm-select" onchange="sync()" style="padding: 0.875rem 1rem; border-radius: 0.75rem;">
+                    <option value="all">Todas as Etapas</option>
+                    <option value="novo">🔵 Novos Leads</option>
+                    <option value="abordado">🟣 Abordados</option>
+                    <option value="negociacao">🟠 Em Negociação</option>
+                    <option value="fechado">🟢 Fechados</option>
+                </select>
+            </div>
+            <div class="btn-panel">
+                <button class="btn-outline" onclick="toggleMap()" id="btnMap">🗺️ Mapa</button>
+                <button class="btn-outline" id="btnCelular" onclick="toggleMobileFilter()" style="color: #10b981;">📱 Só Celulares</button>
+                <button class="btn-outline" onclick="exportCSV()">📊 Export CSV</button>
+            </div>
+        </div>
+
+        <div class="split-view">
+            <div class="table-section">
+                <div class="table-container">
+                    <table id="leadsTable">
+                        <thead>
+                            <tr>
+                                <th>Lead Entity</th>
+                                <th>Location</th>
+                                <th>Phone</th>
+                                <th>Pipeline Stage</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="map-section" id="mapSection">
+                <div id="mapId"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <script>
+        const API_LEADS = 'leads_zona_leste_sem_site.json';
+        const API_CRM = 'crm_state.json';
+        const POST_API_CRM = '/api/crm';
+        
+        let leadData = [];
+        let crmState = {};
+        let mapInstance = null;
+        let mapMarkers = [];
+        let mobileFilterActive = false;
+
+        // Valida se o número é celular BR (11 dígitos, 3º dígito = 9)
+        function isMobileNumber(phone) {
+            if (!phone) return false;
+            const digits = phone.replace(/\D/g, '');
+            const normalized = digits.startsWith('55') && digits.length >= 12 ? digits.slice(2) : digits;
+            return normalized.length === 11 && normalized[2] === '9';
+        }
+
+        function toggleMobileFilter() {
+            mobileFilterActive = !mobileFilterActive;
+            const btn = document.getElementById('btnCelular');
+            btn.style.background = mobileFilterActive ? 'rgba(16, 185, 129, 0.2)' : '';
+            btn.style.borderColor = mobileFilterActive ? '#10b981' : '';
+            sync();
+        }
+
+        async function fetchAPI(url) {
+            try {
+                const resp = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+                if (!resp.ok) return null;
+                return await resp.json();
+            } catch (e) { return null; }
+        }
+
+        async function updateCRMState(leadId, status) {
+            try {
+                // Update local visual state instantly
+                crmState[leadId] = status;
+                updateStats();
+                
+                // POST to Python Server
+                await fetch(POST_API_CRM, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: leadId, status: status })
+                });
+            } catch (error) {
+                console.error("Failed to save CRM state to server", error);
+                alert("Falha ao salvar no servidor. Verifique se o server.py está rodando.");
+            }
+        }
+
+        function initMap() {
+            if (mapInstance) return;
+            mapInstance = L.map('mapId', { zoomControl: false }).setView([-23.5505, -46.6333], 12);
+            L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(mapInstance);
+        }
+
+        function plotMapMarkers(data) {
+            if (!mapInstance) return;
+            // Clear old markers
+            mapMarkers.forEach(m => mapInstance.removeLayer(m));
+            mapMarkers = [];
+            
+            data.forEach(lead => {
+                // Utilizamos a geolocalizacao EXATA fornecida pelo script Python no backend.
+                if (!lead.lat || !lead.lon) return;
+                
+                const leadId = btoa(unescape(encodeURIComponent(lead.nome))).slice(0,20);
+                const status = crmState[leadId] || 'novo';
+                
+                let markerColor = '#94a3b8'; // novo (gray)
+                if (status === 'abordado') markerColor = '#3b82f6';
+                if (status === 'negociacao') markerColor = '#f59e0b';
+                if (status === 'fechado') markerColor = '#10b981';
+                
+                // Status "novo" mas sem telefone fica vermelho (atenção)
+                if (status === 'novo' && !lead.telefone) markerColor = '#ef4444'; 
+                
+                let circle = L.circleMarker([lead.lat, lead.lon], {
+                    radius: 7,
+                    fillColor: markerColor,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(mapInstance);
+                
+                circle.bindPopup(`<b>${lead.nome}</b><br>${lead. endereco || lead.bairro_consulta}<br>📞 ${lead.telefone || 'Prospecção Local (Porta a Porta)'}<br><small style="color:var(--accent-primary)">Status: ${status.toUpperCase()}</small>`);
+                mapMarkers.push(circle);
+            });
+            
+            if (mapMarkers.length > 0) {
+                let group = new L.featureGroup(mapMarkers);
+                mapInstance.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function toggleMap() {
+            const mapSec = document.getElementById('mapSection');
+            const btn = document.getElementById('btnMap');
+            if (mapSec.classList.contains('active')) {
+                mapSec.classList.remove('active');
+                btn.innerText = "🗺️ Show Map";
+            } else {
+                mapSec.classList.add('active');
+                btn.innerText = "🗺️ Hide Map";
+                initMap();
+                setTimeout(() => mapInstance.invalidateSize(), 100);
+                plotMapMarkers(leadData); // Plot current active view
+            }
+        }
+
+        // Setup the initial views
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = data.map(lead => {
+                // Generate a reliable ID for CRM tracking (Base64 encoding name usually works if no ID exists)
+                const leadId = btoa(unescape(encodeURIComponent(lead.nome))).slice(0,20);
+                const currentStatus = crmState[leadId] || 'novo';
+                
+                const cleanPhone = lead.telefone ? lead.telefone.replace(/\D/g, '') : '';
+                const waLink = cleanPhone ? `https://wa.me/55${cleanPhone}` : '#';
+                
+                const crmColorClass = `s-${currentStatus}`;
+
+                return `
+                <tr>
+                    <td>
+                        <div style="font-weight: 600;">${lead.nome || 'N/A'}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);">${lead.nicho} &bull; ${lead.website || 'Sem Site'}</div>
+                    </td>
+                    <td>
+                        <span style="font-size: 0.75rem; opacity: 0.8">${lead.endereco || lead.bairro_consulta}</span>
+                    </td>
+                    <td>
+                        <code style="color: var(--accent-primary); display: block; margin-bottom: 4px;">${lead.telefone || '—'}</code>
+                        ${lead.telefone && isMobileNumber(lead.telefone) ? `<span class="badge badge-contact">📱 CELULAR</span>` : ''}
+                        ${lead.telefone && !isMobileNumber(lead.telefone) ? `<span class="badge" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2)">☎️ FIXO</span>` : ''}
+                        ${lead.email ? `<div style="margin-top:4px"><a href="mailto:${lead.email}" style="color:#f59e0b;font-size:0.7rem;text-decoration:none">✉️ ${lead.email}</a></div>` : ''}
+                    </td>
+                    <td>
+                        <select class="crm-select ${crmColorClass}" onchange="updateCRMState('${leadId}', this.value); this.className='crm-select s-'+this.value;">
+                            <option value="novo" ${currentStatus==='novo'?'selected':''}>🔵 Novo Lead</option>
+                            <option value="abordado" ${currentStatus==='abordado'?'selected':''}>🟣 Abordado</option>
+                            <option value="negociacao" ${currentStatus==='negociacao'?'selected':''}>🟠 Negociando</option>
+                            <option value="fechado" ${currentStatus==='fechado'?'selected':''}>🟢 Fechado</option>
+                        </select>
+                    </td>
+                    <td>
+                        ${lead.telefone ? `<a href="${waLink}" target="_blank" class="btn-action btn-whatsapp">MENSAGEM</a>` : '<span style="opacity:0.3;font-size:0.7rem">SEM CONTATO</span>'}
+                    </td>
+                </tr>
+            `;}).join('');
+            
+            // Re-plot map if it's active
+            if (document.getElementById('mapSection').classList.contains('active')) {
+                plotMapMarkers(data);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('countTotal').innerText = leadData.length;
+            document.getElementById('countHot').innerText = leadData.filter(l => isMobileNumber(l.telefone)).length;
+            document.getElementById('countEmail').innerText = leadData.filter(l => l.email).length;
+            
+            let activeDeals = 0;
+            for (let k in crmState) {
+                if (crmState[k] === 'abordado' || crmState[k] === 'negociacao') activeDeals++;
+            }
+            document.getElementById('countActive').innerText = activeDeals;
+        }
+
+        function exportCSV() {
+            if (!leadData.length) return alert("Nenhum dado para exportar");
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Nome,Nicho,Bairro,Telefone,Website,StatusCRM\n";
+            
+            leadData.forEach(lead => {
+                const leadId = btoa(unescape(encodeURIComponent(lead.nome))).slice(0,20);
+                const status = crmState[leadId] || 'novo';
+                const row = `"${lead.nome}","${lead.nicho}","${lead.bairro_consulta}","${lead.telefone}","${lead.website}","${status}"`;
+                csvContent += row + "\r\n";
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `exportacao_crm_leste_${new Date().getTime()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function sync() {
+            try {
+                const [leads, crm] = await Promise.all([
+                    fetchAPI(API_LEADS),
+                    fetchAPI(API_CRM)
+                ]);
+
+                if (crm) crmState = crm;
+                
+                if (leads) {
+                    // Sort by leads with phones first, then by score
+                    leadData = leads.sort((a,b) => {
+                        if (a.telefone && !b.telefone) return -1;
+                        if (!a.telefone && b.telefone) return 1;
+                        return b.score - a.score;
+                    });
+                }
+                
+                updateStats();
+
+                const textFilter = document.getElementById('searchInput').value.toLowerCase();
+                const crmFilterVal = document.getElementById('crmFilter').value;
+                
+                let filtered = leadData;
+                
+                // Filtro: Apenas Celulares
+                if (mobileFilterActive) {
+                    filtered = filtered.filter(l => isMobileNumber(l.telefone));
+                }
+
+                // Filtro de Pipeline (CRM)
+                if (crmFilterVal !== 'all') {
+                    filtered = filtered.filter(l => {
+                        const leadId = btoa(unescape(encodeURIComponent(l.nome))).slice(0,20);
+                        const status = crmState[leadId] || 'novo';
+                        return status === crmFilterVal;
+                    });
+                }
+
+                // Aplica Filtro de Texto
+                if (textFilter) {
+                    filtered = filtered.filter(l => 
+                        Object.values(l).some(v => String(v).toLowerCase().includes(textFilter))
+                    );
+                }
+                
+                renderTable(filtered.slice(0, 500)); // Limite responsivo maior pois agora temos filtragem eficiente
+
+            } catch (e) {
+                console.error("Sync Error:", e);
+                document.getElementById('backendStatus').innerText = "DISCONNECTED";
+                document.getElementById('backendStatus').style.color = "var(--danger)";
+            }
+        }
+
+        document.getElementById('searchInput').addEventListener('input', () => sync()); // re-trigger render via sync logic
+        
+        // Initial load
+        sync();
+        
+        // Disable automatic constant polling to prevent UI jitter when using CRM drops, 
+        // poll every 15 seconds instead of 3.
+        setInterval(sync, 15000); 
+
+    </script>
+</body>
+</html>

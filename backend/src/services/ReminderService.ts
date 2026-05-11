@@ -6,6 +6,7 @@
 
 import { getCacheValue, setCacheValue } from '../lib/cache.js';
 import * as ReminderRepository from '../repositories/ReminderRepository.js';
+import type { Prisma } from '@prisma/client';
 
 const CACHE_TTL = 300_000; // 5 minutes
 
@@ -26,7 +27,7 @@ export async function listReminders(userId: string) {
   return ReminderRepository.findAll(userId);
 }
 
-export async function createReminder(userId: string, input: ReminderInput, tx?: any) {
+export async function createReminder(userId: string, input: ReminderInput, tx?: Prisma.TransactionClient) {
   const data: ReminderRepository.ReminderCreateData = {
     userId,
     name: input.name,
@@ -42,13 +43,13 @@ export async function createReminder(userId: string, input: ReminderInput, tx?: 
   return reminder;
 }
 
-export async function createManyReminders(userId: string, data: any[], tx?: any) {
+export async function createManyReminders(userId: string, data: ReminderRepository.ReminderCreateData[], tx?: Prisma.TransactionClient) {
   const result = await ReminderRepository.createMany(data, tx);
   if (!tx) await ReminderRepository.invalidateReminderCache(userId);
   return result;
 }
 
-export async function updateReminder(id: string, userId: string, input: Partial<ReminderInput>, tx?: any) {
+export async function updateReminder(id: string, userId: string, input: Partial<ReminderInput>, tx?: Prisma.TransactionClient) {
   const existing = await ReminderRepository.findOne(id, userId);
   if (!existing) return null;
 
@@ -66,7 +67,7 @@ export async function updateReminder(id: string, userId: string, input: Partial<
   return reminder;
 }
 
-export async function deleteReminder(id: string, userId: string, tx?: any) {
+export async function deleteReminder(id: string, userId: string, tx?: Prisma.TransactionClient) {
   const success = await ReminderRepository.softDeleteOne(id, userId, tx);
   if (success && !tx) {
     await ReminderRepository.invalidateReminderCache(userId);

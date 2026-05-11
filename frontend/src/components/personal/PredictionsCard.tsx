@@ -1,7 +1,8 @@
-﻿import type { AIInsights } from "@/lib/ai";
+import type { AIInsights } from "@/lib/ai";
 import { getFinancialInsights } from "@/lib/ai";
 import { formatCurrency } from "@/lib/formatters";
 import type { Transaction } from "@/types";
+import { logger } from "@/lib/logger";
 import { Brain, Loader2, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -23,7 +24,7 @@ export const PredictionsCard = ({ transactions, showDetails }: Props) => {
         const data = await getFinancialInsights(transactions);
         setInsights(data);
       } catch (err) {
-        console.error("AI fetch error:", err);
+        logger.error('[PredictionsCard] AI insights fetch failed', err);
       } finally {
         setLoading(false);
       }

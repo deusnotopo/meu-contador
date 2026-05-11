@@ -15,8 +15,17 @@ function getEmoji(cat: string) {
 const fmt = (n: number) => "R$\u00a0" + Math.round(Math.abs(n)).toLocaleString("pt-BR");
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+interface CategoryItem {
+  name: string;
+  spent: number;
+}
+
+interface EnrichedCategory extends CategoryItem {
+  budget: number | null;
+}
+
 interface CategorySpendingWidgetProps {
-  categories: { name: string; spent: number }[];
+  categories: CategoryItem[];
   hasError: boolean;
   onNavigate?: (tab: TabType) => void;
 }
@@ -30,12 +39,12 @@ export const CategorySpendingWidget = ({
   // Use real budget data instead of the `spent * 1.2` hack
   const { budgets } = useBudgets();
 
-  const enriched = categories.slice(0, 5).map((cat) => {
+  const enriched: EnrichedCategory[] = categories.slice(0, 5).map((cat) => {
     const budgetMatch = budgets.find(
       (b) => b.category.toLowerCase() === cat.name.toLowerCase()
     );
-    const budget = budgetMatch?.limit ?? cat.spent * 1.2; // fallback only if no budget set
-    return { ...cat, budget };
+    // Only use real budgets — never fake a budget from spent * 1.2
+    return { ...cat, budget: budgetMatch?.limit ?? null };
   });
 
   return (
@@ -71,8 +80,9 @@ export const CategorySpendingWidget = ({
         <div role="list" aria-label="Gastos por categoria">
           {enriched.map((cat) => {
             const safeSpent = isNaN(cat.spent) ? 0 : cat.spent;
-            const pc = cat.budget > 0 ? Math.min((safeSpent / cat.budget) * 100, 100) : 0;
-            const isOver = safeSpent > cat.budget;
+            const hasBudget = cat.budget !== null && cat.budget > 0;
+            const pc = hasBudget ? Math.min((safeSpent / cat.budget!) * 100, 100) : 0;
+            const isOver = hasBudget && safeSpent > cat.budget!;
             return (
               <button
                 key={cat.name}
@@ -103,15 +113,21 @@ export const CategorySpendingWidget = ({
                       {fmt(safeSpent)}
                     </div>
                   </div>
-                  <div className="h-[3px] bg-white/[0.04] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${pc}%`,
-                        background: isOver ? "var(--red)" : "var(--blue)",
-                      }}
-                    />
-                  </div>
+                  {hasBudget ? (
+                    <div className="h-[3px] bg-white/[0.04] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${pc}%`,
+                          background: isOver ? "var(--red)" : "var(--blue)",
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-[9px] text-white/20 font-medium uppercase tracking-wider">
+                      sem orçamento definido
+                    </div>
+                  )}
                 </div>
               </button>
             );

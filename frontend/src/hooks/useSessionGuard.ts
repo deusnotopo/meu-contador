@@ -10,9 +10,12 @@ import type { AuthUser } from '@/services/AuthService';
  */
 export function useSessionGuard(
   user: AuthUser | null,
+  isAuthLoading: boolean,
   clearLocalState: () => void
 ) {
   useEffect(() => {
+    if (isAuthLoading) return; // AKITA FIX: Não expulsar se ainda estamos carregando a sessão
+
     let cancelled = false;
 
     const unsub = subscribeToAuthSession((snapshot) => {

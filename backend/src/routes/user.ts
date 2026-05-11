@@ -99,8 +99,8 @@ export async function userRoutes(app: FastifyInstance) {
       },
     }
   }, async (request) => {
-    const { gamificationData } = request.body as { gamificationData: unknown };
-    const data = await UserService.updateGamificationData(request.user.id, gamificationData);
+    const { gamificationData } = request.body as { gamificationData: Record<string, unknown> };
+    const data = await UserService.updateGamificationData(request.user.id, gamificationData as Record<string, unknown>);
     return { success: true, gamificationData: data };
   });
 
@@ -131,8 +131,8 @@ export async function userRoutes(app: FastifyInstance) {
       },
     }
   }, async (request) => {
-    const { emotionalData } = request.body as { emotionalData: unknown };
-    const data = await UserService.updateEmotionalData(request.user.id, emotionalData);
+    const { emotionalData } = request.body as { emotionalData: Record<string, unknown> };
+    const data = await UserService.updateEmotionalData(request.user.id, emotionalData as Record<string, unknown>);
     return { success: true, emotionalData: data };
   });
 

@@ -15,30 +15,40 @@ export const useWealthStats = () => {
   const { totals: debtTotals, isLoading: debtLoading } = useDebts();
 
   // 1. Agregação de Totais (Memoized isoladamente)
+  // Akita Fix: Usamos allTimeTotals para garantir que o Patrimônio reflita o histórico completo,
+  // permitindo que o Dashboard Home mostre dados mesmo que o mês atual esteja vazio.
   const stats = useMemo(() => {
     const balance = isBusinessUser
-      ? personal.totals.balance + business.totals.balance
-      : personal.totals.balance;
+      ? (personal.allTimeTotals?.balance || 0) + (business.allTimeTotals?.balance || 0)
+      : (personal.allTimeTotals?.balance || 0);
     
     const bankAssets = balance > 0 ? balance : 0;
     const bankLiabilities = balance < 0 ? Math.abs(balance) : 0;
 
+    const assets = (bankAssets || 0) + (investTotals?.currentValue || 0);
+    const liabilities = (debtTotals?.totalBalance || 0) + (bankLiabilities || 0);
+    const netWorth = assets - liabilities;
+
     return {
-      income: isBusinessUser ? personal.totals.income + business.totals.income : personal.totals.income,
-      expense: isBusinessUser ? personal.totals.expense + business.totals.expense : personal.totals.expense,
-      balance,
-      netWorth: bankAssets + investTotals.currentValue - (debtTotals.totalBalance + bankLiabilities),
-      assets: bankAssets + investTotals.currentValue,
-      liabilities: debtTotals.totalBalance + bankLiabilities,
+      income: isBusinessUser 
+        ? (personal.allTimeTotals?.income || 0) + (business.allTimeTotals?.income || 0) 
+        : (personal.allTimeTotals?.income || 0),
+      expense: isBusinessUser 
+        ? (personal.allTimeTotals?.expense || 0) + (business.allTimeTotals?.expense || 0) 
+        : (personal.allTimeTotals?.expense || 0),
+      balance: balance || 0,
+      netWorth: netWorth || 0,
+      assets: assets || 0,
+      liabilities: liabilities || 0,
     };
-  }, [personal.totals, business.totals, investTotals, debtTotals, isBusinessUser]);
+  }, [personal.allTimeTotals, business.allTimeTotals, investTotals, debtTotals, isBusinessUser]);
 
   const userMetrics = useMemo(() => user ? {
     employmentType: user.employmentType,
     dependents: user.dependents,
     monthlyIncome: user.monthlyIncome,
     hasEmergencyFund: user.hasEmergencyFund
-  } : null, [user?.employmentType, user?.dependents, user?.monthlyIncome, user?.hasEmergencyFund]);
+  } : null, [user]);
 
   // 2. Saúde Financeira
   const health = useFinancialScore(stats, userMetrics);
@@ -67,6 +77,7 @@ export const useWealthStats = () => {
     health,
     sparklineData,
     monthlyVariation,
+    allTransactions: personal.allTransactions,
     isLoading
   };
 };

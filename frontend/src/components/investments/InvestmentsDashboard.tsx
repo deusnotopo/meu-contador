@@ -83,7 +83,8 @@ export const InvestmentsDashboard = ({
     syncPrices,
   } = useInvestments();
   const currencyContext = useCurrency();
-  const convert = currencyContext?.convert || ((val: number) => val);
+  const convertFn = currencyContext?.convert;
+  const convert = useMemo(() => convertFn || ((val: number) => val), [convertFn]);
   const { isViewer } = useRole();
   const [activeView, setActiveView] = useState<ViewState>("cockpit");
   const [isOpen, setIsOpen] = useState(false);
@@ -127,7 +128,7 @@ export const InvestmentsDashboard = ({
     totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
   const taxIndicators = useMemo(
     () => getTaxIndicators(convert),
-    [getTaxIndicators, convert, assets],
+    [getTaxIndicators, convert],
   );
 
   // State for Edit/Sell Dialogs
@@ -244,20 +245,22 @@ export const InvestmentsDashboard = ({
       </AnimatePresence>
       {/* Header / Summary - Obsidian Style */}
       <motion.div variants={item} className="space-y-8">
-        <div className="card-obsidian relative overflow-hidden p-8 md:p-10 group">
+        <div className="card-obsidian relative overflow-hidden px-8 pt-8 pb-7 md:px-10 md:pt-10 md:pb-8 group">
           <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-600/10 blur-[100px] rounded-full opacity-50 group-hover:opacity-70 transition-opacity" />
+          <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-indigo-600/8 blur-[60px] rounded-full opacity-40" />
 
-          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                 <Sparkles size={12} className="text-emerald-400" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">
-                  Wealth Management
+                  Gestão Patrimonial
                 </span>
               </div>
               <h1 className="text-4xl md:text-5xl font-heading font-bold text-white tracking-tight">
-                Meus <span className="text-emerald-400">Investimentos</span>
+                Meu <span className="text-emerald-400">Patrimônio</span>
               </h1>
+              <p className="text-xs text-white/35 font-medium">Carteira · Passivos · Fiscal · Estratégia</p>
             </div>
 
             <div className="flex items-center gap-3">

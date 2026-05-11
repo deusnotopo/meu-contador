@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { logger } from "./logger";
 
 export type AuditAction = 
   | "CREATE_TRANSACTION" 
@@ -36,6 +37,6 @@ export const logAction = async (
       metadata: { details },
     });
   } catch (error) {
-    console.error("Failed to log action:", error);
+    logger.warn('[AuditService] Failed to log action', { action, workspaceId, error });
   }
 };

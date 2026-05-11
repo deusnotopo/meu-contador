@@ -11,6 +11,7 @@ import * as WorkspaceRepository from '../repositories/WorkspaceRepository.js';
 import { hashPassword, comparePassword, sha256, createOpaqueToken, buildCookie, buildExpiredCookie, extractCookie } from '../lib/auth-utils.js';
 import { firebaseAdmin } from '../lib/firebase.js';
 import { writeAuditLog } from '../lib/audit.js';
+import { logger } from '../lib/logger.js';
 
 const ACCESS_COOKIE_NAME = 'mc_access_token';
 const REFRESH_COOKIE_NAME = 'mc_refresh_token';
@@ -48,7 +49,7 @@ async function createSession(userId: string, clientInfo: { ip: string; userAgent
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export async function register(body: any, clientInfo: { ip: string; userAgent?: string }) {
+export async function register(body: { email: string; password: string; name?: string }, clientInfo: { ip: string; userAgent?: string }) {
   const { email, password, name } = body;
 
   const existingUser = await UserRepository.findByEmail(email);
@@ -80,7 +81,7 @@ export async function register(body: any, clientInfo: { ip: string; userAgent?: 
   };
 }
 
-export async function login(body: any, clientInfo: { ip: string; userAgent?: string }) {
+export async function login(body: { email: string; password: string }, clientInfo: { ip: string; userAgent?: string }) {
   const { email, password } = body;
 
   const user = await UserRepository.findByEmail(email);
@@ -109,37 +110,41 @@ export async function login(body: any, clientInfo: { ip: string; userAgent?: str
   };
 }
 
-export async function googleAuth(body: any, clientInfo: { ip: string; userAgent?: string }) {
+export async function googleAuth(body: { token: string }, clientInfo: { ip: string; userAgent?: string }) {
   const { token } = body;
 
+  let decodedToken;
   try {
-    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-    const { email, name } = decodedToken;
-
-    if (!email) {
-      throw new Error('GOOGLE_AUTH_MISSING_EMAIL');
-    }
-
-    let user = await UserRepository.findByEmail(email);
-
-    if (!user) {
-      user = await UserRepository.createWithWorkspace({
-        email,
-        name: name || 'Google User',
-        passwordHash: '',
-      });
-    }
-
-    const { refreshToken, csrfToken } = await createSession(user!.id, clientInfo);
-    return { 
-      user: UserRepository.formatUserProfile(user), 
-      refreshToken, 
-      csrfToken 
-    };
+    decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
   } catch (err) {
-    console.error('[AuthService] Google auth error:', err);
+    // Firebase token verification failure = invalid/expired token from client
+    logger.warn('[AuthService] Firebase token verification failed', { error: (err as Error).message });
     throw new Error('INVALID_GOOGLE_TOKEN');
   }
+
+  const { email, name } = decodedToken;
+
+  if (!email) {
+    throw new Error('GOOGLE_AUTH_MISSING_EMAIL');
+  }
+
+  // DB operations — let infra errors propagate (they are NOT auth errors)
+  let user = await UserRepository.findByEmail(email);
+
+  if (!user) {
+    user = await UserRepository.createWithWorkspace({
+      email,
+      name: name || 'Google User',
+      passwordHash: '',
+    });
+  }
+
+  const { refreshToken, csrfToken } = await createSession(user!.id, clientInfo);
+  return {
+    user: UserRepository.formatUserProfile(user),
+    refreshToken,
+    csrfToken,
+  };
 }
 
 export async function refreshToken(oldRefreshToken: string | undefined, oldCsrfToken: string | undefined, clientInfo: { ip: string; userAgent?: string }) {
@@ -155,7 +160,7 @@ export async function refreshToken(oldRefreshToken: string | undefined, oldCsrfT
       expiresAt: { gt: new Date() },
     },
     include: { user: true },
-  }).catch(() => null);
+  });
 
   if (!session) {
     throw new Error('UNAUTHORIZED');

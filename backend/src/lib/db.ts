@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import { logger } from './logger.js';
 
 const SLOW_QUERY_THRESHOLD = 1000; // 1 second
 const DATABASE_URL = process.env.DATABASE_URL ?? '';
@@ -26,9 +27,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Log slow queries
-db.$on('query', (e: any) => {
+db.$on('query', (e: Prisma.QueryEvent) => {
   if (e.duration > SLOW_QUERY_THRESHOLD) {
-    console.warn(`[SLOW QUERY] ${e.duration}ms`, {
+    logger.warn(`[SLOW QUERY] ${e.duration}ms`, {
       query: e.query,
       params: e.params,
       duration: e.duration,
@@ -62,7 +63,7 @@ export async function getPoolMetrics(): Promise<PoolMetrics> {
         count(*) FILTER (WHERE state = 'idle') as idle
       FROM pg_stat_activity 
       WHERE datname = current_database()
-    ` as any[];
+    ` as { total: string; active: string; idle: string }[];
 
     return {
       totalConnections: parseInt(result[0]?.total || '0'),
@@ -71,7 +72,7 @@ export async function getPoolMetrics(): Promise<PoolMetrics> {
       waitingClients: 0,
     };
   } catch (error) {
-    console.error('Error getting pool metrics:', error);
+    logger.error('[DB] Error getting pool metrics', error);
     return {
       totalConnections: 0,
       activeConnections: 0,

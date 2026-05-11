@@ -1,5 +1,6 @@
 import { PluggyClient, Item } from 'pluggy-sdk';
 import { db } from '../lib/db';
+import { logger } from '../lib/logger.js';
 
 const clientId = process.env.PLUGGY_CLIENT_ID;
 const clientSecret = process.env.PLUGGY_CLIENT_SECRET;
@@ -30,7 +31,7 @@ export async function getConnectToken(itemId?: string) {
     const token = await client.createConnectToken(itemId);
     return token.accessToken;
   } catch (err) {
-    console.error("Erro ao gerar Pluggy Connect Token:", err);
+    logger.error('[Pluggy] Erro ao gerar Connect Token', err);
     throw new Error("Não foi possível conectar ao provedor Open Finance.");
   }
 }
@@ -145,7 +146,7 @@ export async function syncBankConnection(itemId: string, userId: string) {
         });
 
       } catch (err) {
-        console.error(`Erro ao sincronizar transações da conta ${acc.id}:`, err);
+        logger.error(`[Pluggy] Erro ao sincronizar transações da conta ${acc.id}`, err);
         // Não quebra a sync das outras contas
       }
     }
@@ -158,7 +159,7 @@ export async function syncBankConnection(itemId: string, userId: string) {
 
     return bankConnection;
   } catch (error) {
-    console.error("Error syncing Pluggy Item:", error);
+    logger.error('[Pluggy] Error syncing Pluggy Item', error);
     throw error;
   }
 }

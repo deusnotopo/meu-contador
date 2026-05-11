@@ -36,11 +36,11 @@ export async function invalidateInvoiceCache(workspaceId: string) {
 
 // ── Mapping Helper ────────────────────────────────────────────────────────────
 
-function formatInvoice(invoice: any) {
+function formatInvoice<T extends { amount: number }>(invoice: T): T {
   return {
     ...invoice,
     amount: invoice.amount / 100,
-  };
+  } as T;
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────

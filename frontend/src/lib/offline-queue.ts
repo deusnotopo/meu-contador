@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export interface PendingTransaction {
   id: string;
   type: 'create' | 'update' | 'delete';
@@ -102,41 +104,45 @@ export async function removeFromQueue(id: string): Promise<void> {
   });
 }
 
+import { api } from './api';
+
 export async function processQueue(
   onItemProcessed?: (item: PendingTransaction, success: boolean) => void
 ): Promise<{ success: number; failed: number }> {
   const { pending } = await getQueueStatus();
-
-  // Read auth token — stored by AuthContext in localStorage
-  const token = localStorage.getItem('auth_token') ?? localStorage.getItem('token') ?? '';
 
   let success = 0;
   let failed = 0;
 
   for (const item of pending) {
     try {
-      const response = await fetch(item.endpoint, {
-        method: item.type === 'create' ? 'POST' : item.type === 'update' ? 'PUT' : 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: item.type !== 'delete' ? JSON.stringify(item.payload) : undefined,
-      });
+      if (item.type === 'create') {
+        await api.post(item.endpoint, item.payload);
+      } else if (item.type === 'update') {
+        await api.put(item.endpoint, item.payload);
+      } else {
+        await api.delete(item.endpoint);
+      }
 
-      if (response.ok || response.status === 404) {
+      await removeFromQueue(item.id);
+      success++;
+      onItemProcessed?.(item, true);
+    } catch (error) {
+      // Akita Mode: ZodError Fail Fast na infraestrutura
+      // Proteção contra payload permanentemente irremediável
+      const isZodError = error instanceof z.ZodError || (error as Error)?.name === 'ZodError';
+      const statusCode = (error as { statusCode?: number }).statusCode;
+      
+      // Se for 404 (recurso não existe mais) ou ZodError / 400 (corrupção de contrato insolúvel), descartamos
+      if (statusCode === 404 || statusCode === 400 || isZodError) {
         await removeFromQueue(item.id);
         success++;
-        onItemProcessed?.(item, true);
+        onItemProcessed?.(item, true); // True no sentido de que resolvemos o impasse (expurgado)
       } else {
         await incrementRetry(item.id);
         failed++;
         onItemProcessed?.(item, false);
       }
-    } catch {
-      await incrementRetry(item.id);
-      failed++;
-      onItemProcessed?.(item, false);
     }
   }
 

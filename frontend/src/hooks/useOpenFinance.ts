@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 export interface BankAccount {
   id: string;
@@ -44,7 +45,7 @@ export const useOpenFinance = () => {
       }
     } catch (err) {
       if (!cancelled) {
-        console.error('Error fetching bank connections:', err);
+        logger.error('[useOpenFinance] Error fetching bank connections', err);
         const message = err instanceof Error ? err.message : 'Erro ao carregar conexões bancárias';
         setError(message);
       }
@@ -74,7 +75,7 @@ export const useOpenFinance = () => {
       await fetchConnections(); // Refresh
       return true;
     } catch (err) {
-      console.error('Error syncing connection:', err);
+      logger.error('[useOpenFinance] Error syncing connection', err);
       const message = err instanceof Error ? err.message : 'Erro ao forçar sincronização';
       throw new Error(message);
     }

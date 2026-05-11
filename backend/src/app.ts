@@ -14,7 +14,8 @@ import {
 } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import dotenv from 'dotenv';
-import { db } from './lib/db';
+import { db } from './lib/db.js';
+import { getCacheValue, setCacheValue } from './lib/cache.js';
 import { transactionRoutes } from './routes/transactions';
 import { investmentRoutes } from './routes/investments';
 import { budgetRoutes } from './routes/budgets';
@@ -68,9 +69,9 @@ dotenv.config();
 // Bootstrap scheduled jobs (cron) — must run after dotenv
 startAllScheduledJobs();
 
-// âœ… VALIDAÃ‡ÃƒO OBRIGATÃ“RIA DE AMBIENTE NO BOOT
-// Fail Fast: Se qualquer variÃ¡vel obrigatÃ³ria faltar, o app NÃƒO INICIA
-// Isso evita deploy quebrado em produÃ§Ã£o com comportamento indefinido
+// ✅ VALIDAÇÃO OBRIGATÓRIA DE AMBIENTE NO BOOT
+// Fail Fast: Se qualquer variável obrigatória faltar, o app NÃO INICIA
+// Isso evita deploy quebrado em produção com comportamento indefinido
 const requiredEnvVars = [
   'DATABASE_URL',
   'JWT_SECRET',
@@ -199,7 +200,7 @@ app.register(swagger, {
   openapi: {
     info: {
       title: 'Meu Contador API',
-      description: 'DocumentaÃ§Ã£o da API do Super App de InteligÃªncia Financeira',
+      description: 'Documentação da API do Super App de Inteligência Financeira',
       version: '1.0.0-enterprise',
     },
     components: {
@@ -215,7 +216,9 @@ app.register(swagger, {
   transform: jsonSchemaTransform,
 });
 
-app.register(swaggerUi, { routePrefix: '/docs' });
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER_UI === 'true') {
+  app.register(swaggerUi, { routePrefix: '/docs' });
+}
 
 function readCookie(cookieHeader: string | undefined, name: string): string | undefined {
   if (!cookieHeader) return undefined;
@@ -228,7 +231,7 @@ app.addHook('onRequest', async (request, reply) => {
   const method = request.method.toUpperCase();
   if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return;
 
-  // Auth endpoints use their own token mechanisms â€” skip CSRF for them
+  // Auth endpoints use their own token mechanisms — skip CSRF for them
   const authOnlyPaths = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/logout', '/auth/upgrade'];
   if (authOnlyPaths.some(p => request.url === p || request.url.startsWith(p + '?'))) return;
 
@@ -270,16 +273,33 @@ app.decorate('authenticate', async (request, reply) => {
     }
 
     const userId = (request.user as { id: string }).id;
-    const user = await db.user.findFirst({ where: { id: String(userId), deletedAt: null } });
+    const cacheKey = `user:${userId}:active`;
 
-    if (!user) {
-      return reply.status(401).send({ message: 'SessÃ£o expirada' });
+    // Cache user active status for 60s to avoid N+1 DB query per request
+    let cachedUser = await getCacheValue<{ isPro: boolean }>(cacheKey);
+
+    if (!cachedUser) {
+      const user = await db.user.findFirst({
+        where: { id: String(userId), deletedAt: null },
+        select: { isPro: true },
+      });
+
+      if (!user) {
+        return reply.status(401).send({ message: 'Sessão expirada' });
+      }
+
+      cachedUser = { isPro: !!user.isPro };
+      // TTL: 60s — deleted accounts are blocked within 1 minute
+      await setCacheValue(cacheKey, cachedUser, 60_000);
     }
 
-    (request as unknown as { user: { id: string; email: string; name: string | null; isPro: boolean } }).user = { ...request.user as { id: string; email: string; name: string | null; isPro: boolean }, isPro: !!user.isPro };
+    (request as unknown as { user: { id: string; email: string; name: string | null; isPro: boolean } }).user = {
+      ...(request.user as { id: string; email: string; name: string | null; isPro: boolean }),
+      isPro: cachedUser.isPro,
+    };
   } catch (err) {
     app.log.warn({ event: 'authenticate error', errorName: (err as Error | undefined)?.name });
-    return reply.status(401).send({ message: 'SessÃ£o expirada' });
+    return reply.status(401).send({ message: 'Sessão expirada' });
   }
 });
 

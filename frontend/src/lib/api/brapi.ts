@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 const BASE_URL = "https://brapi.dev/api";
 
 export interface StockQuote {
@@ -25,7 +27,7 @@ export const getStockQuote = async (
       shortName: result.shortName,
     };
   } catch (error) {
-    console.error(`Erro ao buscar cotação para ${ticker}:`, error);
+    logger.error(`[BRAPI] Quote fetch failed for ${ticker}`, error);
     return null;
   }
 };

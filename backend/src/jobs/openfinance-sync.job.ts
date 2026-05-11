@@ -1,12 +1,13 @@
 import { createQueue, createWorker } from '../lib/queue';
 import { runOpenFinanceSync } from '../workers/openFinance-sync';
+import { logger } from '../lib/logger.js';
 
 const QUEUE_NAME = 'openfinance-sync';
 
 export const openFinanceQueue = createQueue(QUEUE_NAME);
 
 export const openFinanceWorker = createWorker(QUEUE_NAME, async (job) => {
-  console.log(`[Job] Processing ${job.name}...`);
+  logger.info(`[Job] Processing ${job.name}...`);
   
   if (job.name === 'sync-connections') {
     return await runOpenFinanceSync();
@@ -23,5 +24,5 @@ export async function startOpenFinanceSyncJob() {
     }
   );
 
-  console.log('🔄 Open Finance sync job scheduled (every 6 hours)');
+  logger.info('[Job] Open Finance sync job scheduled (every 6 hours)');
 }

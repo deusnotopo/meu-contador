@@ -1,12 +1,13 @@
 import { createQueue, createWorker } from '../lib/queue';
 import { checkBudgetsAndGoals, runSensitiveDataPurge } from '../workers/notifier';
+import { logger } from '../lib/logger.js';
 
 const QUEUE_NAME = 'notifications';
 
 export const notificationsQueue = createQueue(QUEUE_NAME);
 
 export const notificationsWorker = createWorker(QUEUE_NAME, async (job) => {
-  console.log(`[Job] Processing ${job.name}...`);
+  logger.info(`[Job] Processing ${job.name}...`);
   
   if (job.name === 'daily-alerts') {
     await checkBudgetsAndGoals();
@@ -37,5 +38,5 @@ export async function startNotificationsJob() {
     }
   );
 
-  console.log('📢 Notifications jobs scheduled');
+  logger.info('[Job] Notifications jobs scheduled');
 }

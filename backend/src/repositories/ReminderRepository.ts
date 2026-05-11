@@ -6,6 +6,7 @@
 
 import { db } from '../lib/db.js';
 import { deleteCacheByPrefix } from '../lib/cache.js';
+import type { Prisma } from '@prisma/client';
 
 export interface ReminderCreateData {
   userId: string;
@@ -38,11 +39,11 @@ export async function invalidateReminderCache(userId: string) {
 
 // ── Mapping Helper ────────────────────────────────────────────────────────────
 
-function formatReminder(reminder: any) {
+function formatReminder<T extends { amount: number }>(reminder: T): T {
   return {
     ...reminder,
     amount: reminder.amount / 100,
-  };
+  } as T;
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -62,18 +63,18 @@ export async function findOne(id: string, userId: string) {
   return reminder ? formatReminder(reminder) : null;
 }
 
-export async function createOne(data: ReminderCreateData, tx?: any) {
+export async function createOne(data: ReminderCreateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const reminder = await client.billReminder.create({ data });
   return formatReminder(reminder);
 }
 
-export async function createMany(data: ReminderCreateData[], tx?: any) {
+export async function createMany(data: ReminderCreateData[], tx?: Prisma.TransactionClient) {
   const client = tx || db;
   return client.billReminder.createMany({ data });
 }
 
-export async function updateOne(id: string, userId: string, data: ReminderUpdateData, tx?: any) {
+export async function updateOne(id: string, userId: string, data: ReminderUpdateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const reminder = await client.billReminder.update({
     where: { id },
@@ -82,7 +83,7 @@ export async function updateOne(id: string, userId: string, data: ReminderUpdate
   return formatReminder(reminder);
 }
 
-export async function softDeleteOne(id: string, userId: string, tx?: any): Promise<boolean> {
+export async function softDeleteOne(id: string, userId: string, tx?: Prisma.TransactionClient): Promise<boolean> {
   const client = tx || db;
   const result = await client.billReminder.updateMany({
     where: { id, userId, deletedAt: null },

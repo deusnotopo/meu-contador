@@ -42,11 +42,12 @@ export async function businessRoutes(app: FastifyInstance) {
     try {
       const data = await BusinessService.getCompanyByCnpj(cnpj);
       return data;
-    } catch (error: any) {
-      if (error.message === 'CNPJ_NOT_FOUND') {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      if (msg === 'CNPJ_NOT_FOUND') {
         return reply.status(404).send({ message: 'CNPJ não encontrado' });
       }
-      if (error.message === 'CNPJ inválido') {
+      if (msg === 'CNPJ inválido') {
         return reply.status(400).send({ message: 'CNPJ inválido' });
       }
       

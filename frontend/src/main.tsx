@@ -87,7 +87,7 @@ if (!isDev && 'serviceWorker' in navigator) {
         });
       })
       .catch((error) => {
-        console.error('SW Registration failed:', error);
+        logger.error('[SW] Registration failed', error);
       });
   });
 }

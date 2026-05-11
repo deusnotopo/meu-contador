@@ -7,6 +7,7 @@
 
 import { db } from '../lib/db.js';
 import { deleteCacheByPrefix, getCacheValue, setCacheValue } from '../lib/cache.js';
+import type { Prisma } from '@prisma/client';
 
 export interface TransactionFindManyOptions {
   userId: string;
@@ -129,24 +130,24 @@ export async function findOneBelongingTo(id: string, userId: string) {
   return tx ? formatTransaction(tx) : null;
 }
 
-export async function createOne(data: TransactionCreateData, tx?: any) {
+export async function createOne(data: TransactionCreateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const createdTx = await client.transaction.create({ data });
   return formatTransaction(createdTx);
 }
 
-export async function createMany(data: TransactionCreateData[], tx?: any) {
+export async function createMany(data: TransactionCreateData[], tx?: Prisma.TransactionClient) {
   const client = tx || db;
   return client.transaction.createMany({ data });
 }
 
-export async function updateOne(id: string, data: TransactionUpdateData, tx?: any) {
+export async function updateOne(id: string, data: TransactionUpdateData, tx?: Prisma.TransactionClient) {
   const client = tx || db;
   const updatedTx = await client.transaction.update({ where: { id }, data });
   return formatTransaction(updatedTx);
 }
 
-export async function softDeleteOne(id: string, userId: string, tx?: any): Promise<boolean> {
+export async function softDeleteOne(id: string, userId: string, tx?: Prisma.TransactionClient): Promise<boolean> {
   const client = tx || db;
   const result = await client.transaction.updateMany({
     where: { id, userId, deletedAt: null },

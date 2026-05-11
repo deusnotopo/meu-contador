@@ -189,9 +189,10 @@ const AllocationGapBar = ({ type, actual, ideal }: { type: string; actual: numbe
 
 export const InvestmentIntelligence = () => {
   const { assets } = useInvestments();
-  const currencyCtx = useCurrency();
-  const convert = currencyCtx?.convert || ((v: number) => v);
   const [expanded, setExpanded] = useState(false);
+  const currencyCtx = useCurrency();
+  const convertFn = currencyCtx?.convert;
+  const convert = useMemo(() => convertFn || ((v: number) => v), [convertFn]);
 
   const analysis = useMemo(() => {
     if (!assets.length) return null;

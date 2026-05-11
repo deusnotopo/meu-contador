@@ -23,7 +23,7 @@ export type VerificationResult =
  * Validates the authenticity of an incoming webhook.
  */
 export function verify(
-  payload: any,
+  payload: unknown,
   headers: WebhookHeaders,
   options: {
     sharedSecret?: string;
@@ -73,7 +73,7 @@ function safeCompare(a: string, b: string): boolean {
   return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
 
-function stableStringify(value: any): string {
+function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(',')}]`;
   }

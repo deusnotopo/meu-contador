@@ -5,9 +5,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useInvoices } from "@/hooks/useInvoices";
 import { motion, AnimatePresence } from "framer-motion";
-
 import {
-  EDUCATION_MODULES,
   ACADEMY_RITUALS,
   AULAS_TRILHAS,
   getLessonDependencyInfo,
@@ -67,7 +65,16 @@ export const EducationSection = ({
   const { assets } = useInvestments();
   const { invoices } = useInvoices();
 
-  const [ritualChecked, setRitualChecked] = useState<Record<string, Record<number, boolean>>>({});
+  const RITUALS_STORAGE_KEY = `mc_ritual_checked_${user?.id ?? 'anon'}`;
+
+  const [ritualChecked, setRitualChecked] = useState<Record<string, Record<number, boolean>>>(() => {
+    try {
+      const raw = localStorage.getItem(RITUALS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const educationProfile = useMemo(
     () => ({
@@ -86,13 +93,13 @@ export const EducationSection = ({
     state, error, isLoading, completeModule, saveLessonProgress,
     isModuleCompleted, getModuleProgress, getNextRecommendedLesson,
     getContextualRecommendation, getJourneyStage, getProgressPct,
-    getReviewRecommendation, getMaturityRoadmap, isSyncing, forceSync,
+    getReviewRecommendation, maturityRoadmap, isSyncing, forceSync, modules
   } = useEducation();
 
   const filteredLessons = (
     activeTrilha === "todas"
-      ? EDUCATION_MODULES
-      : EDUCATION_MODULES.filter((l) => l.trilha === activeTrilha)
+      ? modules
+      : modules.filter((l) => l.trilha === activeTrilha)
   ).filter(
     (l) =>
       !searchQuery ||
@@ -104,11 +111,9 @@ export const EducationSection = ({
   const contextualRecommendation = getContextualRecommendation();
   const reviewRecommendation = getReviewRecommendation();
   const journeyStage = getJourneyStage();
-  const progressPct = getProgressPct();
-  const maturityRoadmap = getMaturityRoadmap();
-
-  const doneCount = EDUCATION_MODULES.filter((l) => isModuleCompleted(l.id)).length;
-  const totalCount = EDUCATION_MODULES.length;
+  const progressPct = getProgressPct(primaryTrailId);
+  const doneCount = modules.filter((l) => isModuleCompleted(l.id)).length;
+  const totalCount = modules.length;
   const streak = state.streak || 0;
   const xp = state.xp || 0;
   const primaryTrail = AULAS_TRILHAS.find((t) => t.id === primaryTrailId);
@@ -116,8 +121,8 @@ export const EducationSection = ({
 
   const dynamicAchievements = useMemo(() => {
     const completedIds = new Set(state.completedModules);
-    const completedTrails = new Set(EDUCATION_MODULES.filter((l) => completedIds.has(l.id)).map((l) => l.trilha));
-    const allOf = (trail: string) => EDUCATION_MODULES.filter((l) => l.trilha === trail).every((l) => completedIds.has(l.id));
+    const completedTrails = new Set(modules.filter((l) => completedIds.has(l.id)).map((l) => l.trilha));
+    const allOf = (trail: string) => modules.filter((l) => l.trilha === trail).every((l) => completedIds.has(l.id));
     return [
       { emoji: "🇧🇷", nome: "Sobrevivente do Serasa", desc: "Trilha Sobrevivência", ok: completedTrails.has("start") && allOf("start") },
       { emoji: "🏗️", nome: "Fundador de Base", desc: "Trilha Fundamentos", ok: completedTrails.has("base") && allOf("base") },
@@ -136,7 +141,7 @@ export const EducationSection = ({
       { emoji: "🔥", nome: "Streak de Ouro", desc: "30+ dias consecutivos", ok: (state.streak || 0) >= 30 },
     ];
   // Deps: apenas as fontes primárias — state.xp / state.streak não duplicadas com variáveis locais
-  }, [doneCount, state.completedModules, state.xp, state.streak, totalCount]);
+  }, [doneCount, state.completedModules, state.xp, state.streak, totalCount, modules]);
 
   const weeklyMission = useMemo(() => {
     // ── Nível 1: CRISE (Saldo ou Fluxo Negativo) ──
@@ -206,7 +211,7 @@ export const EducationSection = ({
     onNavigate?.(tab as TabType);
   };
 
-  const activeLesson = EDUCATION_MODULES.find((m) => m.id === activeLessonId);
+  const activeLesson = modules.find((m) => m.id === activeLessonId);
 
   const updateLessonViewSettings = (partial: Partial<LessonViewSettings>) => {
     setLessonViewSettings((prev) => {
@@ -216,6 +221,10 @@ export const EducationSection = ({
     });
   };
 
+  const activeLessonIndex = activeLesson ? modules.findIndex((m) => m.id === activeLesson.id) : -1;
+  const previousLessonTitle = activeLessonIndex > 0 ? modules[activeLessonIndex - 1]?.title ?? null : null;
+  const nextLessonTitle = activeLessonIndex >= 0 && activeLessonIndex < modules.length - 1 ? modules[activeLessonIndex + 1]?.title ?? null : null;
+
   // ── LESSON VIEW ────────────────────────────────────────────────────────
   if (activeLesson) {
     return (
@@ -223,6 +232,8 @@ export const EducationSection = ({
         lesson={activeLesson}
         initialCompletedSteps={getModuleProgress(activeLesson.id).completedSteps}
         checkpointLabel={getModuleProgress(activeLesson.id).checkpointLabel}
+        previousLessonTitle={previousLessonTitle}
+        nextLessonTitle={nextLessonTitle}
         focusMode={lessonViewSettings.focusMode}
         expandGuideByDefault={lessonViewSettings.expandGuideByDefault}
         onSettingsChange={updateLessonViewSettings}
@@ -360,34 +371,16 @@ export const EducationSection = ({
         </div>
       </motion.div>
 
-      <motion.div variants={item}>
-        <div className="flex flex-wrap gap-2 items-center rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Configurações da aula</span>
-          <button
-            onClick={() => updateLessonViewSettings({ focusMode: !lessonViewSettings.focusMode })}
-            className={`px-3 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${lessonViewSettings.focusMode ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" : "bg-white/[0.03] text-white/55 border-white/10"}`}
-          >
-            {lessonViewSettings.focusMode ? "Modo foco ligado" : "Modo foco desligado"}
-          </button>
-          <button
-            onClick={() => updateLessonViewSettings({ expandGuideByDefault: !lessonViewSettings.expandGuideByDefault })}
-            className={`px-3 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${lessonViewSettings.expandGuideByDefault ? "bg-blue-500/15 text-blue-300 border-blue-500/30" : "bg-white/[0.03] text-white/55 border-white/10"}`}
-          >
-            {lessonViewSettings.expandGuideByDefault ? "Guia aberto por padrão" : "Guia fechado por padrão"}
-          </button>
-        </div>
-      </motion.div>
 
       <AnimatePresence mode="wait">
 
         {/* ══ HOME (Bento Grid) ═══════════════════════════════════════════ */}
         {activeSection === "home" && (
-          <motion.div key="home" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
-            className="grid grid-cols-6 gap-4">
+          <motion.div key="home" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="grid grid-cols-1 md:grid-cols-6 gap-4">
 
-            {/* MAIN RECOMMENDATION (Primary Bento) */}
-            {topRecommendation && (
-              <div className="card-obsidian col-span-6 md:col-span-4 relative overflow-hidden rounded-[2.5rem] p-8 border border-indigo-500/20 group shadow-2xl">
+            {topRecommendation ? (
+              <div className="card-obsidian col-span-full md:col-span-4 relative overflow-hidden rounded-[2.5rem] p-8 border border-indigo-500/20 group shadow-2xl">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 blur-[90px] rounded-full pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-1000" />
                 <div className="absolute bottom-[-100px] left-[-100px] w-60 h-60 bg-blue-600/5 blur-[80px] rounded-full pointer-events-none" />
                 
@@ -402,17 +395,25 @@ export const EducationSection = ({
                   </p>
                   <button
                     onClick={() => setActiveLessonId(topRecommendation.id ?? null)}
-                    className="flex items-center gap-3 bg-white text-black text-[11px] font-black uppercase tracking-widest px-10 py-4.5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl"
+                    className="flex items-center gap-3 bg-white text-black text-[11px] font-black uppercase tracking-widest px-10 py-[18px] rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl"
                   >
                     {contextualRecommendation.reason ? 'Continuar Jornada' : "Iniciar Jornada"}
                     <ChevronRight size={18} />
                   </button>
                 </div>
               </div>
+            ) : (
+              <div className="card-obsidian col-span-full md:col-span-4 relative overflow-hidden rounded-[2.5rem] p-8 border border-emerald-500/20 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-4xl mb-3">🎓</div>
+                  <div className="text-xl font-black text-white mb-2">Todas as aulas concluídas!</div>
+                  <p className="text-sm text-white/50">Parabéns! Continue revisando os conteúdos na Biblioteca.</p>
+                </div>
+              </div>
             )}
 
             {/* WEEKLY MISSION (Contextual Bento) */}
-            <div className={`col-span-6 md:col-span-2 relative overflow-hidden rounded-[2.5rem] p-8 border group transition-all duration-500 flex flex-col justify-center ${
+            <div className={`col-span-full md:col-span-2 relative overflow-hidden rounded-[2.5rem] p-8 border group transition-all duration-500 flex flex-col justify-center ${
               weeklyMission.type === "crisis" ? "border-red-500/40 bg-red-500/[0.04] shadow-[0_0_40px_rgba(239,68,68,0.05)]" :
               weeklyMission.type === "debt" ? "border-amber-500/40 bg-amber-500/[0.04] shadow-[0_0_40px_rgba(245,158,11,0.05)]" :
               "border-indigo-500/40 bg-indigo-500/[0.04] shadow-[0_0_40px_rgba(99,102,241,0.05)]"
@@ -483,13 +484,13 @@ export const EducationSection = ({
                   </button>
                 </div>
 
-                <div className="col-span-6 md:col-span-3 rounded-[2.2rem] p-7 border border-white/8 bg-white/[0.02] flex flex-col group">
+                <div className="col-span-full md:col-span-3 rounded-[2.2rem] p-7 border border-white/[0.08] bg-white/[0.02] flex flex-col group">
                    <div className="flex items-center gap-2 mb-6">
                     <Map size={16} className="text-blue-400" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Roadmap de Maturidade</span>
                   </div>
                   <div className="space-y-4 flex-1">
-                    {maturityRoadmap.slice(0, 4).map((stage) => (
+                    {maturityRoadmap.slice(0, 4).map((stage: { id: string; title: string; progressPct: number }) => (
                       <div key={stage.id} className="relative">
                         <div className="flex justify-between items-end mb-1.5 px-1">
                           <div className="text-[10px] font-black text-white/70 uppercase tracking-tight">{stage.title}</div>
@@ -509,7 +510,7 @@ export const EducationSection = ({
                 </div>
               </>
             ) : (
-                <div className="col-span-6 rounded-[2.2rem] p-8 border border-white/8 bg-white/[0.02] relative overflow-hidden">
+                <div className="col-span-full rounded-[2.2rem] p-8 border border-white/[0.08] bg-white/[0.02] relative overflow-hidden">
                   <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full" />
                    <div className="flex items-center gap-3 mb-8">
                     <Map size={18} className="text-emerald-400" />
@@ -519,7 +520,7 @@ export const EducationSection = ({
                     </div>
                   </div>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                    {maturityRoadmap.map((stage) => (
+                    {maturityRoadmap.map((stage: { id: string; title: string; progressPct: number }) => (
                       <div key={stage.id} className="relative">
                         <div className="flex justify-between items-end mb-2 px-1">
                           <div className="text-[11px] font-black text-white/50 uppercase tracking-tight">{stage.title}</div>
@@ -590,7 +591,7 @@ export const EducationSection = ({
               {filteredLessons.map((l) => {
                 const mp = getModuleProgress(l.id);
                 const isCompleted = isModuleCompleted(l.id);
-                const depInfo = getLessonDependencyInfo(l.id);
+                const depInfo = getLessonDependencyInfo(modules, l.id);
                 const hardDepIds = depInfo.hardPrerequisites.filter((x: string) => x.startsWith("lesson:")).map((x: string) => x.replace("lesson:", ""));
                 const missingDeps = hardDepIds.filter((id: string) => !isModuleCompleted(id));
                 const isLocked = !isCompleted && missingDeps.length > 0;
@@ -683,9 +684,9 @@ export const EducationSection = ({
         {activeSection === "achievements" && (
           <motion.div key="achievements" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {dynamicAchievements.map((a, i) => (
+              {dynamicAchievements.map((a) => (
                 <div
-                  key={i}
+                  key={a.nome}
                   className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
                     a.ok ? "border-amber-500/25 bg-amber-500/[0.06]" : "border-white/5 bg-white/[0.02] opacity-50"
                   }`}
@@ -742,7 +743,11 @@ export const EducationSection = ({
                         onClick={() => {
                           const next = !checkedItems[idx];
                           trackEvent(analyticsEvents.EDUCATION_RITUAL_CHECK, { ritual_id: ritual.id, checklist_index: idx, checked: next });
-                          setRitualChecked((prev) => ({ ...prev, [ritual.id]: { ...prev[ritual.id], [idx]: next } }));
+                          setRitualChecked((prev) => {
+                            const updated = { ...prev, [ritual.id]: { ...prev[ritual.id], [idx]: next } };
+                            try { localStorage.setItem(RITUALS_STORAGE_KEY, JSON.stringify(updated)); } catch { /* quota */ }
+                            return updated;
+                          });
                         }}
                         className="flex items-start gap-3 cursor-pointer group"
                       >

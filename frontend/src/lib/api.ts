@@ -1,8 +1,11 @@
 import { logger } from './logger';
 import { z } from 'zod';
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://meu-contador-iyut.onrender.com');
-const DEFAULT_TIMEOUT = 20000;
+// Em DEV usamos path relativo ('/api') para que o proxy do Vite encaminhe
+// a requisição e envie os cookies HttpOnly corretamente (same-origin).
+// backend independente ou /api se estiver via proxy/mesmo domínio.
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+const DEFAULT_TIMEOUT = 12000; // 12s: fail fast > 20s de tela travada
 const RETRY_DELAY = 1500;
 
 type AuthSnapshot = {
@@ -81,12 +84,22 @@ async function tryRefreshSession() {
   refreshPromise = (async () => {
     try {
       const res = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
-      if (!res.ok) { clearAuthSession(); return false; }
+      if (!res.ok) {
+        logger.warn('[API] Refresh session failed, clearing auth state.');
+        clearAuthSession();
+        return false;
+      }
       const data = await res.json().catch(() => null);
       authSnapshot = { csrfToken: data?.csrfToken || authSnapshot.csrfToken, isAuthenticated: true };
       emitAuthSnapshot();
       return true;
-    } finally { refreshPromise = null; }
+    } catch (err) {
+      logger.warn('[API] tryRefreshSession threw', err);
+      clearAuthSession();
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
   })();
   return refreshPromise;
 }
@@ -97,7 +110,7 @@ interface RequestOptions extends RequestInit {
   schema?: z.ZodType<unknown>;
 }
 
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+async function _doRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const method = (options.method || 'GET').toUpperCase();
   const timeout = options.timeout || DEFAULT_TIMEOUT;
   let attempt = 0;
@@ -122,7 +135,12 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   while (attempt <= maxRetries) {
     try {
+      const start = performance.now();
       let response = await executeRequest();
+      const duration = performance.now() - start;
+      if (duration > 5000) {
+        logger.warn(`[TELEMETRIA] API lenta detectada: ${endpoint} levou ${Math.round(duration)}ms`);
+      }
 
       // Handle 401 Refresh logic
       if (response.status === 401 && attempt === 0) {
@@ -142,29 +160,67 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       
       const data = await response.json();
       
-      // Validation Stage (Akita Mode)
+      // Validation Stage (Akita Mode) Strict Fail Fast
       if (options.schema) {
-        try {
-          return options.schema.parse(data) as T;
-        } catch (zodError) {
-          logger.error(`[API-VALIDATION-ERROR] ${endpoint}`, zodError);
-          throw zodError; 
+        const result = options.schema.safeParse(data);
+        if (!result.success) {
+          logger.error(`[API-VALIDATION-ERROR] ${endpoint}`, result.error);
+          throw result.error; // Akita Mode: Fail fast para que o ErrorBoundary segure a bronca.
         }
+        return result.data as T;
       }
 
       return data as T;
     } catch (error: unknown) {
-      const isNetworkError = (error instanceof Error && (error.message?.toLowerCase().includes('fetch') || error.name === 'TimeoutError'));
-      if (isNetworkError && attempt < maxRetries) {
+      const status = error instanceof ApiRequestError ? error.status : 0;
+      const isNetworkError = error instanceof Error && (
+        error.message?.toLowerCase().includes('fetch') ||
+        error.name === 'TimeoutError' ||
+        error.name === 'AbortError'
+      );
+      const isGatewayError = [502, 503, 504].includes(status);
+
+      if ((isNetworkError || isGatewayError) && attempt < maxRetries) {
         attempt++;
-        logger.warn(`API Retry ${attempt}/${maxRetries} for ${endpoint} due to network failure.`);
-        await new Promise(r => setTimeout(r, RETRY_DELAY));
+        const backoff = RETRY_DELAY * Math.pow(2, attempt - 1); // Exponencial: 1.5s, 3s, 6s...
+        logger.warn(`API Retry ${attempt}/${maxRetries} for ${endpoint} (backoff ${backoff}ms).`);
+        await new Promise(r => setTimeout(r, backoff));
         continue;
       }
       throw error;
     }
   }
   throw new Error('Unreachable');
+}
+
+const inflightPromises = new Map<string, Promise<any>>();
+
+async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  
+  // Apenas deduplica requisições GET
+  if (method !== 'GET') {
+    return _doRequest<T>(endpoint, options);
+  }
+
+  // Permite ignorar o cache usando timeout custom ou headers especificos, 
+  // mas como padrão deduplica endpoint exatos.
+  const cacheKey = endpoint;
+
+  if (inflightPromises.has(cacheKey)) {
+    return inflightPromises.get(cacheKey) as Promise<T>;
+  }
+
+  const promise = _doRequest<T>(endpoint, options);
+  inflightPromises.set(cacheKey, promise);
+
+  promise.finally(() => {
+    if (inflightPromises.get(cacheKey) === promise) {
+      inflightPromises.delete(cacheKey);
+    }
+  });
+
+  return promise;
 }
 
 export const api = {
@@ -185,4 +241,45 @@ export const api = {
     body: body instanceof FormData ? body : JSON.stringify(body),
   }),
   delete: <T>(endpoint: string, opts: RequestOptions = {}) => request<T>(endpoint, { ...opts, method: 'DELETE' }),
+  stream: async function* (endpoint: string, body: unknown, opts: RequestOptions = {}): AsyncGenerator<string, void, unknown> {
+    const headers = new Headers(opts.headers || {});
+    if (!(body instanceof FormData) && !headers.has('Content-Type') && body !== undefined) {
+      headers.set('Content-Type', 'application/json');
+    }
+    if (authSnapshot.csrfToken) {
+      headers.set('X-CSRF-Token', authSnapshot.csrfToken);
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...opts,
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      let errorData: ApiErrorPayload = {};
+      try {
+        errorData = await response.json();
+      } catch {
+        // empty
+      }
+      if (response.status === 401) clearAuthSession();
+      throw new ApiRequestError(errorData.message || getDefaultErrorMessage(response.status), response.status, errorData.code);
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is missing para streaming');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      yield decoder.decode(value, { stream: true });
+    }
+  },
 };

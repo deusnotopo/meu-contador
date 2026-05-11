@@ -1,4 +1,5 @@
 import { db } from './db';
+import { logger } from './logger.js';
 
 // Feature flag types
 export interface FeatureFlag {
@@ -9,7 +10,7 @@ export interface FeatureFlag {
   rolloutPercentage: number;
   userWhitelist: string[];
   userBlacklist: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,7 +19,7 @@ export interface FeatureFlagEvaluation {
   flagName: string;
   enabled: boolean;
   reason: 'default' | 'rollout' | 'whitelist' | 'blacklist' | 'disabled';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // In-memory cache for feature flags
@@ -117,9 +118,9 @@ export async function initializeFeatureFlags() {
       `;
     }
 
-    console.log('✅ Feature flags initialized');
+    logger.info('[FeatureFlags] Feature flags initialized');
   } catch (error) {
-    console.error('❌ Failed to initialize feature flags:', error);
+    logger.error('[FeatureFlags] Failed to initialize feature flags', error);
   }
 }
 
@@ -156,7 +157,7 @@ async function loadFeatureFlags(): Promise<Map<string, FeatureFlag>> {
 
     return featureFlagsCache;
   } catch (error) {
-    console.error('Failed to load feature flags:', error);
+    logger.error('[FeatureFlags] Failed to load feature flags', error);
     return featureFlagsCache;
   }
 }
@@ -165,7 +166,7 @@ async function loadFeatureFlags(): Promise<Map<string, FeatureFlag>> {
 export async function evaluateFeatureFlag(
   flagName: string,
   userId?: string,
-  userAttributes?: Record<string, any>
+  userAttributes?: Record<string, unknown>
 ): Promise<FeatureFlagEvaluation> {
   const flags = await loadFeatureFlags();
   const flag = flags.get(flagName);
@@ -264,7 +265,7 @@ export async function evaluateFeatureFlag(
 export async function isFeatureEnabled(
   flagName: string,
   userId?: string,
-  userAttributes?: Record<string, any>
+  userAttributes?: Record<string, unknown>
 ): Promise<boolean> {
   const evaluation = await evaluateFeatureFlag(flagName, userId, userAttributes);
   return evaluation.enabled;
@@ -339,7 +340,7 @@ export async function deleteFeatureFlag(flagName: string): Promise<boolean> {
     
     return true;
   } catch (error) {
-    console.error('Failed to delete feature flag:', error);
+    logger.error('[FeatureFlags] Failed to delete feature flag', error);
     return false;
   }
 }
@@ -359,7 +360,7 @@ export async function addToWhitelist(flagName: string, userId: string): Promise<
     
     return true;
   } catch (error) {
-    console.error('Failed to add to whitelist:', error);
+    logger.error('[FeatureFlags] Failed to add to whitelist', error);
     return false;
   }
 }
@@ -383,7 +384,7 @@ export async function removeFromWhitelist(flagName: string, userId: string): Pro
     
     return true;
   } catch (error) {
-    console.error('Failed to remove from whitelist:', error);
+    logger.error('[FeatureFlags] Failed to remove from whitelist', error);
     return false;
   }
 }
@@ -403,7 +404,7 @@ export async function addToBlacklist(flagName: string, userId: string): Promise<
     
     return true;
   } catch (error) {
-    console.error('Failed to add to blacklist:', error);
+    logger.error('[FeatureFlags] Failed to add to blacklist', error);
     return false;
   }
 }
@@ -427,7 +428,7 @@ export async function removeFromBlacklist(flagName: string, userId: string): Pro
     
     return true;
   } catch (error) {
-    console.error('Failed to remove from blacklist:', error);
+    logger.error('[FeatureFlags] Failed to remove from blacklist', error);
     return false;
   }
 }

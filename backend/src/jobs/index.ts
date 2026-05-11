@@ -3,14 +3,16 @@ import { startNotificationsJob } from './notifications.job';
 import { startOpenFinanceSyncJob } from './openfinance-sync.job';
 import { startReconciliationJob } from './reconciliation.job';
 import { startBackupJob } from './backup.job';
+import { startMarketSyncJob } from './market-sync.job.js';
+import { logger } from '../lib/logger.js';
 
 export async function startAllJobs() {
   if (!isQueueAvailable()) {
-    console.log('ℹ️ Redis não configurado — jobs BullMQ desabilitados (app funciona sem eles)');
+    logger.info('[Jobs] Redis não configurado — jobs BullMQ desabilitados (app funciona sem eles)');
     return;
   }
 
-  console.log('🚀 Inicializando infraestrutura de Filas BullMQ...');
+  logger.info('[Jobs] Inicializando infraestrutura de Filas BullMQ...');
   
   try {
     await Promise.all([
@@ -18,10 +20,11 @@ export async function startAllJobs() {
       startOpenFinanceSyncJob(),
       startReconciliationJob(),
       startBackupJob(),
+      startMarketSyncJob(),
     ]);
     
-    console.log('✅ Todos os jobs BullMQ foram agendados com sucesso.');
+    logger.info('[Jobs] Todos os jobs BullMQ foram agendados com sucesso.');
   } catch (error) {
-    console.error('❌ Falha ao inicializar jobs BullMQ:', error);
+    logger.error('[Jobs] Falha ao inicializar jobs BullMQ', error);
   }
 }

@@ -18,14 +18,14 @@ describe('BudgetService Math Engine', () => {
     const budgets = [
       { category: 'A', limit: 1000, spent: 0 },
       { category: 'B', limit: 2000, spent: 0 },
-    ] as any;
+    ] as unknown as Parameters<typeof BudgetService.calculateRTA>[1];
     // 5000 - 3000 = 2000 remaining to assign
     expect(BudgetService.calculateRTA(totalIncome, budgets)).toBe(2000);
   });
 
   it('should handle zero or negative RTA', () => {
     const totalIncome = 3000;
-    const budgets = [{ category: 'A', limit: 4000, spent: 0 }] as any;
+    const budgets = [{ category: 'A', limit: 4000, spent: 0 }] as unknown as Parameters<typeof BudgetService.calculateRTA>[1];
     expect(BudgetService.calculateRTA(totalIncome, budgets)).toBe(-1000);
   });
 
